@@ -1,0 +1,17 @@
+# Deny all direct HTTP access to this directory and everything inside it.
+# Documents, reports, and logs must only ever be served through the
+# authenticated PHP endpoints (documents_api.php, reports_api.php) — never
+# directly by the web server. This file has no effect on PHP's own
+# filesystem access (readfile(), file_put_contents(), etc.), only on
+# requests that come in over HTTP.
+
+# Apache 2.4+
+<IfModule mod_authz_core.c>
+    Require all denied
+</IfModule>
+
+# Apache 2.2 and earlier
+<IfModule !mod_authz_core.c>
+    Order allow,deny
+    Deny from all
+</IfModule>

@@ -1,0 +1,7 @@
+config.local.php
+storage/prism.sqlite
+storage/mail.log
+storage/documents/*
+storage/reports/*
+!storage/documents/.gitkeep
+!storage/reports/.gitkeep
