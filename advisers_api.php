@@ -13,7 +13,7 @@ function row_to_adviser(array $r): array
 {
     return [
         'id' => (int)$r['id'],
-        'employeeId' => $r['employee_id'],
+        '   ' => $r['employee_id'],
         'name' => $r['full_name'],
         'email' => $r['email'],
         'department' => $r['department'],
@@ -41,9 +41,6 @@ if ($action === 'save') {
 
     if ($employeeId === '' || $name === '' || !filter_var($email, FILTER_VALIDATE_EMAIL)) {
         json_out(['ok' => false, 'message' => 'Employee ID, name, and a valid email are required.'], 422);
-    }
-    if (!is_allowed_email_domain($email)) {
-        json_out(['ok' => false, 'message' => 'Only ' . allowed_email_domains_hint() . ' email addresses are allowed.'], 422);
     }
     if ($id === 0) {
         $collision = $pdo->prepare('SELECT role FROM users WHERE (email = :e OR username = :u) AND role != "adviser"');
