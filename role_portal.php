@@ -25,6 +25,7 @@ $identityKey = hash('sha256', $portalRole . '|' . $userId);
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.6.0/css/all.min.css">
 </head>
 <body data-portal-key="<?php echo htmlspecialchars($identityKey, ENT_QUOTES); ?>" data-role="<?php echo htmlspecialchars($portalRole, ENT_QUOTES); ?>" data-name="<?php echo htmlspecialchars($userName, ENT_QUOTES); ?>" data-email="<?php echo htmlspecialchars($userEmail, ENT_QUOTES); ?>">
+<script>window.PRISM_STAGE_LABELS = <?php echo json_encode(stage_labels_map()); ?>;</script>
 <nav class="portal-navbar" aria-label="Portal navigation">
     <button class="portal-brand" type="button" data-go="dashboard" aria-label="PRISM dashboard"><img src="assets/images/prismlogo1.png?v=2" alt="PRISM Logo"></button>
     <ul class="portal-nav-links" id="portalNav">
@@ -59,7 +60,7 @@ $identityKey = hash('sha256', $portalRole . '|' . $userId);
         </section>
 
         <section class="portal-page" data-section="progress">
-            <div class="progress-summary panel"><div><span>Current official stage</span><h2 id="currentStage">Stage 1 — Initial Submission</h2><p>Official status is managed by RPMS/IERB and cannot be changed from this portal.</p></div><div class="progress-ring" id="progressRing"><b>20%</b></div></div>
+            <div class="progress-summary panel"><div><span>Current official stage</span><h2 id="currentStage">Stage 1 — Initial Submission</h2><p>Official status is managed by RPMS/IERB and cannot be changed from this portal.</p><button type="button" id="principalIndicator" class="principal-indicator" hidden><i class="fa-solid fa-award"></i> Principal Investigator <i class="fa-solid fa-chevron-down"></i></button><div id="protocolCodeReveal" class="protocol-reveal" hidden></div></div><div class="progress-ring" id="progressRing"><b>20%</b></div></div>
             <div class="stage-list" id="stageList"></div>
             <div class="portal-two-col requirement-panels"><article class="panel"><div class="panel-head"><h2>Completed requirements</h2></div><div id="completedRequirements"></div></article><article class="panel"><div class="panel-head"><h2>Pending requirements</h2></div><div id="pendingRequirements"></div></article></div>
             <article class="panel"><div class="panel-head"><h2>Progress history &amp; remarks</h2></div><div id="progressHistory"></div></article>
@@ -70,6 +71,7 @@ $identityKey = hash('sha256', $portalRole . '|' . $userId);
         </section>
 
         <section class="portal-page" data-section="documents">
+            <div id="protocolCodeCard" class="protocol-code-card" hidden><i class="fa-solid fa-shield-halved"></i><div><span>Approved Protocol Code</span><strong id="protocolCodeValue"></strong></div></div>
             <article class="panel"><div class="panel-head"><div><h2>My Documents</h2><p>Track, preview, download, and resubmit your files.</p></div><select id="documentFilter"><option value="">All statuses</option><option>Submitted</option><option>Under Review</option><option>Received</option><option>Verified</option><option>Resubmission Requested</option><option>Approved</option><option>Denied</option></select></div><div class="document-table-wrap"><table><thead><tr><th>Document</th><th>Type</th><th>Submitted</th><th>Status</th><th>Remarks</th><th>Actions</th></tr></thead><tbody id="documentRows"></tbody></table></div></article>
         </section>
 
@@ -88,12 +90,18 @@ $identityKey = hash('sha256', $portalRole . '|' . $userId);
         </section>
 
         <section class="portal-page" data-section="profile">
-            <div class="portal-two-col"><article class="panel form-panel"><h2>Personal information</h2><p>Your role and account email are shown for reference.</p><form id="profileForm"><div class="profile-photo-control"><img id="profileImagePreview" src="<?php echo htmlspecialchars($profileImg, ENT_QUOTES); ?>" alt="Profile preview"><label class="profile-photo-button"><span>Edit photo</span><input id="profileImageInput" type="file" accept="image/png,image/jpeg,image/webp" hidden></label><button id="removeProfileImage" type="button">Remove</button></div><div class="form-grid"><label>Full name<input id="profileName" required maxlength="120"></label><label>Email<input id="profileEmail" type="email" readonly></label><label>Role<input id="profileRole" readonly></label><label>Student / Employee ID<input id="profileId" maxlength="40"></label></div><button class="primary-btn" type="submit">Save permitted information</button></form></article><article class="panel form-panel"><h2>Change password</h2><p>Use at least 8 characters.</p><form id="passwordForm"><label>Current password<input id="currentPassword" type="password" required></label><label>New password<input id="newPassword" type="password" minlength="8" required></label><label>Confirm new password<input id="confirmPassword" type="password" minlength="8" required></label><button class="primary-btn" type="submit">Change password</button></form></article></div>
+            <div class="portal-two-col"><article class="panel form-panel"><h2>Personal information</h2><p>Your role and account email are shown for reference.</p><form id="profileForm"><div class="profile-photo-control"><img id="profileImagePreview" src="<?php echo htmlspecialchars($profileImg, ENT_QUOTES); ?>" alt="Profile preview"><label class="profile-photo-button"><span>Edit photo</span><input id="profileImageInput" type="file" accept="image/png,image/jpeg,image/webp" hidden></label><button id="removeProfileImage" type="button">Remove</button></div><div class="form-grid"><label>Full name<input id="profileName" required maxlength="120"></label><label>Email<input id="profileEmail" type="email" readonly></label><label>Role<input id="profileRole" readonly></label><label>Student / Employee ID<input id="profileId" maxlength="40"></label></div><button class="primary-btn" type="submit">Save permitted information</button></form></article><article class="panel form-panel"><h2>Change password</h2><p>Use at least 8 characters.</p><form id="passwordForm"><label>Current password<div class="password-field-wrap"><input id="currentPassword" type="password" required><span class="toggle-password"><i class="fa-solid fa-eye" id="togglePortalCurrentPassword"></i></span></div></label><label>New password<div class="password-field-wrap"><input id="newPassword" type="password" minlength="8" required><span class="toggle-password"><i class="fa-solid fa-eye" id="togglePortalNewPassword"></i></span></div></label><label>Confirm new password<div class="password-field-wrap"><input id="confirmPassword" type="password" minlength="8" required><span class="toggle-password"><i class="fa-solid fa-eye" id="togglePortalConfirmPassword"></i></span></div></label><button class="primary-btn" type="submit">Change password</button></form></article></div>
         </section>
     </main>
 </div>
 <div class="support-modal" id="supportModal" hidden><div class="support-modal-card" role="dialog" aria-modal="true" aria-labelledby="supportModalTitle"><div class="support-modal-head"><div><span>Help &amp; Support</span><h2 id="supportModalTitle">Contact RPMS staff</h2></div><button id="closeSupportModal" type="button" aria-label="Close help form"><i class="fa-solid fa-xmark"></i></button></div><p>Report a problem or ask the RPMS team a question.</p><form id="supportForm"><label>How can we help?<select id="supportType" required><option value="Ask RPMS staff">Ask RPMS staff</option><option value="Report a problem">Report a problem</option></select></label><label>Subject<input id="supportSubject" maxlength="120" required placeholder="Briefly describe your concern"></label><label>Message<textarea id="supportMessage" rows="5" maxlength="1000" required placeholder="Add the details RPMS staff will need..."></textarea></label><div class="support-modal-actions"><button id="cancelSupport" type="button">Cancel</button><button class="primary-btn" type="submit"><i class="fa-solid fa-paper-plane"></i> Send request</button></div></form></div></div>
 <div class="toast" id="toast" role="status"></div>
+<script src="assets/js/script.js"></script>
+<script>
+togglePassword('currentPassword', 'togglePortalCurrentPassword');
+togglePassword('newPassword', 'togglePortalNewPassword');
+togglePassword('confirmPassword', 'togglePortalConfirmPassword');
+</script>
 <script src="assets/js/role-portal.js"></script>
 <script src="assets/js/role-calendar.js"></script>
 </body>

@@ -12,6 +12,43 @@
 
     const isAdviser = document.body.dataset.management === 'adviser';
     const apiUrl = isAdviser ? 'advisers_api.php' : 'students_api.php';
+    // "loggedInRole" = the role of the person USING this page (admin or
+    // adviser). Not to be confused with `isAdviser` above, which means
+    // "this page instance manages the adviser roster".
+    const loggedInRole = document.body.dataset.userRole || 'admin';
+    const stageLabels = window.PRISM_STAGE_LABELS || {};
+
+    function labelForStage(stageKey) {
+        return stageLabels[stageKey] || stageKey;
+    }
+
+    // Populate the stage <select> option TEXT with the configured form/
+    // document names, while keeping the underlying VALUE as "Stage 1" etc
+    // so every other part of the app (filters, DB values) stays unchanged
+    // (feature request 7: dynamic stage labels).
+    const stageSelect = document.getElementById('stage');
+    if (stageSelect) {
+        stageSelect.querySelectorAll('option').forEach(opt => {
+            if (opt.value) opt.textContent = `${opt.value} - ${labelForStage(opt.value)}`;
+        });
+    }
+
+    // Advisers can add/assign only their OWN students (feature request 4);
+    // the adviser dropdown would be misleading to show since the server
+    // ignores it and forces their own id anyway, so hide it entirely.
+    const adviserFieldLabel = document.getElementById('adviserFieldLabel');
+    if (!isAdviser && loggedInRole === 'adviser' && adviserFieldLabel) {
+        adviserFieldLabel.style.display = 'none';
+    }
+
+    // Protocol Code / Principal Investigator are RPMS-office decisions
+    // (feature requests 10-11), not something an adviser sets themselves.
+    const protocolCodeField = document.getElementById('protocolCodeField');
+    const principalField = document.getElementById('principalField');
+    if (!isAdviser && loggedInRole === 'adviser') {
+        if (protocolCodeField) protocolCodeField.style.display = 'none';
+        if (principalField) principalField.style.display = 'none';
+    }
 
     const escapeHtml = value => String(value ?? '').replace(/[&<>'"]/g, char => ({
         '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;'
@@ -81,7 +118,7 @@
 
         if (!filtered.length) {
             const tr = document.createElement('tr');
-            tr.innerHTML = `<td colspan="6" class="empty-state">No ${isAdviser ? 'adviser' : 'student'} records found.</td>`;
+            tr.innerHTML = `<td colspan="${isAdviser ? 6 : 7}" class="empty-state">No ${isAdviser ? 'adviser' : 'student'} records found.</td>`;
             rowsEl.appendChild(tr);
             return;
         }
@@ -97,12 +134,17 @@
                     <td><span class="status-badge ${String(record.status).toLowerCase().replace(/\s+/g, '-')}">${escapeHtml(record.status)}</span></td>
                     <td class="row-actions"></td>`;
             } else {
+                const protocolBadge = record.protocolCode
+                    ? `<span class="protocol-badge" title="Protocol Code">${escapeHtml(record.protocolCode)}</span>`
+                    : '<span class="muted">Not yet assigned</span>';
+                const piBadge = record.isPrincipalInvestigator ? ' <span class="pi-badge" title="Principal Investigator">PI</span>' : '';
                 tr.innerHTML = `
                     <td><strong>${escapeHtml(record.name)}</strong><br><small>${escapeHtml(record.email)}</small></td>
                     <td>${escapeHtml(record.studentId)}</td>
                     <td>${escapeHtml(record.research || 'Not set')}<br><small>${escapeHtml(record.group || 'No group')}</small></td>
                     <td>${escapeHtml(record.adviserName || 'Unassigned')}</td>
-                    <td><span class="stage-tag">${escapeHtml(record.stage)}</span> <span class="status-badge ${String(record.status).toLowerCase().replace(/\s+/g, '-')}">${escapeHtml(record.status)}</span></td>
+                    <td><span class="stage-tag" title="${escapeHtml(record.stage)}">${escapeHtml(record.stageLabel || labelForStage(record.stage))}</span> <span class="status-badge ${String(record.status).toLowerCase().replace(/\s+/g, '-')}">${escapeHtml(record.status)}</span></td>
+                    <td>${protocolBadge}${piBadge}</td>
                     <td class="row-actions"></td>`;
             }
             const actions = tr.querySelector('.row-actions');
@@ -140,6 +182,10 @@
                 document.getElementById('adviser').value = record.adviserId || '';
                 document.getElementById('stage').value = record.stage || 'Stage 1';
                 document.getElementById('recordStatus').value = record.status || 'On Track';
+                const pcField = document.getElementById('protocolCode');
+                const piField = document.getElementById('isPrincipal');
+                if (pcField) pcField.value = record.protocolCode || '';
+                if (piField) piField.checked = !!record.isPrincipalInvestigator;
             }
         }
         modal.style.display = 'flex';
@@ -190,6 +236,10 @@
             payload.adviserId = document.getElementById('adviser').value || null;
             payload.stage = document.getElementById('stage').value;
             payload.status = document.getElementById('recordStatus').value;
+            const pcField = document.getElementById('protocolCode');
+            const piField = document.getElementById('isPrincipal');
+            if (pcField) payload.protocolCode = pcField.value.trim();
+            if (piField) payload.isPrincipalInvestigator = piField.checked;
         }
 
         try {

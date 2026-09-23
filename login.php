@@ -1,3 +1,17 @@
+<?php
+require __DIR__ . '/config.php';
+
+// Already logged in? Send them straight to their landing page instead of
+// showing the form again.
+if (current_user()) {
+    header('Location: loading.php');
+    exit;
+}
+
+$loginError = $_SESSION['error'] ?? null;
+$loginSuccess = $_SESSION['success'] ?? null;
+unset($_SESSION['error'], $_SESSION['success']);
+?>
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -30,34 +44,40 @@
             <p>Centro Escolar University - Malolos <span aria-hidden="true">&bull;</span> RPMS</p>
         </div>
 
-        <?php
-        session_start();
-        if (isset($_SESSION['success'])) {
-            echo "<div class='success-message'>" . htmlspecialchars($_SESSION['success'], ENT_QUOTES, 'UTF-8') . "</div>";
-            unset($_SESSION['success']);
-        }
-        if (isset($_SESSION['error'])) {
-            echo "<div class='error-message'>" . htmlspecialchars($_SESSION['error'], ENT_QUOTES, 'UTF-8') . "</div>";
-            unset($_SESSION['error']);
-        }
-        ?>
+        <?php if ($loginError): ?><div class="error-message"><?php echo htmlspecialchars($loginError, ENT_QUOTES, 'UTF-8'); ?></div><?php endif; ?>
+        <?php if ($loginSuccess): ?><div class="success-message"><?php echo htmlspecialchars($loginSuccess, ENT_QUOTES, 'UTF-8'); ?></div><?php endif; ?>
 
-        <nav class="role-selector" aria-label="Select account type">
-            <p>Login As:</p>
-            <a class="role-option" href="login_students.php">
-                Student
-            </a>
-            <a class="role-option" href="login_adviser.php">
-                Research Adviser
-            </a>
-            <a class="role-option" href="login_admin.php">
-                Admin
-            </a>
-        </nav>
+        <form action="login_process.php" method="POST">
+
+            <div class="input-group">
+                <i class="fa-solid fa-envelope"></i>
+                <input type="email" name="email" placeholder="<?php echo htmlspecialchars(allowed_email_domains_hint(), ENT_QUOTES, 'UTF-8'); ?> email" autocomplete="username" required autofocus>
+            </div>
+
+            <div class="input-group">
+                <i class="fa-solid fa-lock"></i>
+                <input type="password" name="password" id="password" placeholder="Password" autocomplete="current-password" required>
+                <span class="toggle-password"><i class="fa-solid fa-eye" id="togglePassword"></i></span>
+            </div>
+
+            <div class="form-options">
+                <a href="forgot_password.php">Forgot Password?</a>
+            </div>
+
+            <button type="submit">LOGIN</button>
+
+            <div class="register-text">
+                RPMS staff without an account &mdash; <a href="register.php">Register</a>.
+                Research advisers and students are given their login by the RPMS office.
+            </div>
+
+        </form>
 
     </div>
 
 </div>
+
+<script src="assets/js/script.js"></script>
 
 </body>
 </html>

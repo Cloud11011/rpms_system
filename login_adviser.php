@@ -1,4 +1,6 @@
 <?php
-$accountType = 'adviser';
-$accountLabel = 'Research Adviser';
-require __DIR__ . '/role_login_template.php';
+// This role-specific login page was consolidated into a single login.php
+// (feature request: single login page). Kept only so old bookmarks/links
+// still work.
+header('Location: login.php');
+exit;

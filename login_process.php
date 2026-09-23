@@ -6,55 +6,51 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     exit;
 }
 
-$accountType = in_array($_POST['account_type'] ?? '', ['admin', 'adviser', 'student'], true)
-    ? $_POST['account_type']
-    : 'admin';
-$loginPage = [
-    'admin' => 'login_admin.php',
-    'adviser' => 'login_adviser.php',
-    'student' => 'login_students.php',
-][$accountType];
-
-$username = trim((string)($_POST['username'] ?? ''));
+$email = trim((string)($_POST['email'] ?? $_POST['username'] ?? ''));
 $password = (string)($_POST['password'] ?? '');
 
-if ($username === '' || $password === '') {
-    $_SESSION['error'] = 'Please enter your username and password.';
-    header("Location: $loginPage");
+if ($email === '' || $password === '') {
+    $_SESSION['error'] = 'Please enter your email and password.';
+    header('Location: login.php');
     exit;
 }
 
-// Throttle repeated failed attempts against a single username, regardless
-// of whether that username actually exists (checked before the DB lookup
-// so the block itself doesn't leak which usernames are real).
-if (too_many_recent_failures($username)) {
+// Throttle repeated failed attempts against a single email, regardless of
+// whether that email actually exists (checked before the DB lookup so the
+// block itself doesn't leak which accounts are real).
+if (too_many_recent_failures($email)) {
     $_SESSION['error'] = 'Too many failed login attempts for this account. Please try again in a few minutes.';
-    header("Location: $loginPage");
+    header('Location: login.php');
     exit;
 }
 
-$stmt = db()->prepare('SELECT * FROM users WHERE username = :u AND role = :r LIMIT 1');
-$stmt->execute([':u' => $username, ':r' => $accountType]);
+// Login is by email only now (feature request: remove Student ID/Employee
+// ID as login identifiers) -- role is whatever the matched account's row
+// says, not something the person selects beforehand.
+$stmt = db()->prepare('SELECT * FROM users WHERE email = :e LIMIT 1');
+$stmt->execute([':e' => strtolower($email)]);
 $user = $stmt->fetch();
 
 // Always run password_verify(), even for a nonexistent user, against a
 // fixed dummy hash — this keeps response time consistent so failed logins
-// can't be used to enumerate which usernames exist on the system.
+// can't be used to enumerate which emails exist on the system.
 $dummyHash = '$2y$10$vzBXNiy73d.9neRQSAf.f.x75YP44p7wvMVaX2ylMlrmulh0/jJCu';
 $passwordOk = $user ? password_verify($password, $user['password_hash']) : password_verify($password, $dummyHash);
 
 if (!$user || !$passwordOk) {
-    $_SESSION['error'] = 'Invalid username or password for this account type.';
-    log_activity($username, 'login_failed', "account_type=$accountType");
-    header("Location: $loginPage");
+    $_SESSION['error'] = 'Invalid email or password.';
+    log_activity($email, 'login_failed', '');
+    header('Location: login.php');
     exit;
 }
 
 if (strcasecmp((string)$user['status'], 'Active') !== 0) {
     $_SESSION['error'] = 'This account is not active. Please contact the RPMS office.';
-    header("Location: $loginPage");
+    header('Location: login.php');
     exit;
 }
+
+$accountType = $user['role'];
 
 session_regenerate_id(true);
 $_SESSION['user_id'] = $user['id'];

@@ -102,6 +102,18 @@ if (!defined('ADMIN_REGISTRATION_CODE')) {
     define('ADMIN_REGISTRATION_CODE', getenv('ADMIN_REGISTRATION_CODE') ?: '');
 }
 
+// Only accounts with an email ending in one of these domains may be
+// created or log in (feature request: email domain restriction). Adjust
+// these to the real CEU Malolos and MLS domains used by your office --
+// these are reasonable guesses and should be verified before go-live.
+if (!defined('ALLOWED_EMAIL_DOMAINS')) {
+    $envDomains = getenv('ALLOWED_EMAIL_DOMAINS');
+    define('ALLOWED_EMAIL_DOMAINS', $envDomains ? array_map('trim', explode(',', $envDomains)) : [
+        'ceu.edu.ph',
+        'mls.edu.ph',
+    ]);
+}
+
 // ---------------------------------------------------------------------
 // Database
 // ---------------------------------------------------------------------
@@ -266,6 +278,61 @@ function migrate(PDO $pdo): void
         details VARCHAR(255),
         created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;");
+
+    // ---- Feature-request additions (kept separate from the original
+    // CREATE TABLE statements above so this file's history stays clear;
+    // add_column_if_missing() is safe to re-run on an already-upgraded
+    // database, same as everything else in migrate()). ----
+    $pdo->exec("CREATE TABLE IF NOT EXISTS stage_labels (
+        stage_key VARCHAR(20) PRIMARY KEY,
+        label VARCHAR(190) NOT NULL,
+        updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;");
+
+    // Protocol code + Principal Investigator indicator (feature requests 10-11)
+    add_column_if_missing($pdo, 'students', 'protocol_code', "VARCHAR(100) NULL AFTER requirements");
+    add_column_if_missing($pdo, 'students', 'is_principal_investigator', "TINYINT(1) NOT NULL DEFAULT 0 AFTER protocol_code");
+
+    // AI-detected approval date, separate from uploaded_at/reviewed_at
+    // (feature request 3 -- the date printed on the actual IERB approval
+    // document, which can lag behind when the student got around to
+    // uploading it).
+    add_column_if_missing($pdo, 'documents', 'detected_approval_date', "DATE NULL AFTER reviewed_at");
+    add_column_if_missing($pdo, 'documents', 'approval_date_source', "VARCHAR(20) NULL COMMENT 'ai or regex or manual' AFTER detected_approval_date");
+
+    // Seed default stage labels (feature request 7). Safe to re-run --
+    // only inserts rows that don't already exist, so an admin's own edits
+    // via stage_labels_api.php are never overwritten by this.
+    $defaultLabels = [
+        'Stage 1' => 'Protocol Submission',
+        'Stage 2' => 'Initial Ethics Review',
+        'Stage 3' => 'Revisions & Resubmission',
+        'Stage 4' => 'Certificate of Approval',
+        'Stage 5' => 'Continuing Review / Monitoring',
+        'Completed' => 'IERB Process Completed',
+    ];
+    $insertLabel = $pdo->prepare('INSERT IGNORE INTO stage_labels (stage_key, label) VALUES (:k, :l)');
+    foreach ($defaultLabels as $key => $label) {
+        $insertLabel->execute([':k' => $key, ':l' => $label]);
+    }
+}
+
+/**
+ * Adds a column to an existing table only if it doesn't already exist.
+ * MySQL/MariaDB don't reliably support "ADD COLUMN IF NOT EXISTS" across
+ * the versions this app might run on, so this checks INFORMATION_SCHEMA
+ * first -- safe to call on every request, same as the rest of migrate().
+ */
+function add_column_if_missing(PDO $pdo, string $table, string $column, string $definition): void
+{
+    $check = $pdo->prepare(
+        "SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS
+         WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = :t AND COLUMN_NAME = :c"
+    );
+    $check->execute([':t' => $table, ':c' => $column]);
+    if ((int)$check->fetchColumn() === 0) {
+        $pdo->exec("ALTER TABLE `$table` ADD COLUMN `$column` $definition");
+    }
 }
 
 function seed(PDO $pdo): void
@@ -391,6 +458,84 @@ function json_out($data, int $code = 200): void
     header('Content-Type: application/json; charset=UTF-8');
     echo json_encode($data);
     exit;
+}
+
+// ---------------------------------------------------------------------
+// Email domain restriction (feature request: only @ceu / @mls addresses
+// may hold an account). See ALLOWED_EMAIL_DOMAINS above to adjust.
+// ---------------------------------------------------------------------
+function is_allowed_email_domain(string $email): bool
+{
+    $at = strrpos($email, '@');
+    if ($at === false) {
+        return false;
+    }
+    $domain = strtolower(substr($email, $at + 1));
+    foreach (ALLOWED_EMAIL_DOMAINS as $allowed) {
+        $allowed = strtolower(trim($allowed));
+        if ($allowed !== '' && ($domain === $allowed || str_ends_with($domain, '.' . $allowed))) {
+            return true;
+        }
+    }
+    return false;
+}
+
+function allowed_email_domains_hint(): string
+{
+    return implode(', ', array_map(fn($d) => '@' . $d, ALLOWED_EMAIL_DOMAINS));
+}
+
+// ---------------------------------------------------------------------
+// IERB stage sequence, labels, and progress percentages -- centralized
+// here so students_api.php, ierb_api.php, documents_api.php, and
+// reports_api.php all agree on the same order/labels instead of each
+// keeping (and risking drifting) their own copy.
+// ---------------------------------------------------------------------
+const STAGE_SEQUENCE = ['Stage 1', 'Stage 2', 'Stage 3', 'Stage 4', 'Stage 5', 'Completed'];
+
+function stage_progress_percent(string $stage): int
+{
+    $map = ['Stage 1' => 20, 'Stage 2' => 40, 'Stage 3' => 60, 'Stage 4' => 80, 'Stage 5' => 95, 'Completed' => 100];
+    return $map[$stage] ?? 0;
+}
+
+/** Returns the next stage in sequence, or the same stage if it's already the last one. */
+function next_stage(string $currentStage): string
+{
+    $index = array_search($currentStage, STAGE_SEQUENCE, true);
+    if ($index === false || $index >= count(STAGE_SEQUENCE) - 1) {
+        return $currentStage;
+    }
+    return STAGE_SEQUENCE[$index + 1];
+}
+
+/** All configured stage labels as [stage_key => label], with a safe fallback to the key itself. */
+function stage_labels_map(): array
+{
+    static $cached = null;
+    if ($cached !== null) {
+        return $cached;
+    }
+    $cached = [];
+    foreach (STAGE_SEQUENCE as $key) {
+        $cached[$key] = $key; // fallback
+    }
+    try {
+        $rows = db()->query('SELECT stage_key, label FROM stage_labels')->fetchAll();
+        foreach ($rows as $row) {
+            $cached[$row['stage_key']] = $row['label'];
+        }
+    } catch (Throwable $e) {
+        // table not migrated yet on this request somehow -- fall back to keys
+    }
+    return $cached;
+}
+
+/** Human-readable label for a stage key, e.g. "Stage 1" -> "Protocol Submission". */
+function stage_label(string $stageKey): string
+{
+    $map = stage_labels_map();
+    return $map[$stageKey] ?? $stageKey;
 }
 
 // ---------------------------------------------------------------------

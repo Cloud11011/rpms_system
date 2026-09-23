@@ -1,6 +1,8 @@
 document.addEventListener('DOMContentLoaded', () => {
     const body = document.body;
     const STAGES = ['Stage 1', 'Stage 2', 'Stage 3', 'Stage 4', 'Stage 5', 'Completed'];
+    const stageLabels = window.PRISM_STAGE_LABELS || {};
+    const labelForStage = stageKey => stageLabels[stageKey] || stageKey;
     const $ = id => document.getElementById(id);
     const esc = v => String(v ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
     const fmt = v => v ? new Date(v).toLocaleString('en-PH', { dateStyle: 'medium', timeStyle: 'short' }) : 'N/A';
@@ -99,7 +101,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const stageIndex = myRecord ? STAGES.indexOf(myRecord.stage) + 1 : 0;
         const progress = myRecord ? myRecord.progress : 0;
         const status = myRecord ? myRecord.status : 'No record yet';
-        const stageText = myRecord ? `Stage ${stageIndex} of ${STAGES.length} — ${myRecord.stage}` : 'No IERB record yet';
+        const stageText = myRecord ? `Stage ${stageIndex} of ${STAGES.length} — ${labelForStage(myRecord.stage)}` : 'No IERB record yet';
         const pendingCount = myRecord && myRecord.requirements && myRecord.requirements !== 'None' ? 1 : 0;
         const latestDoc = myDocuments[0];
 
@@ -118,14 +120,14 @@ document.addEventListener('DOMContentLoaded', () => {
         $('navBadge').textContent = unread;
         $('navBadge').hidden = !unread;
 
-        $('currentStage').textContent = myRecord ? `Stage ${stageIndex} — ${myRecord.stage}` : 'No record yet';
+        $('currentStage').textContent = myRecord ? `Stage ${stageIndex} — ${labelForStage(myRecord.stage)}` : 'No record yet';
         $('progressRing').style.background = `conic-gradient(var(--accent-pink) ${progress}%, var(--bg-color) 0)`;
         $('progressRing').innerHTML = `<b>${progress}%</b>`;
 
         $('stageList').innerHTML = STAGES.map((s, i) => {
             const cls = i + 1 < stageIndex ? 'complete' : i + 1 === stageIndex ? 'current' : '';
             const icon = i + 1 < stageIndex ? 'fa-circle-check' : 'fa-circle';
-            return `<div class="stage-card ${cls}"><i class="fa-solid ${icon}"></i><strong>Stage ${i + 1}</strong><span>${esc(s)}</span></div>`;
+            return `<div class="stage-card ${cls}"><i class="fa-solid ${icon}"></i><strong>Stage ${i + 1}</strong><span>${esc(labelForStage(s))}</span></div>`;
         }).join('');
 
         $('completedRequirements').innerHTML = myRecord && stageIndex > 1
@@ -140,6 +142,27 @@ document.addEventListener('DOMContentLoaded', () => {
             : empty('No progress history yet.');
 
         $('recentSubmissions').innerHTML = myDocuments.slice(0, 4).map(docItem).join('') || empty('No submissions yet.');
+
+        // Principal Investigator indicator + Protocol Code (feature requests
+        // 10-11). Kept intentionally simple: a small badge that reveals the
+        // code on click, plus a prominent card shown ahead of the raw file
+        // list once a protocol code has actually been assigned.
+        const piIndicator = $('principalIndicator');
+        const protocolReveal = $('protocolCodeReveal');
+        if (myRecord && myRecord.isPrincipalInvestigator) {
+            piIndicator.hidden = false;
+        } else {
+            piIndicator.hidden = true;
+            protocolReveal.hidden = true;
+        }
+
+        const protocolCard = $('protocolCodeCard');
+        if (myRecord && myRecord.protocolCode) {
+            $('protocolCodeValue').textContent = myRecord.protocolCode;
+            protocolCard.hidden = false;
+        } else {
+            protocolCard.hidden = true;
+        }
 
         renderDocs();
         renderNotifications();
@@ -193,6 +216,16 @@ document.addEventListener('DOMContentLoaded', () => {
     // ------------------------------------------------------------------
     document.querySelectorAll('[data-go]').forEach(b => b.addEventListener('click', () => go(b.dataset.go)));
     document.querySelectorAll('#portalNav button').forEach(b => b.addEventListener('click', () => go(b.dataset.page)));
+
+    $('principalIndicator').addEventListener('click', () => {
+        const reveal = $('protocolCodeReveal');
+        if (reveal.hidden) {
+            reveal.textContent = myRecord?.protocolCode
+                ? `Protocol Code: ${myRecord.protocolCode}`
+                : 'Protocol Code has not been assigned yet.';
+        }
+        reveal.hidden = !reveal.hidden;
+    });
 
     // ------------------------------------------------------------------
     // Document submission

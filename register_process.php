@@ -33,6 +33,9 @@ if ($employeeId === '' || $fullname === '' || $email === '' || $username === '' 
 if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
     back_with_error('Please enter a valid CEU email address.');
 }
+if (!is_allowed_email_domain($email)) {
+    back_with_error('Only ' . allowed_email_domains_hint() . ' email addresses may register for an RPMS account.');
+}
 if ($password !== $confirm) {
     back_with_error('Password and confirmation do not match.');
 }

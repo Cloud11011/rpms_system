@@ -1,0 +1,1397 @@
+diff --git a/admin_ai.php b/admin_ai.php
+index 46bb64d..43f5696 100644
+--- a/admin_ai.php
++++ b/admin_ai.php
+@@ -2,4 +2,52 @@
+ <!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>AI Workspace | PRISM Admin</title><script>try{if(localStorage.getItem('prismTheme')==='dark')document.documentElement.classList.add('dark-theme')}catch(_){}</script><link rel="icon" href="assets/images/prismicon.png"><link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600;700&display=swap" rel="stylesheet"><link rel="stylesheet" href="assets/css/dashboard.css"><link rel="stylesheet" href="assets/css/admin-management.css"><link rel="stylesheet" href="assets/css/reports.css"><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.6.0/css/all.min.css"></head><body data-admin-user="<?php echo htmlspecialchars(hash('sha256',$user_email),ENT_QUOTES); ?>"><div class="container"><aside class="sidebar"><div class="sidebar-header"><img src="assets/images/prismlogo1.png?v=2" class="sidebar-brand-logo" alt="PRISM"></div><ul class="nav-links"><li><a href="dashboard.php"><i class="fa-solid fa-chart-line"></i><span>Dashboard</span></a></li><li><a href="admin_students.php"><i class="fa-solid fa-user-graduate"></i><span>Students</span></a></li><li><a href="admin_advisers.php"><i class="fa-solid fa-user-tie"></i><span>Research Advisers</span></a></li><li><a href="ierbprog.php"><i class="fa-solid fa-file-signature"></i><span>IERB Progress</span></a></li><li><a href="documents.php"><i class="fa-solid fa-folder-open"></i><span>Documents</span></a></li><li><a href="admin_notifications.php"><i class="fa-solid fa-bell"></i><span>Notifications</span></a></li><li class="active"><a href="admin_ai.php"><i class="fa-solid fa-wand-magic-sparkles"></i><span>AI</span></a></li><li><a href="reports.php"><i class="fa-solid fa-file-pdf"></i><span>Reports</span></a></li><li><a href="calendar.php"><i class="fa-solid fa-calendar-days"></i><span>Calendar</span></a></li></ul></aside><main class="main-content management-page"><header class="topbar"><div><h1>AI Progress Reports</h1><p>Two guardrailed report types only. Each is generated with one click and automatically falls back to a local summarizer if the AI service is unavailable.</p></div><div class="theme-toggle" id="themeToggle"><i class="fa-solid fa-sun light-icon"></i><i class="fa-solid fa-moon dark-icon"></i></div></header>
+ <section class="report-tools"><button class="report-tool" id="generateSummarizedReport"><span class="report-tool-icon"><i class="fa-solid fa-file-lines"></i></span><span><strong>Generate Summarized Report</strong><small>One click — concise AI overview of all students</small></span><i class="fa-solid fa-bolt"></i></button><button class="report-tool" id="generateFullReport"><span class="report-tool-icon"><i class="fa-solid fa-file-contract"></i></span><span><strong>Generate Full Report</strong><small>One click — AI analysis plus complete per-student detail</small></span><i class="fa-solid fa-bolt"></i></button></section>
+ <p class="report-ai-note" id="reportAiNote"></p>
+-<section class="management-card ai-history-card"><div class="management-card-head"><div><h2>Generated AI Reports</h2><p id="aiHistoryCount">0 reports</p></div></div><div id="aiHistory" class="admin-history"></div></section></main></div><script src="assets/js/admin-ai.js"></script></body></html>
++<section class="management-card ai-history-card"><div class="management-card-head"><div><h2>Generated AI Reports</h2><p id="aiHistoryCount">0 reports</p></div></div><div id="aiHistory" class="admin-history"></div></section>
++<?php if (($_SESSION['account_type'] ?? '') === 'admin'): ?>
++<section class="management-card ai-history-card" style="margin-top:16px">
++    <div class="management-card-head"><div><h2>IERB Stage Labels</h2><p>Rename what each stage actually means (feature request: dynamic stage labels) -- shown everywhere "Stage 1", "Stage 2" etc. would otherwise appear.</p></div></div>
++    <div id="stageLabelEditor" style="padding:0 16px 16px;display:grid;gap:10px"></div>
++</section>
++<script>
++(function () {
++    const STAGE_ORDER = <?php echo json_encode(STAGE_SEQUENCE); ?>;
++    const container = document.getElementById('stageLabelEditor');
++
++    async function load() {
++        const res = await fetch('stage_labels_api.php?action=list');
++        const data = await res.json();
++        const labels = data.ok ? data.labels : {};
++        container.innerHTML = STAGE_ORDER.map(key => `
++            <div style="display:grid;grid-template-columns:110px 1fr auto;gap:8px;align-items:center">
++                <strong style="font-size:9px;color:var(--text-secondary)">${key}</strong>
++                <input data-stage="${key}" value="${(labels[key] || key).replace(/"/g, '&quot;')}"
++                    style="padding:8px;border:1px solid var(--border-color);border-radius:6px;background:var(--input-bg);color:var(--text-primary);font:9px Montserrat">
++                <button data-save="${key}" class="management-primary" style="padding:8px 12px;font-size:9px">Save</button>
++            </div>`).join('');
++    }
++
++    container.addEventListener('click', async (e) => {
++        const btn = e.target.closest('[data-save]');
++        if (!btn) return;
++        const key = btn.dataset.save;
++        const input = container.querySelector(`input[data-stage="${key}"]`);
++        btn.disabled = true;
++        try {
++            const res = await fetch('stage_labels_api.php?action=save', {
++                method: 'POST', headers: { 'Content-Type': 'application/json' },
++                body: JSON.stringify({ stageKey: key, label: input.value.trim() }),
++            });
++            const data = await res.json();
++            if (!data.ok) alert(data.message || 'Could not save this label.');
++        } catch (_) {
++            alert('Could not reach the server.');
++        } finally {
++            btn.disabled = false;
++        }
++    });
++
++    load();
++})();
++</script>
++<?php endif; ?>
++</main></div><script src="assets/js/admin-ai.js"></script></body></html>
+diff --git a/admin_people.php b/admin_people.php
+index 8f00c1a..86f3544 100644
+--- a/admin_people.php
++++ b/admin_people.php
+@@ -1,12 +1,19 @@
+ <?php
+ require __DIR__ . '/config.php';
+-$authUser = require_login('admin');
++// Note: $isAdviser below means "this page instance manages advisers" (i.e.
++// admin_advisers.php), not "the logged-in user is an adviser" -- the two
++// are unrelated and it's easy to conflate them when editing this file.
+ $managementType = ($managementType ?? '') === 'adviser' ? 'adviser' : 'student';
+ $isAdviser = $managementType === 'adviser';
++// Hierarchical user management (feature request 4): a research adviser can
++// manage their OWN students here, but only RPMS admin manages the adviser
++// roster itself.
++$authUser = require_login($isAdviser ? 'admin' : ['admin', 'adviser']);
+ $user_name = $authUser['full_name']; $user_email = $authUser['email'];
+ $user_role = $_SESSION['user_role'] ?? 'RPMS Administrator'; $profile_img = 'assets/images/default-avatar.svg';
++$loggedInRole = $_SESSION['account_type'] ?? 'admin';
+ ?>
+ <!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title><?php echo $isAdviser?'Research Adviser':'Student'; ?> Management | PRISM</title><script>try{if(localStorage.getItem('prismTheme')==='dark')document.documentElement.classList.add('dark-theme')}catch(_){}</script><link rel="icon" href="assets/images/prismicon.png"><link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600;700&display=swap" rel="stylesheet"><link rel="stylesheet" href="assets/css/dashboard.css"><link rel="stylesheet" href="assets/css/admin-management.css"><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.6.0/css/all.min.css"></head>
+-<body data-admin-user="<?php echo htmlspecialchars(hash('sha256',$user_email),ENT_QUOTES); ?>" data-management="<?php echo $managementType; ?>"><div class="container"><aside class="sidebar"><div class="sidebar-header"><img src="assets/images/prismlogo1.png?v=2" alt="PRISM" class="sidebar-brand-logo"><div class="sidebar-brand-copy"><strong>IERB Progress &amp; Reporting System</strong><span>Centro Escolar University - Malolos &bull; RPMS</span></div></div><?php if ($isAdviser): ?><ul class="nav-links"><li><a href="dashboard.php"><i class="fa-solid fa-chart-line"></i><span>Dashboard</span></a></li><li><a href="admin_students.php"><i class="fa-solid fa-user-graduate"></i><span>Students</span></a></li><li class="active"><a href="admin_advisers.php"><i class="fa-solid fa-user-tie"></i><span>Research Advisers</span></a></li><li><a href="ierbprog.php"><i class="fa-solid fa-file-signature"></i><span>IERB Progress</span></a></li><li><a href="documents.php"><i class="fa-solid fa-folder-open"></i><span>Documents</span></a></li><li><a href="admin_notifications.php"><i class="fa-solid fa-bell"></i><span>Notifications</span></a></li><li><a href="admin_ai.php"><i class="fa-solid fa-wand-magic-sparkles"></i><span>AI</span></a></li><li><a href="reports.php"><i class="fa-solid fa-file-pdf"></i><span>Reports</span></a></li><li><a href="calendar.php"><i class="fa-solid fa-calendar-days"></i><span>Calendar</span></a></li></ul><?php else: ?><ul class="nav-links"><li><a href="dashboard.php"><i class="fa-solid fa-chart-line"></i><span>Dashboard</span></a></li><li class="active"><a href="admin_students.php"><i class="fa-solid fa-user-graduate"></i><span>Students</span></a></li><li><a href="admin_advisers.php"><i class="fa-solid fa-user-tie"></i><span>Research Advisers</span></a></li><li><a href="ierbprog.php"><i class="fa-solid fa-file-signature"></i><span>IERB Progress</span></a></li><li><a href="documents.php"><i class="fa-solid fa-folder-open"></i><span>Documents</span></a></li><li><a href="admin_notifications.php"><i class="fa-solid fa-bell"></i><span>Notifications</span></a></li><li><a href="admin_ai.php"><i class="fa-solid fa-wand-magic-sparkles"></i><span>AI</span></a></li><li><a href="reports.php"><i class="fa-solid fa-file-pdf"></i><span>Reports</span></a></li><li><a href="calendar.php"><i class="fa-solid fa-calendar-days"></i><span>Calendar</span></a></li></ul><?php endif; ?><div class="sidebar-bottom"><div class="sidebar-profile"><img src="<?php echo $profile_img; ?>" alt=""><div class="profile-info"><h4><?php echo htmlspecialchars($user_name); ?></h4><p><?php echo htmlspecialchars($user_role); ?></p></div></div></div></aside>
+-<main class="main-content management-page"><header class="topbar"><div><h1><?php echo $isAdviser?'Research Adviser':'Student'; ?> Management</h1><p><?php echo $isAdviser?'Manage research adviser accounts and research-group assignments.':'Manage records, research groups, and adviser assignments.'; ?></p></div><div class="theme-toggle" id="themeToggle"><i class="fa-solid fa-sun light-icon"></i><i class="fa-solid fa-moon dark-icon"></i></div></header><section class="management-controls"><div class="management-search"><i class="fa-solid fa-magnifying-glass"></i><input id="recordSearch" placeholder="Search records"></div><button class="management-primary" id="addRecord"><i class="fa-solid fa-plus"></i> Add <?php echo $isAdviser?'Research Adviser':'Student'; ?></button></section><section class="management-card"><div class="management-card-head"><div><h2><?php echo $isAdviser?'Research Adviser Accounts':'Student Records'; ?></h2><p id="recordCount">0 records</p></div></div><div class="management-table-wrap"><table><thead><tr><?php if($isAdviser): ?><th>Research Adviser</th><th>Employee ID</th><th>Department</th><th>Assigned Groups</th><th>Account</th><?php else: ?><th>Student</th><th>Student ID</th><th>Research / Group</th><th>Assigned Adviser</th><th>IERB Status</th><?php endif; ?><th>Actions</th></tr></thead><tbody id="recordRows"></tbody></table></div></section></main></div>
+-<div class="management-modal" id="recordModal"><div class="management-dialog"><div class="management-modal-head"><div><span>Account record</span><h2 id="modalTitle">Add Record</h2></div><button type="button" id="closeRecord"><i class="fa-solid fa-xmark"></i></button></div><form id="recordForm"><input type="hidden" id="recordId"><div class="management-form-grid"><label>Full name<input id="recordName" required maxlength="120"></label><label><?php echo $isAdviser?'Employee':'Student'; ?> ID<input id="accountId" required maxlength="40"></label><label>Email<input id="recordEmail" type="email" required maxlength="150"></label><?php if($isAdviser): ?><label>Department<input id="department" required maxlength="100"></label><label class="wide">Assigned research groups<input id="groups" maxlength="250" placeholder="GRP-001, GRP-002"></label><label>Account status<select id="accountStatus"><option>Active</option><option>Inactive</option><option>Pending Activation</option></select></label><?php else: ?><label class="wide">Research title<input id="research" maxlength="250"></label><label>Research group<input id="group" maxlength="80"></label><label>Assigned research adviser<select id="adviser"><option value="">Unassigned</option></select></label><label>IERB stage<select id="stage"><option>Stage 1</option><option>Stage 2</option><option>Stage 3</option><option>Stage 4</option><option>Stage 5</option><option>Completed</option></select></label><label>Status<select id="recordStatus"><option>On Track</option><option>Pending</option><option>Delayed</option></select></label><?php endif; ?></div><div class="management-actions"><button type="button" id="cancelRecord">Cancel</button><button class="management-primary" type="submit"><i class="fa-solid fa-floppy-disk"></i> Save record</button></div></form></div></div><script src="assets/js/admin-management.js"></script></body></html>
++<body data-admin-user="<?php echo htmlspecialchars(hash('sha256',$user_email),ENT_QUOTES); ?>" data-management="<?php echo $managementType; ?>" data-user-role="<?php echo htmlspecialchars($loggedInRole, ENT_QUOTES, 'UTF-8'); ?>"><script>window.PRISM_STAGE_LABELS = <?php echo json_encode(stage_labels_map()); ?>;</script><div class="container"><aside class="sidebar"><div class="sidebar-header"><img src="assets/images/prismlogo1.png?v=2" alt="PRISM" class="sidebar-brand-logo"><div class="sidebar-brand-copy"><strong>IERB Progress &amp; Reporting System</strong><span>Centro Escolar University - Malolos &bull; RPMS</span></div></div><?php if ($isAdviser): ?><ul class="nav-links"><li><a href="dashboard.php"><i class="fa-solid fa-chart-line"></i><span>Dashboard</span></a></li><li><a href="admin_students.php"><i class="fa-solid fa-user-graduate"></i><span>Students</span></a></li><li class="active"><a href="admin_advisers.php"><i class="fa-solid fa-user-tie"></i><span>Research Advisers</span></a></li><li><a href="ierbprog.php"><i class="fa-solid fa-file-signature"></i><span>IERB Progress</span></a></li><li><a href="documents.php"><i class="fa-solid fa-folder-open"></i><span>Documents</span></a></li><li><a href="admin_notifications.php"><i class="fa-solid fa-bell"></i><span>Notifications</span></a></li><li><a href="admin_ai.php"><i class="fa-solid fa-wand-magic-sparkles"></i><span>AI</span></a></li><li><a href="reports.php"><i class="fa-solid fa-file-pdf"></i><span>Reports</span></a></li><li><a href="calendar.php"><i class="fa-solid fa-calendar-days"></i><span>Calendar</span></a></li></ul><?php else: ?><ul class="nav-links"><li><a href="dashboard.php"><i class="fa-solid fa-chart-line"></i><span>Dashboard</span></a></li><li class="active"><a href="admin_students.php"><i class="fa-solid fa-user-graduate"></i><span>Students</span></a></li><?php if ($loggedInRole === 'admin'): ?><li><a href="admin_advisers.php"><i class="fa-solid fa-user-tie"></i><span>Research Advisers</span></a></li><?php endif; ?><li><a href="ierbprog.php"><i class="fa-solid fa-file-signature"></i><span>IERB Progress</span></a></li><li><a href="documents.php"><i class="fa-solid fa-folder-open"></i><span>Documents</span></a></li><?php if ($loggedInRole === 'admin'): ?><li><a href="admin_notifications.php"><i class="fa-solid fa-bell"></i><span>Notifications</span></a></li><li><a href="admin_ai.php"><i class="fa-solid fa-wand-magic-sparkles"></i><span>AI</span></a></li><?php endif; ?><li><a href="reports.php"><i class="fa-solid fa-file-pdf"></i><span>Reports</span></a></li><li><a href="calendar.php"><i class="fa-solid fa-calendar-days"></i><span>Calendar</span></a></li></ul><?php endif; ?><div class="sidebar-bottom"><div class="sidebar-profile"><img src="<?php echo $profile_img; ?>" alt=""><div class="profile-info"><h4><?php echo htmlspecialchars($user_name); ?></h4><p><?php echo htmlspecialchars($user_role); ?></p></div></div></div></aside>
++<main class="main-content management-page"><header class="topbar"><div><h1><?php echo $isAdviser?'Research Adviser':'Student'; ?> Management</h1><p><?php echo $isAdviser?'Manage research adviser accounts and research-group assignments.':($loggedInRole === 'adviser' ? 'Manage your own assigned students.' : 'Manage records, research groups, and adviser assignments.'); ?></p></div><div class="theme-toggle" id="themeToggle"><i class="fa-solid fa-sun light-icon"></i><i class="fa-solid fa-moon dark-icon"></i></div></header><section class="management-controls"><div class="management-search"><i class="fa-solid fa-magnifying-glass"></i><input id="recordSearch" placeholder="Search records"></div><button class="management-primary" id="addRecord"><i class="fa-solid fa-plus"></i> Add <?php echo $isAdviser?'Research Adviser':'Student'; ?></button></section><section class="management-card"><div class="management-card-head"><div><h2><?php echo $isAdviser?'Research Adviser Accounts':'Student Records'; ?></h2><p id="recordCount">0 records</p></div></div><div class="management-table-wrap"><table><thead><tr><?php if($isAdviser): ?><th>Research Adviser</th><th>Employee ID</th><th>Department</th><th>Assigned Groups</th><th>Account</th><?php else: ?><th>Student</th><th>Student ID</th><th>Research / Group</th><th>Assigned Adviser</th><th>IERB Status</th><th>Protocol / PI</th><?php endif; ?><th>Actions</th></tr></thead><tbody id="recordRows"></tbody></table></div></section></main></div>
++<div class="management-modal" id="recordModal"><div class="management-dialog"><div class="management-modal-head"><div><span>Account record</span><h2 id="modalTitle">Add Record</h2></div><button type="button" id="closeRecord"><i class="fa-solid fa-xmark"></i></button></div><form id="recordForm"><input type="hidden" id="recordId"><div class="management-form-grid"><label>Full name<input id="recordName" required maxlength="120"></label><label><?php echo $isAdviser?'Employee':'Student'; ?> ID<input id="accountId" required maxlength="40"></label><label>Email<input id="recordEmail" type="email" required maxlength="150"></label><?php if($isAdviser): ?><label>Department<input id="department" required maxlength="100"></label><label class="wide">Assigned research groups<input id="groups" maxlength="250" placeholder="GRP-001, GRP-002"></label><label>Account status<select id="accountStatus"><option>Active</option><option>Inactive</option><option>Pending Activation</option></select></label><?php else: ?><label class="wide">Research title<input id="research" maxlength="250"></label><label>Research group<input id="group" maxlength="80"></label><label id="adviserFieldLabel">Assigned research adviser<select id="adviser"><option value="">Unassigned</option></select></label><label>IERB stage<select id="stage"><option value="Stage 1">Stage 1</option><option value="Stage 2">Stage 2</option><option value="Stage 3">Stage 3</option><option value="Stage 4">Stage 4</option><option value="Stage 5">Stage 5</option><option value="Completed">Completed</option></select></label><label>Status<select id="recordStatus"><option>On Track</option><option>Pending</option><option>Delayed</option></select></label><label id="protocolCodeField" class="wide">Protocol Code<input id="protocolCode" maxlength="100" placeholder="Assigned once IERB approval is finalized"></label><label id="principalField" class="check-label">Principal Investigator<input id="isPrincipal" type="checkbox"></label><?php endif; ?></div><div class="management-actions"><button type="button" id="cancelRecord">Cancel</button><button class="management-primary" type="submit"><i class="fa-solid fa-floppy-disk"></i> Save record</button></div></form></div></div><script src="assets/js/admin-management.js"></script></body></html>
+diff --git a/advisers_api.php b/advisers_api.php
+index e36d340..d88b79f 100644
+--- a/advisers_api.php
++++ b/advisers_api.php
+@@ -42,6 +42,9 @@ if ($action === 'save') {
+     if ($employeeId === '' || $name === '' || !filter_var($email, FILTER_VALIDATE_EMAIL)) {
+         json_out(['ok' => false, 'message' => 'Employee ID, name, and a valid email are required.'], 422);
+     }
++    if (!is_allowed_email_domain($email)) {
++        json_out(['ok' => false, 'message' => 'Only ' . allowed_email_domains_hint() . ' email addresses are allowed.'], 422);
++    }
+     if ($id === 0) {
+         $collision = $pdo->prepare('SELECT role FROM users WHERE (email = :e OR username = :u) AND role != "adviser"');
+         $collision->execute([':e' => $email, ':u' => $employeeId]);
+diff --git a/ai_helpers.php b/ai_helpers.php
+index a763bc5..d8d8be0 100644
+--- a/ai_helpers.php
++++ b/ai_helpers.php
+@@ -33,3 +33,79 @@ if (!function_exists('extract_document_text')) {
+         return trim(preg_replace('/\s+/u', ' ', (string)$text));
+     }
+ }
++
++/**
++ * Detects the actual IERB approval date printed on a document's own text
++ * (e.g. an approval certificate reading "...approved this 14th day of
++ * March 2026...") rather than relying on when the student happened to
++ * upload the file, which can lag behind by days or weeks.
++ *
++ * Tries the AI first (OpenRouter, same predefined-query approach as
++ * summarization); falls back to a handful of regex date patterns if AI
++ * is unavailable or returns nothing usable. Returns ['date' => 'YYYY-MM-DD'
++ * or null, 'source' => 'ai'|'regex'|null].
++ */
++if (!function_exists('ai_detect_approval_date')) {
++    function ai_detect_approval_date(string $text): array
++    {
++        if (trim($text) === '') {
++            return ['date' => null, 'source' => null];
++        }
++
++        if (openrouter_available()) {
++            $raw = openrouter_generate(
++                'You extract dates from university ethics-review documents for a Research Planning '
++                . 'and Monitoring Section. Find the actual approval/issuance date printed in the '
++                . 'document text (e.g. near words like "approved", "date approved", "issued on"). '
++                . 'Respond with ONLY the date in YYYY-MM-DD format, and nothing else. If no such '
++                . 'date is clearly present in the text, respond with exactly: NONE',
++                substr($text, 0, 6000)
++            );
++            if ($raw !== null) {
++                $raw = trim($raw);
++                if (preg_match('/^\d{4}-\d{2}-\d{2}$/', $raw) && strtotime($raw) !== false) {
++                    return ['date' => $raw, 'source' => 'ai'];
++                }
++                // AI said NONE or returned something unparseable -- fall through to regex,
++                // rather than treating an unusable reply as "no date found" outright.
++            }
++        }
++
++        return ['date' => regex_detect_approval_date($text), 'source' => $text !== '' ? 'regex' : null];
++    }
++}
++
++/** Local fallback: looks for common date phrasing near "approv*"/"issued" keywords. */
++if (!function_exists('regex_detect_approval_date')) {
++    function regex_detect_approval_date(string $text): ?string
++    {
++        // Numeric formats: 2026-03-14, 03/14/2026, 14/03/2026
++        if (preg_match('/\b(20\d{2})-(\d{2})-(\d{2})\b/', $text, $m)) {
++            $candidate = "{$m[1]}-{$m[2]}-{$m[3]}";
++            if (checkdate((int)$m[2], (int)$m[3], (int)$m[1])) {
++                return $candidate;
++            }
++        }
++        // Written formats: "14th day of March 2026", "March 14, 2026", "14 March 2026"
++        $months = 'January|February|March|April|May|June|July|August|September|October|November|December';
++        if (preg_match('/\b(\d{1,2})(?:st|nd|rd|th)?\s+day\s+of\s+(' . $months . ')\s+(\d{4})\b/i', $text, $m)) {
++            $ts = strtotime("{$m[1]} {$m[2]} {$m[3]}");
++            if ($ts !== false) {
++                return date('Y-m-d', $ts);
++            }
++        }
++        if (preg_match('/\b(' . $months . ')\s+(\d{1,2}),?\s+(\d{4})\b/i', $text, $m)) {
++            $ts = strtotime("{$m[1]} {$m[2]} {$m[3]}");
++            if ($ts !== false) {
++                return date('Y-m-d', $ts);
++            }
++        }
++        if (preg_match('/\b(\d{1,2})\s+(' . $months . ')\s+(\d{4})\b/i', $text, $m)) {
++            $ts = strtotime("{$m[1]} {$m[2]} {$m[3]}");
++            if ($ts !== false) {
++                return date('Y-m-d', $ts);
++            }
++        }
++        return null;
++    }
++}
+diff --git a/assets/css/admin-management.css b/assets/css/admin-management.css
+index 15b326a..ef224f4 100644
+--- a/assets/css/admin-management.css
++++ b/assets/css/admin-management.css
+@@ -1 +1,6 @@
+ .management-page h1{color:var(--text-primary);font-size:25px}.management-page .topbar p{margin-top:5px;color:var(--text-secondary);font-size:10px}.management-controls{display:flex;justify-content:space-between;gap:12px;margin:20px 0}.management-search{display:flex;align-items:center;gap:9px;width:min(470px,100%);padding:11px 14px;border:1px solid var(--border-color);border-radius:8px;background:var(--card-bg)}.management-search input{width:100%;border:0;outline:0;color:var(--text-primary);background:transparent}.management-primary{padding:11px 14px;border:0;border-radius:8px;color:#fff;background:var(--accent-purple);font:600 10px Montserrat;cursor:pointer}.management-card{border:1px solid var(--border-color);border-radius:10px;background:var(--card-bg)}.management-card-head{padding:16px}.management-card-head h2{font-size:14px}.management-card-head p{margin-top:3px;color:var(--text-secondary);font-size:9px}.management-table-wrap{overflow-x:auto}.management-table-wrap table{width:100%;min-width:850px;border-collapse:collapse}.management-table-wrap th,.management-table-wrap td{padding:12px 14px;border-top:1px solid var(--border-color);font-size:9px;text-align:left}.management-table-wrap th{color:var(--text-secondary);background:var(--bg-color);text-transform:uppercase}.record-person strong,.record-person span{display:block}.record-person span{margin-top:3px;color:var(--text-secondary);font-size:8px}.record-chip{display:inline-block;padding:5px 8px;border-radius:12px;color:var(--accent-purple);background:rgba(162,19,104,.1);font-size:8px;font-weight:700}.record-action{width:29px;height:29px;margin-right:4px;border:0;border-radius:7px;color:var(--text-secondary);background:var(--bg-color);cursor:pointer}.record-action:hover{color:#fff;background:var(--accent-purple)}.management-empty{padding:35px!important;color:var(--text-secondary);text-align:center!important}.management-modal{display:none;position:fixed;inset:0;z-index:1500;align-items:center;justify-content:center;padding:20px;background:rgba(5,5,10,.6)}.management-modal.show{display:flex}.management-dialog{width:min(650px,100%);max-height:calc(100vh - 40px);overflow:auto;padding:21px;border-radius:10px;background:var(--card-bg)}.management-modal-head{display:flex;justify-content:space-between;padding-bottom:13px;border-bottom:1px solid var(--border-color)}.management-modal-head span{color:var(--accent-pink);font-size:8px;text-transform:uppercase}.management-modal-head h2{margin-top:3px;font-size:16px}.management-modal-head button{border:0;color:var(--text-secondary);background:transparent;cursor:pointer}.management-form-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:15px}.management-form-grid label{display:grid;gap:6px;color:var(--text-primary);font-size:9px;font-weight:600}.management-form-grid .wide{grid-column:1/-1}.management-form-grid input,.management-form-grid select{padding:10px;border:1px solid var(--border-color);border-radius:7px;color:var(--text-primary);background:var(--input-bg);font:10px Montserrat}.management-actions{display:flex;justify-content:flex-end;gap:8px;margin-top:17px}.management-actions>button:first-child{padding:10px 13px;border:0;border-radius:8px;color:var(--text-secondary);background:var(--bg-color);cursor:pointer}@media(max-width:600px){.management-controls{flex-direction:column}.management-form-grid{grid-template-columns:1fr}.management-form-grid .wide{grid-column:auto}}
++.protocol-badge{display:inline-block;padding:4px 8px;border-radius:6px;color:var(--accent-purple);background:rgba(162,19,104,.1);font-size:8px;font-weight:700;letter-spacing:.3px}
++.pi-badge{display:inline-block;margin-left:4px;padding:3px 6px;border-radius:5px;color:#fff;background:#2e7d32;font-size:7px;font-weight:700;letter-spacing:.3px}
++.muted{color:var(--text-secondary);font-size:8px}
++.management-form-grid label.check-label{display:flex;flex-direction:row;align-items:center;gap:8px}
++.management-form-grid label.check-label input[type="checkbox"]{width:15px;height:15px;padding:0}
+diff --git a/assets/css/role-portal.css b/assets/css/role-portal.css
+index e86baa9..8115d0b 100644
+--- a/assets/css/role-portal.css
++++ b/assets/css/role-portal.css
+@@ -1 +1,12 @@
+ .nav-links button{display:flex;align-items:center;width:100%;padding:12px 16px;border:0;color:inherit;background:transparent;font:inherit;text-align:left;cursor:pointer}.nav-links button i{width:28px}.nav-links button span{flex:1}.nav-badge{min-width:18px;padding:2px 5px;border-radius:10px;color:#fff;background:var(--accent-pink);font-size:8px;text-align:center}.portal-logout{margin-left:auto;color:var(--text-secondary)}.portal-main{padding-bottom:36px}.topbar>div h1{color:var(--text-primary);font-size:25px}.topbar>div p{margin-top:5px;color:var(--text-secondary);font-size:10px}.theme-toggle{border:0;cursor:pointer}.portal-page{display:none;margin-top:22px}.portal-page.active{display:block}.welcome-card{display:flex;align-items:center;justify-content:space-between;gap:20px;padding:25px;border-radius:12px;color:#fff;background:linear-gradient(125deg,var(--accent-purple),var(--accent-pink))}.welcome-card span{font-size:9px;font-weight:700;text-transform:uppercase}.welcome-card h2{margin:5px 0;font-size:20px}.welcome-card p{font-size:10px}.primary-btn{padding:11px 15px;border:0;border-radius:8px;color:#fff;background:var(--accent-purple);font:600 10px Montserrat,sans-serif;cursor:pointer}.welcome-card .primary-btn{color:var(--accent-purple);background:#fff}.primary-btn i{margin-right:6px}.stat-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin:15px 0}.stat-grid article,.panel{border:1px solid var(--border-color);border-radius:10px;background:var(--card-bg)}.stat-grid article{position:relative;padding:17px}.stat-grid article>i{position:absolute;right:15px;color:var(--accent-pink);font-size:18px}.stat-grid span,.progress-summary span{display:block;color:var(--text-secondary);font-size:8px;text-transform:uppercase}.stat-grid strong{display:block;margin-top:9px;color:var(--text-primary);font-size:13px}.portal-two-col{display:grid;grid-template-columns:1.3fr 1fr;gap:14px}.panel{padding:18px}.panel h2{color:var(--text-primary);font-size:14px}.panel p{margin-top:5px;color:var(--text-secondary);font-size:9px}.panel-head{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:12px}.panel-head button{border:0;color:var(--accent-pink);background:transparent;font:600 9px Montserrat;cursor:pointer}.panel-head select{padding:8px;border:1px solid var(--border-color);border-radius:7px;color:var(--text-primary);background:var(--input-bg);font:9px Montserrat}.empty-state{padding:28px;color:var(--text-secondary);font-size:9px;text-align:center}.list-item{display:flex;align-items:flex-start;gap:10px;padding:11px 2px;border-top:1px solid var(--border-color)}.list-item i{width:25px;color:var(--accent-pink);text-align:center}.list-item div{flex:1}.list-item strong,.list-item span{display:block}.list-item strong{color:var(--text-primary);font-size:9px}.list-item span,.list-item time{margin-top:3px;color:var(--text-secondary);font-size:8px}.progress-summary{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px}.progress-summary h2{margin:5px 0}.progress-ring{display:grid;place-items:center;width:76px;height:76px;border-radius:50%;background:conic-gradient(var(--accent-pink) 20%,var(--bg-color) 0)}.progress-ring b{display:grid;place-items:center;width:59px;height:59px;border-radius:50%;color:var(--text-primary);background:var(--card-bg);font-size:13px}.stage-list{display:grid;grid-template-columns:repeat(5,1fr);gap:9px;margin-bottom:14px}.stage-card{padding:13px;border:1px solid var(--border-color);border-radius:9px;background:var(--card-bg)}.stage-card.complete{border-color:#77bf8b}.stage-card.current{border-color:var(--accent-pink);box-shadow:0 0 0 1px var(--accent-pink)}.stage-card i{color:var(--text-secondary)}.stage-card.complete i{color:#319052}.stage-card strong,.stage-card span{display:block}.stage-card strong{margin-top:8px;color:var(--text-primary);font-size:9px}.stage-card span{margin-top:4px;color:var(--text-secondary);font-size:8px}.form-panel>p{margin-bottom:17px}.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:13px;margin-bottom:16px}.form-grid .wide{grid-column:1/-1}.form-panel label{display:grid;gap:6px;margin-bottom:12px;color:var(--text-primary);font-size:9px;font-weight:600}.form-panel input,.form-panel select,.form-panel textarea{width:100%;padding:10px;border:1px solid var(--border-color);border-radius:7px;color:var(--text-primary);background:var(--input-bg);font:10px Montserrat;resize:vertical}.form-panel input[readonly]{opacity:.7}.document-table-wrap{overflow-x:auto}.document-table-wrap table{width:100%;min-width:800px;border-collapse:collapse}.document-table-wrap th,.document-table-wrap td{padding:11px 9px;border-top:1px solid var(--border-color);color:var(--text-primary);font-size:9px;text-align:left}.document-table-wrap th{color:var(--text-secondary);font-size:8px;text-transform:uppercase}.status-chip{display:inline-block;padding:5px 8px;border-radius:12px;background:#fff0d6;color:#9a5b00;font-size:8px;font-weight:700}.status-chip.approved{background:#e5f5e9;color:#287a40}.status-chip.resubmission-requested{background:#fde7e7;color:#ad2922}.status-chip.denied{background:#fde7e7;color:#ad2922}.action-btn{margin:2px;padding:6px 8px;border:1px solid var(--border-color);border-radius:6px;color:var(--text-primary);background:var(--bg-color);font-size:8px;cursor:pointer}.notice.unread{border-left:3px solid var(--accent-pink);padding-left:10px}.notice button{border:0;color:var(--text-secondary);background:transparent;cursor:pointer}.toast{position:fixed;right:24px;bottom:24px;z-index:2000;transform:translateY(20px);padding:12px 16px;border-radius:8px;color:#fff;background:#292536;font-size:10px;opacity:0;pointer-events:none;transition:.2s}.toast.show{transform:none;opacity:1}@media(max-width:900px){.stat-grid{grid-template-columns:1fr 1fr}.portal-two-col{grid-template-columns:1fr}.stage-list{grid-template-columns:repeat(2,1fr)}}@media(max-width:560px){.portal-main{padding:16px 12px}.welcome-card{align-items:flex-start;flex-direction:column}.stat-grid,.form-grid{grid-template-columns:1fr}.form-grid .wide{grid-column:auto}.stage-list{grid-template-columns:1fr}}
++.password-field-wrap{position:relative}
++.password-field-wrap input{padding-right:36px!important}
++.password-field-wrap .toggle-password{position:absolute;top:50%;right:12px;transform:translateY(-50%);cursor:pointer;color:var(--text-secondary);z-index:2;display:flex;align-items:center}
++.password-field-wrap .toggle-password:hover{color:var(--accent-pink)}
++.principal-indicator{display:inline-flex;align-items:center;gap:6px;margin-top:10px;padding:6px 10px;border:1px solid var(--border-color);border-radius:20px;color:var(--accent-pink);background:var(--card-bg);font:600 8px Montserrat;cursor:pointer}
++.principal-indicator:hover{background:var(--bg-color)}
++.protocol-reveal{margin-top:8px;padding:8px 12px;border-radius:7px;color:var(--text-primary);background:var(--bg-color);font:600 9px Montserrat;letter-spacing:.3px}
++.protocol-code-card{display:flex;align-items:center;gap:14px;margin-bottom:16px;padding:16px 18px;border-radius:10px;color:#fff;background:linear-gradient(135deg,var(--accent-purple),var(--accent-pink))}
++.protocol-code-card i{font-size:22px}
++.protocol-code-card span{display:block;font:600 8px Montserrat;text-transform:uppercase;opacity:.85}
++.protocol-code-card strong{display:block;margin-top:3px;font-size:16px;letter-spacing:.5px}
+diff --git a/assets/js/admin-management.js b/assets/js/admin-management.js
+index 8f3cc0c..898b448 100644
+--- a/assets/js/admin-management.js
++++ b/assets/js/admin-management.js
+@@ -12,6 +12,43 @@
+ 
+     const isAdviser = document.body.dataset.management === 'adviser';
+     const apiUrl = isAdviser ? 'advisers_api.php' : 'students_api.php';
++    // "loggedInRole" = the role of the person USING this page (admin or
++    // adviser). Not to be confused with `isAdviser` above, which means
++    // "this page instance manages the adviser roster".
++    const loggedInRole = document.body.dataset.userRole || 'admin';
++    const stageLabels = window.PRISM_STAGE_LABELS || {};
++
++    function labelForStage(stageKey) {
++        return stageLabels[stageKey] || stageKey;
++    }
++
++    // Populate the stage <select> option TEXT with the configured form/
++    // document names, while keeping the underlying VALUE as "Stage 1" etc
++    // so every other part of the app (filters, DB values) stays unchanged
++    // (feature request 7: dynamic stage labels).
++    const stageSelect = document.getElementById('stage');
++    if (stageSelect) {
++        stageSelect.querySelectorAll('option').forEach(opt => {
++            if (opt.value) opt.textContent = `${opt.value} - ${labelForStage(opt.value)}`;
++        });
++    }
++
++    // Advisers can add/assign only their OWN students (feature request 4);
++    // the adviser dropdown would be misleading to show since the server
++    // ignores it and forces their own id anyway, so hide it entirely.
++    const adviserFieldLabel = document.getElementById('adviserFieldLabel');
++    if (!isAdviser && loggedInRole === 'adviser' && adviserFieldLabel) {
++        adviserFieldLabel.style.display = 'none';
++    }
++
++    // Protocol Code / Principal Investigator are RPMS-office decisions
++    // (feature requests 10-11), not something an adviser sets themselves.
++    const protocolCodeField = document.getElementById('protocolCodeField');
++    const principalField = document.getElementById('principalField');
++    if (!isAdviser && loggedInRole === 'adviser') {
++        if (protocolCodeField) protocolCodeField.style.display = 'none';
++        if (principalField) principalField.style.display = 'none';
++    }
+ 
+     const escapeHtml = value => String(value ?? '').replace(/[&<>'"]/g, char => ({
+         '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;'
+@@ -81,7 +118,7 @@
+ 
+         if (!filtered.length) {
+             const tr = document.createElement('tr');
+-            tr.innerHTML = `<td colspan="6" class="empty-state">No ${isAdviser ? 'adviser' : 'student'} records found.</td>`;
++            tr.innerHTML = `<td colspan="${isAdviser ? 6 : 7}" class="empty-state">No ${isAdviser ? 'adviser' : 'student'} records found.</td>`;
+             rowsEl.appendChild(tr);
+             return;
+         }
+@@ -97,12 +134,17 @@
+                     <td><span class="status-badge ${String(record.status).toLowerCase().replace(/\s+/g, '-')}">${escapeHtml(record.status)}</span></td>
+                     <td class="row-actions"></td>`;
+             } else {
++                const protocolBadge = record.protocolCode
++                    ? `<span class="protocol-badge" title="Protocol Code">${escapeHtml(record.protocolCode)}</span>`
++                    : '<span class="muted">Not yet assigned</span>';
++                const piBadge = record.isPrincipalInvestigator ? ' <span class="pi-badge" title="Principal Investigator">PI</span>' : '';
+                 tr.innerHTML = `
+                     <td><strong>${escapeHtml(record.name)}</strong><br><small>${escapeHtml(record.email)}</small></td>
+                     <td>${escapeHtml(record.studentId)}</td>
+                     <td>${escapeHtml(record.research || 'Not set')}<br><small>${escapeHtml(record.group || 'No group')}</small></td>
+                     <td>${escapeHtml(record.adviserName || 'Unassigned')}</td>
+-                    <td><span class="stage-tag">${escapeHtml(record.stage)}</span> <span class="status-badge ${String(record.status).toLowerCase().replace(/\s+/g, '-')}">${escapeHtml(record.status)}</span></td>
++                    <td><span class="stage-tag" title="${escapeHtml(record.stage)}">${escapeHtml(record.stageLabel || labelForStage(record.stage))}</span> <span class="status-badge ${String(record.status).toLowerCase().replace(/\s+/g, '-')}">${escapeHtml(record.status)}</span></td>
++                    <td>${protocolBadge}${piBadge}</td>
+                     <td class="row-actions"></td>`;
+             }
+             const actions = tr.querySelector('.row-actions');
+@@ -140,6 +182,10 @@
+                 document.getElementById('adviser').value = record.adviserId || '';
+                 document.getElementById('stage').value = record.stage || 'Stage 1';
+                 document.getElementById('recordStatus').value = record.status || 'On Track';
++                const pcField = document.getElementById('protocolCode');
++                const piField = document.getElementById('isPrincipal');
++                if (pcField) pcField.value = record.protocolCode || '';
++                if (piField) piField.checked = !!record.isPrincipalInvestigator;
+             }
+         }
+         modal.style.display = 'flex';
+@@ -190,6 +236,10 @@
+             payload.adviserId = document.getElementById('adviser').value || null;
+             payload.stage = document.getElementById('stage').value;
+             payload.status = document.getElementById('recordStatus').value;
++            const pcField = document.getElementById('protocolCode');
++            const piField = document.getElementById('isPrincipal');
++            if (pcField) payload.protocolCode = pcField.value.trim();
++            if (piField) payload.isPrincipalInvestigator = piField.checked;
+         }
+ 
+         try {
+diff --git a/assets/js/ierbprog.js b/assets/js/ierbprog.js
+index ac141f2..7e2d474 100644
+--- a/assets/js/ierbprog.js
++++ b/assets/js/ierbprog.js
+@@ -33,6 +33,15 @@
+ 
+     let records = [];
+     const STAGES = ['Stage 1', 'Stage 2', 'Stage 3', 'Stage 4', 'Stage 5', 'Completed'];
++    const stageLabels = window.PRISM_STAGE_LABELS || {};
++    const labelForStage = stageKey => stageLabels[stageKey] || stageKey;
++
++    // Show the configured form/document name instead of a bare "Stage N"
++    // wherever a stage select appears, while keeping the option VALUE as
++    // "Stage 1" etc so filtering/saving stays unchanged (feature request 7).
++    document.querySelectorAll('#stageFilter option[value], #entryStage option[value]').forEach(opt => {
++        if (opt.value) opt.textContent = `${opt.value} - ${labelForStage(opt.value)}`;
++    });
+ 
+     async function loadRecords() {
+         try {
+@@ -54,7 +63,7 @@
+             const count = records.filter(r => r.stage === stage).length;
+             const col = document.createElement('div');
+             col.className = 'stage-bar-col';
+-            col.innerHTML = `<div class="stage-bar" style="height:${Math.max(4, (count / max) * 100)}%"><span>${count}</span></div><small>${escapeHtml(stage)}</small>`;
++            col.innerHTML = `<div class="stage-bar" style="height:${Math.max(4, (count / max) * 100)}%"><span>${count}</span></div><small title="${escapeHtml(stage)}">${escapeHtml(labelForStage(stage))}</small>`;
+             stageChart.appendChild(col);
+         });
+     }
+@@ -88,7 +97,7 @@
+             const statusClass = String(record.status || 'Pending').toLowerCase().replace(/\s+/g, '-');
+             tr.innerHTML = `
+                 <td><strong>${escapeHtml(record.name)}</strong><br><small>${escapeHtml(record.studentId)}</small></td>
+-                <td><span class="stage-tag">${escapeHtml(record.stage)}</span></td>
++                <td><span class="stage-tag" title="${escapeHtml(record.stage)}">${escapeHtml(record.stageLabel || labelForStage(record.stage))}</span></td>
+                 <td>${escapeHtml(record.progress)}%</td>
+                 <td>${escapeHtml(record.requirements || 'None')}</td>
+                 <td>${escapeHtml(record.lastSubmissionDate || 'N/A')}</td>
+diff --git a/assets/js/role-portal.js b/assets/js/role-portal.js
+index d908027..6989613 100644
+--- a/assets/js/role-portal.js
++++ b/assets/js/role-portal.js
+@@ -1,6 +1,8 @@
+ document.addEventListener('DOMContentLoaded', () => {
+     const body = document.body;
+     const STAGES = ['Stage 1', 'Stage 2', 'Stage 3', 'Stage 4', 'Stage 5', 'Completed'];
++    const stageLabels = window.PRISM_STAGE_LABELS || {};
++    const labelForStage = stageKey => stageLabels[stageKey] || stageKey;
+     const $ = id => document.getElementById(id);
+     const esc = v => String(v ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
+     const fmt = v => v ? new Date(v).toLocaleString('en-PH', { dateStyle: 'medium', timeStyle: 'short' }) : 'N/A';
+@@ -99,7 +101,7 @@ document.addEventListener('DOMContentLoaded', () => {
+         const stageIndex = myRecord ? STAGES.indexOf(myRecord.stage) + 1 : 0;
+         const progress = myRecord ? myRecord.progress : 0;
+         const status = myRecord ? myRecord.status : 'No record yet';
+-        const stageText = myRecord ? `Stage ${stageIndex} of ${STAGES.length} — ${myRecord.stage}` : 'No IERB record yet';
++        const stageText = myRecord ? `Stage ${stageIndex} of ${STAGES.length} — ${labelForStage(myRecord.stage)}` : 'No IERB record yet';
+         const pendingCount = myRecord && myRecord.requirements && myRecord.requirements !== 'None' ? 1 : 0;
+         const latestDoc = myDocuments[0];
+ 
+@@ -118,14 +120,14 @@ document.addEventListener('DOMContentLoaded', () => {
+         $('navBadge').textContent = unread;
+         $('navBadge').hidden = !unread;
+ 
+-        $('currentStage').textContent = myRecord ? `Stage ${stageIndex} — ${myRecord.stage}` : 'No record yet';
++        $('currentStage').textContent = myRecord ? `Stage ${stageIndex} — ${labelForStage(myRecord.stage)}` : 'No record yet';
+         $('progressRing').style.background = `conic-gradient(var(--accent-pink) ${progress}%, var(--bg-color) 0)`;
+         $('progressRing').innerHTML = `<b>${progress}%</b>`;
+ 
+         $('stageList').innerHTML = STAGES.map((s, i) => {
+             const cls = i + 1 < stageIndex ? 'complete' : i + 1 === stageIndex ? 'current' : '';
+             const icon = i + 1 < stageIndex ? 'fa-circle-check' : 'fa-circle';
+-            return `<div class="stage-card ${cls}"><i class="fa-solid ${icon}"></i><strong>Stage ${i + 1}</strong><span>${esc(s)}</span></div>`;
++            return `<div class="stage-card ${cls}"><i class="fa-solid ${icon}"></i><strong>Stage ${i + 1}</strong><span>${esc(labelForStage(s))}</span></div>`;
+         }).join('');
+ 
+         $('completedRequirements').innerHTML = myRecord && stageIndex > 1
+@@ -141,6 +143,27 @@ document.addEventListener('DOMContentLoaded', () => {
+ 
+         $('recentSubmissions').innerHTML = myDocuments.slice(0, 4).map(docItem).join('') || empty('No submissions yet.');
+ 
++        // Principal Investigator indicator + Protocol Code (feature requests
++        // 10-11). Kept intentionally simple: a small badge that reveals the
++        // code on click, plus a prominent card shown ahead of the raw file
++        // list once a protocol code has actually been assigned.
++        const piIndicator = $('principalIndicator');
++        const protocolReveal = $('protocolCodeReveal');
++        if (myRecord && myRecord.isPrincipalInvestigator) {
++            piIndicator.hidden = false;
++        } else {
++            piIndicator.hidden = true;
++            protocolReveal.hidden = true;
++        }
++
++        const protocolCard = $('protocolCodeCard');
++        if (myRecord && myRecord.protocolCode) {
++            $('protocolCodeValue').textContent = myRecord.protocolCode;
++            protocolCard.hidden = false;
++        } else {
++            protocolCard.hidden = true;
++        }
++
+         renderDocs();
+         renderNotifications();
+     }
+@@ -194,6 +217,16 @@ document.addEventListener('DOMContentLoaded', () => {
+     document.querySelectorAll('[data-go]').forEach(b => b.addEventListener('click', () => go(b.dataset.go)));
+     document.querySelectorAll('#portalNav button').forEach(b => b.addEventListener('click', () => go(b.dataset.page)));
+ 
++    $('principalIndicator').addEventListener('click', () => {
++        const reveal = $('protocolCodeReveal');
++        if (reveal.hidden) {
++            reveal.textContent = myRecord?.protocolCode
++                ? `Protocol Code: ${myRecord.protocolCode}`
++                : 'Protocol Code has not been assigned yet.';
++        }
++        reveal.hidden = !reveal.hidden;
++    });
++
+     // ------------------------------------------------------------------
+     // Document submission
+     // ------------------------------------------------------------------
+diff --git a/change_password_required.php b/change_password_required.php
+index cd1abbc..5560c51 100644
+--- a/change_password_required.php
++++ b/change_password_required.php
+@@ -64,6 +64,8 @@ $landing = $user['role'] === 'admin' ? 'dashboard.php' : ($user['role'] === 'adv
+                     placeholder="Current (temporary) password"
+                     required>
+ 
++                <span class="toggle-password"><i class="fa-solid fa-eye" id="toggleCurrentPassword"></i></span>
++
+             </div>
+ 
+             <div class="input-group">
+@@ -77,6 +79,8 @@ $landing = $user['role'] === 'admin' ? 'dashboard.php' : ($user['role'] === 'adv
+                     minlength="8"
+                     required>
+ 
++                <span class="toggle-password"><i class="fa-solid fa-eye" id="toggleNewPassword"></i></span>
++
+             </div>
+ 
+             <div class="input-group">
+@@ -90,6 +94,8 @@ $landing = $user['role'] === 'admin' ? 'dashboard.php' : ($user['role'] === 'adv
+                     minlength="8"
+                     required>
+ 
++                <span class="toggle-password"><i class="fa-solid fa-eye" id="toggleConfirmNewPassword"></i></span>
++
+             </div>
+ 
+             <button type="submit">
+@@ -110,7 +116,12 @@ $landing = $user['role'] === 'admin' ? 'dashboard.php' : ($user['role'] === 'adv
+ 
+ </div>
+ 
++<script src="assets/js/script.js"></script>
+ <script>
++togglePassword('currentPassword', 'toggleCurrentPassword');
++togglePassword('newPassword', 'toggleNewPassword');
++togglePassword('confirmPassword', 'toggleConfirmNewPassword');
++
+ document.getElementById('forcedPasswordForm').addEventListener('submit', async (event) => {
+     event.preventDefault();
+     const messageBox = document.getElementById('formMessage');
+diff --git a/config.php b/config.php
+index 5fb0fcc..1afe1cf 100644
+--- a/config.php
++++ b/config.php
+@@ -102,6 +102,18 @@ if (!defined('ADMIN_REGISTRATION_CODE')) {
+     define('ADMIN_REGISTRATION_CODE', getenv('ADMIN_REGISTRATION_CODE') ?: '');
+ }
+ 
++// Only accounts with an email ending in one of these domains may be
++// created or log in (feature request: email domain restriction). Adjust
++// these to the real CEU Malolos and MLS domains used by your office --
++// these are reasonable guesses and should be verified before go-live.
++if (!defined('ALLOWED_EMAIL_DOMAINS')) {
++    $envDomains = getenv('ALLOWED_EMAIL_DOMAINS');
++    define('ALLOWED_EMAIL_DOMAINS', $envDomains ? array_map('trim', explode(',', $envDomains)) : [
++        'ceu.edu.ph',
++        'mls.edu.ph',
++    ]);
++}
++
+ // ---------------------------------------------------------------------
+ // Database
+ // ---------------------------------------------------------------------
+@@ -266,6 +278,61 @@ function migrate(PDO $pdo): void
+         details VARCHAR(255),
+         created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;");
++
++    // ---- Feature-request additions (kept separate from the original
++    // CREATE TABLE statements above so this file's history stays clear;
++    // add_column_if_missing() is safe to re-run on an already-upgraded
++    // database, same as everything else in migrate()). ----
++    $pdo->exec("CREATE TABLE IF NOT EXISTS stage_labels (
++        stage_key VARCHAR(20) PRIMARY KEY,
++        label VARCHAR(190) NOT NULL,
++        updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
++    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;");
++
++    // Protocol code + Principal Investigator indicator (feature requests 10-11)
++    add_column_if_missing($pdo, 'students', 'protocol_code', "VARCHAR(100) NULL AFTER requirements");
++    add_column_if_missing($pdo, 'students', 'is_principal_investigator', "TINYINT(1) NOT NULL DEFAULT 0 AFTER protocol_code");
++
++    // AI-detected approval date, separate from uploaded_at/reviewed_at
++    // (feature request 3 -- the date printed on the actual IERB approval
++    // document, which can lag behind when the student got around to
++    // uploading it).
++    add_column_if_missing($pdo, 'documents', 'detected_approval_date', "DATE NULL AFTER reviewed_at");
++    add_column_if_missing($pdo, 'documents', 'approval_date_source', "VARCHAR(20) NULL COMMENT 'ai or regex or manual' AFTER detected_approval_date");
++
++    // Seed default stage labels (feature request 7). Safe to re-run --
++    // only inserts rows that don't already exist, so an admin's own edits
++    // via stage_labels_api.php are never overwritten by this.
++    $defaultLabels = [
++        'Stage 1' => 'Protocol Submission',
++        'Stage 2' => 'Initial Ethics Review',
++        'Stage 3' => 'Revisions & Resubmission',
++        'Stage 4' => 'Certificate of Approval',
++        'Stage 5' => 'Continuing Review / Monitoring',
++        'Completed' => 'IERB Process Completed',
++    ];
++    $insertLabel = $pdo->prepare('INSERT IGNORE INTO stage_labels (stage_key, label) VALUES (:k, :l)');
++    foreach ($defaultLabels as $key => $label) {
++        $insertLabel->execute([':k' => $key, ':l' => $label]);
++    }
++}
++
++/**
++ * Adds a column to an existing table only if it doesn't already exist.
++ * MySQL/MariaDB don't reliably support "ADD COLUMN IF NOT EXISTS" across
++ * the versions this app might run on, so this checks INFORMATION_SCHEMA
++ * first -- safe to call on every request, same as the rest of migrate().
++ */
++function add_column_if_missing(PDO $pdo, string $table, string $column, string $definition): void
++{
++    $check = $pdo->prepare(
++        "SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS
++         WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = :t AND COLUMN_NAME = :c"
++    );
++    $check->execute([':t' => $table, ':c' => $column]);
++    if ((int)$check->fetchColumn() === 0) {
++        $pdo->exec("ALTER TABLE `$table` ADD COLUMN `$column` $definition");
++    }
+ }
+ 
+ function seed(PDO $pdo): void
+@@ -393,6 +460,84 @@ function json_out($data, int $code = 200): void
+     exit;
+ }
+ 
++// ---------------------------------------------------------------------
++// Email domain restriction (feature request: only @ceu / @mls addresses
++// may hold an account). See ALLOWED_EMAIL_DOMAINS above to adjust.
++// ---------------------------------------------------------------------
++function is_allowed_email_domain(string $email): bool
++{
++    $at = strrpos($email, '@');
++    if ($at === false) {
++        return false;
++    }
++    $domain = strtolower(substr($email, $at + 1));
++    foreach (ALLOWED_EMAIL_DOMAINS as $allowed) {
++        $allowed = strtolower(trim($allowed));
++        if ($allowed !== '' && ($domain === $allowed || str_ends_with($domain, '.' . $allowed))) {
++            return true;
++        }
++    }
++    return false;
++}
++
++function allowed_email_domains_hint(): string
++{
++    return implode(', ', array_map(fn($d) => '@' . $d, ALLOWED_EMAIL_DOMAINS));
++}
++
++// ---------------------------------------------------------------------
++// IERB stage sequence, labels, and progress percentages -- centralized
++// here so students_api.php, ierb_api.php, documents_api.php, and
++// reports_api.php all agree on the same order/labels instead of each
++// keeping (and risking drifting) their own copy.
++// ---------------------------------------------------------------------
++const STAGE_SEQUENCE = ['Stage 1', 'Stage 2', 'Stage 3', 'Stage 4', 'Stage 5', 'Completed'];
++
++function stage_progress_percent(string $stage): int
++{
++    $map = ['Stage 1' => 20, 'Stage 2' => 40, 'Stage 3' => 60, 'Stage 4' => 80, 'Stage 5' => 95, 'Completed' => 100];
++    return $map[$stage] ?? 0;
++}
++
++/** Returns the next stage in sequence, or the same stage if it's already the last one. */
++function next_stage(string $currentStage): string
++{
++    $index = array_search($currentStage, STAGE_SEQUENCE, true);
++    if ($index === false || $index >= count(STAGE_SEQUENCE) - 1) {
++        return $currentStage;
++    }
++    return STAGE_SEQUENCE[$index + 1];
++}
++
++/** All configured stage labels as [stage_key => label], with a safe fallback to the key itself. */
++function stage_labels_map(): array
++{
++    static $cached = null;
++    if ($cached !== null) {
++        return $cached;
++    }
++    $cached = [];
++    foreach (STAGE_SEQUENCE as $key) {
++        $cached[$key] = $key; // fallback
++    }
++    try {
++        $rows = db()->query('SELECT stage_key, label FROM stage_labels')->fetchAll();
++        foreach ($rows as $row) {
++            $cached[$row['stage_key']] = $row['label'];
++        }
++    } catch (Throwable $e) {
++        // table not migrated yet on this request somehow -- fall back to keys
++    }
++    return $cached;
++}
++
++/** Human-readable label for a stage key, e.g. "Stage 1" -> "Protocol Submission". */
++function stage_label(string $stageKey): string
++{
++    $map = stage_labels_map();
++    return $map[$stageKey] ?? $stageKey;
++}
++
+ // ---------------------------------------------------------------------
+ // AI and Integration Layer (Figure 3) - OpenRouter API
+ // PRISM sends only predefined queries/templates, never free-form user
+diff --git a/documents_api.php b/documents_api.php
+index 5964ed7..a0a35ab 100644
+--- a/documents_api.php
++++ b/documents_api.php
+@@ -1,5 +1,6 @@
+ <?php
+ require __DIR__ . '/config.php';
++require_once __DIR__ . '/ai_helpers.php';
+ $user = api_require_login(['admin', 'adviser', 'student']);
+ $pdo = db();
+ $action = $_GET['action'] ?? $_POST['action'] ?? 'list';
+@@ -19,11 +20,17 @@ function doc_row(array $d): array
+         'course' => $d['course'] ?? null,
+         'documentType' => $d['document_type'],
+         'stage' => $d['stage'],
++        'stageLabel' => stage_label($d['stage']),
+         'notes' => $d['notes'],
+         'reviewStatus' => $d['review_status'],
+         'reviewRemarks' => $d['review_remarks'],
+         'reviewedBy' => $d['reviewed_by'],
+         'reviewedAt' => $d['reviewed_at'],
++        // The AI/regex-detected approval date printed on the document itself,
++        // which reflects when the paper was actually approved -- not when the
++        // student got around to uploading it (feature request 3).
++        'detectedApprovalDate' => $d['detected_approval_date'] ?? null,
++        'approvalDateSource' => $d['approval_date_source'] ?? null,
+         'aiSummary' => $d['ai_summary'],
+     ];
+ }
+@@ -88,9 +95,27 @@ if ($action === 'upload') {
+     }
+     $mime = (new finfo(FILEINFO_MIME_TYPE))->file($target) ?: 'application/octet-stream';
+ 
++    // Best-effort: try to detect a printed approval date on the document
++    // itself at upload time (e.g. certificates the office re-uploads after
++    // a delay still carry their true approval date, not the upload date).
++    // Never blocks the upload if extraction/detection fails or is slow.
++    $detectedDate = null;
++    $detectedSource = null;
++    try {
++        $uploadText = extract_document_text($target);
++        if ($uploadText !== '') {
++            $detection = ai_detect_approval_date($uploadText);
++            $detectedDate = $detection['date'];
++            $detectedSource = $detection['source'];
++        }
++    } catch (Throwable $e) {
++        // extraction/AI hiccup shouldn't fail the whole upload
++    }
++
+     $pdo->prepare('INSERT INTO documents (id, student_id, student_name, uploaded_by, uploaded_by_role,
+-        original_name, stored_name, mime, size, document_type, stage, notes, review_status)
+-        VALUES (:id,:sid,:sname,:by,:role,:orig,:stored,:mime,:size,:type,:stage,:notes,"Submitted")')
++        original_name, stored_name, mime, size, document_type, stage, notes, review_status,
++        detected_approval_date, approval_date_source)
++        VALUES (:id,:sid,:sname,:by,:role,:orig,:stored,:mime,:size,:type,:stage,:notes,"Submitted",:adate,:asrc)')
+         ->execute([
+             ':id' => $id, ':sid' => $studentDbId, ':sname' => $studentName ?: 'Unassigned',
+             ':by' => $user['full_name'], ':role' => $user['role'], ':orig' => basename($file['name']),
+@@ -98,6 +123,7 @@ if ($action === 'upload') {
+             ':type' => trim((string)($_POST['documentType'] ?? 'Other')),
+             ':stage' => trim((string)($_POST['stage'] ?? 'Stage 1')),
+             ':notes' => trim((string)($_POST['notes'] ?? '')),
++            ':adate' => $detectedDate, ':asrc' => $detectedSource,
+         ]);
+ 
+     if ($studentDbId) {
+@@ -173,20 +199,61 @@ if ($action === 'review') {
+     $pdo->prepare('UPDATE documents SET review_status=:s, review_remarks=:r, reviewed_by=:by, reviewed_at=NOW()
+         WHERE id=:id')->execute([':s' => $status, ':r' => $remarks, ':by' => $user['full_name'], ':id' => $id]);
+ 
++    $stageAdvanceNote = '';
++    if ($status === 'Approved' && $doc['student_id']) {
++        // Auto stage progression (feature 6): once the document tied to a
++        // student's CURRENT stage is approved, move them on to the next
++        // stage automatically. Comparing against the document's own stage
++        // (not just "any approval") means re-approving an old document, or
++        // approving a document for a stage the student has already moved
++        // past, doesn't re-trigger progression.
++        $studentRow = $pdo->prepare('SELECT stage, status FROM students WHERE id = :id');
++        $studentRow->execute([':id' => $doc['student_id']]);
++        $student = $studentRow->fetch();
++
++        if ($student && $doc['stage'] === $student['stage']) {
++            $newStage = next_stage($student['stage']);
++            if ($newStage !== $student['stage']) {
++                // Prefer the date actually printed on the approved document
++                // (feature 3) over "today", since students sometimes delay
++                // sending the file after it was really approved.
++                $effectiveDate = $doc['detected_approval_date'] ?: date('Y-m-d');
++
++                $pdo->prepare('UPDATE students SET stage = :stage, status = "On Track",
++                    last_submission_date = :sub, updated_at = NOW() WHERE id = :id')
++                    ->execute([':stage' => $newStage, ':sub' => $effectiveDate, ':id' => $doc['student_id']]);
++
++                $historyNote = 'Auto-advanced to ' . stage_label($newStage) . ' (' . $newStage . ')'
++                    . ' after "' . $doc['original_name'] . '" was approved'
++                    . ($doc['detected_approval_date'] ? " (approval date detected on document: {$doc['detected_approval_date']})" : '')
++                    . '.';
++                $pdo->prepare('INSERT INTO ierb_history (student_id, stage, status, note, submission_date, actor)
++                    VALUES (:sid,:stage,"On Track",:note,:sub,:actor)')->execute([
++                    ':sid' => $doc['student_id'], ':stage' => $newStage, ':note' => $historyNote,
++                    ':sub' => $effectiveDate, ':actor' => $user['full_name'] . ' (auto)',
++                ]);
++
++                $stageAdvanceNote = "\n\nYour IERB stage has automatically advanced to: "
++                    . stage_label($newStage) . " ($newStage).";
++                log_activity($user['email'], 'stage_auto_advanced', "student_id={$doc['student_id']} new_stage=$newStage");
++            }
++        }
++    }
++
+     if ($doc['student_id']) {
+         $email = $pdo->prepare('SELECT email, full_name FROM students WHERE id = :id');
+         $email->execute([':id' => $doc['student_id']]);
+         $student = $email->fetch();
+         if ($student) {
+             $body = "Hello {$student['full_name']},\n\nYour document \"{$doc['original_name']}\" is now: {$status}."
+-                . ($remarks !== '' ? "\nRemarks: {$remarks}" : '') . "\n\n- CEU Malolos RPMS / PRISM";
++                . ($remarks !== '' ? "\nRemarks: {$remarks}" : '') . $stageAdvanceNote . "\n\n- CEU Malolos RPMS / PRISM";
+             $result = send_notification_email($student['email'], 'PRISM Document Status Update', $body);
+             $pdo->prepare('INSERT INTO notifications (recipient_type, recipient_id, recipient_email, recipient_name,
+                 subject, message, type, status, delivery_info, sent_at, created_by)
+                 VALUES ("student",:sid,:email,:name,"PRISM Document Status Update",:msg,"Status Update",:status2,:info,NOW(),:by)')
+                 ->execute([
+                     ':sid' => $doc['student_id'], ':email' => $student['email'], ':name' => $student['full_name'],
+-                    ':msg' => "Document \"{$doc['original_name']}\" is now {$status}.",
++                    ':msg' => "Document \"{$doc['original_name']}\" is now {$status}." . $stageAdvanceNote,
+                     ':status2' => $result['ok'] ? 'Sent' : 'Failed', ':info' => $result['message'],
+                     ':by' => $user['full_name'],
+                 ]);
+@@ -194,7 +261,7 @@ if ($action === 'review') {
+     }
+ 
+     log_activity($user['email'], 'document_reviewed', "id=$id status=$status");
+-    json_out(['ok' => true]);
++    json_out(['ok' => true, 'stageAdvanced' => $stageAdvanceNote !== '']);
+ }
+ 
+ if ($action === 'delete') {
+@@ -208,7 +275,6 @@ if ($action === 'delete') {
+ }
+ 
+ if ($action === 'summarize') {
+-    require_once __DIR__ . '/ai_helpers.php';
+     $text = extract_document_text($path);
+     if ($text === '') {
+         json_out(['ok' => false, 'message' => 'Text could not be extracted from this file. Scanned PDFs and legacy Word files require an OCR or AI document service.'], 422);
+@@ -219,8 +285,22 @@ if ($action === 'summarize') {
+         $text
+     ) ?? local_extractive_summary($text, 4);
+ 
+-    $pdo->prepare('UPDATE documents SET ai_summary = :s WHERE id = :id')->execute([':s' => $summary, ':id' => $id]);
+-    json_out(['ok' => true, 'summary' => $summary, 'wordCount' => str_word_count($text), 'aiConfigured' => openrouter_available()]);
++    // Backfill approval-date detection here too, in case it wasn't captured
++    // at upload time (e.g. documents uploaded before this feature existed).
++    $approvalUpdate = '';
++    $approvalParams = [':s' => $summary, ':id' => $id];
++    if (empty($doc['detected_approval_date'])) {
++        $detection = ai_detect_approval_date($text);
++        if ($detection['date']) {
++            $approvalUpdate = ', detected_approval_date = :adate, approval_date_source = :asrc';
++            $approvalParams[':adate'] = $detection['date'];
++            $approvalParams[':asrc'] = $detection['source'];
++        }
++    }
++
++    $pdo->prepare("UPDATE documents SET ai_summary = :s $approvalUpdate WHERE id = :id")->execute($approvalParams);
++    json_out(['ok' => true, 'summary' => $summary, 'wordCount' => str_word_count($text), 'aiConfigured' => openrouter_available(),
++        'detectedApprovalDate' => $approvalParams[':adate'] ?? $doc['detected_approval_date'] ?? null]);
+ }
+ 
+ json_out(['ok' => false, 'message' => 'Unknown action.'], 400);
+diff --git a/ierb_api.php b/ierb_api.php
+index ebe1ede..1fdf1ab 100644
+--- a/ierb_api.php
++++ b/ierb_api.php
+@@ -4,12 +4,6 @@ $user = api_require_login(['admin', 'adviser', 'student']);
+ $pdo = db();
+ $action = $_GET['action'] ?? 'list';
+ 
+-function ierb_progress(string $stage): int
+-{
+-    $map = ['Stage 1' => 20, 'Stage 2' => 40, 'Stage 3' => 60, 'Stage 4' => 80, 'Stage 5' => 95, 'Completed' => 100];
+-    return $map[$stage] ?? 0;
+-}
+-
+ function ierb_row(array $r): array
+ {
+     return [
+@@ -21,10 +15,13 @@ function ierb_row(array $r): array
+         'course' => $r['course'],
+         'research' => $r['research_title'],
+         'stage' => $r['stage'],
++        'stageLabel' => stage_label($r['stage']),
+         'status' => $r['status'],
+         'requirements' => $r['requirements'],
++        'protocolCode' => $r['protocol_code'] ?? null,
++        'isPrincipalInvestigator' => !empty($r['is_principal_investigator']),
+         'lastSubmissionDate' => $r['last_submission_date'],
+-        'progress' => ierb_progress($r['stage']),
++        'progress' => stage_progress_percent($r['stage']),
+         'adviser' => $r['adviser_name'] ?? null,
+     ];
+ }
+@@ -87,7 +84,7 @@ if ($action === 'save') {
+     if ($studentIdCode === '' || $name === '' || !filter_var($email, FILTER_VALIDATE_EMAIL)) {
+         json_out(['ok' => false, 'message' => 'Student ID, name, and a valid email are required.'], 422);
+     }
+-    $validStages = ['Stage 1', 'Stage 2', 'Stage 3', 'Stage 4', 'Stage 5', 'Completed'];
++    $validStages = STAGE_SEQUENCE;
+     $validStatuses = ['On Track', 'Pending', 'Delayed'];
+     if (!in_array($stage, $validStages, true)) {
+         json_out(['ok' => false, 'message' => 'Invalid IERB stage.'], 422);
+diff --git a/ierbprog.php b/ierbprog.php
+index e8e33ff..93c3403 100644
+--- a/ierbprog.php
++++ b/ierbprog.php
+@@ -20,6 +20,7 @@ $profile_img = 'assets/images/default-avatar.svg';
+     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.6.0/css/all.min.css">
+ </head>
+ <body data-ierb-user="<?php echo htmlspecialchars(hash('sha256', $user_email), ENT_QUOTES, 'UTF-8'); ?>" data-role="<?php echo htmlspecialchars($_SESSION['account_type'] ?? 'admin', ENT_QUOTES, 'UTF-8'); ?>">
++<script>window.PRISM_STAGE_LABELS = <?php echo json_encode(stage_labels_map()); ?>;</script>
+ <div class="container">
+     <aside class="sidebar">
+         <div class="sidebar-header">
+@@ -47,7 +48,7 @@ $profile_img = 'assets/images/default-avatar.svg';
+         <section class="ierb-controls" aria-label="IERB progress filters">
+             <div class="ierb-search"><i class="fa-solid fa-magnifying-glass"></i><input id="ierbSearch" type="search" placeholder="Search student, ID, group, or research title"></div>
+             <div class="ierb-filters">
+-                <select id="stageFilter" aria-label="Filter by stage"><option value="">All Stages</option><option>Stage 1</option><option>Stage 2</option><option>Stage 3</option><option>Stage 4</option><option>Stage 5</option><option>Completed</option></select>
++                <select id="stageFilter" aria-label="Filter by stage"><option value="">All Stages</option><option value="Stage 1">Stage 1</option><option value="Stage 2">Stage 2</option><option value="Stage 3">Stage 3</option><option value="Stage 4">Stage 4</option><option value="Stage 5">Stage 5</option><option value="Completed">Completed</option></select>
+                 <select id="ierbStatusFilter" aria-label="Filter by status"><option value="">All Statuses</option><option>On Track</option><option>Pending</option><option>Delayed</option></select>
+             </div>
+         </section>
+@@ -72,7 +73,7 @@ $profile_img = 'assets/images/default-avatar.svg';
+                 <div><label for="entryEmail">Email address</label><input id="entryEmail" type="email" maxlength="150" required></div>
+                 <div><label for="entryGroupId">Research group ID</label><input id="entryGroupId" maxlength="40" required></div>
+                 <div><label for="entryCourse">Course</label><input id="entryCourse" maxlength="80" required></div>
+-                <div><label for="entryStage">Current IERB stage</label><select id="entryStage"><option>Stage 1</option><option>Stage 2</option><option>Stage 3</option><option>Stage 4</option><option>Stage 5</option><option>Completed</option></select></div>
++                <div><label for="entryStage">Current IERB stage</label><select id="entryStage"><option value="Stage 1">Stage 1</option><option value="Stage 2">Stage 2</option><option value="Stage 3">Stage 3</option><option value="Stage 4">Stage 4</option><option value="Stage 5">Stage 5</option><option value="Completed">Completed</option></select></div>
+                 <div class="ierb-entry-wide"><label for="entryResearchTitle">Research title</label><input id="entryResearchTitle" maxlength="250" required></div>
+                 <div><label for="entryRequirements">Pending requirements</label><input id="entryRequirements" maxlength="180" placeholder="e.g. Missing Ethics Consent Form"></div>
+                 <div><label for="entrySubmissionDate">Latest submission date</label><input id="entrySubmissionDate" type="date"></div>
+diff --git a/login.php b/login.php
+index 6e27157..8f8d3c1 100644
+--- a/login.php
++++ b/login.php
+@@ -1,3 +1,17 @@
++<?php
++require __DIR__ . '/config.php';
++
++// Already logged in? Send them straight to their landing page instead of
++// showing the form again.
++if (current_user()) {
++    header('Location: loading.php');
++    exit;
++}
++
++$loginError = $_SESSION['error'] ?? null;
++$loginSuccess = $_SESSION['success'] ?? null;
++unset($_SESSION['error'], $_SESSION['success']);
++?>
+ <!DOCTYPE html>
+ <html lang="en">
+ <head>
+@@ -30,34 +44,40 @@
+             <p>Centro Escolar University - Malolos <span aria-hidden="true">&bull;</span> RPMS</p>
+         </div>
+ 
+-        <?php
+-        session_start();
+-        if (isset($_SESSION['success'])) {
+-            echo "<div class='success-message'>" . htmlspecialchars($_SESSION['success'], ENT_QUOTES, 'UTF-8') . "</div>";
+-            unset($_SESSION['success']);
+-        }
+-        if (isset($_SESSION['error'])) {
+-            echo "<div class='error-message'>" . htmlspecialchars($_SESSION['error'], ENT_QUOTES, 'UTF-8') . "</div>";
+-            unset($_SESSION['error']);
+-        }
+-        ?>
+-
+-        <nav class="role-selector" aria-label="Select account type">
+-            <p>Login As:</p>
+-            <a class="role-option" href="login_students.php">
+-                Student
+-            </a>
+-            <a class="role-option" href="login_adviser.php">
+-                Research Adviser
+-            </a>
+-            <a class="role-option" href="login_admin.php">
+-                Admin
+-            </a>
+-        </nav>
++        <?php if ($loginError): ?><div class="error-message"><?php echo htmlspecialchars($loginError, ENT_QUOTES, 'UTF-8'); ?></div><?php endif; ?>
++        <?php if ($loginSuccess): ?><div class="success-message"><?php echo htmlspecialchars($loginSuccess, ENT_QUOTES, 'UTF-8'); ?></div><?php endif; ?>
++
++        <form action="login_process.php" method="POST">
++
++            <div class="input-group">
++                <i class="fa-solid fa-envelope"></i>
++                <input type="email" name="email" placeholder="<?php echo htmlspecialchars(allowed_email_domains_hint(), ENT_QUOTES, 'UTF-8'); ?> email" autocomplete="username" required autofocus>
++            </div>
++
++            <div class="input-group">
++                <i class="fa-solid fa-lock"></i>
++                <input type="password" name="password" id="password" placeholder="Password" autocomplete="current-password" required>
++                <span class="toggle-password"><i class="fa-solid fa-eye" id="togglePassword"></i></span>
++            </div>
++
++            <div class="form-options">
++                <a href="forgot_password.php">Forgot Password?</a>
++            </div>
++
++            <button type="submit">LOGIN</button>
++
++            <div class="register-text">
++                RPMS staff without an account &mdash; <a href="register.php">Register</a>.
++                Research advisers and students are given their login by the RPMS office.
++            </div>
++
++        </form>
+ 
+     </div>
+ 
+ </div>
+ 
++<script src="assets/js/script.js"></script>
++
+ </body>
+ </html>
+diff --git a/login_admin.php b/login_admin.php
+index 06b71e4..3f7f735 100644
+--- a/login_admin.php
++++ b/login_admin.php
+@@ -1,4 +1,6 @@
+ <?php
+-$accountType = 'admin';
+-$accountLabel = 'Admin';
+-require __DIR__ . '/role_login_template.php';
++// This role-specific login page was consolidated into a single login.php
++// (feature request: single login page). Kept only so old bookmarks/links
++// still work.
++header('Location: login.php');
++exit;
+diff --git a/login_adviser.php b/login_adviser.php
+index 764f894..3f7f735 100644
+--- a/login_adviser.php
++++ b/login_adviser.php
+@@ -1,4 +1,6 @@
+ <?php
+-$accountType = 'adviser';
+-$accountLabel = 'Research Adviser';
+-require __DIR__ . '/role_login_template.php';
++// This role-specific login page was consolidated into a single login.php
++// (feature request: single login page). Kept only so old bookmarks/links
++// still work.
++header('Location: login.php');
++exit;
+diff --git a/login_process.php b/login_process.php
+index 0cb1d8e..c82b665 100644
+--- a/login_process.php
++++ b/login_process.php
+@@ -6,56 +6,52 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+     exit;
+ }
+ 
+-$accountType = in_array($_POST['account_type'] ?? '', ['admin', 'adviser', 'student'], true)
+-    ? $_POST['account_type']
+-    : 'admin';
+-$loginPage = [
+-    'admin' => 'login_admin.php',
+-    'adviser' => 'login_adviser.php',
+-    'student' => 'login_students.php',
+-][$accountType];
+-
+-$username = trim((string)($_POST['username'] ?? ''));
++$email = trim((string)($_POST['email'] ?? $_POST['username'] ?? ''));
+ $password = (string)($_POST['password'] ?? '');
+ 
+-if ($username === '' || $password === '') {
+-    $_SESSION['error'] = 'Please enter your username and password.';
+-    header("Location: $loginPage");
++if ($email === '' || $password === '') {
++    $_SESSION['error'] = 'Please enter your email and password.';
++    header('Location: login.php');
+     exit;
+ }
+ 
+-// Throttle repeated failed attempts against a single username, regardless
+-// of whether that username actually exists (checked before the DB lookup
+-// so the block itself doesn't leak which usernames are real).
+-if (too_many_recent_failures($username)) {
++// Throttle repeated failed attempts against a single email, regardless of
++// whether that email actually exists (checked before the DB lookup so the
++// block itself doesn't leak which accounts are real).
++if (too_many_recent_failures($email)) {
+     $_SESSION['error'] = 'Too many failed login attempts for this account. Please try again in a few minutes.';
+-    header("Location: $loginPage");
++    header('Location: login.php');
+     exit;
+ }
+ 
+-$stmt = db()->prepare('SELECT * FROM users WHERE username = :u AND role = :r LIMIT 1');
+-$stmt->execute([':u' => $username, ':r' => $accountType]);
++// Login is by email only now (feature request: remove Student ID/Employee
++// ID as login identifiers) -- role is whatever the matched account's row
++// says, not something the person selects beforehand.
++$stmt = db()->prepare('SELECT * FROM users WHERE email = :e LIMIT 1');
++$stmt->execute([':e' => strtolower($email)]);
+ $user = $stmt->fetch();
+ 
+ // Always run password_verify(), even for a nonexistent user, against a
+ // fixed dummy hash — this keeps response time consistent so failed logins
+-// can't be used to enumerate which usernames exist on the system.
++// can't be used to enumerate which emails exist on the system.
+ $dummyHash = '$2y$10$vzBXNiy73d.9neRQSAf.f.x75YP44p7wvMVaX2ylMlrmulh0/jJCu';
+ $passwordOk = $user ? password_verify($password, $user['password_hash']) : password_verify($password, $dummyHash);
+ 
+ if (!$user || !$passwordOk) {
+-    $_SESSION['error'] = 'Invalid username or password for this account type.';
+-    log_activity($username, 'login_failed', "account_type=$accountType");
+-    header("Location: $loginPage");
++    $_SESSION['error'] = 'Invalid email or password.';
++    log_activity($email, 'login_failed', '');
++    header('Location: login.php');
+     exit;
+ }
+ 
+ if (strcasecmp((string)$user['status'], 'Active') !== 0) {
+     $_SESSION['error'] = 'This account is not active. Please contact the RPMS office.';
+-    header("Location: $loginPage");
++    header('Location: login.php');
+     exit;
+ }
+ 
++$accountType = $user['role'];
++
+ session_regenerate_id(true);
+ $_SESSION['user_id'] = $user['id'];
+ $_SESSION['user_name'] = $user['full_name'];
+diff --git a/login_students.php b/login_students.php
+index 01ada05..3f7f735 100644
+--- a/login_students.php
++++ b/login_students.php
+@@ -1,4 +1,6 @@
+ <?php
+-$accountType = 'student';
+-$accountLabel = 'Student';
+-require __DIR__ . '/role_login_template.php';
++// This role-specific login page was consolidated into a single login.php
++// (feature request: single login page). Kept only so old bookmarks/links
++// still work.
++header('Location: login.php');
++exit;
+diff --git a/register_process.php b/register_process.php
+index 6f62841..149f700 100644
+--- a/register_process.php
++++ b/register_process.php
+@@ -33,6 +33,9 @@ if ($employeeId === '' || $fullname === '' || $email === '' || $username === ''
+ if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+     back_with_error('Please enter a valid CEU email address.');
+ }
++if (!is_allowed_email_domain($email)) {
++    back_with_error('Only ' . allowed_email_domains_hint() . ' email addresses may register for an RPMS account.');
++}
+ if ($password !== $confirm) {
+     back_with_error('Password and confirmation do not match.');
+ }
+diff --git a/role_login_template.php b/role_login_template.php
+deleted file mode 100644
+index 1d0e8ae..0000000
+--- a/role_login_template.php
++++ /dev/null
+@@ -1,74 +0,0 @@
+-<?php
+-require __DIR__ . '/config.php';
+-if (!isset($accountType, $accountLabel)) {
+-    header('Location: login.php');
+-    exit;
+-}
+-$loginError = $_SESSION['error'] ?? null;
+-$loginSuccess = $_SESSION['success'] ?? null;
+-unset($_SESSION['error'], $_SESSION['success']);
+-?>
+-<!DOCTYPE html>
+-<html lang="en">
+-<head>
+-    <meta charset="UTF-8">
+-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+-    <title><?php echo htmlspecialchars($accountLabel, ENT_QUOTES, 'UTF-8'); ?> Login | PRISM</title>
+-    <link rel="icon" type="image/png" href="assets/images/prismicon.png">
+-    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+-    <link rel="stylesheet" href="assets/css/style.css">
+-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.6.0/css/all.min.css">
+-</head>
+-<body>
+-<div class="background-overlay">
+-    <div class="login-card role-login-card">
+-        <div class="logo-container">
+-            <img src="assets/images/prismlogo1.png" class="logo-main" alt="PRISM logo">
+-        </div>
+-
+-        <div class="prism-branding">
+-            <h1>Welcome Back!</h1>
+-            <p>Please enter your details to login.</p>
+-        </div>
+-
+-        <?php if ($loginError): ?><div class="error-message"><?php echo htmlspecialchars($loginError, ENT_QUOTES, 'UTF-8'); ?></div><?php endif; ?>
+-        <?php if ($loginSuccess): ?><div class="success-message"><?php echo htmlspecialchars($loginSuccess, ENT_QUOTES, 'UTF-8'); ?></div><?php endif; ?>
+-
+-        <form action="login_process.php" method="POST">
+-            <input type="hidden" name="account_type" value="<?php echo htmlspecialchars($accountType, ENT_QUOTES, 'UTF-8'); ?>">
+-
+-            <div class="input-group">
+-                <i class="fa-solid fa-user"></i>
+-                <input type="text" name="username" placeholder="Username" autocomplete="username" required autofocus>
+-            </div>
+-
+-            <div class="input-group">
+-                <i class="fa-solid fa-lock"></i>
+-                <input type="password" name="password" id="password" placeholder="Password" autocomplete="current-password" required>
+-                <span class="toggle-password"><i class="fa-solid fa-eye" id="togglePassword"></i></span>
+-            </div>
+-
+-            <div class="form-options">
+-                <a href="forgot_password.php">Forgot Password?</a>
+-            </div>
+-
+-            <button type="submit">LOGIN</button>
+-
+-            <?php if ($accountType === 'admin'): ?>
+-            <div class="register-text">
+-                Don't have an RPMS staff account?
+-                <a href="register.php">Register</a>
+-            </div>
+-            <?php else: ?>
+-            <div class="register-text">
+-                Accounts for this role are created by the RPMS office.
+-            </div>
+-            <?php endif; ?>
+-
+-            <a class="back-to-roles" href="login.php"><i class="fa-solid fa-arrow-left"></i> Choose another account type</a>
+-        </form>
+-    </div>
+-</div>
+-<script src="assets/js/script.js"></script>
+-</body>
+-</html>
+diff --git a/role_portal.php b/role_portal.php
+index 2ddb1fe..25df09a 100644
+--- a/role_portal.php
++++ b/role_portal.php
+@@ -25,6 +25,7 @@ $identityKey = hash('sha256', $portalRole . '|' . $userId);
+     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.6.0/css/all.min.css">
+ </head>
+ <body data-portal-key="<?php echo htmlspecialchars($identityKey, ENT_QUOTES); ?>" data-role="<?php echo htmlspecialchars($portalRole, ENT_QUOTES); ?>" data-name="<?php echo htmlspecialchars($userName, ENT_QUOTES); ?>" data-email="<?php echo htmlspecialchars($userEmail, ENT_QUOTES); ?>">
++<script>window.PRISM_STAGE_LABELS = <?php echo json_encode(stage_labels_map()); ?>;</script>
+ <nav class="portal-navbar" aria-label="Portal navigation">
+     <button class="portal-brand" type="button" data-go="dashboard" aria-label="PRISM dashboard"><img src="assets/images/prismlogo1.png?v=2" alt="PRISM Logo"></button>
+     <ul class="portal-nav-links" id="portalNav">
+@@ -59,7 +60,7 @@ $identityKey = hash('sha256', $portalRole . '|' . $userId);
+         </section>
+ 
+         <section class="portal-page" data-section="progress">
+-            <div class="progress-summary panel"><div><span>Current official stage</span><h2 id="currentStage">Stage 1 — Initial Submission</h2><p>Official status is managed by RPMS/IERB and cannot be changed from this portal.</p></div><div class="progress-ring" id="progressRing"><b>20%</b></div></div>
++            <div class="progress-summary panel"><div><span>Current official stage</span><h2 id="currentStage">Stage 1 — Initial Submission</h2><p>Official status is managed by RPMS/IERB and cannot be changed from this portal.</p><button type="button" id="principalIndicator" class="principal-indicator" hidden><i class="fa-solid fa-award"></i> Principal Investigator <i class="fa-solid fa-chevron-down"></i></button><div id="protocolCodeReveal" class="protocol-reveal" hidden></div></div><div class="progress-ring" id="progressRing"><b>20%</b></div></div>
+             <div class="stage-list" id="stageList"></div>
+             <div class="portal-two-col requirement-panels"><article class="panel"><div class="panel-head"><h2>Completed requirements</h2></div><div id="completedRequirements"></div></article><article class="panel"><div class="panel-head"><h2>Pending requirements</h2></div><div id="pendingRequirements"></div></article></div>
+             <article class="panel"><div class="panel-head"><h2>Progress history &amp; remarks</h2></div><div id="progressHistory"></div></article>
+@@ -70,6 +71,7 @@ $identityKey = hash('sha256', $portalRole . '|' . $userId);
+         </section>
+ 
+         <section class="portal-page" data-section="documents">
++            <div id="protocolCodeCard" class="protocol-code-card" hidden><i class="fa-solid fa-shield-halved"></i><div><span>Approved Protocol Code</span><strong id="protocolCodeValue"></strong></div></div>
+             <article class="panel"><div class="panel-head"><div><h2>My Documents</h2><p>Track, preview, download, and resubmit your files.</p></div><select id="documentFilter"><option value="">All statuses</option><option>Submitted</option><option>Under Review</option><option>Received</option><option>Verified</option><option>Resubmission Requested</option><option>Approved</option><option>Denied</option></select></div><div class="document-table-wrap"><table><thead><tr><th>Document</th><th>Type</th><th>Submitted</th><th>Status</th><th>Remarks</th><th>Actions</th></tr></thead><tbody id="documentRows"></tbody></table></div></article>
+         </section>
+ 
+@@ -88,12 +90,18 @@ $identityKey = hash('sha256', $portalRole . '|' . $userId);
+         </section>
+ 
+         <section class="portal-page" data-section="profile">
+-            <div class="portal-two-col"><article class="panel form-panel"><h2>Personal information</h2><p>Your role and account email are shown for reference.</p><form id="profileForm"><div class="profile-photo-control"><img id="profileImagePreview" src="<?php echo htmlspecialchars($profileImg, ENT_QUOTES); ?>" alt="Profile preview"><label class="profile-photo-button"><span>Edit photo</span><input id="profileImageInput" type="file" accept="image/png,image/jpeg,image/webp" hidden></label><button id="removeProfileImage" type="button">Remove</button></div><div class="form-grid"><label>Full name<input id="profileName" required maxlength="120"></label><label>Email<input id="profileEmail" type="email" readonly></label><label>Role<input id="profileRole" readonly></label><label>Student / Employee ID<input id="profileId" maxlength="40"></label></div><button class="primary-btn" type="submit">Save permitted information</button></form></article><article class="panel form-panel"><h2>Change password</h2><p>Use at least 8 characters.</p><form id="passwordForm"><label>Current password<input id="currentPassword" type="password" required></label><label>New password<input id="newPassword" type="password" minlength="8" required></label><label>Confirm new password<input id="confirmPassword" type="password" minlength="8" required></label><button class="primary-btn" type="submit">Change password</button></form></article></div>
++            <div class="portal-two-col"><article class="panel form-panel"><h2>Personal information</h2><p>Your role and account email are shown for reference.</p><form id="profileForm"><div class="profile-photo-control"><img id="profileImagePreview" src="<?php echo htmlspecialchars($profileImg, ENT_QUOTES); ?>" alt="Profile preview"><label class="profile-photo-button"><span>Edit photo</span><input id="profileImageInput" type="file" accept="image/png,image/jpeg,image/webp" hidden></label><button id="removeProfileImage" type="button">Remove</button></div><div class="form-grid"><label>Full name<input id="profileName" required maxlength="120"></label><label>Email<input id="profileEmail" type="email" readonly></label><label>Role<input id="profileRole" readonly></label><label>Student / Employee ID<input id="profileId" maxlength="40"></label></div><button class="primary-btn" type="submit">Save permitted information</button></form></article><article class="panel form-panel"><h2>Change password</h2><p>Use at least 8 characters.</p><form id="passwordForm"><label>Current password<div class="password-field-wrap"><input id="currentPassword" type="password" required><span class="toggle-password"><i class="fa-solid fa-eye" id="togglePortalCurrentPassword"></i></span></div></label><label>New password<div class="password-field-wrap"><input id="newPassword" type="password" minlength="8" required><span class="toggle-password"><i class="fa-solid fa-eye" id="togglePortalNewPassword"></i></span></div></label><label>Confirm new password<div class="password-field-wrap"><input id="confirmPassword" type="password" minlength="8" required><span class="toggle-password"><i class="fa-solid fa-eye" id="togglePortalConfirmPassword"></i></span></div></label><button class="primary-btn" type="submit">Change password</button></form></article></div>
+         </section>
+     </main>
+ </div>
+ <div class="support-modal" id="supportModal" hidden><div class="support-modal-card" role="dialog" aria-modal="true" aria-labelledby="supportModalTitle"><div class="support-modal-head"><div><span>Help &amp; Support</span><h2 id="supportModalTitle">Contact RPMS staff</h2></div><button id="closeSupportModal" type="button" aria-label="Close help form"><i class="fa-solid fa-xmark"></i></button></div><p>Report a problem or ask the RPMS team a question.</p><form id="supportForm"><label>How can we help?<select id="supportType" required><option value="Ask RPMS staff">Ask RPMS staff</option><option value="Report a problem">Report a problem</option></select></label><label>Subject<input id="supportSubject" maxlength="120" required placeholder="Briefly describe your concern"></label><label>Message<textarea id="supportMessage" rows="5" maxlength="1000" required placeholder="Add the details RPMS staff will need..."></textarea></label><div class="support-modal-actions"><button id="cancelSupport" type="button">Cancel</button><button class="primary-btn" type="submit"><i class="fa-solid fa-paper-plane"></i> Send request</button></div></form></div></div>
+ <div class="toast" id="toast" role="status"></div>
++<script src="assets/js/script.js"></script>
++<script>
++togglePassword('currentPassword', 'togglePortalCurrentPassword');
++togglePassword('newPassword', 'togglePortalNewPassword');
++togglePassword('confirmPassword', 'togglePortalConfirmPassword');
++</script>
+ <script src="assets/js/role-portal.js"></script>
+ <script src="assets/js/role-calendar.js"></script>
+ </body>
+diff --git a/students_api.php b/students_api.php
+index 5008389..beda1f2 100644
+--- a/students_api.php
++++ b/students_api.php
+@@ -23,24 +23,33 @@ function row_to_student(array $r): array
+         'adviserId' => $r['adviser_id'] ? (int)$r['adviser_id'] : null,
+         'adviserName' => $r['adviser_name'] ?? null,
+         'stage' => $r['stage'],
++        'stageLabel' => stage_label($r['stage']),
+         'status' => $r['status'],
+         'requirements' => $r['requirements'],
++        'protocolCode' => $r['protocol_code'] ?? null,
++        'isPrincipalInvestigator' => !empty($r['is_principal_investigator']),
+         'lastSubmissionDate' => $r['last_submission_date'],
+-        'progress' => stage_progress($r['stage']),
++        'progress' => stage_progress_percent($r['stage']),
+         'createdAt' => $r['created_at'],
+         'updatedAt' => $r['updated_at'],
+     ];
+ }
+ 
+-function stage_progress(string $stage): int
+-{
+-    $map = ['Stage 1' => 20, 'Stage 2' => 40, 'Stage 3' => 60, 'Stage 4' => 80, 'Stage 5' => 95, 'Completed' => 100];
+-    return $map[$stage] ?? 0;
+-}
++// Progress percentage and stage sequencing now live centrally in
++// config.php (stage_progress_percent, STAGE_SEQUENCE, next_stage) so
++// every API agrees on the same numbers/order.
+ 
+ if ($action === 'list') {
+-    $rows = $pdo->query('SELECT s.*, f.full_name AS adviser_name FROM students s
+-        LEFT JOIN advisers f ON f.id = s.adviser_id ORDER BY s.full_name ASC')->fetchAll();
++    if ($user['role'] === 'adviser') {
++        $rows = $pdo->prepare('SELECT s.*, f.full_name AS adviser_name FROM students s
++            LEFT JOIN advisers f ON f.id = s.adviser_id WHERE f.email = :e ORDER BY s.full_name ASC');
++        $rows->execute([':e' => $user['email']]);
++        $rows = $rows->fetchAll();
++    } else {
++        // Admin sees every student, regardless of adviser (feature request: full admin access).
++        $rows = $pdo->query('SELECT s.*, f.full_name AS adviser_name FROM students s
++            LEFT JOIN advisers f ON f.id = s.adviser_id ORDER BY s.full_name ASC')->fetchAll();
++    }
+     json_out(['ok' => true, 'students' => array_map('row_to_student', $rows)]);
+ }
+ 
+@@ -52,7 +61,7 @@ if ($action === 'adviser_options') {
+ $data = json_body();
+ 
+ if ($action === 'save') {
+-    api_require_login('admin');
++    api_require_login(['admin', 'adviser']);
+     $id = (int)($data['id'] ?? 0);
+     $studentId = trim((string)($data['studentId'] ?? ''));
+     $name = trim((string)($data['name'] ?? ''));
+@@ -64,13 +73,36 @@ if ($action === 'save') {
+     $stage = trim((string)($data['stage'] ?? 'Stage 1'));
+     $status = trim((string)($data['status'] ?? 'On Track'));
+     $requirements = trim((string)($data['requirements'] ?? ''));
++    $protocolCode = trim((string)($data['protocolCode'] ?? ''));
++    $isPrincipal = !empty($data['isPrincipalInvestigator']) ? 1 : 0;
++
++    $ownAdviserId = null;
++    if ($user['role'] === 'adviser') {
++        $ownAdviser = $pdo->prepare('SELECT id FROM advisers WHERE email = :e LIMIT 1');
++        $ownAdviser->execute([':e' => $user['email']]);
++        $ownAdviserId = $ownAdviser->fetchColumn();
++        if (!$ownAdviserId) {
++            json_out(['ok' => false, 'message' => 'No adviser record is linked to your account. Ask the RPMS office to set this up.'], 403);
++        }
++        // Advisers may only add/assign their OWN students -- they cannot
++        // hand a student to another adviser, whatever adviserId was sent.
++        $adviserId = (int)$ownAdviserId;
++        // Protocol code and Principal Investigator status are RPMS-office
++        // decisions (item 12: admin has full authority over these), not
++        // something an adviser can self-assign while editing a record.
++        $protocolCode = null;
++        $isPrincipal = null;
++    }
+ 
+-    $validStages = ['Stage 1', 'Stage 2', 'Stage 3', 'Stage 4', 'Stage 5', 'Completed'];
++    $validStages = STAGE_SEQUENCE;
+     $validStatuses = ['On Track', 'Pending', 'Delayed'];
+ 
+     if ($studentId === '' || $name === '' || !filter_var($email, FILTER_VALIDATE_EMAIL)) {
+         json_out(['ok' => false, 'message' => 'Student ID, name, and a valid email are required.'], 422);
+     }
++    if (!is_allowed_email_domain($email)) {
++        json_out(['ok' => false, 'message' => 'Only ' . allowed_email_domains_hint() . ' email addresses are allowed.'], 422);
++    }
+     if (!in_array($stage, $validStages, true)) {
+         json_out(['ok' => false, 'message' => 'Invalid IERB stage.'], 422);
+     }
+@@ -84,6 +116,15 @@ if ($action === 'save') {
+             json_out(['ok' => false, 'message' => 'Selected adviser was not found.'], 422);
+         }
+     }
++    if ($id > 0 && $user['role'] === 'adviser') {
++        // An adviser may only edit a student that's already assigned to them.
++        $ownershipCheck = $pdo->prepare('SELECT adviser_id FROM students WHERE id = :id');
++        $ownershipCheck->execute([':id' => $id]);
++        $currentAdviserId = $ownershipCheck->fetchColumn();
++        if ((string)$currentAdviserId !== (string)$ownAdviserId) {
++            json_out(['ok' => false, 'message' => 'You can only manage students assigned to you.'], 403);
++        }
++    }
+     if ($id === 0) {
+         // Creating a new student: the email/ID must not already belong to a
+         // login of a DIFFERENT role, or the auto-provisioned account below
+@@ -105,27 +146,37 @@ if ($action === 'save') {
+             if (!$before) {
+                 throw new RuntimeException('Student record not found.');
+             }
++            // Advisers can't touch protocol code / PI status (set to null
++            // above) -- keep whatever was already on the record.
++            $finalProtocolCode = $protocolCode !== null ? ($protocolCode !== '' ? $protocolCode : null) : $before['protocol_code'];
++            $finalIsPrincipal = $isPrincipal !== null ? $isPrincipal : (int)$before['is_principal_investigator'];
++
+             $stmt = $pdo->prepare('UPDATE students SET student_id=:sid, full_name=:name, email=:email,
+                 research_title=:research, research_group=:grp, course=:course, adviser_id=:adv,
+-                stage=:stage, status=:status, requirements=:req, updated_at=NOW() WHERE id=:id');
++                stage=:stage, status=:status, requirements=:req, protocol_code=:pcode,
++                is_principal_investigator=:pi, updated_at=NOW() WHERE id=:id');
+             $stmt->execute([':sid' => $studentId, ':name' => $name, ':email' => $email, ':research' => $research,
+                 ':grp' => $group, ':course' => $course, ':adv' => $adviserId, ':stage' => $stage,
+-                ':status' => $status, ':req' => $requirements, ':id' => $id]);
++                ':status' => $status, ':req' => $requirements, ':pcode' => $finalProtocolCode,
++                ':pi' => $finalIsPrincipal, ':id' => $id]);
+ 
+             if ($before['stage'] !== $stage || $before['status'] !== $status) {
+                 $pdo->prepare('INSERT INTO ierb_history (student_id, stage, status, note, requirements, actor)
+                     VALUES (:sid,:stage,:status,:note,:req,:actor)')->execute([
+                     ':sid' => $id, ':stage' => $stage, ':status' => $status,
+-                    ':note' => 'Record updated by RPMS.', ':req' => $requirements, ':actor' => $user['full_name'],
++                    ':note' => 'Record updated by ' . ($user['role'] === 'adviser' ? 'research adviser' : 'RPMS') . '.',
++                    ':req' => $requirements, ':actor' => $user['full_name'],
+                 ]);
+             }
+         } else {
+             $stmt = $pdo->prepare('INSERT INTO students (student_id, full_name, email, research_title,
+-                research_group, course, adviser_id, stage, status, requirements)
+-                VALUES (:sid,:name,:email,:research,:grp,:course,:adv,:stage,:status,:req)');
++                research_group, course, adviser_id, stage, status, requirements, protocol_code, is_principal_investigator)
++                VALUES (:sid,:name,:email,:research,:grp,:course,:adv,:stage,:status,:req,:pcode,:pi)');
+             $stmt->execute([':sid' => $studentId, ':name' => $name, ':email' => $email, ':research' => $research,
+                 ':grp' => $group, ':course' => $course, ':adv' => $adviserId, ':stage' => $stage,
+-                ':status' => $status, ':req' => $requirements]);
++                ':status' => $status, ':req' => $requirements,
++                ':pcode' => ($protocolCode !== null && $protocolCode !== '') ? $protocolCode : null,
++                ':pi' => $isPrincipal ?? 0]);
+             $id = (int)$pdo->lastInsertId();
+ 
+             // Auto-provision a student login account, per the study's "limited submission module" design.

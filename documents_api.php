@@ -1,5 +1,6 @@
 <?php
 require __DIR__ . '/config.php';
+require_once __DIR__ . '/ai_helpers.php';
 $user = api_require_login(['admin', 'adviser', 'student']);
 $pdo = db();
 $action = $_GET['action'] ?? $_POST['action'] ?? 'list';
@@ -19,11 +20,17 @@ function doc_row(array $d): array
         'course' => $d['course'] ?? null,
         'documentType' => $d['document_type'],
         'stage' => $d['stage'],
+        'stageLabel' => stage_label($d['stage']),
         'notes' => $d['notes'],
         'reviewStatus' => $d['review_status'],
         'reviewRemarks' => $d['review_remarks'],
         'reviewedBy' => $d['reviewed_by'],
         'reviewedAt' => $d['reviewed_at'],
+        // The AI/regex-detected approval date printed on the document itself,
+        // which reflects when the paper was actually approved -- not when the
+        // student got around to uploading it (feature request 3).
+        'detectedApprovalDate' => $d['detected_approval_date'] ?? null,
+        'approvalDateSource' => $d['approval_date_source'] ?? null,
         'aiSummary' => $d['ai_summary'],
     ];
 }
@@ -88,9 +95,27 @@ if ($action === 'upload') {
     }
     $mime = (new finfo(FILEINFO_MIME_TYPE))->file($target) ?: 'application/octet-stream';
 
+    // Best-effort: try to detect a printed approval date on the document
+    // itself at upload time (e.g. certificates the office re-uploads after
+    // a delay still carry their true approval date, not the upload date).
+    // Never blocks the upload if extraction/detection fails or is slow.
+    $detectedDate = null;
+    $detectedSource = null;
+    try {
+        $uploadText = extract_document_text($target);
+        if ($uploadText !== '') {
+            $detection = ai_detect_approval_date($uploadText);
+            $detectedDate = $detection['date'];
+            $detectedSource = $detection['source'];
+        }
+    } catch (Throwable $e) {
+        // extraction/AI hiccup shouldn't fail the whole upload
+    }
+
     $pdo->prepare('INSERT INTO documents (id, student_id, student_name, uploaded_by, uploaded_by_role,
-        original_name, stored_name, mime, size, document_type, stage, notes, review_status)
-        VALUES (:id,:sid,:sname,:by,:role,:orig,:stored,:mime,:size,:type,:stage,:notes,"Submitted")')
+        original_name, stored_name, mime, size, document_type, stage, notes, review_status,
+        detected_approval_date, approval_date_source)
+        VALUES (:id,:sid,:sname,:by,:role,:orig,:stored,:mime,:size,:type,:stage,:notes,"Submitted",:adate,:asrc)')
         ->execute([
             ':id' => $id, ':sid' => $studentDbId, ':sname' => $studentName ?: 'Unassigned',
             ':by' => $user['full_name'], ':role' => $user['role'], ':orig' => basename($file['name']),
@@ -98,6 +123,7 @@ if ($action === 'upload') {
             ':type' => trim((string)($_POST['documentType'] ?? 'Other')),
             ':stage' => trim((string)($_POST['stage'] ?? 'Stage 1')),
             ':notes' => trim((string)($_POST['notes'] ?? '')),
+            ':adate' => $detectedDate, ':asrc' => $detectedSource,
         ]);
 
     if ($studentDbId) {
@@ -173,20 +199,61 @@ if ($action === 'review') {
     $pdo->prepare('UPDATE documents SET review_status=:s, review_remarks=:r, reviewed_by=:by, reviewed_at=NOW()
         WHERE id=:id')->execute([':s' => $status, ':r' => $remarks, ':by' => $user['full_name'], ':id' => $id]);
 
+    $stageAdvanceNote = '';
+    if ($status === 'Approved' && $doc['student_id']) {
+        // Auto stage progression (feature 6): once the document tied to a
+        // student's CURRENT stage is approved, move them on to the next
+        // stage automatically. Comparing against the document's own stage
+        // (not just "any approval") means re-approving an old document, or
+        // approving a document for a stage the student has already moved
+        // past, doesn't re-trigger progression.
+        $studentRow = $pdo->prepare('SELECT stage, status FROM students WHERE id = :id');
+        $studentRow->execute([':id' => $doc['student_id']]);
+        $student = $studentRow->fetch();
+
+        if ($student && $doc['stage'] === $student['stage']) {
+            $newStage = next_stage($student['stage']);
+            if ($newStage !== $student['stage']) {
+                // Prefer the date actually printed on the approved document
+                // (feature 3) over "today", since students sometimes delay
+                // sending the file after it was really approved.
+                $effectiveDate = $doc['detected_approval_date'] ?: date('Y-m-d');
+
+                $pdo->prepare('UPDATE students SET stage = :stage, status = "On Track",
+                    last_submission_date = :sub, updated_at = NOW() WHERE id = :id')
+                    ->execute([':stage' => $newStage, ':sub' => $effectiveDate, ':id' => $doc['student_id']]);
+
+                $historyNote = 'Auto-advanced to ' . stage_label($newStage) . ' (' . $newStage . ')'
+                    . ' after "' . $doc['original_name'] . '" was approved'
+                    . ($doc['detected_approval_date'] ? " (approval date detected on document: {$doc['detected_approval_date']})" : '')
+                    . '.';
+                $pdo->prepare('INSERT INTO ierb_history (student_id, stage, status, note, submission_date, actor)
+                    VALUES (:sid,:stage,"On Track",:note,:sub,:actor)')->execute([
+                    ':sid' => $doc['student_id'], ':stage' => $newStage, ':note' => $historyNote,
+                    ':sub' => $effectiveDate, ':actor' => $user['full_name'] . ' (auto)',
+                ]);
+
+                $stageAdvanceNote = "\n\nYour IERB stage has automatically advanced to: "
+                    . stage_label($newStage) . " ($newStage).";
+                log_activity($user['email'], 'stage_auto_advanced', "student_id={$doc['student_id']} new_stage=$newStage");
+            }
+        }
+    }
+
     if ($doc['student_id']) {
         $email = $pdo->prepare('SELECT email, full_name FROM students WHERE id = :id');
         $email->execute([':id' => $doc['student_id']]);
         $student = $email->fetch();
         if ($student) {
             $body = "Hello {$student['full_name']},\n\nYour document \"{$doc['original_name']}\" is now: {$status}."
-                . ($remarks !== '' ? "\nRemarks: {$remarks}" : '') . "\n\n- CEU Malolos RPMS / PRISM";
+                . ($remarks !== '' ? "\nRemarks: {$remarks}" : '') . $stageAdvanceNote . "\n\n- CEU Malolos RPMS / PRISM";
             $result = send_notification_email($student['email'], 'PRISM Document Status Update', $body);
             $pdo->prepare('INSERT INTO notifications (recipient_type, recipient_id, recipient_email, recipient_name,
                 subject, message, type, status, delivery_info, sent_at, created_by)
                 VALUES ("student",:sid,:email,:name,"PRISM Document Status Update",:msg,"Status Update",:status2,:info,NOW(),:by)')
                 ->execute([
                     ':sid' => $doc['student_id'], ':email' => $student['email'], ':name' => $student['full_name'],
-                    ':msg' => "Document \"{$doc['original_name']}\" is now {$status}.",
+                    ':msg' => "Document \"{$doc['original_name']}\" is now {$status}." . $stageAdvanceNote,
                     ':status2' => $result['ok'] ? 'Sent' : 'Failed', ':info' => $result['message'],
                     ':by' => $user['full_name'],
                 ]);
@@ -194,7 +261,7 @@ if ($action === 'review') {
     }
 
     log_activity($user['email'], 'document_reviewed', "id=$id status=$status");
-    json_out(['ok' => true]);
+    json_out(['ok' => true, 'stageAdvanced' => $stageAdvanceNote !== '']);
 }
 
 if ($action === 'delete') {
@@ -208,7 +275,6 @@ if ($action === 'delete') {
 }
 
 if ($action === 'summarize') {
-    require_once __DIR__ . '/ai_helpers.php';
     $text = extract_document_text($path);
     if ($text === '') {
         json_out(['ok' => false, 'message' => 'Text could not be extracted from this file. Scanned PDFs and legacy Word files require an OCR or AI document service.'], 422);
@@ -219,8 +285,22 @@ if ($action === 'summarize') {
         $text
     ) ?? local_extractive_summary($text, 4);
 
-    $pdo->prepare('UPDATE documents SET ai_summary = :s WHERE id = :id')->execute([':s' => $summary, ':id' => $id]);
-    json_out(['ok' => true, 'summary' => $summary, 'wordCount' => str_word_count($text), 'aiConfigured' => openrouter_available()]);
+    // Backfill approval-date detection here too, in case it wasn't captured
+    // at upload time (e.g. documents uploaded before this feature existed).
+    $approvalUpdate = '';
+    $approvalParams = [':s' => $summary, ':id' => $id];
+    if (empty($doc['detected_approval_date'])) {
+        $detection = ai_detect_approval_date($text);
+        if ($detection['date']) {
+            $approvalUpdate = ', detected_approval_date = :adate, approval_date_source = :asrc';
+            $approvalParams[':adate'] = $detection['date'];
+            $approvalParams[':asrc'] = $detection['source'];
+        }
+    }
+
+    $pdo->prepare("UPDATE documents SET ai_summary = :s $approvalUpdate WHERE id = :id")->execute($approvalParams);
+    json_out(['ok' => true, 'summary' => $summary, 'wordCount' => str_word_count($text), 'aiConfigured' => openrouter_available(),
+        'detectedApprovalDate' => $approvalParams[':adate'] ?? $doc['detected_approval_date'] ?? null]);
 }
 
 json_out(['ok' => false, 'message' => 'Unknown action.'], 400);

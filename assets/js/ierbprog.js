@@ -33,6 +33,15 @@
 
     let records = [];
     const STAGES = ['Stage 1', 'Stage 2', 'Stage 3', 'Stage 4', 'Stage 5', 'Completed'];
+    const stageLabels = window.PRISM_STAGE_LABELS || {};
+    const labelForStage = stageKey => stageLabels[stageKey] || stageKey;
+
+    // Show the configured form/document name instead of a bare "Stage N"
+    // wherever a stage select appears, while keeping the option VALUE as
+    // "Stage 1" etc so filtering/saving stays unchanged (feature request 7).
+    document.querySelectorAll('#stageFilter option[value], #entryStage option[value]').forEach(opt => {
+        if (opt.value) opt.textContent = `${opt.value} - ${labelForStage(opt.value)}`;
+    });
 
     async function loadRecords() {
         try {
@@ -54,7 +63,7 @@
             const count = records.filter(r => r.stage === stage).length;
             const col = document.createElement('div');
             col.className = 'stage-bar-col';
-            col.innerHTML = `<div class="stage-bar" style="height:${Math.max(4, (count / max) * 100)}%"><span>${count}</span></div><small>${escapeHtml(stage)}</small>`;
+            col.innerHTML = `<div class="stage-bar" style="height:${Math.max(4, (count / max) * 100)}%"><span>${count}</span></div><small title="${escapeHtml(stage)}">${escapeHtml(labelForStage(stage))}</small>`;
             stageChart.appendChild(col);
         });
     }
@@ -88,7 +97,7 @@
             const statusClass = String(record.status || 'Pending').toLowerCase().replace(/\s+/g, '-');
             tr.innerHTML = `
                 <td><strong>${escapeHtml(record.name)}</strong><br><small>${escapeHtml(record.studentId)}</small></td>
-                <td><span class="stage-tag">${escapeHtml(record.stage)}</span></td>
+                <td><span class="stage-tag" title="${escapeHtml(record.stage)}">${escapeHtml(record.stageLabel || labelForStage(record.stage))}</span></td>
                 <td>${escapeHtml(record.progress)}%</td>
                 <td>${escapeHtml(record.requirements || 'None')}</td>
                 <td>${escapeHtml(record.lastSubmissionDate || 'N/A')}</td>

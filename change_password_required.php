@@ -64,6 +64,8 @@ $landing = $user['role'] === 'admin' ? 'dashboard.php' : ($user['role'] === 'adv
                     placeholder="Current (temporary) password"
                     required>
 
+                <span class="toggle-password"><i class="fa-solid fa-eye" id="toggleCurrentPassword"></i></span>
+
             </div>
 
             <div class="input-group">
@@ -77,6 +79,8 @@ $landing = $user['role'] === 'admin' ? 'dashboard.php' : ($user['role'] === 'adv
                     minlength="8"
                     required>
 
+                <span class="toggle-password"><i class="fa-solid fa-eye" id="toggleNewPassword"></i></span>
+
             </div>
 
             <div class="input-group">
@@ -89,6 +93,8 @@ $landing = $user['role'] === 'admin' ? 'dashboard.php' : ($user['role'] === 'adv
                     placeholder="Confirm new password"
                     minlength="8"
                     required>
+
+                <span class="toggle-password"><i class="fa-solid fa-eye" id="toggleConfirmNewPassword"></i></span>
 
             </div>
 
@@ -110,7 +116,12 @@ $landing = $user['role'] === 'admin' ? 'dashboard.php' : ($user['role'] === 'adv
 
 </div>
 
+<script src="assets/js/script.js"></script>
 <script>
+togglePassword('currentPassword', 'toggleCurrentPassword');
+togglePassword('newPassword', 'toggleNewPassword');
+togglePassword('confirmPassword', 'toggleConfirmNewPassword');
+
 document.getElementById('forcedPasswordForm').addEventListener('submit', async (event) => {
     event.preventDefault();
     const messageBox = document.getElementById('formMessage');

@@ -23,24 +23,33 @@ function row_to_student(array $r): array
         'adviserId' => $r['adviser_id'] ? (int)$r['adviser_id'] : null,
         'adviserName' => $r['adviser_name'] ?? null,
         'stage' => $r['stage'],
+        'stageLabel' => stage_label($r['stage']),
         'status' => $r['status'],
         'requirements' => $r['requirements'],
+        'protocolCode' => $r['protocol_code'] ?? null,
+        'isPrincipalInvestigator' => !empty($r['is_principal_investigator']),
         'lastSubmissionDate' => $r['last_submission_date'],
-        'progress' => stage_progress($r['stage']),
+        'progress' => stage_progress_percent($r['stage']),
         'createdAt' => $r['created_at'],
         'updatedAt' => $r['updated_at'],
     ];
 }
 
-function stage_progress(string $stage): int
-{
-    $map = ['Stage 1' => 20, 'Stage 2' => 40, 'Stage 3' => 60, 'Stage 4' => 80, 'Stage 5' => 95, 'Completed' => 100];
-    return $map[$stage] ?? 0;
-}
+// Progress percentage and stage sequencing now live centrally in
+// config.php (stage_progress_percent, STAGE_SEQUENCE, next_stage) so
+// every API agrees on the same numbers/order.
 
 if ($action === 'list') {
-    $rows = $pdo->query('SELECT s.*, f.full_name AS adviser_name FROM students s
-        LEFT JOIN advisers f ON f.id = s.adviser_id ORDER BY s.full_name ASC')->fetchAll();
+    if ($user['role'] === 'adviser') {
+        $rows = $pdo->prepare('SELECT s.*, f.full_name AS adviser_name FROM students s
+            LEFT JOIN advisers f ON f.id = s.adviser_id WHERE f.email = :e ORDER BY s.full_name ASC');
+        $rows->execute([':e' => $user['email']]);
+        $rows = $rows->fetchAll();
+    } else {
+        // Admin sees every student, regardless of adviser (feature request: full admin access).
+        $rows = $pdo->query('SELECT s.*, f.full_name AS adviser_name FROM students s
+            LEFT JOIN advisers f ON f.id = s.adviser_id ORDER BY s.full_name ASC')->fetchAll();
+    }
     json_out(['ok' => true, 'students' => array_map('row_to_student', $rows)]);
 }
 
@@ -52,7 +61,7 @@ if ($action === 'adviser_options') {
 $data = json_body();
 
 if ($action === 'save') {
-    api_require_login('admin');
+    api_require_login(['admin', 'adviser']);
     $id = (int)($data['id'] ?? 0);
     $studentId = trim((string)($data['studentId'] ?? ''));
     $name = trim((string)($data['name'] ?? ''));
@@ -64,12 +73,35 @@ if ($action === 'save') {
     $stage = trim((string)($data['stage'] ?? 'Stage 1'));
     $status = trim((string)($data['status'] ?? 'On Track'));
     $requirements = trim((string)($data['requirements'] ?? ''));
+    $protocolCode = trim((string)($data['protocolCode'] ?? ''));
+    $isPrincipal = !empty($data['isPrincipalInvestigator']) ? 1 : 0;
 
-    $validStages = ['Stage 1', 'Stage 2', 'Stage 3', 'Stage 4', 'Stage 5', 'Completed'];
+    $ownAdviserId = null;
+    if ($user['role'] === 'adviser') {
+        $ownAdviser = $pdo->prepare('SELECT id FROM advisers WHERE email = :e LIMIT 1');
+        $ownAdviser->execute([':e' => $user['email']]);
+        $ownAdviserId = $ownAdviser->fetchColumn();
+        if (!$ownAdviserId) {
+            json_out(['ok' => false, 'message' => 'No adviser record is linked to your account. Ask the RPMS office to set this up.'], 403);
+        }
+        // Advisers may only add/assign their OWN students -- they cannot
+        // hand a student to another adviser, whatever adviserId was sent.
+        $adviserId = (int)$ownAdviserId;
+        // Protocol code and Principal Investigator status are RPMS-office
+        // decisions (item 12: admin has full authority over these), not
+        // something an adviser can self-assign while editing a record.
+        $protocolCode = null;
+        $isPrincipal = null;
+    }
+
+    $validStages = STAGE_SEQUENCE;
     $validStatuses = ['On Track', 'Pending', 'Delayed'];
 
     if ($studentId === '' || $name === '' || !filter_var($email, FILTER_VALIDATE_EMAIL)) {
         json_out(['ok' => false, 'message' => 'Student ID, name, and a valid email are required.'], 422);
+    }
+    if (!is_allowed_email_domain($email)) {
+        json_out(['ok' => false, 'message' => 'Only ' . allowed_email_domains_hint() . ' email addresses are allowed.'], 422);
     }
     if (!in_array($stage, $validStages, true)) {
         json_out(['ok' => false, 'message' => 'Invalid IERB stage.'], 422);
@@ -82,6 +114,15 @@ if ($action === 'save') {
         $adviserCheck->execute([':id' => $adviserId]);
         if (!$adviserCheck->fetch()) {
             json_out(['ok' => false, 'message' => 'Selected adviser was not found.'], 422);
+        }
+    }
+    if ($id > 0 && $user['role'] === 'adviser') {
+        // An adviser may only edit a student that's already assigned to them.
+        $ownershipCheck = $pdo->prepare('SELECT adviser_id FROM students WHERE id = :id');
+        $ownershipCheck->execute([':id' => $id]);
+        $currentAdviserId = $ownershipCheck->fetchColumn();
+        if ((string)$currentAdviserId !== (string)$ownAdviserId) {
+            json_out(['ok' => false, 'message' => 'You can only manage students assigned to you.'], 403);
         }
     }
     if ($id === 0) {
@@ -105,27 +146,37 @@ if ($action === 'save') {
             if (!$before) {
                 throw new RuntimeException('Student record not found.');
             }
+            // Advisers can't touch protocol code / PI status (set to null
+            // above) -- keep whatever was already on the record.
+            $finalProtocolCode = $protocolCode !== null ? ($protocolCode !== '' ? $protocolCode : null) : $before['protocol_code'];
+            $finalIsPrincipal = $isPrincipal !== null ? $isPrincipal : (int)$before['is_principal_investigator'];
+
             $stmt = $pdo->prepare('UPDATE students SET student_id=:sid, full_name=:name, email=:email,
                 research_title=:research, research_group=:grp, course=:course, adviser_id=:adv,
-                stage=:stage, status=:status, requirements=:req, updated_at=NOW() WHERE id=:id');
+                stage=:stage, status=:status, requirements=:req, protocol_code=:pcode,
+                is_principal_investigator=:pi, updated_at=NOW() WHERE id=:id');
             $stmt->execute([':sid' => $studentId, ':name' => $name, ':email' => $email, ':research' => $research,
                 ':grp' => $group, ':course' => $course, ':adv' => $adviserId, ':stage' => $stage,
-                ':status' => $status, ':req' => $requirements, ':id' => $id]);
+                ':status' => $status, ':req' => $requirements, ':pcode' => $finalProtocolCode,
+                ':pi' => $finalIsPrincipal, ':id' => $id]);
 
             if ($before['stage'] !== $stage || $before['status'] !== $status) {
                 $pdo->prepare('INSERT INTO ierb_history (student_id, stage, status, note, requirements, actor)
                     VALUES (:sid,:stage,:status,:note,:req,:actor)')->execute([
                     ':sid' => $id, ':stage' => $stage, ':status' => $status,
-                    ':note' => 'Record updated by RPMS.', ':req' => $requirements, ':actor' => $user['full_name'],
+                    ':note' => 'Record updated by ' . ($user['role'] === 'adviser' ? 'research adviser' : 'RPMS') . '.',
+                    ':req' => $requirements, ':actor' => $user['full_name'],
                 ]);
             }
         } else {
             $stmt = $pdo->prepare('INSERT INTO students (student_id, full_name, email, research_title,
-                research_group, course, adviser_id, stage, status, requirements)
-                VALUES (:sid,:name,:email,:research,:grp,:course,:adv,:stage,:status,:req)');
+                research_group, course, adviser_id, stage, status, requirements, protocol_code, is_principal_investigator)
+                VALUES (:sid,:name,:email,:research,:grp,:course,:adv,:stage,:status,:req,:pcode,:pi)');
             $stmt->execute([':sid' => $studentId, ':name' => $name, ':email' => $email, ':research' => $research,
                 ':grp' => $group, ':course' => $course, ':adv' => $adviserId, ':stage' => $stage,
-                ':status' => $status, ':req' => $requirements]);
+                ':status' => $status, ':req' => $requirements,
+                ':pcode' => ($protocolCode !== null && $protocolCode !== '') ? $protocolCode : null,
+                ':pi' => $isPrincipal ?? 0]);
             $id = (int)$pdo->lastInsertId();
 
             // Auto-provision a student login account, per the study's "limited submission module" design.

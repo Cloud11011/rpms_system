@@ -20,6 +20,7 @@ $profile_img = 'assets/images/default-avatar.svg';
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.6.0/css/all.min.css">
 </head>
 <body data-ierb-user="<?php echo htmlspecialchars(hash('sha256', $user_email), ENT_QUOTES, 'UTF-8'); ?>" data-role="<?php echo htmlspecialchars($_SESSION['account_type'] ?? 'admin', ENT_QUOTES, 'UTF-8'); ?>">
+<script>window.PRISM_STAGE_LABELS = <?php echo json_encode(stage_labels_map()); ?>;</script>
 <div class="container">
     <aside class="sidebar">
         <div class="sidebar-header">
@@ -47,7 +48,7 @@ $profile_img = 'assets/images/default-avatar.svg';
         <section class="ierb-controls" aria-label="IERB progress filters">
             <div class="ierb-search"><i class="fa-solid fa-magnifying-glass"></i><input id="ierbSearch" type="search" placeholder="Search student, ID, group, or research title"></div>
             <div class="ierb-filters">
-                <select id="stageFilter" aria-label="Filter by stage"><option value="">All Stages</option><option>Stage 1</option><option>Stage 2</option><option>Stage 3</option><option>Stage 4</option><option>Stage 5</option><option>Completed</option></select>
+                <select id="stageFilter" aria-label="Filter by stage"><option value="">All Stages</option><option value="Stage 1">Stage 1</option><option value="Stage 2">Stage 2</option><option value="Stage 3">Stage 3</option><option value="Stage 4">Stage 4</option><option value="Stage 5">Stage 5</option><option value="Completed">Completed</option></select>
                 <select id="ierbStatusFilter" aria-label="Filter by status"><option value="">All Statuses</option><option>On Track</option><option>Pending</option><option>Delayed</option></select>
             </div>
         </section>
@@ -72,7 +73,7 @@ $profile_img = 'assets/images/default-avatar.svg';
                 <div><label for="entryEmail">Email address</label><input id="entryEmail" type="email" maxlength="150" required></div>
                 <div><label for="entryGroupId">Research group ID</label><input id="entryGroupId" maxlength="40" required></div>
                 <div><label for="entryCourse">Course</label><input id="entryCourse" maxlength="80" required></div>
-                <div><label for="entryStage">Current IERB stage</label><select id="entryStage"><option>Stage 1</option><option>Stage 2</option><option>Stage 3</option><option>Stage 4</option><option>Stage 5</option><option>Completed</option></select></div>
+                <div><label for="entryStage">Current IERB stage</label><select id="entryStage"><option value="Stage 1">Stage 1</option><option value="Stage 2">Stage 2</option><option value="Stage 3">Stage 3</option><option value="Stage 4">Stage 4</option><option value="Stage 5">Stage 5</option><option value="Completed">Completed</option></select></div>
                 <div class="ierb-entry-wide"><label for="entryResearchTitle">Research title</label><input id="entryResearchTitle" maxlength="250" required></div>
                 <div><label for="entryRequirements">Pending requirements</label><input id="entryRequirements" maxlength="180" placeholder="e.g. Missing Ethics Consent Form"></div>
                 <div><label for="entrySubmissionDate">Latest submission date</label><input id="entrySubmissionDate" type="date"></div>

@@ -4,12 +4,6 @@ $user = api_require_login(['admin', 'adviser', 'student']);
 $pdo = db();
 $action = $_GET['action'] ?? 'list';
 
-function ierb_progress(string $stage): int
-{
-    $map = ['Stage 1' => 20, 'Stage 2' => 40, 'Stage 3' => 60, 'Stage 4' => 80, 'Stage 5' => 95, 'Completed' => 100];
-    return $map[$stage] ?? 0;
-}
-
 function ierb_row(array $r): array
 {
     return [
@@ -21,10 +15,13 @@ function ierb_row(array $r): array
         'course' => $r['course'],
         'research' => $r['research_title'],
         'stage' => $r['stage'],
+        'stageLabel' => stage_label($r['stage']),
         'status' => $r['status'],
         'requirements' => $r['requirements'],
+        'protocolCode' => $r['protocol_code'] ?? null,
+        'isPrincipalInvestigator' => !empty($r['is_principal_investigator']),
         'lastSubmissionDate' => $r['last_submission_date'],
-        'progress' => ierb_progress($r['stage']),
+        'progress' => stage_progress_percent($r['stage']),
         'adviser' => $r['adviser_name'] ?? null,
     ];
 }
@@ -87,7 +84,7 @@ if ($action === 'save') {
     if ($studentIdCode === '' || $name === '' || !filter_var($email, FILTER_VALIDATE_EMAIL)) {
         json_out(['ok' => false, 'message' => 'Student ID, name, and a valid email are required.'], 422);
     }
-    $validStages = ['Stage 1', 'Stage 2', 'Stage 3', 'Stage 4', 'Stage 5', 'Completed'];
+    $validStages = STAGE_SEQUENCE;
     $validStatuses = ['On Track', 'Pending', 'Delayed'];
     if (!in_array($stage, $validStages, true)) {
         json_out(['ok' => false, 'message' => 'Invalid IERB stage.'], 422);

@@ -42,6 +42,9 @@ if ($action === 'save') {
     if ($employeeId === '' || $name === '' || !filter_var($email, FILTER_VALIDATE_EMAIL)) {
         json_out(['ok' => false, 'message' => 'Employee ID, name, and a valid email are required.'], 422);
     }
+    if (!is_allowed_email_domain($email)) {
+        json_out(['ok' => false, 'message' => 'Only ' . allowed_email_domains_hint() . ' email addresses are allowed.'], 422);
+    }
     if ($id === 0) {
         $collision = $pdo->prepare('SELECT role FROM users WHERE (email = :e OR username = :u) AND role != "adviser"');
         $collision->execute([':e' => $email, ':u' => $employeeId]);
