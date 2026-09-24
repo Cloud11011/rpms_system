@@ -138,11 +138,30 @@ ever revoked.
    note the host/name/username/password.
 2. Upload everything inside `rpms_system/` to `public_html` (or a subfolder)
    via File Manager or FTP.
-3. Create `config.local.php` on the server with your real Hostinger values.
+3. Create `config.local.php` on the server with your real Hostinger values. At minimum configure:
+   ```php
+   define('DB_HOST', '...');
+   define('DB_PORT', 3306);
+   define('DB_NAME', '...');
+   define('DB_USER', '...');
+   define('DB_PASS', 'a-strong-database-password');
+   define('APP_BASE_URL', 'https://yourdomain.com');
+   ```
+   Before the first request, also set a unique 12+ character
+   `PRISM_INITIAL_ADMIN_PASSWORD` environment variable (and optionally
+   `PRISM_INITIAL_ADMIN_EMAIL`). PRISM no longer ships a known administrator
+   password.
 4. Make sure `storage/`, `storage/documents/`, `storage/reports/` are
    writable (`chmod 775` via File Manager if uploads fail).
 5. Visit `https://yourdomain.com/login.php` — tables are created
-   automatically on first load.
+   automatically on first load and the initial administrator is bootstrapped
+   from the deployment-only password above.
+6. For scheduled notifications, add a Hostinger cron job such as:
+   ```sh
+   php /home/USER/domains/YOURDOMAIN/public_html/tools/process_scheduled_notifications.php
+   ```
+   Run it every 1–5 minutes. The worker atomically claims due rows so overlapping
+   cron executions do not send the same notification twice.
 
 ## AI progress reports (Summarized / Full)
 
@@ -176,9 +195,9 @@ status/error from the API call.
 - **RPMS staff self-registration (`register.php`) is disabled by default.**
   Set `ADMIN_REGISTRATION_CODE` in `config.local.php` to a private value if
   you want to let staff create their own admin accounts; share that code
-  only with people who should get admin access. The seeded `rpms_admin`
-  account always works regardless, so you can bootstrap the system without
-  ever enabling this.
+  only with people who should get admin access. The initial `rpms_admin`
+  account is created only when `PRISM_INITIAL_ADMIN_PASSWORD` is supplied
+  by the deployment environment; there is no built-in default password.
 - **On Apache hosting (including Hostinger), `.htaccess` files block direct
   web access to `storage/`** (uploaded documents, generated report PDFs,
   and `mail.log`/`api_errors.log`, which can contain sensitive content like
@@ -186,10 +205,13 @@ status/error from the API call.
   through the authenticated PHP endpoints. If you deploy on nginx or another
   server that doesn't honor `.htaccess`, add an equivalent `location` block
   denying access to `/storage/`.
-- Students can only view/download their own documents; advisers and admins
-  can only create/edit/delete records their role is meant to (advisers
-  cannot create, edit, or delete student or adviser accounts — only RPMS
-  admin can).
+- Students can only view/download their own documents. Advisers are scoped
+  to their assigned students for documents, aggregate reports, report history,
+  and notifications; institution-wide report/notification access remains
+  admin-only.
+- New student/adviser accounts receive a one-time password-setup link when
+  `APP_BASE_URL` is configured. Their internal temporary passwords are random
+  and are never based on student/employee IDs.
 
 ## File map
 
@@ -206,6 +228,8 @@ status/error from the API call.
   below) with automatic local fallback if AI is unavailable.
 - `notifications_api.php`, `send_followup.php` — notification center
   (Gmail API delivery).
+- `tools/process_scheduled_notifications.php` — CLI/cron worker that sends
+  due scheduled notifications.
 - `reports_api.php` — PDF report generation/history (dependency-free PDF
   writer, verified valid with `qpdf --check`).
 - `profile_api.php` — self-service name/password changes for all roles.
