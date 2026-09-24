@@ -45,6 +45,12 @@ if ($action === 'save') {
     if ($employeeId === '' || $name === '' || !filter_var($email, FILTER_VALIDATE_EMAIL)) {
         json_out(['ok' => false, 'message' => 'Employee ID, name, and a valid email are required.'], 422);
     }
+    if (!is_allowed_email_domain($email)) {
+        json_out(['ok' => false, 'message' => 'Only ' . allowed_email_domains_hint() . ' email addresses are allowed.'], 422);
+    }
+    if (!in_array($status, ['Active', 'Inactive'], true)) {
+        json_out(['ok' => false, 'message' => 'Invalid adviser account status.'], 422);
+    }
     if ($id === 0) {
         $collision = $pdo->prepare('SELECT role FROM users WHERE (email = :e OR username = :u) AND role != "adviser"');
         $collision->execute([':e' => $email, ':u' => $employeeId]);
@@ -53,6 +59,7 @@ if ($action === 'save') {
         }
     }
 
+    $newLoginUserId = null;
     try {
         $pdo->beginTransaction();
         if ($id > 0) {
@@ -63,9 +70,9 @@ if ($action === 'save') {
                 department=:dept, assigned_groups=:grp, status=:status, updated_at=NOW() WHERE id=:id')
                 ->execute([':eid' => $employeeId, ':name' => $name, ':email' => $email, ':dept' => $department,
                     ':grp' => $groups, ':status' => $status, ':id' => $id]);
-            if ($oldEmail !== '' && strcasecmp($oldEmail, $email) !== 0) {
-                $pdo->prepare("UPDATE users SET email = :new WHERE email = :old AND role = 'adviser'")
-                    ->execute([':new' => $email, ':old' => $oldEmail]);
+            if ($oldEmail !== '') {
+                $pdo->prepare("UPDATE users SET email = :new, status = :status WHERE email = :old AND role = 'adviser'")
+                    ->execute([':new' => $email, ':status' => $status, ':old' => $oldEmail]);
             }
         } else {
             $stmt = $pdo->prepare('INSERT INTO advisers (employee_id, full_name, email, department, assigned_groups, status)
@@ -78,11 +85,12 @@ if ($action === 'save') {
             $userStmt->execute([':e' => $email, ':u' => $employeeId]);
             if (!$userStmt->fetch()) {
                 $tempPassword = adviser_default_password($employeeId);
-                $pdo->prepare('INSERT INTO users (username, password_hash, role, full_name, email, ref_id, must_change_password)
-                    VALUES (:u,:p,"adviser",:n,:e,:ref,1)')->execute([
+                $pdo->prepare('INSERT INTO users (username, password_hash, role, full_name, email, ref_id, status, must_change_password)
+                    VALUES (:u,:p,"adviser",:n,:e,:ref,:status,1)')->execute([
                     ':u' => $employeeId, ':p' => password_hash($tempPassword, PASSWORD_DEFAULT),
-                    ':n' => $name, ':e' => $email, ':ref' => $employeeId,
+                    ':n' => $name, ':e' => $email, ':ref' => $employeeId, ':status' => $status,
                 ]);
+                $newLoginUserId = (int)$pdo->lastInsertId();
             }
         }
         $pdo->commit();
@@ -91,6 +99,9 @@ if ($action === 'save') {
         json_out(['ok' => false, 'message' => 'That employee ID or email is already in use.'], 422);
     }
 
+    if ($newLoginUserId && $status === 'Active') {
+        send_account_setup_email($pdo, $newLoginUserId, $email, $name);
+    }
     log_activity($user['email'], 'adviser_saved', "employee_id=$employeeId");
     json_out(['ok' => true, 'id' => $id]);
 }
