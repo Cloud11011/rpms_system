@@ -27,4 +27,6 @@ Options -Indexes
     RewriteRule (^|/)\.git(/|$) - [R=404,L]
     # Private documents/reports must only be served through authenticated PHP endpoints.
     RewriteRule ^storage(?:/|$) - [F,L]
+    # Maintenance utilities are CLI/cron only and must never be directly web-accessible.
+    RewriteRule ^tools(?:/|$) - [F,L]
 </IfModule>
