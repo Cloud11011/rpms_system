@@ -22,7 +22,7 @@ if ($action === 'save') {
     if (!in_array($stageKey, STAGE_SEQUENCE, true)) {
         json_out(['ok' => false, 'message' => 'Unknown stage key.'], 422);
     }
-    if ($label === '' || strlen($label) > 190) {
+    if ($label === '' || mb_strlen($label) > 190) {
         json_out(['ok' => false, 'message' => 'Label must be 1-190 characters.'], 422);
     }
 
