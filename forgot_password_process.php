@@ -6,7 +6,7 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     exit;
 }
 
-$email = trim((string)($_POST['email'] ?? ''));
+$email = strtolower(trim((string)($_POST['email'] ?? '')));
 
 if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
     $_SESSION['error'] = 'Please enter a valid email address.';
@@ -23,6 +23,9 @@ $user = $stmt->fetch();
 if ($user) {
     $token = bin2hex(random_bytes(32));
     $expires = date('Y-m-d H:i:s', time() + 3600);
+    // Only the newest reset request should remain actionable.
+    db()->prepare('UPDATE password_resets SET used = 1 WHERE user_id = :u AND used = 0')
+        ->execute([':u' => $user['id']]);
     $ins = db()->prepare('INSERT INTO password_resets (user_id, token, expires_at) VALUES (:u,:t,:x)');
     $ins->execute([':u' => $user['id'], ':t' => $token, ':x' => $expires]);
 
