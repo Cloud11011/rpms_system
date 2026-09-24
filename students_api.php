@@ -266,7 +266,7 @@ if ($action === 'save') {
     }
 
     if ($newLoginUserId) {
-        send_account_setup_email($pdo, $newLoginUserId, $email, $name);
+        $setupDelivery = send_account_setup_email($pdo, $newLoginUserId, $email, $name);
     }
     if ($progressChanged) {
         notify_student($pdo, $id, 'PRISM IERB Progress Updated',
@@ -275,7 +275,16 @@ if ($action === 'save') {
             'Status Update', $user['full_name']);
     }
     log_activity($user['email'], 'student_saved', "student_id=$studentId");
-    json_out(['ok' => true, 'id' => $id]);
+    $response = ['ok' => true, 'id' => $id, 'message' => 'Student record saved.'];
+    if ($newLoginUserId) {
+        $response['accountCreated'] = true;
+        $response['setupChannel'] = $setupDelivery['channel'] ?? 'none';
+        $response['setupMessage'] = $setupDelivery['message'] ?? '';
+        if (($setupDelivery['channel'] ?? 'none') === 'log' || !($setupDelivery['ok'] ?? false)) {
+            $response['temporaryPassword'] = $newLoginTempPassword;
+        }
+    }
+    json_out($response);
 }
 
 if ($action === 'delete') {
