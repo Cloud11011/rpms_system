@@ -214,6 +214,15 @@
             closeEntryModal();
             await loadRecords();
             PrismUI.toast(data.message || 'IERB record saved.', 'success');
+            if (data.temporaryPassword) {
+                await PrismUI.confirm({
+                    title:'Account setup required',
+                    icon:'fa-key',
+                    confirmText:'I copied it',
+                    message:'Live account-setup email is not available. Give this one-time temporary password to the student securely. They will be required to change it after signing in.',
+                    extraHtml:'<label>Temporary password</label><input id="prismTempPassword" readonly value="' + escapeHtml(data.temporaryPassword) + '" onclick="this.select()">'
+                });
+            }
         } catch (e) {
             PrismUI.toast(e.message, 'error');
         } finally {
