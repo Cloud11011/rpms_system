@@ -39,6 +39,7 @@ document.addEventListener('DOMContentLoaded', () => {
         document.querySelectorAll('#portalNav li').forEach(x => x.classList.toggle('active', x.querySelector('button').dataset.page === active));
         $('pageTitle').textContent = meta[0];
         $('pageSubtitle').textContent = meta[1];
+        if (window.location.hash !== '#' + active) history.replaceState(null, '', '#' + active);
         window.scrollTo({ top: 0, behavior: 'smooth' });
     }
 
@@ -371,6 +372,7 @@ document.addEventListener('DOMContentLoaded', () => {
     (async function init() {
         await refreshAll();
         await fillProfile();
-        go('dashboard');
+        const initial = window.location.hash.replace('#', '');
+        go(PAGES[initial] ? initial : 'dashboard');
     })();
 });
