@@ -42,7 +42,7 @@ document.addEventListener('DOMContentLoaded', () => {
             localStorage.setItem(storageKey, JSON.stringify(reminders));
             return true;
         } catch (_) {
-            window.alert('This reminder could not be saved in this browser. Check browser storage settings or clear unused site data.');
+            PrismUI.toast('This reminder could not be saved in this browser. Check browser storage settings or clear unused site data.', 'error');
             return false;
         }
     };
