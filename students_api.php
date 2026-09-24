@@ -244,9 +244,18 @@ if ($action === 'save') {
                 $newLoginUserId = (int)$pdo->lastInsertId();
             } elseif (($existingLogin['role'] ?? '') === 'student') {
                 $wasInactive = strcasecmp((string)($existingLogin['status'] ?? ''), 'Active') !== 0;
-                $pdo->prepare("UPDATE users SET username=:u, full_name=:n, email=:e, ref_id=:ref, status='Active' WHERE id=:id")
-                    ->execute([':u' => $studentId, ':n' => $name, ':e' => $email, ':ref' => $studentId, ':id' => $existingLogin['id']]);
-                if ($wasInactive) $newLoginUserId = (int)$existingLogin['id'];
+                if ($wasInactive) {
+                    $tempPassword = student_default_password($studentId);
+                    $newLoginTempPassword = $tempPassword;
+                    $pdo->prepare("UPDATE users SET username=:u, full_name=:n, email=:e, ref_id=:ref, status='Active',
+                            password_hash=:p, must_change_password=1 WHERE id=:id")
+                        ->execute([':u' => $studentId, ':n' => $name, ':e' => $email, ':ref' => $studentId,
+                            ':p' => password_hash($tempPassword, PASSWORD_DEFAULT), ':id' => $existingLogin['id']]);
+                    $newLoginUserId = (int)$existingLogin['id'];
+                } else {
+                    $pdo->prepare("UPDATE users SET username=:u, full_name=:n, email=:e, ref_id=:ref WHERE id=:id")
+                        ->execute([':u' => $studentId, ':n' => $name, ':e' => $email, ':ref' => $studentId, ':id' => $existingLogin['id']]);
+                }
             }
 
             $pdo->prepare('INSERT INTO ierb_history (student_id, stage, status, note, requirements, actor)
