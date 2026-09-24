@@ -169,9 +169,11 @@ if ($action === 'ai_report') {
     $scopeTitle = $user['role'] === 'adviser' ? 'Assigned Students' : 'All Students';
     $title = $mode === 'full' ? "AI Full Progress Report - $scopeTitle" : "AI Summarized Progress Report - $scopeTitle";
     $lines = [];
-    $lines[] = $mode === 'full' ? 'AI-GENERATED FULL ANALYSIS' : 'AI-GENERATED SUMMARY';
+    $lines[] = $aiUsed
+        ? ($mode === 'full' ? 'AI-ASSISTED FULL ANALYSIS' : 'AI-ASSISTED SUMMARY')
+        : ($mode === 'full' ? 'LOCAL FALLBACK FULL ANALYSIS' : 'LOCAL FALLBACK SUMMARY');
     $lines[] = $aiUsed ? 'Narrative source: OpenRouter AI (' . OPENROUTER_MODEL . ')' : 'Narrative source: Local fallback summarizer (AI service unavailable)';
-    $lines[] = 'Reviewed by: ' . $user['full_name'] . ' (' . ucfirst($user['role']) . ') before distribution';
+    $lines[] = 'Generated for review by: ' . $user['full_name'] . ' (' . ucfirst($user['role']) . '). Verify before distribution.';
     $lines[] = '';
     $lines = array_merge($lines, wrap_lines($narrative));
 
