@@ -15,8 +15,8 @@ function back_with_error(string $message): void
 
 $employeeId = trim((string)($_POST['employee_id'] ?? ''));
 $fullname   = trim((string)($_POST['fullname'] ?? ''));
-$email      = trim((string)($_POST['email'] ?? ''));
-$username   = trim((string)($_POST['username'] ?? ''));
+$email      = strtolower(trim((string)($_POST['email'] ?? '')));
+$username   = $employeeId;
 $password   = (string)($_POST['password'] ?? '');
 $confirm    = (string)($_POST['confirm_password'] ?? '');
 $regCode    = (string)($_POST['registration_code'] ?? '');
@@ -27,7 +27,7 @@ if (ADMIN_REGISTRATION_CODE === '') {
 if (!hash_equals(ADMIN_REGISTRATION_CODE, $regCode)) {
     back_with_error('Invalid staff registration code.');
 }
-if ($employeeId === '' || $fullname === '' || $email === '' || $username === '' || $password === '') {
+if ($employeeId === '' || $fullname === '' || $email === '' || $password === '') {
     back_with_error('Please complete all fields.');
 }
 if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
@@ -36,11 +36,17 @@ if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
 if (!is_allowed_email_domain($email)) {
     back_with_error('Only ' . allowed_email_domains_hint() . ' email addresses may register for an RPMS account.');
 }
+if (mb_strlen($employeeId) > 100 || mb_strlen($fullname) > 190 || mb_strlen($email) > 190) {
+    back_with_error('One or more fields are too long.');
+}
 if ($password !== $confirm) {
     back_with_error('Password and confirmation do not match.');
 }
 if (strlen($password) < 8) {
     back_with_error('Password must be at least 8 characters long.');
+}
+if (strlen($password) > 200) {
+    back_with_error('Password is too long.');
 }
 
 $pdo = db();
