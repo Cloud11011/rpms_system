@@ -16,6 +16,7 @@ $pdo = db();
 $processed = 0;
 $sent = 0;
 $failed = 0;
+$logged = 0;
 
 // Keep each claim atomic so overlapping cron invocations cannot send the same row twice.
 $stmt = $pdo->query("SELECT id FROM notifications
@@ -63,9 +64,11 @@ foreach ($ids as $id) {
     $processed++;
     if ($result['ok'] && ($result['channel'] ?? '') !== 'log') {
         $sent++;
+    } elseif ($result['ok']) {
+        $logged++;
     } elseif (!$result['ok']) {
         $failed++;
     }
 }
 
-echo "Processed: $processed; sent: $sent; failed: $failed\n";
+echo "Processed: $processed; sent: $sent; logged: $logged; failed: $failed\n";
