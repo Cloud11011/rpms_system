@@ -11,3 +11,18 @@ Options -Indexes
         Deny from all
     </IfModule>
 </Files>
+
+# Repo docs, diffs, logs and version-control metadata must never be downloadable.
+<FilesMatch "\.(md|diff|patch|log|sql|sqlite|bak|dist)$|^\.git">
+    <IfModule mod_authz_core.c>
+        Require all denied
+    </IfModule>
+    <IfModule !mod_authz_core.c>
+        Order allow,deny
+        Deny from all
+    </IfModule>
+</FilesMatch>
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+    RewriteRule (^|/)\.git(/|$) - [R=404,L]
+</IfModule>

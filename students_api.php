@@ -1,13 +1,25 @@
 <?php
 require __DIR__ . '/config.php';
+require_once __DIR__ . '/workflow.php';
 $user = api_require_login(['admin', 'adviser']);
 $pdo = db();
 $action = $_GET['action'] ?? 'list';
+if (in_array($action, ['save', 'delete'], true)) {
+    require_post_same_origin();
+}
 
 function student_default_password(string $studentId): string
 {
     // Simple, predictable initial credential; students are told to change it.
     return 'Ceu@' . preg_replace('/[^A-Za-z0-9]/', '', $studentId);
+}
+
+function describe_student_progress(string $oldStage, string $oldStatus, string $newStage, string $newStatus): string
+{
+    $parts = [];
+    if ($oldStage !== $newStage) { $parts[] = "Stage: $oldStage -> $newStage"; }
+    if ($oldStatus !== $newStatus) { $parts[] = "Status: $oldStatus -> $newStatus"; }
+    return implode('; ', $parts);
 }
 
 function row_to_student(array $r): array
@@ -160,7 +172,17 @@ if ($action === 'save') {
                 ':status' => $status, ':req' => $requirements, ':pcode' => $finalProtocolCode,
                 ':pi' => $finalIsPrincipal, ':id' => $id]);
 
+            sync_student_login_email($pdo, (string)$before['email'], $email);
+
             if ($before['stage'] !== $stage || $before['status'] !== $status) {
+                // v2 audit trail: this endpoint can also change stage/status, so it must be logged
+                // with who/what/before/after just like the IERB Override (it previously wasn't).
+                audit_log($user, $user['role'] === 'admin' ? 'admin_override_student_progress' : 'student_progress_changed', [
+                    'entity_type' => 'student', 'entity_id' => $id, 'student_id' => $id,
+                    'override' => $user['role'] === 'admin',
+                    'before' => $before['stage'] . ' / ' . $before['status'], 'after' => "$stage / $status",
+                    'details' => describe_student_progress($before['stage'], $before['status'], $stage, $status),
+                ]);
                 $pdo->prepare('INSERT INTO ierb_history (student_id, stage, status, note, requirements, actor)
                     VALUES (:sid,:stage,:status,:note,:req,:actor)')->execute([
                     ':sid' => $id, ':stage' => $stage, ':status' => $status,
@@ -213,7 +235,7 @@ if ($action === 'save') {
 
 if ($action === 'delete') {
     api_require_login('admin');
-    $id = (int)($data['id'] ?? $_GET['id'] ?? 0);
+    $id = (int)($data['id'] ?? 0);
     $pdo->prepare('DELETE FROM students WHERE id = :id')->execute([':id' => $id]);
     log_activity($user['email'], 'student_deleted', "id=$id");
     json_out(['ok' => true]);

@@ -3,6 +3,9 @@ require __DIR__ . '/config.php';
 $user = api_require_login('admin');
 $pdo = db();
 $action = $_GET['action'] ?? 'list';
+if (in_array($action, ['save', 'delete'], true)) {
+    require_post_same_origin();
+}
 
 function adviser_default_password(string $employeeId): string
 {
@@ -86,7 +89,7 @@ if ($action === 'save') {
 }
 
 if ($action === 'delete') {
-    $id = (int)($data['id'] ?? $_GET['id'] ?? 0);
+    $id = (int)($data['id'] ?? 0);
     $pdo->prepare('UPDATE students SET adviser_id = NULL WHERE adviser_id = :id')->execute([':id' => $id]);
     $pdo->prepare('DELETE FROM advisers WHERE id = :id')->execute([':id' => $id]);
     log_activity($user['email'], 'adviser_deleted', "id=$id");

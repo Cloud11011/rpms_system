@@ -7,6 +7,9 @@ require_once __DIR__ . '/workflow.php';
 $user = api_require_login(['admin', 'adviser', 'student']);
 $pdo = db();
 $action = $_GET['action'] ?? $_POST['action'] ?? 'list';
+if (in_array($action, ['upload', 'review', 'submit_to_rpms', 'override_review', 'delete', 'summarize'], true)) {
+    require_post_same_origin();
+}
 
 // The viewing adviser's row id in `advisers` (used to scope who may review what).
 $viewerAdviserId = null;
@@ -110,6 +113,12 @@ if ($action === 'list') {
     if ($user['role'] === 'student') {
         $where[] = 's.email = :e';
         $params[':e'] = $user['email'];
+    } elseif ($user['role'] === 'adviser') {
+        // Advisers only ever see documents of the students assigned to them.
+        $where[] = $viewerAdviserId !== null ? 's.adviser_id = :vad' : '1 = 0';
+        if ($viewerAdviserId !== null) {
+            $params[':vad'] = $viewerAdviserId;
+        }
     }
     if (!$includeOld) {
         $where[] = 'd.is_current = 1';
@@ -187,6 +196,14 @@ if ($action === 'upload') {
             $studentDbId = (int)$matchRow['id'];
             $studentName = $matchRow['full_name'];
             $studentStage = $matchRow['stage'];
+        }
+    }
+
+    if ($user['role'] === 'adviser') {
+        $ownsMatch = $studentDbId !== null && $viewerAdviserId !== null && (int)$pdo->query(
+            'SELECT COALESCE(adviser_id, 0) FROM students WHERE id = ' . (int)$studentDbId)->fetchColumn() === $viewerAdviserId;
+        if (!$ownsMatch) {
+            json_out(['ok' => false, 'message' => 'Enter the name or ID of a student who is assigned to you. Advisers can only upload documents for their own students.'], 422);
         }
     }
 
@@ -320,9 +337,13 @@ if (!$doc) {
 if ($user['role'] === 'student') {
     $own = $pdo->prepare('SELECT email FROM students WHERE id = :id');
     $own->execute([':id' => $doc['student_id']]);
-    if ($own->fetchColumn() !== $user['email']) {
+    if (strcasecmp((string)$own->fetchColumn(), (string)$user['email']) !== 0) {
         json_out(['ok' => false, 'message' => 'Not authorized.'], 403);
     }
+}
+
+if ($user['role'] === 'adviser' && ($viewerAdviserId === null || (int)($doc['adviser_id'] ?? 0) !== $viewerAdviserId)) {
+    json_out(['ok' => false, 'message' => 'This document belongs to a student assigned to another adviser.'], 403);
 }
 
 $path = DOCS_DIR . DIRECTORY_SEPARATOR . basename($doc['stored_name']);
@@ -334,10 +355,17 @@ if ($action === 'file') {
     if (!is_file($path)) {
         json_out(['ok' => false, 'message' => 'File missing from storage.'], 404);
     }
+    // Only formats a browser can display without running any script are shown inline. Everything
+    // else (including a .txt whose content is really HTML, which finfo reports as text/html) is
+    // forced to download as an opaque binary, so an uploaded file can never run as a page on this origin.
+    $inlineSafe = ['application/pdf', 'image/png', 'image/jpeg'];
+    $safeInline = in_array($doc['mime'], $inlineSafe, true);
     header_remove('Content-Type');
-    header('Content-Type: ' . $doc['mime']);
+    header('Content-Type: ' . ($safeInline ? $doc['mime'] : 'application/octet-stream'));
+    header('X-Content-Type-Options: nosniff');
+    header("Content-Security-Policy: default-src 'none'; sandbox");
     header('Content-Length: ' . filesize($path));
-    header('Content-Disposition: ' . (($_GET['download'] ?? '') === '1' ? 'attachment' : 'inline')
+    header('Content-Disposition: ' . ((($_GET['download'] ?? '') === '1' || !$safeInline) ? 'attachment' : 'inline')
         . '; filename="' . str_replace(["\r", "\n", '"'], '', $doc['original_name']) . '"');
     readfile($path);
     exit;
@@ -367,7 +395,9 @@ if ($action === 'review') {
     api_require_login(['admin', 'adviser']);
     $allowedStatuses = ['Under Review', 'Received', 'Verified', 'Resubmission Requested', 'Approved', 'Denied'];
     $status = trim((string)($payload['status'] ?? ''));
-    if (!in_array($status, $allowedStatuses, true)) {
+    // "Submitted" is the initial status. It isn't something a reviewer can choose, but the comment
+    // box sends the current status back with the remark, so accept it when it isn't a change.
+    if (!in_array($status, $allowedStatuses, true) && $status !== ($doc['review_status'] ?? null)) {
         json_out(['ok' => false, 'message' => 'Invalid review status.'], 422);
     }
     $remarks = trim((string)($payload['remarks'] ?? ''));
@@ -630,6 +660,9 @@ if ($action === 'override_review') {
 if ($action === 'delete') {
     api_require_login(['admin', 'adviser']);
     $reason = trim((string)($payload['reason'] ?? ''));
+    if (!can_review_doc($user, $viewerAdviserId, $doc)) {
+        json_out(['ok' => false, 'message' => 'This student is assigned to another adviser. Only the assigned adviser or an RPMS administrator can delete this document.'], 403);
+    }
     if ($locked) {
         if ($user['role'] !== 'admin') {
             json_out(['ok' => false, 'message' => 'Documents formally submitted to RPMS can only be deleted by an RPMS administrator.'], 403);

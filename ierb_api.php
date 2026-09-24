@@ -6,6 +6,20 @@ require_once __DIR__ . '/workflow.php';
 $user = api_require_login(['admin', 'adviser', 'student']);
 $pdo = db();
 $action = $_GET['action'] ?? 'list';
+if (in_array($action, ['override', 'save', 'note', 'delete'], true)) {
+    require_post_same_origin();
+}
+
+/** Advisers only see and annotate their own advisees; admins can do both for anyone. */
+function adviser_may_access_student(PDO $pdo, array $user, int $studentId): bool
+{
+    if ($user['role'] === 'admin') {
+        return true;
+    }
+    $q = $pdo->prepare('SELECT 1 FROM students s JOIN advisers a ON a.id = s.adviser_id WHERE s.id = :id AND a.email = :e');
+    $q->execute([':id' => $studentId, ':e' => $user['email']]);
+    return (bool)$q->fetchColumn();
+}
 
 function ierb_row(array $r, array $docCounts = []): array
 {
@@ -114,6 +128,8 @@ if ($action === 'history') {
         if (!$ownRow || (int)$ownRow['id'] !== $studentId) {
             json_out(['ok' => false, 'message' => 'Not authorized.'], 403);
         }
+    } elseif (!adviser_may_access_student($pdo, $user, $studentId)) {
+        json_out(['ok' => false, 'message' => 'This student is assigned to another adviser.'], 403);
     }
     $stmt = $pdo->prepare('SELECT * FROM ierb_history WHERE student_id = :id ORDER BY created_at DESC, id DESC');
     $stmt->execute([':id' => $studentId]);
@@ -271,10 +287,12 @@ if ($action === 'save') {
     // Changing stage/status of an existing record is an Admin Override: always logged.
     $override = false;
     $change = '';
+    $previousEmail = '';
     if ($id > 0) {
-        $old = $pdo->prepare('SELECT stage, status FROM students WHERE id = :id');
+        $old = $pdo->prepare('SELECT stage, status, email FROM students WHERE id = :id');
         $old->execute([':id' => $id]);
         $oldRow = $old->fetch();
+        $previousEmail = (string)($oldRow['email'] ?? '');
         if ($oldRow && ($oldRow['stage'] !== $stage || $oldRow['status'] !== $status)) {
             if (REQUIRE_OVERRIDE_REASON_ON_SAVE && !override_reason_valid($reason)) {
                 json_out(['ok' => false, 'requiresReason' => true,
@@ -294,6 +312,7 @@ if ($action === 'save') {
                 ->execute([':sid' => $studentIdCode, ':name' => $name, ':email' => $email, ':grp' => $groupId,
                     ':course' => $course, ':research' => $research, ':stage' => $stage, ':status' => $status,
                     ':req' => $requirements, ':sub' => $submissionDate, ':id' => $id]);
+            sync_student_login_email($pdo, $previousEmail, $email);
         } else {
             $pdo->prepare('INSERT INTO students (student_id, full_name, email, research_group, course,
                 research_title, stage, status, requirements, last_submission_date)
@@ -349,6 +368,9 @@ if ($action === 'note') {
     if ($studentId <= 0 || $note === '') {
         json_out(['ok' => false, 'message' => 'Write a note before saving.'], 422);
     }
+    if (!adviser_may_access_student($pdo, $user, $studentId)) {
+        json_out(['ok' => false, 'message' => 'This student is assigned to another adviser.'], 403);
+    }
     $current = $pdo->prepare('SELECT stage, status FROM students WHERE id = :id');
     $current->execute([':id' => $studentId]);
     $row = $current->fetch();
@@ -364,7 +386,7 @@ if ($action === 'note') {
 
 if ($action === 'delete') {
     api_require_login('admin');
-    $id = (int)($data['id'] ?? $_GET['id'] ?? 0);
+    $id = (int)($data['id'] ?? 0);
     $info = $pdo->prepare('SELECT student_id, full_name, protocol_code, stage, status FROM students WHERE id = :id');
     $info->execute([':id' => $id]);
     $gone = $info->fetch();

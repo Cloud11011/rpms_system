@@ -1,6 +1,20 @@
 <?php
 require __DIR__ . '/config.php';
 $user = api_require_login(['admin', 'adviser']);
+
+/** Advisers may only build reports about their own students' documents/records; admins about anyone's. */
+function report_adviser_may_access_student(PDO $pdo, array $user, ?int $studentDbId): bool
+{
+    if ($user['role'] === 'admin') {
+        return true;
+    }
+    if (!$studentDbId) {
+        return false;
+    }
+    $q = db()->prepare('SELECT 1 FROM students s JOIN advisers a ON a.id = s.adviser_id WHERE s.id = :id AND a.email = :e');
+    $q->execute([':id' => $studentDbId, ':e' => $user['email']]);
+    return (bool)$q->fetchColumn();
+}
 $pdo = db();
 $action = $_GET['action'] ?? 'list';
 
@@ -208,6 +222,9 @@ if ($action === 'generate') {
             $stmt = $pdo->prepare('SELECT * FROM documents WHERE id = :id');
             $stmt->execute([':id' => $docId]);
             $doc = $stmt->fetch();
+            if ($doc && !report_adviser_may_access_student($pdo, $user, $doc['student_id'] ? (int)$doc['student_id'] : null)) {
+                json_out(['ok' => false, 'message' => 'This document belongs to a student assigned to another adviser.'], 403);
+            }
         }
         $docName = $doc['original_name'] ?? trim((string)($data['documentName'] ?? 'Uploaded document'));
         $summary = $doc['ai_summary'] ?? trim((string)($data['summary'] ?? ''));
@@ -218,6 +235,9 @@ if ($action === 'generate') {
         $lines = array_merge(['DOCUMENT SUMMARY', 'Document: ' . $docName, ''], wrap_lines($summary));
     } elseif ($type === 'Student Report') {
         $studentDbId = (int)($data['studentId'] ?? 0);
+        if (!report_adviser_may_access_student($pdo, $user, $studentDbId)) {
+            json_out(['ok' => false, 'message' => 'This student is assigned to another adviser.'], 403);
+        }
         $stmt = $pdo->prepare('SELECT s.*, f.full_name AS adviser_name FROM students s
             LEFT JOIN advisers f ON f.id = s.adviser_id WHERE s.id = :id');
         $stmt->execute([':id' => $studentDbId]);

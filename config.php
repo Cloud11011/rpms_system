@@ -141,7 +141,37 @@ function db(): PDO
     return $pdo;
 }
 
+// Bump this whenever you add anything to migrate(). migrate() is skipped entirely on requests
+// where the stored version already matches, instead of running ~45 INFORMATION_SCHEMA/ALTER
+// checks on every single request.
+const SCHEMA_VERSION = 3;
+
 function migrate(PDO $pdo): void
+{
+    $pdo->exec("CREATE TABLE IF NOT EXISTS schema_meta (
+        k VARCHAR(40) PRIMARY KEY, v VARCHAR(40) NOT NULL
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;");
+    $stored = $pdo->query("SELECT v FROM schema_meta WHERE k = 'schema_version'")->fetchColumn();
+    if ($stored !== false && (int)$stored >= SCHEMA_VERSION) {
+        return;
+    }
+    // Two first requests arriving together must not both try to ALTER the same table.
+    $locked = (int)$pdo->query("SELECT GET_LOCK('prism_migrate', 30)")->fetchColumn() === 1;
+    try {
+        $stored = $pdo->query("SELECT v FROM schema_meta WHERE k = 'schema_version'")->fetchColumn();
+        if ($stored === false || (int)$stored < SCHEMA_VERSION) {
+            migrate_schema($pdo);
+            $pdo->prepare("REPLACE INTO schema_meta (k, v) VALUES ('schema_version', :v)")
+                ->execute([':v' => (string)SCHEMA_VERSION]);
+        }
+    } finally {
+        if ($locked) {
+            $pdo->query("SELECT RELEASE_LOCK('prism_migrate')");
+        }
+    }
+}
+
+function migrate_schema(PDO $pdo): void
 {
     $pdo->exec("CREATE TABLE IF NOT EXISTS users (
         id INT AUTO_INCREMENT PRIMARY KEY,
@@ -409,6 +439,11 @@ function current_user(): ?array
     $stmt = db()->prepare('SELECT * FROM users WHERE id = :id');
     $stmt->execute([':id' => $_SESSION['user_id']]);
     $user = $stmt->fetch();
+    if ($user && strcasecmp((string)$user['status'], 'Active') !== 0) {
+        // Deactivated after logging in: end the session instead of letting it keep working.
+        unset($_SESSION['user_id']);
+        $user = false;
+    }
     $cached = $user ?: null;
     return $cached;
 }
@@ -451,12 +486,63 @@ function api_require_login($roles = null): array
         echo json_encode(['ok' => false, 'message' => 'You must be logged in.']);
         exit;
     }
+    // Same rule as require_login(): an account still on its temporary password can do nothing except change it.
+    if (!empty($_SESSION['must_change_password'])) {
+        $script = basename($_SERVER['SCRIPT_NAME'] ?? '');
+        $exempt = $script === 'profile_api.php' && in_array($_GET['action'] ?? '', ['change_password', 'me'], true);
+        if (!$exempt) {
+            http_response_code(403);
+            echo json_encode(['ok' => false, 'code' => 'password_change_required',
+                'message' => 'Please change your temporary password before continuing.']);
+            exit;
+        }
+    }
     if ($roles !== null && !in_array($user['role'], (array)$roles, true)) {
         http_response_code(403);
         echo json_encode(['ok' => false, 'message' => 'You are not authorized to perform this action.']);
         exit;
     }
     return $user;
+}
+
+/**
+ * CSRF guard for state-changing API actions: POST only, and if the browser sent an Origin
+ * (or Referer) header it must be this site. SameSite=Lax alone does not stop a link click
+ * from firing a GET like ?action=delete&id=5 with the victim's cookies.
+ */
+function require_post_same_origin(): void
+{
+    if (($_SERVER['REQUEST_METHOD'] ?? '') !== 'POST') {
+        http_response_code(405);
+        header('Allow: POST');
+        echo json_encode(['ok' => false, 'message' => 'This action must be sent as a POST request.']);
+        exit;
+    }
+    $source = $_SERVER['HTTP_ORIGIN'] ?? $_SERVER['HTTP_REFERER'] ?? '';
+    if ($source !== '') {
+        $sourceHost = parse_url($source, PHP_URL_HOST);
+        $sourcePort = parse_url($source, PHP_URL_PORT);
+        $hostHeader = $_SERVER['HTTP_HOST'] ?? '';
+        $sourceAuth = $sourceHost . ($sourcePort ? ':' . $sourcePort : '');
+        if ($sourceHost === null || strcasecmp($sourceAuth, $hostHeader) !== 0) {
+            http_response_code(403);
+            echo json_encode(['ok' => false, 'message' => 'Cross-site request blocked.']);
+            exit;
+        }
+    }
+}
+
+/**
+ * Students are linked to their login by email (students.user_id is not populated). When RPMS
+ * changes a student's email, the login must follow, or the student instantly loses their record
+ * and documents.
+ */
+function sync_student_login_email(PDO $pdo, string $oldEmail, string $newEmail): void
+{
+    if ($oldEmail !== '' && strcasecmp($oldEmail, $newEmail) !== 0) {
+        $pdo->prepare("UPDATE users SET email = :new WHERE email = :old AND role = 'student'")
+            ->execute([':new' => $newEmail, ':old' => $oldEmail]);
+    }
 }
 
 function log_activity(?string $email, string $action, string $details = ''): void
@@ -501,7 +587,7 @@ function json_out($data, int $code = 200): void
 {
     http_response_code($code);
     header('Content-Type: application/json; charset=UTF-8');
-    echo json_encode($data);
+    echo json_encode($data, JSON_INVALID_UTF8_SUBSTITUTE);
     exit;
 }
 

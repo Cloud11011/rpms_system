@@ -5,3 +5,4 @@ storage/documents/*
 storage/reports/*
 !storage/documents/.gitkeep
 !storage/reports/.gitkeep
+storage/api_errors.log
