@@ -102,10 +102,19 @@ if ($action === 'save') {
                 $newLoginUserId = (int)$pdo->lastInsertId();
             } elseif (($existingLogin['role'] ?? '') === 'adviser') {
                 $wasInactive = strcasecmp((string)($existingLogin['status'] ?? ''), 'Active') !== 0;
-                $pdo->prepare('UPDATE users SET username=:u, full_name=:n, email=:e, ref_id=:ref, status=:status WHERE id=:id')
-                    ->execute([':u' => $employeeId, ':n' => $name, ':e' => $email, ':ref' => $employeeId,
-                        ':status' => $status, ':id' => $existingLogin['id']]);
-                if ($wasInactive && $status === 'Active') $newLoginUserId = (int)$existingLogin['id'];
+                if ($wasInactive && $status === 'Active') {
+                    $tempPassword = adviser_default_password($employeeId);
+                    $newLoginTempPassword = $tempPassword;
+                    $pdo->prepare('UPDATE users SET username=:u, full_name=:n, email=:e, ref_id=:ref, status=:status,
+                            password_hash=:p, must_change_password=1 WHERE id=:id')
+                        ->execute([':u' => $employeeId, ':n' => $name, ':e' => $email, ':ref' => $employeeId,
+                            ':status' => $status, ':p' => password_hash($tempPassword, PASSWORD_DEFAULT), ':id' => $existingLogin['id']]);
+                    $newLoginUserId = (int)$existingLogin['id'];
+                } else {
+                    $pdo->prepare('UPDATE users SET username=:u, full_name=:n, email=:e, ref_id=:ref, status=:status WHERE id=:id')
+                        ->execute([':u' => $employeeId, ':n' => $name, ':e' => $email, ':ref' => $employeeId,
+                            ':status' => $status, ':id' => $existingLogin['id']]);
+                }
             }
         }
         $pdo->commit();
