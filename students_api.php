@@ -115,7 +115,7 @@ if ($action === 'save') {
         json_out(['ok' => false, 'message' => 'Student ID, name, and a valid email are required.'], 422);
     }
     if (mb_strlen($studentId) > 100 || mb_strlen($name) > 190 || mb_strlen($research) > 255
-        || mb_strlen($group) > 190 || mb_strlen($course) > 100 || mb_strlen($requirements) > 255
+        || mb_strlen($group) > 190
         || ($protocolCode !== null && mb_strlen((string)$protocolCode) > 100)) {
         json_out(['ok' => false, 'message' => 'One or more fields are too long. Please shorten the entry and try again.'], 422);
     }
@@ -249,7 +249,7 @@ if ($action === 'save') {
             $pdo->prepare('INSERT INTO ierb_history (student_id, stage, status, note, requirements, actor)
                 VALUES (:sid,:stage,:status,:note,:req,:actor)')->execute([
                 ':sid' => $id, ':stage' => $stage, ':status' => $status,
-                ':note' => 'Record created by RPMS.', ':req' => $requirements, ':actor' => $user['full_name'],
+                ':note' => 'Record created by RPMS.', ':req' => ($requirements ?? ''), ':actor' => $user['full_name'],
             ]);
         }
         $pdo->commit();
