@@ -159,7 +159,8 @@
             delBtn.title = 'Delete';
             delBtn.innerHTML = '<i class="fa-solid fa-trash"></i>';
             delBtn.addEventListener('click', () => deleteRecord(record));
-            actions.append(editBtn, delBtn);
+            actions.append(editBtn);
+            if (loggedInRole === 'admin') actions.append(delBtn);
             rowsEl.appendChild(tr);
         });
     }
@@ -269,6 +270,15 @@
             closeModal();
             await loadRecords();
             PrismUI.toast(data.message || 'Record saved.', 'success');
+            if (data.temporaryPassword) {
+                await PrismUI.confirm({
+                    title:'Account setup required',
+                    icon:'fa-key',
+                    confirmText:'I copied it',
+                    message:'Live account-setup email is not available. Give this one-time temporary password to the user securely. They will be required to change it after signing in.',
+                    extraHtml:'<label>Temporary password</label><input id="prismTempPassword" readonly value="' + escapeHtml(data.temporaryPassword) + '" onclick="this.select()">'
+                });
+            }
         } catch (e) {
             PrismUI.toast(e.message, 'error');
         } finally {
