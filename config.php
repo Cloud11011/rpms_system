@@ -630,11 +630,11 @@ function generate_temporary_password(int $bytes = 12): string
 }
 
 /** Issues a one-time password setup link for a newly provisioned account. */
-function send_account_setup_email(PDO $pdo, int $userId, string $email, string $name): void
+function send_account_setup_email(PDO $pdo, int $userId, string $email, string $name): array
 {
     if (APP_BASE_URL === '') {
         log_api_error('account_setup', 'APP_BASE_URL is not configured; account setup email was not sent for user_id=' . $userId);
-        return;
+        return ['ok' => false, 'channel' => 'none', 'message' => 'APP_BASE_URL is not configured, so no setup email could be sent.'];
     }
     $token = bin2hex(random_bytes(32));
     $expires = date('Y-m-d H:i:s', time() + 3600);
@@ -643,7 +643,7 @@ function send_account_setup_email(PDO $pdo, int $userId, string $email, string $
     $link = APP_BASE_URL . '/reset_password.php?token=' . urlencode($token);
     $body = "Hello $name,\n\nYour PRISM account has been created. Set your password using the one-time link below (valid for 1 hour):\n\n"
         . $link . "\n\nIf you were not expecting this account, contact the RPMS office.\n\n- CEU Malolos RPMS / PRISM";
-    send_notification_email($email, 'Set up your PRISM account', $body);
+    return send_notification_email($email, 'Set up your PRISM account', $body);
 }
 
 function json_body(): array
