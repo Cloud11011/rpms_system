@@ -230,8 +230,10 @@ if ($action === 'save') {
                 ]);
                 $newLoginUserId = (int)$pdo->lastInsertId();
             } elseif (($existingLogin['role'] ?? '') === 'student') {
+                $wasInactive = strcasecmp((string)($existingLogin['status'] ?? ''), 'Active') !== 0;
                 $pdo->prepare("UPDATE users SET username=:u, full_name=:n, email=:e, ref_id=:ref, status='Active' WHERE id=:id")
                     ->execute([':u' => $studentId, ':n' => $name, ':e' => $email, ':ref' => $studentId, ':id' => $existingLogin['id']]);
+                if ($wasInactive) $newLoginUserId = (int)$existingLogin['id'];
             }
 
             $pdo->prepare('INSERT INTO ierb_history (student_id, stage, status, note, requirements, actor)
