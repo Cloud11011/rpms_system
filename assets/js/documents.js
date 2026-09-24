@@ -54,7 +54,24 @@ function render(){renderFilters();renderTypeManager();renderTable();renderFolder
 function openModal(m){m.classList.add('show');m.setAttribute('aria-hidden','false')}function closeModal(m){m.classList.remove('show');m.setAttribute('aria-hidden','true')}
 function toast(message,type='success'){PrismUI.toast(message,type)}
 async function load(){try{documents=(await api('list')).documents;render()}catch(e){documents=[];render();toast(e.message,'error')}}
-uploadForm.addEventListener('submit',async e=>{e.preventDefault();const button=uploadForm.querySelector('[type="submit"]');button.disabled=true;try{const data=await api('upload',{method:'POST',body:new FormData(uploadForm)});closeModal(uploadModal);uploadForm.reset();await load();toast(data.message||'Document uploaded successfully.')}catch(err){toast(err.message,'error')}finally{button.disabled=false}});
+uploadForm.addEventListener('submit',async e=>{
+    e.preventDefault();
+    const file=document.getElementById('documentFile').files[0];
+    if(!file){toast('Choose a document to upload.','error');return}
+    if(file.size>20*1024*1024){toast('Files must be 20 MB or smaller.','error');return}
+    const ext=(file.name.split('.').pop()||'').toLowerCase();
+    const allowed=['pdf','doc','docx','txt','rtf','odt','png','jpg','jpeg'];
+    if(!allowed.includes(ext)){toast('Use PDF, Word, text, RTF, ODT, PNG or JPG.','error');return}
+    const button=uploadForm.querySelector('[type="submit"]');
+    const original=button.innerHTML;
+    button.disabled=true;
+    button.innerHTML='<i class="fa-solid fa-spinner fa-spin"></i> Uploading...';
+    try{
+        const data=await api('upload',{method:'POST',body:new FormData(uploadForm)});
+        closeModal(uploadModal);uploadForm.reset();await load();toast(data.message||'Document uploaded successfully.')
+    }catch(err){toast(err.message,'error')}
+    finally{button.disabled=false;button.innerHTML=original}
+});
 async function remove(d){
     const needsReason=!!d.locked;
     const answer=await PrismUI.confirm({
