@@ -68,7 +68,20 @@ if (!defined('DB_PASS')) define('DB_PASS', getenv('DB_PASS') ?: '');
 
 // Canonical public URL used for security-sensitive absolute links (for example password resets).
 // Never derive these links from the request Host header.
-if (!defined('APP_BASE_URL')) define('APP_BASE_URL', rtrim(getenv('APP_BASE_URL') ?: '', '/'));
+if (!defined('APP_BASE_URL')) {
+    $configuredBaseUrl = rtrim((string)(getenv('APP_BASE_URL') ?: ''), '/');
+    // Developer convenience only: derive the URL for loopback hosts. Production hosts must
+    // configure APP_BASE_URL explicitly so password/setup links never trust arbitrary Host headers.
+    if ($configuredBaseUrl === '' && PHP_SAPI !== 'cli') {
+        $host = strtolower((string)($_SERVER['HTTP_HOST'] ?? ''));
+        if (preg_match('/^(localhost|127\.0\.0\.1|\[::1\])(?::\d+)?$/', $host)) {
+            $https = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off');
+            $basePath = rtrim(str_replace('\\', '/', dirname((string)($_SERVER['SCRIPT_NAME'] ?? '/'))), '/.');
+            $configuredBaseUrl = ($https ? 'https' : 'http') . '://' . $host . ($basePath ? '/' . ltrim($basePath, '/') : '');
+        }
+    }
+    define('APP_BASE_URL', $configuredBaseUrl);
+}
 
 // ---------------------------------------------------------------------
 // External service configuration
