@@ -55,7 +55,7 @@ $profile_img = 'assets/images/default-avatar.svg';
         </section>
 
         <section class="ierb-directory" aria-labelledby="ierbTableTitle">
-            <div class="ierb-table-heading"><div><h2 id="ierbTableTitle">Detailed Progress</h2><p id="ierbRecordCount">0 records</p></div><button type="button" class="ierb-add-link" id="addIerbEntry"><i class="fa-solid fa-plus"></i> Add IERB entry</button></div>
+            <div class="ierb-table-heading"><div><h2 id="ierbTableTitle">Detailed Progress</h2><p id="ierbRecordCount">0 records</p></div><?php if ($authUser['role'] === 'admin'): ?><button type="button" class="ierb-add-link" id="addIerbEntry"><i class="fa-solid fa-plus"></i> Add IERB entry</button><?php endif; ?></div>
             <div class="ierb-table-wrap"><table class="ierb-table">
                 <thead><tr><th>Student Name</th><th>Current Stage</th><th>Completed Stages</th><th>Pending Requirements</th><th>Submission Dates</th><th>Delay Status</th><th>Actions</th></tr></thead>
                 <tbody id="ierbTableBody"></tbody>
