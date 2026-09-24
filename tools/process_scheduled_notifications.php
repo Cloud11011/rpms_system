@@ -49,7 +49,7 @@ foreach ($ids as $id) {
         . "This is an automated notification from the CEU Malolos Research Planning and Monitoring Section (RPMS) via PRISM.\n";
 
     $result = send_notification_email((string)$row['recipient_email'], (string)$row['subject'], $body);
-    $status = $result['ok'] ? 'Sent' : 'Failed';
+    $status = $result['ok'] ? (($result['channel'] ?? '') === 'log' ? 'Logged' : 'Sent') : 'Failed';
     $upd = $pdo->prepare('UPDATE notifications
         SET status = :status, delivery_info = :info, sent_at = :sent
         WHERE id = :id AND status = "Sending"');
@@ -61,9 +61,9 @@ foreach ($ids as $id) {
     ]);
 
     $processed++;
-    if ($result['ok']) {
+    if ($result['ok'] && ($result['channel'] ?? '') !== 'log') {
         $sent++;
-    } else {
+    } elseif (!$result['ok']) {
         $failed++;
     }
 }
