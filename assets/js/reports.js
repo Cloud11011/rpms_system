@@ -14,6 +14,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     const esc = v => String(v ?? '').replace(/[&<>'"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' })[c]);
+    const isAdmin = document.body.dataset.userRole === 'admin';
 
     function openModal(m) { m.classList.add('show'); m.style.display = 'flex'; }
     function closeModal(m) { m.classList.remove('show'); m.style.display = 'none'; }
@@ -140,18 +141,23 @@ document.addEventListener('DOMContentLoaded', () => {
             download.title = 'Download';
             download.href = `reports_api.php?action=file&download=1&id=${encodeURIComponent(r.id)}`;
             download.innerHTML = '<i class="fa-solid fa-download"></i>';
-            const del = document.createElement('button');
-            del.className = 'icon-btn';
-            del.title = 'Delete';
-            del.innerHTML = '<i class="fa-solid fa-trash"></i>';
-            del.addEventListener('click', async () => {
-                if (!confirm(`Delete report "${r.title}"?`)) return;
-                await fetch('reports_api.php?action=delete', {
-                    method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id: r.id }),
+            actions.append(view, download);
+            if (isAdmin) {
+                const del = document.createElement('button');
+                del.className = 'icon-btn';
+                del.title = 'Delete';
+                del.innerHTML = '<i class="fa-solid fa-trash"></i>';
+                del.addEventListener('click', async () => {
+                    if (!confirm(`Delete report "${r.title}"?`)) return;
+                    const res = await fetch('reports_api.php?action=delete', {
+                        method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id: r.id }),
+                    });
+                    const data = await res.json();
+                    if (!data.ok) alert(data.message || 'The report could not be deleted.');
+                    await loadReports();
                 });
-                await loadReports();
-            });
-            actions.append(view, download, del);
+                actions.append(del);
+            }
             body.appendChild(tr);
         });
     }
