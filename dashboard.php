@@ -216,7 +216,6 @@ try {
 <option value="high-to-low">Progress: High to low</option>
 <option value="low-to-high">Progress: Low to high</option>
 </select>
-<button class="btn-secondary-sm"><i class="fa-solid fa-file-csv"></i> Import CSV</button>
 <a class="btn-secondary-sm prism-link-btn" href="ierb_api.php?action=export_csv" title="Download the student progress list as a CSV file"><i class="fa-solid fa-file-arrow-down"></i> Export CSV</a>
 </div>
 </div>
@@ -330,16 +329,12 @@ try {
 <!-- MODAL: AI PDF REPORT OPTIONS -->
 <div class="modal-overlay" id="reportModal">
 <div class="modal-card">
-<h3><i class="fa-solid fa-file-pdf"></i> Export AI Consolidated PDF Report</h3>
-<p>Select parameters for AI PDF generation:</p>
-<div class="report-options">
-<label><input type="checkbox" checked> Include Delayed Submissions Only</label><br>
-<label><input type="checkbox" checked> Include Stage Distribution Metrics</label><br>
-<label><input type="checkbox" checked> Include AI Administrative Insights</label>
-</div>
+<h3><i class="fa-solid fa-file-pdf"></i> Generate AI Progress Report</h3>
+<p>Choose one of the two predefined report formats used by PRISM. The generated report must still be reviewed by RPMS before distribution.</p>
 <div class="modal-actions">
 <button class="btn-secondary-sm" onclick="closeReportModal()">Cancel</button>
-<button class="small-btn" onclick="generateAIReport()"><i class="fa-solid fa-download"></i> Download PDF</button>
+<button class="btn-secondary-sm" onclick="generateAIReport('summary')"><i class="fa-solid fa-file-lines"></i> Summarized Report</button>
+<button class="small-btn" onclick="generateAIReport('full')"><i class="fa-solid fa-file-contract"></i> Full Report</button>
 </div>
 </div>
 </div>
@@ -578,24 +573,18 @@ function renderReportHistory() {
         list.appendChild(item);
     });
 }
-async function generateAIReport() {
+async function generateAIReport(mode = 'summary') {
     closeReportModal();
     try {
-        const res = await fetch('reports_api.php?action=generate', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ type: 'Progress Report' })
-        });
-        const data = await res.json();
-        if (!data.ok) {
-            alert(data.message || 'The report could not be generated.');
-            return;
-        }
+        const data = await PrismUI.postJson('reports_api.php?action=ai_report', { mode });
         await loadReportHistory();
         renderReportHistory();
-        window.open(`reports_api.php?action=file&id=${encodeURIComponent(data.report.id)}&download=1`, '_blank');
-    } catch (_) {
-        alert('The report could not be generated right now.');
+        PrismUI.toast(data.aiUsed
+            ? 'AI report generated. Review it before distribution.'
+            : 'AI service was unavailable; PRISM used the local fallback summary.', data.aiUsed ? 'success' : 'warning');
+        window.open(`reports_api.php?action=file&id=${encodeURIComponent(data.report.id)}&download=1`, '_blank', 'noopener');
+    } catch (e) {
+        PrismUI.toast(e.message || 'The report could not be generated right now.', 'error');
     }
 }
 
