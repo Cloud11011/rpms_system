@@ -43,6 +43,10 @@
         }
         ?>
 
+        <?php if (ADMIN_REGISTRATION_CODE === ''): ?>
+        <div class="error-message">RPMS staff self-registration is currently disabled. Ask an existing RPMS administrator to create your account or enable the private registration code.</div>
+        <div class="register-text"><a href="login.php">Back to login</a></div>
+        <?php else: ?>
         <form action="register_process.php" method="POST">
 
             <div class="input-group">
@@ -160,6 +164,7 @@
             </a>
 
         </form>
+        <?php endif; ?>
 
     </div>
 
