@@ -47,7 +47,7 @@ if (!defined('OVERRIDE_MIN_REASON_LENGTH')) define('OVERRIDE_MIN_REASON_LENGTH',
 
 // Set to true once the IERB edit form sends a "reason" field: from then on,
 // changing a student's stage/status through the plain "save" action requires one.
-if (!defined('REQUIRE_OVERRIDE_REASON_ON_SAVE')) define('REQUIRE_OVERRIDE_REASON_ON_SAVE', false);
+if (!defined('REQUIRE_OVERRIDE_REASON_ON_SAVE')) define('REQUIRE_OVERRIDE_REASON_ON_SAVE', true);
 
 // ---------------------------------------------------------------------
 // Workflow states
