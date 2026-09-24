@@ -114,7 +114,7 @@ document.addEventListener('DOMContentLoaded', () => {
         $('dashboardStatusValue').textContent = status;
         $('dashboardPendingValue').textContent = pendingCount;
         $('dashboardSubmissionValue').textContent = `${myDocuments.length} ${myDocuments.length === 1 ? 'document' : 'documents'}`;
-        $('dashboardSubmissionStatus').textContent = latestDoc ? `Latest: ${latestDoc.reviewStatus}` : 'No submissions yet';
+        $('dashboardSubmissionStatus').textContent = latestDoc ? `Latest: ${latestDoc.workflowState || latestDoc.reviewStatus}` : 'No submissions yet';
 
         const unread = myNotifications.filter(n => !n.read_at).length;
         $('navBadge').textContent = unread;
@@ -169,19 +169,21 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function docItem(d) {
-        return `<div class="list-item"><i class="fa-solid fa-file-lines"></i><div><strong>${esc(d.documentType)}</strong><span>${esc(d.originalName)} &middot; ${fmt(d.uploadedAt)} &middot; ${esc(d.reviewStatus)}</span></div></div>`;
+        const state = d.workflowState || d.reviewStatus || 'Submitted';
+        const version = Number(d.versionNo || 1) > 1 ? ` &middot; v${Number(d.versionNo)}` : '';
+        return `<div class="list-item"><i class="fa-solid fa-file-lines"></i><div><strong>${esc(d.documentType)}</strong><span>${esc(d.originalName)}${version} &middot; ${fmt(d.uploadedAt)} &middot; ${esc(state)}</span></div></div>`;
     }
 
     function renderDocs() {
         const filter = $('documentFilter').value;
-        const docs = myDocuments.filter(d => !filter || d.reviewStatus === filter);
+        const docs = myDocuments.filter(d => !filter || d.reviewStatus === filter || d.workflowState === filter);
         $('documentRows').innerHTML = docs.map(d => `<tr>
-            <td><strong>${esc(d.originalName)}</strong></td>
+            <td><strong>${esc(d.originalName)}</strong>${Number(d.versionNo || 1) > 1 ? `<small> v${Number(d.versionNo)}</small>` : ''}</td>
             <td>${esc(d.documentType)}</td>
             <td>${fmt(d.uploadedAt)}</td>
-            <td><span class="status-chip ${String(d.reviewStatus).toLowerCase().replaceAll(' ', '-')}">${esc(d.reviewStatus)}</span></td>
-            <td>${esc(d.reviewRemarks || 'Awaiting reviewer remarks')}</td>
-            <td><a class="action-btn" href="documents_api.php?action=file&id=${encodeURIComponent(d.id)}" target="_blank">Preview</a>
+            <td>${PrismUI.badge(d.workflowState || d.reviewStatus, { small: true })}</td>
+            <td>${esc(d.reviewRemarks || (d.workflowState === 'Submitted to RPMS' ? 'Formally submitted to RPMS' : 'No reviewer remarks yet'))}</td>
+            <td><a class="action-btn" href="documents_api.php?action=file&id=${encodeURIComponent(d.id)}" target="_blank" rel="noopener">Preview</a>
                 <a class="action-btn" href="documents_api.php?action=file&download=1&id=${encodeURIComponent(d.id)}">Download</a></td>
         </tr>`).join('') || `<tr><td colspan="6">${empty('No documents match this view.')}</td></tr>`;
     }
@@ -249,15 +251,13 @@ document.addEventListener('DOMContentLoaded', () => {
         const submitBtn = event.target.querySelector('[type="submit"]');
         submitBtn.disabled = true;
         try {
-            const res = await fetch('documents_api.php?action=upload', { method: 'POST', body: formData });
-            const data = await res.json();
-            if (!data.ok) { toast(data.message || 'The document could not be submitted.'); return; }
+            const data = await PrismUI.request('documents_api.php?action=upload', { method: 'POST', body: formData });
             event.target.reset();
             await refreshAll();
             go('documents');
-            toast('Document submitted successfully.');
-        } catch (_) {
-            toast('Could not reach the server to submit this document.');
+            toast(data.message || 'Document submitted successfully.');
+        } catch (e) {
+            toast(e.message || 'Could not reach the server to submit this document.');
         } finally {
             submitBtn.disabled = false;
         }
