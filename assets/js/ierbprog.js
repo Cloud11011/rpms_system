@@ -177,7 +177,7 @@
         entryModal.setAttribute('aria-hidden', 'true');
         entryModal.style.display = 'none';
     }
-    document.getElementById('addIerbEntry').addEventListener('click', () => openEntryModal(null));
+    document.getElementById('addIerbEntry')?.addEventListener('click', () => openEntryModal(null));
     document.getElementById('closeIerbEntry').addEventListener('click', closeEntryModal);
     document.getElementById('cancelIerbEntry').addEventListener('click', closeEntryModal);
     entryModal.addEventListener('click', e => { if (e.target === entryModal) closeEntryModal(); });
