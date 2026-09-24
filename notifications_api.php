@@ -59,8 +59,31 @@ if ($action === 'send') {
     $automated = !empty($data['automated']);
     $scheduleAt = trim((string)($data['scheduleAt'] ?? ''));
 
+    $allowedAudiences = ['All Students', 'All Advisers', 'Students and Advisers', 'Specific Research Group'];
+    $allowedTypes = ['Status Update', 'Reminder', 'Follow-up', 'Submission Confirmation'];
+    if (!in_array($audience, $allowedAudiences, true)) {
+        json_out(['ok' => false, 'message' => 'Invalid notification audience.'], 422);
+    }
+    if (!in_array($type, $allowedTypes, true)) {
+        json_out(['ok' => false, 'message' => 'Invalid notification type.'], 422);
+    }
+    if ($user['role'] === 'adviser' && !in_array($audience, ['All Students', 'Specific Research Group'], true)) {
+        json_out(['ok' => false, 'message' => 'Research advisers may notify only their assigned students.'], 403);
+    }
     if ($message === '') {
         json_out(['ok' => false, 'message' => 'A message is required.'], 422);
+    }
+    if (mb_strlen($message) > 600) {
+        json_out(['ok' => false, 'message' => 'Notification messages must be 600 characters or fewer.'], 422);
+    }
+    if ($audience === 'Specific Research Group' && $group === '') {
+        json_out(['ok' => false, 'message' => 'Enter a research group for this audience.'], 422);
+    }
+    if ($automated) {
+        $scheduleTs = $scheduleAt !== '' ? strtotime($scheduleAt) : false;
+        if ($scheduleTs === false || $scheduleTs <= time()) {
+            json_out(['ok' => false, 'message' => 'Choose a valid future date and time for the scheduled notification.'], 422);
+        }
     }
 
     $recipients = resolve_recipients($pdo, $user, $audience, $group);
@@ -68,7 +91,7 @@ if ($action === 'send') {
         json_out(['ok' => false, 'message' => 'No matching recipients were found for that audience.'], 422);
     }
 
-    $isScheduled = $automated && $scheduleAt !== '' && strtotime($scheduleAt) > time();
+    $isScheduled = $automated;
     $subject = "PRISM $type - CEU Malolos RPMS";
     $sentCount = 0;
 
