@@ -1,27 +1,43 @@
 <?php
 require __DIR__ . '/config.php';
 $user = api_require_login(['admin','adviser']);
-
-if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-    json_out(['ok' => false, 'message' => 'Method not allowed.'], 405);
-}
+require_post_same_origin();
 
 $payload = json_body();
-$email = filter_var($payload['email'] ?? '', FILTER_VALIDATE_EMAIL);
-$name = trim((string)($payload['name'] ?? 'Student'));
 $studentDbId = (int)($payload['studentDbId'] ?? 0);
-$studentId = preg_replace('/[\r\n]+/', ' ', trim((string)($payload['studentId'] ?? '')));
-$stage = trim((string)($payload['stage'] ?? ''));
-$status = trim((string)($payload['status'] ?? ''));
-$requirements = trim((string)($payload['requirements'] ?? ''));
-
-if (!$email) {
-    json_out(['ok' => false, 'message' => 'A valid student email is required.'], 422);
+if ($studentDbId <= 0) {
+    json_out(['ok' => false, 'message' => 'Select a valid student before sending a follow-up.'], 422);
 }
 
-$safeName = preg_replace('/[\r\n]+/', ' ', $name);
+$pdo = db();
+$stmt = $pdo->prepare('SELECT s.id, s.student_id, s.full_name, s.email, s.stage, s.status, s.requirements,
+        a.email AS adviser_email
+    FROM students s
+    LEFT JOIN advisers a ON a.id = s.adviser_id
+    WHERE s.id = :id LIMIT 1');
+$stmt->execute([':id' => $studentDbId]);
+$student = $stmt->fetch();
+if (!$student) {
+    json_out(['ok' => false, 'message' => 'Student record not found.'], 404);
+}
+if ($user['role'] === 'adviser' && strcasecmp((string)$student['adviser_email'], (string)$user['email']) !== 0) {
+    json_out(['ok' => false, 'message' => 'You can only send follow-ups to students assigned to you.'], 403);
+}
+
+$email = filter_var($student['email'], FILTER_VALIDATE_EMAIL);
+if (!$email) {
+    json_out(['ok' => false, 'message' => 'This student does not have a valid email address.'], 422);
+}
+
+$safeName = preg_replace('/[\r\n]+/', ' ', (string)$student['full_name']);
+$studentId = preg_replace('/[\r\n]+/', ' ', (string)$student['student_id']);
+$stage = (string)$student['stage'];
+$status = (string)$student['status'];
+$requirements = trim((string)$student['requirements']);
+
 $subject = "IERB Progress Follow-up - {$studentId}";
-$message = "Hello {$safeName},\n\nThis is an automated follow-up regarding your IERB progress.\nCurrent stage: {$stage}\nStatus: {$status}\n";
+$message = "Hello {$safeName},\n\nThis is an automated follow-up regarding your IERB progress.\n"
+    . "Current stage: " . stage_label($stage) . " ({$stage})\nStatus: {$status}\n";
 if ($requirements !== '') {
     $message .= "Pending requirement: {$requirements}\n";
 }
@@ -29,11 +45,11 @@ $message .= "\nPlease send your latest update to the RPMS office.\n\nThank you."
 
 $result = send_notification_email($email, $subject, $message);
 
-db()->prepare('INSERT INTO notifications (recipient_type, recipient_id, recipient_email, recipient_name,
+$pdo->prepare('INSERT INTO notifications (recipient_type, recipient_id, recipient_email, recipient_name,
     subject, message, type, status, delivery_info, sent_at, created_by)
     VALUES ("student",:sid,:email,:name,:subj,:msg,"Follow-up",:status,:info,NOW(),:by)')
     ->execute([
-        ':sid' => $studentDbId ?: null, ':email' => $email, ':name' => $safeName, ':subj' => $subject,
+        ':sid' => $studentDbId, ':email' => $email, ':name' => $safeName, ':subj' => $subject,
         ':msg' => $message, ':status' => $result['ok'] ? 'Sent' : 'Failed', ':info' => $result['message'],
         ':by' => $user['full_name'],
     ]);
