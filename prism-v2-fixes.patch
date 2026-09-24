@@ -1,0 +1,484 @@
+diff --git a/.gitignore b/.gitignore
+index a3cb239..a5756d4 100644
+--- a/.gitignore
++++ b/.gitignore
+@@ -5,3 +5,4 @@ storage/documents/*
+ storage/reports/*
+ !storage/documents/.gitkeep
+ !storage/reports/.gitkeep
++storage/api_errors.log
+diff --git a/.htaccess b/.htaccess
+index 21319d3..037a04b 100644
+--- a/.htaccess
++++ b/.htaccess
+@@ -11,3 +11,18 @@ Options -Indexes
+         Deny from all
+     </IfModule>
+ </Files>
++
++# Repo docs, diffs, logs and version-control metadata must never be downloadable.
++<FilesMatch "\.(md|diff|patch|log|sql|sqlite|bak|dist)$|^\.git">
++    <IfModule mod_authz_core.c>
++        Require all denied
++    </IfModule>
++    <IfModule !mod_authz_core.c>
++        Order allow,deny
++        Deny from all
++    </IfModule>
++</FilesMatch>
++<IfModule mod_rewrite.c>
++    RewriteEngine On
++    RewriteRule (^|/)\.git(/|$) - [R=404,L]
++</IfModule>
+diff --git a/advisers_api.php b/advisers_api.php
+index af55b70..4c37bbd 100644
+--- a/advisers_api.php
++++ b/advisers_api.php
+@@ -3,6 +3,9 @@ require __DIR__ . '/config.php';
+ $user = api_require_login('admin');
+ $pdo = db();
+ $action = $_GET['action'] ?? 'list';
++if (in_array($action, ['save', 'delete'], true)) {
++    require_post_same_origin();
++}
+ 
+ function adviser_default_password(string $employeeId): string
+ {
+@@ -86,7 +89,7 @@ if ($action === 'save') {
+ }
+ 
+ if ($action === 'delete') {
+-    $id = (int)($data['id'] ?? $_GET['id'] ?? 0);
++    $id = (int)($data['id'] ?? 0);
+     $pdo->prepare('UPDATE students SET adviser_id = NULL WHERE adviser_id = :id')->execute([':id' => $id]);
+     $pdo->prepare('DELETE FROM advisers WHERE id = :id')->execute([':id' => $id]);
+     log_activity($user['email'], 'adviser_deleted', "id=$id");
+diff --git a/assets/js/documents.js b/assets/js/documents.js
+index 77e7e2c..9e231df 100644
+--- a/assets/js/documents.js
++++ b/assets/js/documents.js
+@@ -4,7 +4,7 @@ if(!isStaff){const studentField=document.getElementById('documentStudent');if(st
+ let documents=[],view='table';const defaultTypes=['Thesis','IMRAD','IERB Form','Consent','Ethics Application','Revision','Other'],customTypeKey=`prismDocumentTypes:${document.body.dataset.documentUser||'default'}`;let customTypes=[];try{const saved=JSON.parse(localStorage.getItem(customTypeKey));customTypes=Array.isArray(saved)?saved:[]}catch(_){}const body=document.getElementById('documentsTableBody'),search=document.getElementById('documentSearch'),typeFilter=document.getElementById('documentTypeFilter'),courseFilter=document.getElementById('documentCourseFilter'),yearFilter=document.getElementById('documentYearFilter'),sortSelect=document.getElementById('documentSort'),tableView=document.getElementById('documentsTableView'),folderView=document.getElementById('documentsFolderView'),courseView=document.getElementById('documentsCourseView'),uploadModal=document.getElementById('uploadModal'),summaryModal=document.getElementById('summaryModal'),uploadForm=document.getElementById('uploadForm');
+ const esc=v=>String(v??'').replace(/[&<>'"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'})[c]);
+ const size=v=>v<1024?`${v} B`:v<1048576?`${(v/1024).toFixed(1)} KB`:`${(v/1048576).toFixed(1)} MB`;const date=v=>new Date(v).toLocaleString('en-PH',{month:'short',day:'numeric',year:'numeric',hour:'numeric',minute:'2-digit'});
+-async function api(action,options={}){const response=await fetch(`documents_api.php?action=${encodeURIComponent(action)}`,options);const result=await response.json();if(!response.ok||!result.ok)throw new Error(result.message||'Document operation failed.');return result}
++async function api(action,options={}){const response=await fetch(`documents_api.php?action=${encodeURIComponent(action)}`,options);const result=await response.json();if(!response.ok||!result.ok){const err=new Error(result.message||'Document operation failed.');err.requiresReason=!!result.requiresReason;throw err}return result}
+ function filtered(){const q=search.value.trim().toLowerCase();let rows=documents.filter(d=>(!q||`${d.originalName} ${d.student} ${d.documentType}`.toLowerCase().includes(q))&&(!typeFilter.value||d.documentType===typeFilter.value)&&(!courseFilter.value||d.course===courseFilter.value)&&(!yearFilter.value||String(d.year)===yearFilter.value));const sort=sortSelect?sortSelect.value:'newest';rows=rows.slice().sort((a,b)=>{if(sort==='oldest')return new Date(a.uploadedAt)-new Date(b.uploadedAt);if(sort==='name-asc')return a.originalName.localeCompare(b.originalName);if(sort==='name-desc')return b.originalName.localeCompare(a.originalName);if(sort==='student-asc')return String(a.student).localeCompare(String(b.student));return new Date(b.uploadedAt)-new Date(a.uploadedAt)});return rows}
+ function fileIcon(name){const ext=name.split('.').pop().toLowerCase();return ext==='pdf'?'fa-file-pdf':['doc','docx','odt','rtf'].includes(ext)?'fa-file-word':'fa-file-lines'}
+ function allDocumentTypes(){return [...new Set([...defaultTypes,...customTypes,...documents.map(d=>d.documentType)])].filter(Boolean).sort()}function renderTypeManager(){const select=document.getElementById('documentType'),selected=select.value;select.replaceChildren();allDocumentTypes().forEach(t=>{const o=document.createElement('option');o.value=o.textContent=t;select.appendChild(o)});select.value=allDocumentTypes().includes(selected)?selected:allDocumentTypes()[0]||'';const list=document.getElementById('documentTypeList');list.replaceChildren();allDocumentTypes().forEach(t=>{const li=document.createElement('li'),label=document.createElement('span');label.textContent=t;li.appendChild(label);if(defaultTypes.includes(t)){const fixed=document.createElement('span');fixed.className='default-type';fixed.textContent='Default';li.appendChild(fixed)}else{const remove=document.createElement('button');remove.type='button';remove.title='Remove type';remove.innerHTML='<i class="fa-solid fa-trash"></i>';remove.addEventListener('click',()=>{customTypes=customTypes.filter(x=>x!==t);localStorage.setItem(customTypeKey,JSON.stringify(customTypes));renderTypeManager();renderFilters()});li.appendChild(remove)}list.appendChild(li)})}function renderFilters(){const selected=typeFilter.value;typeFilter.querySelectorAll('option:not(:first-child)').forEach(o=>o.remove());allDocumentTypes().forEach(t=>{const o=document.createElement('option');o.value=o.textContent=t;typeFilter.appendChild(o)});typeFilter.value=[...typeFilter.options].some(o=>o.value===selected)?selected:'';const courseSelected=courseFilter.value;courseFilter.querySelectorAll('option:not(:first-child)').forEach(o=>o.remove());[...new Set(documents.map(d=>d.course).filter(Boolean))].sort().forEach(c=>{const o=document.createElement('option');o.value=o.textContent=c;courseFilter.appendChild(o)});courseFilter.value=[...courseFilter.options].some(o=>o.value===courseSelected)?courseSelected:'';const yearSelected=yearFilter.value;yearFilter.querySelectorAll('option:not(:first-child)').forEach(o=>o.remove());[...new Set(documents.map(d=>d.year).filter(Boolean))].sort((a,b)=>b-a).forEach(y=>{const o=document.createElement('option');o.value=o.textContent=y;yearFilter.appendChild(o)});yearFilter.value=[...yearFilter.options].some(o=>o.value===yearSelected)?yearSelected:''}
+@@ -16,7 +16,7 @@ function openModal(m){m.classList.add('show');m.setAttribute('aria-hidden','fals
+ function toast(message){const t=document.createElement('div');t.className='document-toast';t.textContent=message;document.body.appendChild(t);setTimeout(()=>t.remove(),2500)}
+ async function load(){try{documents=(await api('list')).documents;render()}catch(e){alert(e.message)}}
+ uploadForm.addEventListener('submit',async e=>{e.preventDefault();const button=uploadForm.querySelector('[type="submit"]');button.disabled=true;try{await api('upload',{method:'POST',body:new FormData(uploadForm)});closeModal(uploadModal);uploadForm.reset();await load();toast('Document uploaded successfully.')}catch(err){alert(err.message)}finally{button.disabled=false}});
+-async function remove(d){if(!confirm(`Delete ${d.originalName}? This cannot be undone.`))return;try{await api('delete',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({id:d.id})});await load();toast('Document deleted.')}catch(e){alert(e.message)}}
++async function remove(d,reason){if(reason===undefined&&!confirm(`Delete ${d.originalName}? This cannot be undone.`))return;try{await api('delete',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({id:d.id,reason:reason||''})});await load();toast('Document deleted.')}catch(e){if(e.requiresReason){const why=prompt('This document was formally submitted to RPMS. Enter the reason for deleting it (saved to the audit log):','');if(why!==null&&why.trim()!=='')return remove(d,why.trim());return}alert(e.message)}}
+ async function reviewStatus(d,status){const remarks=prompt(`Remarks for this ${status.toLowerCase()} decision (optional):`,d.reviewRemarks||'');if(remarks===null)return;try{await api('review',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({id:d.id,status,remarks:remarks.trim()})});await load();toast(`Document marked as ${status}.`)}catch(e){alert(e.message)}}
+ async function comment(d){const remarks=prompt('Comment for the student (review status stays the same):',d.reviewRemarks||'');if(remarks===null||remarks.trim()==='')return;try{await api('review',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({id:d.id,status:d.reviewStatus||'Under Review',remarks:remarks.trim()})});await load();toast('Comment saved and sent to the student.')}catch(e){alert(e.message)}}
+ async function review(d){const status=prompt('Review status: Under Review, Received, Verified, Resubmission Requested, Approved, or Denied',d.reviewStatus||'Under Review');if(status===null)return;const allowed=['Under Review','Received','Verified','Resubmission Requested','Approved','Denied'];if(!allowed.includes(status.trim()))return alert('Enter a valid review status.');const remarks=prompt('Reviewer remarks:',d.reviewRemarks||'');if(remarks===null)return;try{await api('review',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({id:d.id,status:status.trim(),remarks:remarks.trim()})});await load();toast('Document review saved.')}catch(e){alert(e.message)}}
+diff --git a/config.php b/config.php
+index 5ee6c38..a5c3074 100644
+--- a/config.php
++++ b/config.php
+@@ -141,7 +141,37 @@ function db(): PDO
+     return $pdo;
+ }
+ 
++// Bump this whenever you add anything to migrate(). migrate() is skipped entirely on requests
++// where the stored version already matches, instead of running ~45 INFORMATION_SCHEMA/ALTER
++// checks on every single request.
++const SCHEMA_VERSION = 3;
++
+ function migrate(PDO $pdo): void
++{
++    $pdo->exec("CREATE TABLE IF NOT EXISTS schema_meta (
++        k VARCHAR(40) PRIMARY KEY, v VARCHAR(40) NOT NULL
++    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;");
++    $stored = $pdo->query("SELECT v FROM schema_meta WHERE k = 'schema_version'")->fetchColumn();
++    if ($stored !== false && (int)$stored >= SCHEMA_VERSION) {
++        return;
++    }
++    // Two first requests arriving together must not both try to ALTER the same table.
++    $locked = (int)$pdo->query("SELECT GET_LOCK('prism_migrate', 30)")->fetchColumn() === 1;
++    try {
++        $stored = $pdo->query("SELECT v FROM schema_meta WHERE k = 'schema_version'")->fetchColumn();
++        if ($stored === false || (int)$stored < SCHEMA_VERSION) {
++            migrate_schema($pdo);
++            $pdo->prepare("REPLACE INTO schema_meta (k, v) VALUES ('schema_version', :v)")
++                ->execute([':v' => (string)SCHEMA_VERSION]);
++        }
++    } finally {
++        if ($locked) {
++            $pdo->query("SELECT RELEASE_LOCK('prism_migrate')");
++        }
++    }
++}
++
++function migrate_schema(PDO $pdo): void
+ {
+     $pdo->exec("CREATE TABLE IF NOT EXISTS users (
+         id INT AUTO_INCREMENT PRIMARY KEY,
+@@ -409,6 +439,11 @@ function current_user(): ?array
+     $stmt = db()->prepare('SELECT * FROM users WHERE id = :id');
+     $stmt->execute([':id' => $_SESSION['user_id']]);
+     $user = $stmt->fetch();
++    if ($user && strcasecmp((string)$user['status'], 'Active') !== 0) {
++        // Deactivated after logging in: end the session instead of letting it keep working.
++        unset($_SESSION['user_id']);
++        $user = false;
++    }
+     $cached = $user ?: null;
+     return $cached;
+ }
+@@ -451,6 +486,17 @@ function api_require_login($roles = null): array
+         echo json_encode(['ok' => false, 'message' => 'You must be logged in.']);
+         exit;
+     }
++    // Same rule as require_login(): an account still on its temporary password can do nothing except change it.
++    if (!empty($_SESSION['must_change_password'])) {
++        $script = basename($_SERVER['SCRIPT_NAME'] ?? '');
++        $exempt = $script === 'profile_api.php' && in_array($_GET['action'] ?? '', ['change_password', 'me'], true);
++        if (!$exempt) {
++            http_response_code(403);
++            echo json_encode(['ok' => false, 'code' => 'password_change_required',
++                'message' => 'Please change your temporary password before continuing.']);
++            exit;
++        }
++    }
+     if ($roles !== null && !in_array($user['role'], (array)$roles, true)) {
+         http_response_code(403);
+         echo json_encode(['ok' => false, 'message' => 'You are not authorized to perform this action.']);
+@@ -459,6 +505,46 @@ function api_require_login($roles = null): array
+     return $user;
+ }
+ 
++/**
++ * CSRF guard for state-changing API actions: POST only, and if the browser sent an Origin
++ * (or Referer) header it must be this site. SameSite=Lax alone does not stop a link click
++ * from firing a GET like ?action=delete&id=5 with the victim's cookies.
++ */
++function require_post_same_origin(): void
++{
++    if (($_SERVER['REQUEST_METHOD'] ?? '') !== 'POST') {
++        http_response_code(405);
++        header('Allow: POST');
++        echo json_encode(['ok' => false, 'message' => 'This action must be sent as a POST request.']);
++        exit;
++    }
++    $source = $_SERVER['HTTP_ORIGIN'] ?? $_SERVER['HTTP_REFERER'] ?? '';
++    if ($source !== '') {
++        $sourceHost = parse_url($source, PHP_URL_HOST);
++        $sourcePort = parse_url($source, PHP_URL_PORT);
++        $hostHeader = $_SERVER['HTTP_HOST'] ?? '';
++        $sourceAuth = $sourceHost . ($sourcePort ? ':' . $sourcePort : '');
++        if ($sourceHost === null || strcasecmp($sourceAuth, $hostHeader) !== 0) {
++            http_response_code(403);
++            echo json_encode(['ok' => false, 'message' => 'Cross-site request blocked.']);
++            exit;
++        }
++    }
++}
++
++/**
++ * Students are linked to their login by email (students.user_id is not populated). When RPMS
++ * changes a student's email, the login must follow, or the student instantly loses their record
++ * and documents.
++ */
++function sync_student_login_email(PDO $pdo, string $oldEmail, string $newEmail): void
++{
++    if ($oldEmail !== '' && strcasecmp($oldEmail, $newEmail) !== 0) {
++        $pdo->prepare("UPDATE users SET email = :new WHERE email = :old AND role = 'student'")
++            ->execute([':new' => $newEmail, ':old' => $oldEmail]);
++    }
++}
++
+ function log_activity(?string $email, string $action, string $details = ''): void
+ {
+     try {
+@@ -501,7 +587,7 @@ function json_out($data, int $code = 200): void
+ {
+     http_response_code($code);
+     header('Content-Type: application/json; charset=UTF-8');
+-    echo json_encode($data);
++    echo json_encode($data, JSON_INVALID_UTF8_SUBSTITUTE);
+     exit;
+ }
+ 
+diff --git a/documents_api.php b/documents_api.php
+index cfbf515..a8fdeb2 100644
+--- a/documents_api.php
++++ b/documents_api.php
+@@ -7,6 +7,9 @@ require_once __DIR__ . '/workflow.php';
+ $user = api_require_login(['admin', 'adviser', 'student']);
+ $pdo = db();
+ $action = $_GET['action'] ?? $_POST['action'] ?? 'list';
++if (in_array($action, ['upload', 'review', 'submit_to_rpms', 'override_review', 'delete', 'summarize'], true)) {
++    require_post_same_origin();
++}
+ 
+ // The viewing adviser's row id in `advisers` (used to scope who may review what).
+ $viewerAdviserId = null;
+@@ -110,6 +113,12 @@ if ($action === 'list') {
+     if ($user['role'] === 'student') {
+         $where[] = 's.email = :e';
+         $params[':e'] = $user['email'];
++    } elseif ($user['role'] === 'adviser') {
++        // Advisers only ever see documents of the students assigned to them.
++        $where[] = $viewerAdviserId !== null ? 's.adviser_id = :vad' : '1 = 0';
++        if ($viewerAdviserId !== null) {
++            $params[':vad'] = $viewerAdviserId;
++        }
+     }
+     if (!$includeOld) {
+         $where[] = 'd.is_current = 1';
+@@ -190,6 +199,14 @@ if ($action === 'upload') {
+         }
+     }
+ 
++    if ($user['role'] === 'adviser') {
++        $ownsMatch = $studentDbId !== null && $viewerAdviserId !== null && (int)$pdo->query(
++            'SELECT COALESCE(adviser_id, 0) FROM students WHERE id = ' . (int)$studentDbId)->fetchColumn() === $viewerAdviserId;
++        if (!$ownsMatch) {
++            json_out(['ok' => false, 'message' => 'Enter the name or ID of a student who is assigned to you. Advisers can only upload documents for their own students.'], 422);
++        }
++    }
++
+     $documentType = trim((string)($_POST['documentType'] ?? '')) ?: 'Other';
+     // No stage sent? Use the student's current stage rather than always "Stage 1".
+     $stage = trim((string)($_POST['stage'] ?? ''));
+@@ -320,11 +337,15 @@ if (!$doc) {
+ if ($user['role'] === 'student') {
+     $own = $pdo->prepare('SELECT email FROM students WHERE id = :id');
+     $own->execute([':id' => $doc['student_id']]);
+-    if ($own->fetchColumn() !== $user['email']) {
++    if (strcasecmp((string)$own->fetchColumn(), (string)$user['email']) !== 0) {
+         json_out(['ok' => false, 'message' => 'Not authorized.'], 403);
+     }
+ }
+ 
++if ($user['role'] === 'adviser' && ($viewerAdviserId === null || (int)($doc['adviser_id'] ?? 0) !== $viewerAdviserId)) {
++    json_out(['ok' => false, 'message' => 'This document belongs to a student assigned to another adviser.'], 403);
++}
++
+ $path = DOCS_DIR . DIRECTORY_SEPARATOR . basename($doc['stored_name']);
+ $docName = $doc['original_name'];
+ $isCurrent = (int)($doc['is_current'] ?? 1) === 1;
+@@ -334,10 +355,17 @@ if ($action === 'file') {
+     if (!is_file($path)) {
+         json_out(['ok' => false, 'message' => 'File missing from storage.'], 404);
+     }
++    // Only formats a browser can display without running any script are shown inline. Everything
++    // else (including a .txt whose content is really HTML, which finfo reports as text/html) is
++    // forced to download as an opaque binary, so an uploaded file can never run as a page on this origin.
++    $inlineSafe = ['application/pdf', 'image/png', 'image/jpeg'];
++    $safeInline = in_array($doc['mime'], $inlineSafe, true);
+     header_remove('Content-Type');
+-    header('Content-Type: ' . $doc['mime']);
++    header('Content-Type: ' . ($safeInline ? $doc['mime'] : 'application/octet-stream'));
++    header('X-Content-Type-Options: nosniff');
++    header("Content-Security-Policy: default-src 'none'; sandbox");
+     header('Content-Length: ' . filesize($path));
+-    header('Content-Disposition: ' . (($_GET['download'] ?? '') === '1' ? 'attachment' : 'inline')
++    header('Content-Disposition: ' . ((($_GET['download'] ?? '') === '1' || !$safeInline) ? 'attachment' : 'inline')
+         . '; filename="' . str_replace(["\r", "\n", '"'], '', $doc['original_name']) . '"');
+     readfile($path);
+     exit;
+@@ -367,7 +395,9 @@ if ($action === 'review') {
+     api_require_login(['admin', 'adviser']);
+     $allowedStatuses = ['Under Review', 'Received', 'Verified', 'Resubmission Requested', 'Approved', 'Denied'];
+     $status = trim((string)($payload['status'] ?? ''));
+-    if (!in_array($status, $allowedStatuses, true)) {
++    // "Submitted" is the initial status. It isn't something a reviewer can choose, but the comment
++    // box sends the current status back with the remark, so accept it when it isn't a change.
++    if (!in_array($status, $allowedStatuses, true) && $status !== ($doc['review_status'] ?? null)) {
+         json_out(['ok' => false, 'message' => 'Invalid review status.'], 422);
+     }
+     $remarks = trim((string)($payload['remarks'] ?? ''));
+@@ -630,6 +660,9 @@ if ($action === 'override_review') {
+ if ($action === 'delete') {
+     api_require_login(['admin', 'adviser']);
+     $reason = trim((string)($payload['reason'] ?? ''));
++    if (!can_review_doc($user, $viewerAdviserId, $doc)) {
++        json_out(['ok' => false, 'message' => 'This student is assigned to another adviser. Only the assigned adviser or an RPMS administrator can delete this document.'], 403);
++    }
+     if ($locked) {
+         if ($user['role'] !== 'admin') {
+             json_out(['ok' => false, 'message' => 'Documents formally submitted to RPMS can only be deleted by an RPMS administrator.'], 403);
+diff --git a/ierb_api.php b/ierb_api.php
+index 538f9d6..6eae82c 100644
+--- a/ierb_api.php
++++ b/ierb_api.php
+@@ -6,6 +6,20 @@ require_once __DIR__ . '/workflow.php';
+ $user = api_require_login(['admin', 'adviser', 'student']);
+ $pdo = db();
+ $action = $_GET['action'] ?? 'list';
++if (in_array($action, ['override', 'save', 'note', 'delete'], true)) {
++    require_post_same_origin();
++}
++
++/** Advisers only see and annotate their own advisees; admins can do both for anyone. */
++function adviser_may_access_student(PDO $pdo, array $user, int $studentId): bool
++{
++    if ($user['role'] === 'admin') {
++        return true;
++    }
++    $q = $pdo->prepare('SELECT 1 FROM students s JOIN advisers a ON a.id = s.adviser_id WHERE s.id = :id AND a.email = :e');
++    $q->execute([':id' => $studentId, ':e' => $user['email']]);
++    return (bool)$q->fetchColumn();
++}
+ 
+ function ierb_row(array $r, array $docCounts = []): array
+ {
+@@ -114,6 +128,8 @@ if ($action === 'history') {
+         if (!$ownRow || (int)$ownRow['id'] !== $studentId) {
+             json_out(['ok' => false, 'message' => 'Not authorized.'], 403);
+         }
++    } elseif (!adviser_may_access_student($pdo, $user, $studentId)) {
++        json_out(['ok' => false, 'message' => 'This student is assigned to another adviser.'], 403);
+     }
+     $stmt = $pdo->prepare('SELECT * FROM ierb_history WHERE student_id = :id ORDER BY created_at DESC, id DESC');
+     $stmt->execute([':id' => $studentId]);
+@@ -271,10 +287,12 @@ if ($action === 'save') {
+     // Changing stage/status of an existing record is an Admin Override: always logged.
+     $override = false;
+     $change = '';
++    $previousEmail = '';
+     if ($id > 0) {
+-        $old = $pdo->prepare('SELECT stage, status FROM students WHERE id = :id');
++        $old = $pdo->prepare('SELECT stage, status, email FROM students WHERE id = :id');
+         $old->execute([':id' => $id]);
+         $oldRow = $old->fetch();
++        $previousEmail = (string)($oldRow['email'] ?? '');
+         if ($oldRow && ($oldRow['stage'] !== $stage || $oldRow['status'] !== $status)) {
+             if (REQUIRE_OVERRIDE_REASON_ON_SAVE && !override_reason_valid($reason)) {
+                 json_out(['ok' => false, 'requiresReason' => true,
+@@ -294,6 +312,7 @@ if ($action === 'save') {
+                 ->execute([':sid' => $studentIdCode, ':name' => $name, ':email' => $email, ':grp' => $groupId,
+                     ':course' => $course, ':research' => $research, ':stage' => $stage, ':status' => $status,
+                     ':req' => $requirements, ':sub' => $submissionDate, ':id' => $id]);
++            sync_student_login_email($pdo, $previousEmail, $email);
+         } else {
+             $pdo->prepare('INSERT INTO students (student_id, full_name, email, research_group, course,
+                 research_title, stage, status, requirements, last_submission_date)
+@@ -349,6 +368,9 @@ if ($action === 'note') {
+     if ($studentId <= 0 || $note === '') {
+         json_out(['ok' => false, 'message' => 'Write a note before saving.'], 422);
+     }
++    if (!adviser_may_access_student($pdo, $user, $studentId)) {
++        json_out(['ok' => false, 'message' => 'This student is assigned to another adviser.'], 403);
++    }
+     $current = $pdo->prepare('SELECT stage, status FROM students WHERE id = :id');
+     $current->execute([':id' => $studentId]);
+     $row = $current->fetch();
+@@ -364,7 +386,7 @@ if ($action === 'note') {
+ 
+ if ($action === 'delete') {
+     api_require_login('admin');
+-    $id = (int)($data['id'] ?? $_GET['id'] ?? 0);
++    $id = (int)($data['id'] ?? 0);
+     $info = $pdo->prepare('SELECT student_id, full_name, protocol_code, stage, status FROM students WHERE id = :id');
+     $info->execute([':id' => $id]);
+     $gone = $info->fetch();
+diff --git a/reports_api.php b/reports_api.php
+index 7eaf7c4..d5811e0 100644
+--- a/reports_api.php
++++ b/reports_api.php
+@@ -1,6 +1,20 @@
+ <?php
+ require __DIR__ . '/config.php';
+ $user = api_require_login(['admin', 'adviser']);
++
++/** Advisers may only build reports about their own students' documents/records; admins about anyone's. */
++function report_adviser_may_access_student(PDO $pdo, array $user, ?int $studentDbId): bool
++{
++    if ($user['role'] === 'admin') {
++        return true;
++    }
++    if (!$studentDbId) {
++        return false;
++    }
++    $q = db()->prepare('SELECT 1 FROM students s JOIN advisers a ON a.id = s.adviser_id WHERE s.id = :id AND a.email = :e');
++    $q->execute([':id' => $studentDbId, ':e' => $user['email']]);
++    return (bool)$q->fetchColumn();
++}
+ $pdo = db();
+ $action = $_GET['action'] ?? 'list';
+ 
+@@ -208,6 +222,9 @@ if ($action === 'generate') {
+             $stmt = $pdo->prepare('SELECT * FROM documents WHERE id = :id');
+             $stmt->execute([':id' => $docId]);
+             $doc = $stmt->fetch();
++            if ($doc && !report_adviser_may_access_student($pdo, $user, $doc['student_id'] ? (int)$doc['student_id'] : null)) {
++                json_out(['ok' => false, 'message' => 'This document belongs to a student assigned to another adviser.'], 403);
++            }
+         }
+         $docName = $doc['original_name'] ?? trim((string)($data['documentName'] ?? 'Uploaded document'));
+         $summary = $doc['ai_summary'] ?? trim((string)($data['summary'] ?? ''));
+@@ -218,6 +235,9 @@ if ($action === 'generate') {
+         $lines = array_merge(['DOCUMENT SUMMARY', 'Document: ' . $docName, ''], wrap_lines($summary));
+     } elseif ($type === 'Student Report') {
+         $studentDbId = (int)($data['studentId'] ?? 0);
++        if (!report_adviser_may_access_student($pdo, $user, $studentDbId)) {
++            json_out(['ok' => false, 'message' => 'This student is assigned to another adviser.'], 403);
++        }
+         $stmt = $pdo->prepare('SELECT s.*, f.full_name AS adviser_name FROM students s
+             LEFT JOIN advisers f ON f.id = s.adviser_id WHERE s.id = :id');
+         $stmt->execute([':id' => $studentDbId]);
+diff --git a/students_api.php b/students_api.php
+index beda1f2..45da598 100644
+--- a/students_api.php
++++ b/students_api.php
+@@ -1,8 +1,12 @@
+ <?php
+ require __DIR__ . '/config.php';
++require_once __DIR__ . '/workflow.php';
+ $user = api_require_login(['admin', 'adviser']);
+ $pdo = db();
+ $action = $_GET['action'] ?? 'list';
++if (in_array($action, ['save', 'delete'], true)) {
++    require_post_same_origin();
++}
+ 
+ function student_default_password(string $studentId): string
+ {
+@@ -10,6 +14,14 @@ function student_default_password(string $studentId): string
+     return 'Ceu@' . preg_replace('/[^A-Za-z0-9]/', '', $studentId);
+ }
+ 
++function describe_student_progress(string $oldStage, string $oldStatus, string $newStage, string $newStatus): string
++{
++    $parts = [];
++    if ($oldStage !== $newStage) { $parts[] = "Stage: $oldStage -> $newStage"; }
++    if ($oldStatus !== $newStatus) { $parts[] = "Status: $oldStatus -> $newStatus"; }
++    return implode('; ', $parts);
++}
++
+ function row_to_student(array $r): array
+ {
+     return [
+@@ -160,7 +172,17 @@ if ($action === 'save') {
+                 ':status' => $status, ':req' => $requirements, ':pcode' => $finalProtocolCode,
+                 ':pi' => $finalIsPrincipal, ':id' => $id]);
+ 
++            sync_student_login_email($pdo, (string)$before['email'], $email);
++
+             if ($before['stage'] !== $stage || $before['status'] !== $status) {
++                // v2 audit trail: this endpoint can also change stage/status, so it must be logged
++                // with who/what/before/after just like the IERB Override (it previously wasn't).
++                audit_log($user, $user['role'] === 'admin' ? 'admin_override_student_progress' : 'student_progress_changed', [
++                    'entity_type' => 'student', 'entity_id' => $id, 'student_id' => $id,
++                    'override' => $user['role'] === 'admin',
++                    'before' => $before['stage'] . ' / ' . $before['status'], 'after' => "$stage / $status",
++                    'details' => describe_student_progress($before['stage'], $before['status'], $stage, $status),
++                ]);
+                 $pdo->prepare('INSERT INTO ierb_history (student_id, stage, status, note, requirements, actor)
+                     VALUES (:sid,:stage,:status,:note,:req,:actor)')->execute([
+                     ':sid' => $id, ':stage' => $stage, ':status' => $status,
+@@ -213,7 +235,7 @@ if ($action === 'save') {
+ 
+ if ($action === 'delete') {
+     api_require_login('admin');
+-    $id = (int)($data['id'] ?? $_GET['id'] ?? 0);
++    $id = (int)($data['id'] ?? 0);
+     $pdo->prepare('DELETE FROM students WHERE id = :id')->execute([':id' => $id]);
+     log_activity($user['email'], 'student_deleted', "id=$id");
+     json_out(['ok' => true]);

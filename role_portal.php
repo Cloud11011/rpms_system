@@ -42,7 +42,7 @@ $identityKey = hash('sha256', $portalRole . '|' . $userId);
 <button class="portal-profile-btn" type="button" aria-haspopup="true"><img id="navProfileImage" src="<?php echo htmlspecialchars($profileImg, ENT_QUOTES); ?>" alt="Profile picture"><span><strong id="sideName"><?php echo htmlspecialchars($userName); ?></strong><small><?php echo htmlspecialchars($portalRole); ?></small></span><i class="fa-solid fa-chevron-down"></i></button>
 <div class="portal-profile-dropdown">
 <button type="button" data-go="profile"><i class="fa-solid fa-user"></i> Profile</button>
-<a href="login.php"><i class="fa-solid fa-right-from-bracket"></i> Log out</a>
+    <a href="logout.php"><i class="fa-solid fa-right-from-bracket"></i> Log out</a>
 </div>
 </div>
 </div>

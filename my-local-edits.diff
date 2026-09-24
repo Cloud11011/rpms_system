@@ -1,0 +1,46 @@
+﻿diff --git a/documents_api.php b/documents_api.php
+index cfbf515..bfa72f8 100644
+--- a/documents_api.php
++++ b/documents_api.php
+@@ -110,9 +110,14 @@ if ($action === 'list') {
+     if ($user['role'] === 'student') {
+         $where[] = 's.email = :e';
+         $params[':e'] = $user['email'];
++    } elseif ($user['role'] === 'adviser' && $viewerAdviserId) {
++        // Only show documents belonging to this adviser's students
++        $where[] = 's.adviser_id = :aid';
++        $params[':aid'] = $viewerAdviserId;
+     }
+     if (!$includeOld) {
+-        $where[] = 'd.is_current = 1';
++        // Defensive: if migration somehow hasn't run, treat missing column as "current"
++        $where[] = '(d.is_current = 1 OR d.is_current IS NULL)';
+     }
+     if ($where) {
+         $sql .= ' WHERE ' . implode(' AND ', $where);
+diff --git a/workflow.php b/workflow.php
+index 1a0a2ae..0047ac8 100644
+--- a/workflow.php
++++ b/workflow.php
+@@ -308,7 +308,8 @@ function empty_doc_counts(): array
+ function student_document_counts(PDO $pdo): array
+ {
+     $rows = $pdo->query('SELECT student_id, review_status, rpms_submitted_at, is_current
+-        FROM documents WHERE is_current = 1 AND student_id IS NOT NULL')->fetchAll();
++        FROM documents
++        WHERE (is_current = 1 OR is_current IS NULL) AND student_id IS NOT NULL')->fetchAll();
+     $out = [];
+     foreach ($rows as $r) {
+         $sid = (int)$r['student_id'];
+@@ -346,8 +347,9 @@ function students_needing_attention(PDO $pdo, array $user): array
+         return [];
+     }
+ 
+-    $docRows = $pdo->query('SELECT student_id, review_status, rpms_submitted_at, uploaded_at, reviewed_at, is_current
+-        FROM documents WHERE is_current = 1 AND student_id IS NOT NULL')->fetchAll();
++    $docRows = $pdo->query('SELECT student_id, review_status, rpms_submitted_at, is_current
++        FROM documents
++        WHERE (is_current = 1 OR is_current IS NULL) AND student_id IS NOT NULL')->fetchAll();
+     $byStudent = [];
+     foreach ($docRows as $d) {
+         $byStudent[(int)$d['student_id']][] = $d;
