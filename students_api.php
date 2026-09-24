@@ -284,7 +284,9 @@ if ($action === 'delete') {
         json_out(['ok' => false, 'message' => 'The student could not be deleted.'], 500);
     }
     log_activity($user['email'], 'student_deleted', "id=$id");
-    json_out(['ok' => true]);
+    json_out(['ok' => true, 'message' => $studentEmail !== ''
+        ? 'Student record deleted and the associated login was deactivated.'
+        : 'Student record deleted.']);
 }
 
 json_out(['ok' => false, 'message' => 'Unknown action.'], 400);
