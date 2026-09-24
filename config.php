@@ -611,12 +611,11 @@ function log_activity(?string $email, string $action, string $details = ''): voi
 function too_many_recent_failures(string $username, int $maxAttempts = 8, int $windowMinutes = 15): bool
 {
     try {
+        $cutoff = date('Y-m-d H:i:s', time() - max(1, $windowMinutes) * 60);
         $stmt = db()->prepare("SELECT COUNT(*) FROM activity_logs
             WHERE action = 'login_failed' AND user_email = :u
-            AND created_at > (NOW() - INTERVAL :mins MINUTE)");
-        $stmt->bindValue(':u', $username, PDO::PARAM_STR);
-        $stmt->bindValue(':mins', $windowMinutes, PDO::PARAM_INT);
-        $stmt->execute();
+            AND created_at > :cutoff");
+        $stmt->execute([':u' => $username, ':cutoff' => $cutoff]);
         return (int)$stmt->fetchColumn() >= $maxAttempts;
     } catch (Throwable $e) {
         return false; // never let throttle-check failures lock everyone out
@@ -638,6 +637,9 @@ function send_account_setup_email(PDO $pdo, int $userId, string $email, string $
     }
     $token = bin2hex(random_bytes(32));
     $expires = date('Y-m-d H:i:s', time() + 3600);
+    // A fresh setup link supersedes every earlier reset/setup token for this account.
+    $pdo->prepare('UPDATE password_resets SET used = 1 WHERE user_id = :u AND used = 0')
+        ->execute([':u' => $userId]);
     $pdo->prepare('INSERT INTO password_resets (user_id, token, expires_at) VALUES (:u,:t,:x)')
         ->execute([':u' => $userId, ':t' => $token, ':x' => $expires]);
     $link = APP_BASE_URL . '/reset_password.php?token=' . urlencode($token);
