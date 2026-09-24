@@ -3,14 +3,25 @@ require __DIR__ . '/config.php';
 $user = api_require_login(['admin', 'adviser', 'student']);
 $pdo = db();
 $action = $_GET['action'] ?? 'list';
+if (in_array($action, ['mark_read', 'mark_all_read', 'recipients_preview', 'send'], true)) {
+    require_post_same_origin();
+}
 
 if ($action === 'list') {
     if ($user['role'] === 'student') {
         $stmt = $pdo->prepare('SELECT * FROM notifications WHERE recipient_email = :e
             ORDER BY created_at DESC LIMIT 100');
         $stmt->execute([':e' => $user['email']]);
-    } else {
+    } elseif ($user['role'] === 'admin') {
         $stmt = $pdo->query('SELECT * FROM notifications ORDER BY created_at DESC LIMIT 200');
+    } else {
+        $stmt = $pdo->prepare('SELECT n.* FROM notifications n
+            LEFT JOIN students s ON n.recipient_type = "student" AND n.recipient_id = s.id
+            LEFT JOIN advisers a ON a.id = s.adviser_id
+            WHERE (n.recipient_email = :self)
+               OR (n.recipient_type = "student" AND a.email = :self)
+            ORDER BY n.created_at DESC LIMIT 200');
+        $stmt->execute([':self' => $user['email']]);
     }
     json_out(['ok' => true, 'notifications' => $stmt->fetchAll()]);
 }
@@ -37,7 +48,7 @@ $data = json_body();
 if ($action === 'recipients_preview') {
     $audience = $data['audience'] ?? 'All Students';
     $group = trim((string)($data['group'] ?? ''));
-    json_out(['ok' => true, 'recipients' => resolve_recipients($pdo, $audience, $group)]);
+    json_out(['ok' => true, 'recipients' => resolve_recipients($pdo, $user, $audience, $group)]);
 }
 
 if ($action === 'send') {
@@ -52,7 +63,7 @@ if ($action === 'send') {
         json_out(['ok' => false, 'message' => 'A message is required.'], 422);
     }
 
-    $recipients = resolve_recipients($pdo, $audience, $group);
+    $recipients = resolve_recipients($pdo, $user, $audience, $group);
     if (!$recipients) {
         json_out(['ok' => false, 'message' => 'No matching recipients were found for that audience.'], 422);
     }
@@ -95,13 +106,37 @@ if ($action === 'send') {
     json_out(['ok' => true, 'sent' => $sentCount, 'total' => count($recipients), 'scheduled' => $isScheduled]);
 }
 
-function resolve_recipients(PDO $pdo, string $audience, string $group): array
+function resolve_recipients(PDO $pdo, array $user, string $audience, string $group): array
 {
     $recipients = [];
+
+    if ($user['role'] === 'adviser') {
+        // Advisers may only notify their own assigned students. Institution-wide audiences are admin-only.
+        if (!in_array($audience, ['All Students', 'Specific Research Group'], true)) {
+            return [];
+        }
+        $sql = 'SELECT s.id, s.full_name, s.email, s.research_group
+            FROM students s JOIN advisers a ON a.id = s.adviser_id
+            WHERE a.email = :adv';
+        $params = [':adv' => $user['email']];
+        if ($audience === 'Specific Research Group') {
+            if ($group === '') return [];
+            $sql .= ' AND s.research_group = :g';
+            $params[':g'] = $group;
+        }
+        $stmt = $pdo->prepare($sql);
+        $stmt->execute($params);
+        foreach ($stmt->fetchAll() as $s) {
+            $recipients[] = ['type' => 'student', 'id' => $s['id'], 'name' => $s['full_name'], 'email' => $s['email']];
+        }
+        return $recipients;
+    }
+
     if (in_array($audience, ['All Students', 'Students and Advisers', 'Specific Research Group'], true)) {
         $sql = 'SELECT id, full_name, email, research_group FROM students';
         $params = [];
-        if ($audience === 'Specific Research Group' && $group !== '') {
+        if ($audience === 'Specific Research Group') {
+            if ($group === '') return [];
             $sql .= ' WHERE research_group = :g';
             $params[':g'] = $group;
         }
