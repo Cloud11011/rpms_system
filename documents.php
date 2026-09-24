@@ -6,6 +6,10 @@ $user_email = $authUser['email'];
 $user_role = $_SESSION['user_role'] ?? 'RPMS Administrator';
 $profile_img = 'assets/images/default-avatar.svg';
 $currentRole = $_SESSION['account_type'] ?? 'admin';
+if ($authUser['role'] === 'student') {
+    header('Location: role_portal.php#documents');
+    exit;
+}
 ?>
 <!DOCTYPE html><html lang="en"><head>
 <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
