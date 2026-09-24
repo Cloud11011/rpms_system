@@ -3,6 +3,9 @@ require __DIR__ . '/config.php';
 $user = api_require_login(['admin', 'adviser', 'student']);
 $pdo = db();
 $action = $_GET['action'] ?? $_POST['action'] ?? 'list';
+if ($action === 'save') {
+    require_post_same_origin();
+}
 
 // Anyone logged in can READ the labels (they're shown throughout the UI),
 // but only RPMS admin can rename what each stage means office-wide.
