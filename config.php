@@ -635,17 +635,22 @@ function send_account_setup_email(PDO $pdo, int $userId, string $email, string $
         log_api_error('account_setup', 'APP_BASE_URL is not configured; account setup email was not sent for user_id=' . $userId);
         return ['ok' => false, 'channel' => 'none', 'message' => 'APP_BASE_URL is not configured, so no setup email could be sent.'];
     }
-    $token = bin2hex(random_bytes(32));
-    $expires = date('Y-m-d H:i:s', time() + 3600);
-    // A fresh setup link supersedes every earlier reset/setup token for this account.
-    $pdo->prepare('UPDATE password_resets SET used = 1 WHERE user_id = :u AND used = 0')
-        ->execute([':u' => $userId]);
-    $pdo->prepare('INSERT INTO password_resets (user_id, token, expires_at) VALUES (:u,:t,:x)')
-        ->execute([':u' => $userId, ':t' => $token, ':x' => $expires]);
-    $link = APP_BASE_URL . '/reset_password.php?token=' . urlencode($token);
-    $body = "Hello $name,\n\nYour PRISM account has been created. Set your password using the one-time link below (valid for 1 hour):\n\n"
-        . $link . "\n\nIf you were not expecting this account, contact the RPMS office.\n\n- CEU Malolos RPMS / PRISM";
-    return send_notification_email($email, 'Set up your PRISM account', $body);
+    try {
+        $token = bin2hex(random_bytes(32));
+        $expires = date('Y-m-d H:i:s', time() + 3600);
+        // A fresh setup link supersedes every earlier reset/setup token for this account.
+        $pdo->prepare('UPDATE password_resets SET used = 1 WHERE user_id = :u AND used = 0')
+            ->execute([':u' => $userId]);
+        $pdo->prepare('INSERT INTO password_resets (user_id, token, expires_at) VALUES (:u,:t,:x)')
+            ->execute([':u' => $userId, ':t' => $token, ':x' => $expires]);
+        $link = APP_BASE_URL . '/reset_password.php?token=' . urlencode($token);
+        $body = "Hello $name,\n\nYour PRISM account has been created. Set your password using the one-time link below (valid for 1 hour):\n\n"
+            . $link . "\n\nIf you were not expecting this account, contact the RPMS office.\n\n- CEU Malolos RPMS / PRISM";
+        return send_notification_email($email, 'Set up your PRISM account', $body);
+    } catch (Throwable $e) {
+        log_api_error('account_setup', $e->getMessage());
+        return ['ok' => false, 'channel' => 'none', 'message' => 'The account was created, but the setup link could not be issued. Use the one-time temporary password shown by PRISM.'];
+    }
 }
 
 function json_body(): array
