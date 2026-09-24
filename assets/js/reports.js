@@ -148,7 +148,7 @@ document.addEventListener('DOMContentLoaded', () => {
         reports.forEach(r => {
             const tr = document.createElement('tr');
             tr.innerHTML = `<td>${esc(r.title)}</td>
-                <td>${esc(new Date(r.generated_at).toLocaleString('en-PH'))}</td>
+                <td>${esc(new Date(String(r.generated_at).replace(' ', 'T')).toLocaleString('en-PH'))}</td>
                 <td>${esc(r.type)}</td>
                 <td class="row-actions"></td>`;
             const actions = tr.querySelector('.row-actions');
