@@ -62,7 +62,7 @@ $profile_img = 'assets/images/default-avatar.svg';
         <header class="topbar">
             <div class="calendar-heading">
                 <h1>Calendar</h1>
-                <p>Click a date to add and manage task reminders.</p>
+                <p>Click a date to add and manage personal reminders. These reminders are stored only in this browser.</p>
             </div>
             <div class="top-controls">
                 <button class="today-button" id="todayButton">Today</button>
