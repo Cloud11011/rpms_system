@@ -1,3 +1,4 @@
+<?php require __DIR__ . '/config.php'; ?>
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -5,7 +6,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-    <title>Register | AI Workload Assistant</title>
+    <title>RPMS Staff Registration | PRISM</title>
 
     <link rel="icon" type="image/png" href="assets/images/prismicon.png">
     <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600;700&display=swap" rel="stylesheet">
@@ -29,14 +30,13 @@
 
         </div>
 
-        <h2>Register</h2>
+        <h2>RPMS Staff Registration</h2>
 
         <p class="subtitle">
-            Create your account
+            Create an administrator account using the private staff registration code.
         </p>
 
         <?php
-        session_start();
         if (isset($_SESSION['error'])) {
             echo "<div class='error-message'>" . htmlspecialchars($_SESSION['error'], ENT_QUOTES, 'UTF-8') . "</div>";
             unset($_SESSION['error']);
@@ -66,6 +66,7 @@
                     type="text"
                     name="employee_id"
                     placeholder="Employee ID"
+                    maxlength="100"
                     required>
 
             </div>
@@ -78,6 +79,7 @@
                     type="text"
                     name="fullname"
                     placeholder="Full Name"
+                    maxlength="190"
                     required>
 
             </div>
@@ -89,19 +91,8 @@
                 <input
                     type="email"
                     name="email"
-                    placeholder="CEU Email"
-                    required>
-
-            </div>
-
-            <div class="input-group">
-
-                <i class="fa-solid fa-user-circle"></i>
-
-                <input
-                    type="text"
-                    name="username"
-                    placeholder="Username"
+                    placeholder="<?php echo htmlspecialchars(allowed_email_domains_hint(), ENT_QUOTES, 'UTF-8'); ?> email"
+                    autocomplete="email"
                     required>
 
             </div>
@@ -114,7 +105,10 @@
                     type="password"
                     name="password"
                     id="password"
-                    placeholder="Password"
+                    placeholder="Password (8+ characters)"
+                    minlength="8"
+                    maxlength="200"
+                    autocomplete="new-password"
                     required>
 
                 <span class="toggle-password">
@@ -134,6 +128,9 @@
                     name="confirm_password"
                     id="confirmPassword"
                     placeholder="Confirm Password"
+                    minlength="8"
+                    maxlength="200"
+                    autocomplete="new-password"
                     required>
 
                 <span class="toggle-password">
