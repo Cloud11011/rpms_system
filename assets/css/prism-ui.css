@@ -873,3 +873,177 @@ button:disabled,
   .cards{grid-template-columns:1fr!important}
   .card{min-height:auto}
 }
+
+
+/* ---------- State and action visibility polish ---------- */
+/* Make state changes and actionable controls easier to spot without introducing new UI concepts. */
+.notice{
+  position:relative;
+  padding:12px 14px;
+  border:1px solid var(--prism-border);
+  border-radius:10px;
+  background:var(--prism-surface);
+}
+.notice + .notice{margin-top:8px}
+.notice.unread{
+  border-left:4px solid var(--accent-pink)!important;
+  background:linear-gradient(90deg,rgba(246,82,150,.07),var(--prism-surface) 28%);
+  box-shadow:0 3px 12px rgba(162,19,104,.06);
+}
+.notice.unread::after{
+  position:absolute;
+  top:12px;
+  right:12px;
+  width:7px;
+  height:7px;
+  border-radius:50%;
+  background:var(--accent-pink);
+  content:"";
+}
+.notice strong{font-size:11px!important;line-height:1.4}
+.notice span,.notice time{font-size:10px!important;line-height:1.5;color:var(--prism-readable-muted)!important}
+.notice button{min-width:34px;min-height:34px}
+
+.history-item{
+  border-color:var(--prism-border)!important;
+  border-radius:10px!important;
+}
+.history-item strong{font-size:11px!important;line-height:1.4}
+.history-item small,.history-item p{
+  font-size:10px!important;
+  line-height:1.5;
+}
+
+.status-badge,
+.status-chip,
+.record-chip,
+.report-type,
+.protocol-badge,
+.pi-badge{
+  border:1px solid transparent;
+  font-weight:700!important;
+}
+.status-badge.delayed,
+.status-chip.denied,
+.status-chip.resubmission-requested{
+  border-color:var(--prism-danger-bd);
+  color:var(--prism-danger-fg)!important;
+  background:var(--prism-danger-bg)!important;
+}
+.status-badge.pending,
+.status-chip:not(.approved):not(.denied):not(.resubmission-requested){
+  border-color:var(--prism-warning-bd);
+}
+.status-badge.on-track,
+.status-chip.approved{
+  border-color:var(--prism-success-bd);
+}
+.delay-indicator.warning{
+  display:inline-flex;
+  align-items:center;
+  gap:6px;
+  padding:5px 8px;
+  border:1px solid var(--prism-warning-bd);
+  border-radius:999px;
+  color:var(--prism-warning-fg)!important;
+  background:var(--prism-warning-bg);
+  font-size:10px!important;
+  font-weight:700;
+}
+
+.row-actions,
+.document-row-actions,
+.report-row-actions{
+  align-items:center;
+  flex-wrap:wrap;
+}
+.row-actions button,
+.document-row-actions .document-action-button,
+.report-row-actions a,
+.report-row-actions button{
+  border:1px solid var(--prism-border)!important;
+  background:var(--prism-surface-2)!important;
+  transition:transform .12s ease,background-color .12s ease,border-color .12s ease,color .12s ease;
+}
+.row-actions button:hover,
+.document-row-actions .document-action-button:hover,
+.report-row-actions a:hover,
+.report-row-actions button:hover{
+  transform:translateY(-1px);
+  border-color:var(--accent-purple)!important;
+  color:#fff!important;
+  background:var(--accent-purple)!important;
+}
+.document-row-actions .document-action-button.approve{
+  border-color:var(--prism-success-bd)!important;
+  color:var(--prism-success-fg)!important;
+  background:var(--prism-success-bg)!important;
+}
+.document-row-actions .document-action-button.deny,
+.document-row-actions .document-action-button.delete,
+.report-row-actions .delete{
+  border-color:var(--prism-danger-bd)!important;
+  color:var(--prism-danger-fg)!important;
+  background:var(--prism-danger-bg)!important;
+}
+.document-row-actions .document-action-button.approve:hover{background:#2e7d32!important;color:#fff!important}
+.document-row-actions .document-action-button.deny:hover,
+.document-row-actions .document-action-button.delete:hover,
+.report-row-actions .delete:hover{background:#c62828!important;color:#fff!important}
+
+.report-tool{
+  min-height:104px!important;
+  padding:16px!important;
+  border-radius:12px!important;
+  box-shadow:0 3px 14px rgba(15,23,42,.035);
+}
+.report-tool:hover{
+  transform:translateY(-1px);
+  box-shadow:0 8px 22px rgba(15,23,42,.07);
+}
+.report-tool strong{font-size:12px!important;line-height:1.35}
+.report-tool small{
+  margin-top:5px!important;
+  color:var(--prism-readable-muted)!important;
+  font-size:10px!important;
+  line-height:1.5!important;
+}
+.report-tool-icon{width:44px!important;height:44px!important}
+.report-ai-note{font-size:11px!important;line-height:1.5}
+
+/* Keep a visible context column while horizontally scrolling wide staff tables. */
+@media(max-width:1180px){
+  .documents-table th:first-child,
+  .documents-table td:first-child,
+  .ierb-table th:first-child,
+  .ierb-table td:first-child,
+  .management-table-wrap th:first-child,
+  .management-table-wrap td:first-child{
+    position:sticky;
+    left:0;
+    z-index:3;
+  }
+  .documents-table td:first-child,
+  .ierb-table td:first-child,
+  .management-table-wrap td:first-child{
+    background:var(--card-bg);
+    box-shadow:1px 0 var(--border-color);
+  }
+  .documents-table th:first-child,
+  .ierb-table th:first-child,
+  .management-table-wrap th:first-child{
+    z-index:4;
+    background:var(--bg-color)!important;
+  }
+}
+
+/* Make horizontal overflow obvious on touch devices. */
+@media(max-width:760px){
+  .management-table-wrap,
+  .documents-table-wrap,
+  .ierb-table-wrap,
+  .document-table-wrap,
+  .report-table-wrap{
+    border-right:2px solid var(--prism-info-bd);
+  }
+}
