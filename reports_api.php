@@ -148,7 +148,10 @@ if ($action === 'ai_report') {
         json_out(['ok' => false, 'message' => 'There are no student records yet to report on.'], 422);
     }
 
-    $structured = build_structured_progress_text($students);
+    $scopeText = $user['role'] === 'adviser'
+        ? "Scope: only students assigned to the signed-in research adviser. Do not describe this as an institution-wide report.\n"
+        : "Scope: all student records visible to RPMS administration.\n";
+    $structured = $scopeText . build_structured_progress_text($students);
     $prompt = $mode === 'full' ? AI_FULL_PROMPT : AI_SUMMARY_PROMPT;
     $narrative = openrouter_generate($prompt, $structured);
     $aiUsed = $narrative !== null;
@@ -156,7 +159,8 @@ if ($action === 'ai_report') {
         $narrative = $mode === 'full' ? local_full_narrative($students) : local_summary_narrative($students);
     }
 
-    $title = $mode === 'full' ? 'AI Full Progress Report - All Students' : 'AI Summarized Progress Report - All Students';
+    $scopeTitle = $user['role'] === 'adviser' ? 'Assigned Students' : 'All Students';
+    $title = $mode === 'full' ? "AI Full Progress Report - $scopeTitle" : "AI Summarized Progress Report - $scopeTitle";
     $lines = [];
     $lines[] = $mode === 'full' ? 'AI-GENERATED FULL ANALYSIS' : 'AI-GENERATED SUMMARY';
     $lines[] = $aiUsed ? 'Narrative source: OpenRouter AI (' . OPENROUTER_MODEL . ')' : 'Narrative source: Local fallback summarizer (AI service unavailable)';
@@ -242,22 +246,28 @@ function local_full_narrative(array $students): string
 
 if ($action === 'generate') {
     $type = trim((string)($data['type'] ?? 'Progress Report')); // Progress Report | Student Report | Document Summary
+    if (!in_array($type, ['Progress Report', 'Student Report', 'Document Summary'], true)) {
+        json_out(['ok' => false, 'message' => 'Invalid report type.'], 422);
+    }
     $lines = [];
     $title = 'IERB Progress Report';
 
     if ($type === 'Document Summary') {
         $docId = trim((string)($data['documentId'] ?? ''));
-        $doc = null;
-        if ($docId !== '') {
-            $stmt = $pdo->prepare('SELECT * FROM documents WHERE id = :id');
-            $stmt->execute([':id' => $docId]);
-            $doc = $stmt->fetch();
-            if ($doc && !report_adviser_may_access_student($pdo, $user, $doc['student_id'] ? (int)$doc['student_id'] : null)) {
-                json_out(['ok' => false, 'message' => 'This document belongs to a student assigned to another adviser.'], 403);
-            }
+        if ($docId === '') {
+            json_out(['ok' => false, 'message' => 'Select a repository document first.'], 422);
         }
-        $docName = $doc['original_name'] ?? trim((string)($data['documentName'] ?? 'Uploaded document'));
-        $summary = $doc['ai_summary'] ?? trim((string)($data['summary'] ?? ''));
+        $stmt = $pdo->prepare('SELECT * FROM documents WHERE id = :id');
+        $stmt->execute([':id' => $docId]);
+        $doc = $stmt->fetch();
+        if (!$doc) {
+            json_out(['ok' => false, 'message' => 'Document not found.'], 404);
+        }
+        if (!report_adviser_may_access_student($pdo, $user, $doc['student_id'] ? (int)$doc['student_id'] : null)) {
+            json_out(['ok' => false, 'message' => 'This document belongs to a student assigned to another adviser.'], 403);
+        }
+        $docName = $doc['original_name'];
+        $summary = $doc['ai_summary'];
         if (!$summary) {
             json_out(['ok' => false, 'message' => 'Generate an AI summary for this document first (Documents > Summarize).'], 422);
         }
@@ -296,7 +306,8 @@ if ($action === 'generate') {
         $stage = trim((string)($data['stage'] ?? ''));
         $students = report_students_for_user($pdo, $user, $stage);
 
-        $title = $stage !== '' ? "IERB Progress Report - $stage" : 'IERB Progress Report - All Students';
+        $scopeTitle = $user['role'] === 'adviser' ? 'Assigned Students' : 'All Students';
+        $title = $stage !== '' ? "IERB Progress Report - $stage" : "IERB Progress Report - $scopeTitle";
         $lines[] = 'REPORT OVERVIEW';
         $lines[] = 'Students included: ' . count($students);
         $lines[] = '';
@@ -342,6 +353,8 @@ if ($action === 'file') {
     }
     header_remove('Content-Type');
     header('Content-Type: application/pdf');
+    header('X-Content-Type-Options: nosniff');
+    header('Cache-Control: private, no-store');
     header('Content-Length: ' . filesize($path));
     header('Content-Disposition: ' . (($_GET['download'] ?? '') === '1' ? 'attachment' : 'inline')
         . '; filename="' . preg_replace('/[^A-Za-z0-9._-]/', '-', $found['title']) . '.pdf"');
