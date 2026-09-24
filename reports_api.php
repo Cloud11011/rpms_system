@@ -156,7 +156,9 @@ if ($action === 'ai_report') {
     $narrative = openrouter_generate($prompt, $structured);
     $aiUsed = $narrative !== null;
     if (!$aiUsed) {
-        $narrative = $mode === 'full' ? local_full_narrative($students) : local_summary_narrative($students);
+        $narrative = $mode === 'full'
+            ? local_full_narrative($students, $user['role'] === 'adviser' ? 'your assigned students' : 'the institution')
+            : local_summary_narrative($students);
     }
 
     $scopeTitle = $user['role'] === 'adviser' ? 'Assigned Students' : 'All Students';
@@ -221,7 +223,7 @@ function local_summary_narrative(array $students): string
         . "submitted requirements recently should be sent an automated reminder.";
 }
 
-function local_full_narrative(array $students): string
+function local_full_narrative(array $students, string $scopeLabel = 'the institution'): string
 {
     $counts = [];
     $delayedNames = [];
@@ -231,7 +233,7 @@ function local_full_narrative(array $students): string
             $delayedNames[] = "{$s['full_name']} ({$s['student_id']}) - " . ($s['requirements'] ?: 'no requirement noted');
         }
     }
-    $out = "This institution is currently monitoring " . count($students) . " student(s) across the IERB process.\n\n";
+    $out = ucfirst($scopeLabel) . " currently includes " . count($students) . " monitored student(s) across the IERB process.\n\n";
     $out .= "Stage distribution:\n";
     foreach ($counts as $stage => $c) {
         $out .= "- {$stage}: {$c} student(s)\n";
@@ -369,7 +371,7 @@ if ($action === 'delete') {
     }
     $pdo->prepare('DELETE FROM reports WHERE id = :id')->execute([':id' => $id]);
     log_activity($user['email'], 'report_deleted', "id=$id");
-    json_out(['ok' => true]);
+    json_out(['ok' => true, 'message' => 'Report deleted.']);
 }
 
 json_out(['ok' => false, 'message' => 'Unknown action.'], 400);
