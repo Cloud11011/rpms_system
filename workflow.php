@@ -218,7 +218,7 @@ function notify_student(PDO $pdo, int $studentDbId, string $subject, string $ema
             ->execute([
                 ':sid' => $studentDbId, ':email' => $student['email'], ':name' => $student['full_name'],
                 ':subject' => $subject, ':msg' => $inAppMessage, ':type' => $type,
-                ':status' => $result['ok'] ? 'Sent' : 'Failed', ':info' => $result['message'], ':by' => $createdBy,
+                ':status' => $result['ok'] ? (($result['channel'] ?? '') === 'log' ? 'Logged' : 'Sent') : 'Failed', ':info' => $result['message'], ':by' => $createdBy,
             ]);
     } catch (Throwable $e) {
         log_api_error('notify_student', $e->getMessage());
