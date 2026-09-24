@@ -562,8 +562,21 @@ function sync_student_login_email(PDO $pdo, string $oldEmail, string $newEmail):
 {
     if ($oldEmail !== '' && strcasecmp($oldEmail, $newEmail) !== 0) {
         $pdo->prepare("UPDATE users SET email = :new WHERE email = :old AND role = 'student'")
-            ->execute([':new' => $newEmail, ':old' => $oldEmail]);
+            ->execute([':new' => strtolower($newEmail), ':old' => $oldEmail]);
     }
+}
+
+/** Keep the login identity aligned when RPMS edits a student's ID/name/email. */
+function sync_student_login_identity(PDO $pdo, string $oldEmail, string $studentId, string $name, string $email): void
+{
+    if ($oldEmail === '') return;
+    $pdo->prepare("UPDATE users
+        SET username = :username, full_name = :name, email = :email, ref_id = :ref
+        WHERE email = :old AND role = 'student'")
+        ->execute([
+            ':username' => $studentId, ':name' => $name, ':email' => strtolower($email),
+            ':ref' => $studentId, ':old' => $oldEmail,
+        ]);
 }
 
 function log_activity(?string $email, string $action, string $details = ''): void
