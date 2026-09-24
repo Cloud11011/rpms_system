@@ -24,6 +24,7 @@ $profile_img = 'assets/images/default-avatar.svg';
     <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="assets/css/dashboard.css">
     <link rel="stylesheet" href="assets/css/calendar.css">
+    <link rel="stylesheet" href="assets/css/prism-ui.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.6.0/css/all.min.css">
 </head>
 <body data-reminder-user="<?php echo htmlspecialchars(hash('sha256', $user_email), ENT_QUOTES, 'UTF-8'); ?>">
@@ -112,6 +113,7 @@ $profile_img = 'assets/images/default-avatar.svg';
         </section>
     </main>
 </div>
+<script src="assets/js/prism-ui.js"></script>
 <script src="assets/js/calendar.js"></script>
 </body>
 </html>
