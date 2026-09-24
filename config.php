@@ -64,7 +64,11 @@ if (!defined('DB_HOST')) define('DB_HOST', getenv('DB_HOST') ?: 'localhost');
 if (!defined('DB_PORT')) define('DB_PORT', getenv('DB_PORT') ?: 3306);
 if (!defined('DB_NAME')) define('DB_NAME', getenv('DB_NAME') ?: 'prism');
 if (!defined('DB_USER')) define('DB_USER', getenv('DB_USER') ?: 'prism_user');
-if (!defined('DB_PASS')) define('DB_PASS', getenv('DB_PASS') ?: 'PrismDev123!');
+if (!defined('DB_PASS')) define('DB_PASS', getenv('DB_PASS') ?: '');
+
+// Canonical public URL used for security-sensitive absolute links (for example password resets).
+// Never derive these links from the request Host header.
+if (!defined('APP_BASE_URL')) define('APP_BASE_URL', rtrim(getenv('APP_BASE_URL') ?: '', '/'));
 
 // ---------------------------------------------------------------------
 // External service configuration
@@ -144,7 +148,7 @@ function db(): PDO
 // Bump this whenever you add anything to migrate(). migrate() is skipped entirely on requests
 // where the stored version already matches, instead of running ~45 INFORMATION_SCHEMA/ALTER
 // checks on every single request.
-const SCHEMA_VERSION = 3;
+const SCHEMA_VERSION = 4;
 
 function migrate(PDO $pdo): void
 {
@@ -157,6 +161,9 @@ function migrate(PDO $pdo): void
     }
     // Two first requests arriving together must not both try to ALTER the same table.
     $locked = (int)$pdo->query("SELECT GET_LOCK('prism_migrate', 30)")->fetchColumn() === 1;
+    if (!$locked) {
+        throw new RuntimeException('Could not obtain the PRISM schema migration lock.');
+    }
     try {
         $stored = $pdo->query("SELECT v FROM schema_meta WHERE k = 'schema_version'")->fetchColumn();
         if ($stored === false || (int)$stored < SCHEMA_VERSION) {
@@ -375,6 +382,9 @@ function migrate_schema(PDO $pdo): void
     add_column_if_missing($pdo, 'activity_logs', 'after_value', "VARCHAR(255) NULL");
     add_column_if_missing($pdo, 'activity_logs', 'is_override', "TINYINT(1) NOT NULL DEFAULT 0");
 
+    // Reports are authorized by immutable account id rather than display name.
+    add_column_if_missing($pdo, 'reports', 'generated_by_user_id', "INT NULL AFTER generated_by");
+
     // Seed default stage labels (feature request 7). Safe to re-run --
     // only inserts rows that don't already exist, so an admin's own edits
     // via stage_labels_api.php are never overwritten by this.
@@ -412,15 +422,26 @@ function add_column_if_missing(PDO $pdo, string $table, string $column, string $
 
 function seed(PDO $pdo): void
 {
-    // Default RPMS administrator account so the system is usable immediately
-    // after deployment. Change this password on first login.
+    // Bootstrap credentials must be deployment-specific. Never ship a known administrator password.
+    $bootstrapPassword = (string)(getenv('PRISM_INITIAL_ADMIN_PASSWORD') ?: '');
+    $bootstrapEmail = strtolower(trim((string)(getenv('PRISM_INITIAL_ADMIN_EMAIL') ?: 'rpms@ceu.edu.ph')));
+
+    if (strlen($bootstrapPassword) < 12) {
+        throw new RuntimeException(
+            'No RPMS administrator exists. Set PRISM_INITIAL_ADMIN_PASSWORD to a unique 12+ character value, then reload once to bootstrap the administrator account.'
+        );
+    }
+    if (!filter_var($bootstrapEmail, FILTER_VALIDATE_EMAIL)) {
+        throw new RuntimeException('PRISM_INITIAL_ADMIN_EMAIL must be a valid email address.');
+    }
+
     $stmt = $pdo->prepare("INSERT INTO users (username, password_hash, role, full_name, email, ref_id, must_change_password)
         VALUES (:u, :p, 'admin', :n, :e, 'RPMS-0001', 1)");
     $stmt->execute([
         ':u' => 'rpms_admin',
-        ':p' => password_hash('ChangeMe123!', PASSWORD_DEFAULT),
+        ':p' => password_hash($bootstrapPassword, PASSWORD_DEFAULT),
         ':n' => 'RPMS Administrator',
-        ':e' => 'rpms@ceu.edu.ph',
+        ':e' => $bootstrapEmail,
     ]);
 }
 
@@ -574,6 +595,12 @@ function too_many_recent_failures(string $username, int $maxAttempts = 8, int $w
     } catch (Throwable $e) {
         return false; // never let throttle-check failures lock everyone out
     }
+}
+
+function generate_temporary_password(int $bytes = 12): string
+{
+    // URL-safe random credential with mixed character classes. The user is still forced to replace it at first login.
+    return rtrim(strtr(base64_encode(random_bytes($bytes)), '+/', '-_'), '=') . '!Aa1';
 }
 
 function json_body(): array
