@@ -46,7 +46,12 @@ function report_students_for_user(PDO $pdo, array $user, string $stage = ''): ar
 // --- minimal, dependency-free PDF writer (no external library required) ---
 function pdf_escape($s)
 {
-    $s = preg_replace('/[^\x20-\x7E]/', ' ', (string)$s);
+    $s = (string)$s;
+    if (function_exists('iconv')) {
+        $converted = @iconv('UTF-8', 'ASCII//TRANSLIT//IGNORE', $s);
+        if ($converted !== false) $s = $converted;
+    }
+    $s = preg_replace('/[^\x20-\x7E]/', ' ', $s);
     return str_replace(['\\', '(', ')'], ['\\\\', '\(', '\)'], $s);
 }
 function wrap_lines($text, $width = 88)
