@@ -58,33 +58,34 @@ define('DB_PORT', 3306);
 define('DB_NAME', 'prism');
 define('DB_USER', 'root');
 define('DB_PASS', '');
+define('APP_BASE_URL', 'http://localhost/rpms_system');
 ```
 
-(XAMPP's default MySQL user is `root` with no password.)
+(XAMPP's default MySQL user is `root` with no password.) PRISM can also derive
+`APP_BASE_URL` automatically on loopback hosts such as `localhost`, but
+setting it explicitly keeps local setup predictable.
 
 ### 6. Open it
 
-Visit `http://localhost/rpms_system/login.php`. Tables and a default RPMS
-admin account are created automatically on first load.
+Before the first visit, provide a unique initial administrator password through
+the environment:
 
-**Default administrator login**
-- Portal: Admin
-- Username: `rpms_admin`
-- Password: `ChangeMe123!`
+```text
+PRISM_INITIAL_ADMIN_PASSWORD=<unique 12+ character password>
+```
 
-You'll be required to set a new password immediately after this first login —
-PRISM forces a password change for any account still using its original
-auto-generated/documented default (this applies to the seeded admin account,
-and to every student/adviser account created afterward, since those also get
-a predictable temporary password).
+Optionally set `PRISM_INITIAL_ADMIN_EMAIL`. Then visit
+`http://localhost/rpms_system/login.php`. Tables and the initial
+`rpms_admin` account are created automatically. There is deliberately no
+password embedded in the source code.
 
 ## Try the full workflow
 
-1. Log in as admin → **Research Advisers** page → add an adviser (this
-   auto-creates their login: username = Employee ID, password = `Ceu@` +
-   Employee ID with punctuation stripped, e.g. `ADV-010` → `Ceu@ADV010`)
-2. **Students** page → add a student, assigning them to that adviser (this
-   also auto-creates their login the same way, using their Student ID)
+1. Log in as admin → **Research Advisers** page → add an adviser. PRISM
+   creates the login with a random internal temporary credential and sends a
+   one-time password-setup link to the adviser.
+2. **Students** page → add a student and assign an adviser. PRISM creates the
+   student login the same way and sends a one-time setup link.
 3. Log out, log in as the student → **Document Submission** → upload a file
 4. Log in as the adviser → **Documents** page → find the file → click
    **Approve** (✓), **Deny** (✕), or the comment icon to leave feedback
