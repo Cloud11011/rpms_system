@@ -148,6 +148,7 @@ if ($action === 'save') {
         }
     }
 
+    $newLoginUserId = null;
     try {
         $pdo->beginTransaction();
         if ($id > 0) {
@@ -210,6 +211,7 @@ if ($action === 'save') {
                     ':u' => $studentId, ':p' => password_hash($tempPassword, PASSWORD_DEFAULT),
                     ':n' => $name, ':e' => $email, ':ref' => $studentId,
                 ]);
+                $newLoginUserId = (int)$pdo->lastInsertId();
             }
 
             $pdo->prepare('INSERT INTO ierb_history (student_id, stage, status, note, requirements, actor)
@@ -228,6 +230,9 @@ if ($action === 'save') {
         json_out(['ok' => false, 'message' => 'That student ID or email is already in use.'], 422);
     }
 
+    if ($newLoginUserId) {
+        send_account_setup_email($pdo, $newLoginUserId, $email, $name);
+    }
     log_activity($user['email'], 'student_saved', "student_id=$studentId");
     json_out(['ok' => true, 'id' => $id]);
 }
