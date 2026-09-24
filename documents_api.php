@@ -200,6 +200,10 @@ if ($action === 'upload') {
         }
     }
 
+    if ($user['role'] !== 'student' && $studentDbId === null) {
+        json_out(['ok' => false, 'message' => 'Select a valid student for this document.'], 422);
+    }
+
     if ($user['role'] === 'adviser') {
         $ownsMatch = $studentDbId !== null && $viewerAdviserId !== null && (int)$pdo->query(
             'SELECT COALESCE(adviser_id, 0) FROM students WHERE id = ' . (int)$studentDbId)->fetchColumn() === $viewerAdviserId;
