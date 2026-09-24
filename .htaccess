@@ -25,4 +25,6 @@ Options -Indexes
 <IfModule mod_rewrite.c>
     RewriteEngine On
     RewriteRule (^|/)\.git(/|$) - [R=404,L]
+    # Private documents/reports must only be served through authenticated PHP endpoints.
+    RewriteRule ^storage(?:/|$) - [F,L]
 </IfModule>
