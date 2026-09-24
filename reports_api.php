@@ -17,6 +17,31 @@ function report_adviser_may_access_student(PDO $pdo, array $user, ?int $studentD
 }
 $pdo = db();
 $action = $_GET['action'] ?? 'list';
+if (in_array($action, ['ai_report', 'generate', 'delete'], true)) {
+    require_post_same_origin();
+}
+
+/** Returns only students this user is allowed to include in aggregate reports. */
+function report_students_for_user(PDO $pdo, array $user, string $stage = ''): array
+{
+    $where = [];
+    $params = [];
+    if ($user['role'] === 'adviser') {
+        $where[] = 'a.email = :adv';
+        $params[':adv'] = $user['email'];
+    }
+    if ($stage !== '') {
+        $where[] = 's.stage = :stage';
+        $params[':stage'] = $stage;
+    }
+    $sql = 'SELECT s.*, a.full_name AS adviser_name FROM students s
+        LEFT JOIN advisers a ON a.id = s.adviser_id'
+        . ($where ? ' WHERE ' . implode(' AND ', $where) : '')
+        . ' ORDER BY s.full_name';
+    $stmt = $pdo->prepare($sql);
+    $stmt->execute($params);
+    return $stmt->fetchAll();
+}
 
 // --- minimal, dependency-free PDF writer (no external library required) ---
 function pdf_escape($s)
@@ -80,7 +105,13 @@ function make_pdf($title, $lines)
 }
 
 if ($action === 'list') {
-    $rows = $pdo->query('SELECT * FROM reports ORDER BY generated_at DESC')->fetchAll();
+    if ($user['role'] === 'admin') {
+        $rows = $pdo->query('SELECT * FROM reports ORDER BY generated_at DESC')->fetchAll();
+    } else {
+        $stmt = $pdo->prepare('SELECT * FROM reports WHERE generated_by_user_id = :uid ORDER BY generated_at DESC');
+        $stmt->execute([':uid' => $user['id']]);
+        $rows = $stmt->fetchAll();
+    }
     json_out(['ok' => true, 'reports' => $rows]);
 }
 
@@ -112,8 +143,7 @@ if ($action === 'ai_report') {
         json_out(['ok' => false, 'message' => 'Invalid report mode.'], 422);
     }
 
-    $students = $pdo->query('SELECT s.*, f.full_name AS adviser_name FROM students s
-        LEFT JOIN advisers f ON f.id = s.adviser_id ORDER BY s.full_name')->fetchAll();
+    $students = report_students_for_user($pdo, $user);
     if (!$students) {
         json_out(['ok' => false, 'message' => 'There are no student records yet to report on.'], 422);
     }
@@ -155,8 +185,8 @@ if ($action === 'ai_report') {
         json_out(['ok' => false, 'message' => 'PDF could not be generated.'], 500);
     }
     $reportType = $mode === 'full' ? 'AI Full Report' : 'AI Summarized Report';
-    $pdo->prepare('INSERT INTO reports (id, title, type, filename, generated_by) VALUES (:id,:title,:type,:file,:by)')
-        ->execute([':id' => $reportId, ':title' => $title, ':type' => $reportType, ':file' => $filename, ':by' => $user['full_name']]);
+    $pdo->prepare('INSERT INTO reports (id, title, type, filename, generated_by, generated_by_user_id) VALUES (:id,:title,:type,:file,:by,:uid)')
+        ->execute([':id' => $reportId, ':title' => $title, ':type' => $reportType, ':file' => $filename, ':by' => $user['full_name'], ':uid' => $user['id']]);
 
     log_activity($user['email'], 'ai_report_generated', "mode=$mode ai_used=" . ($aiUsed ? '1' : '0'));
     json_out(['ok' => true, 'report' => ['id' => $reportId, 'name' => $title, 'type' => $reportType, 'generatedAt' => date(DATE_ATOM)], 'aiUsed' => $aiUsed]);
@@ -264,16 +294,7 @@ if ($action === 'generate') {
         }
     } else {
         $stage = trim((string)($data['stage'] ?? ''));
-        $sql = 'SELECT s.*, f.full_name AS adviser_name FROM students s LEFT JOIN advisers f ON f.id = s.adviser_id';
-        $params = [];
-        if ($stage !== '') {
-            $sql .= ' WHERE s.stage = :stage';
-            $params[':stage'] = $stage;
-        }
-        $sql .= ' ORDER BY s.full_name';
-        $stmt = $pdo->prepare($sql);
-        $stmt->execute($params);
-        $students = $stmt->fetchAll();
+        $students = report_students_for_user($pdo, $user, $stage);
 
         $title = $stage !== '' ? "IERB Progress Report - $stage" : 'IERB Progress Report - All Students';
         $lines[] = 'REPORT OVERVIEW';
@@ -295,8 +316,8 @@ if ($action === 'generate') {
     if (file_put_contents(REPORTS_DIR . DIRECTORY_SEPARATOR . $filename, make_pdf($title, $lines), LOCK_EX) === false) {
         json_out(['ok' => false, 'message' => 'PDF could not be generated.'], 500);
     }
-    $pdo->prepare('INSERT INTO reports (id, title, type, filename, generated_by) VALUES (:id,:title,:type,:file,:by)')
-        ->execute([':id' => $reportId, ':title' => $title, ':type' => $type, ':file' => $filename, ':by' => $user['full_name']]);
+    $pdo->prepare('INSERT INTO reports (id, title, type, filename, generated_by, generated_by_user_id) VALUES (:id,:title,:type,:file,:by,:uid)')
+        ->execute([':id' => $reportId, ':title' => $title, ':type' => $type, ':file' => $filename, ':by' => $user['full_name'], ':uid' => $user['id']]);
 
     log_activity($user['email'], 'report_generated', "type=$type title=$title");
     json_out(['ok' => true, 'report' => ['id' => $reportId, 'name' => $title, 'type' => $type, 'generatedAt' => date(DATE_ATOM)]]);
@@ -309,6 +330,9 @@ $found = $stmt->fetch();
 
 if (!$found) {
     json_out(['ok' => false, 'message' => 'Report not found.'], 404);
+}
+if ($user['role'] === 'adviser' && (int)($found['generated_by_user_id'] ?? 0) !== (int)$user['id']) {
+    json_out(['ok' => false, 'message' => 'You are not authorized to access this report.'], 403);
 }
 $path = REPORTS_DIR . DIRECTORY_SEPARATOR . basename($found['filename']);
 
@@ -326,6 +350,7 @@ if ($action === 'file') {
 }
 
 if ($action === 'delete') {
+    api_require_login('admin');
     if (is_file($path)) {
         @unlink($path);
     }
