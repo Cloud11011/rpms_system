@@ -10,6 +10,7 @@ document.addEventListener('DOMContentLoaded', () => {
     let reminders;
     try {
         reminders = JSON.parse(localStorage.getItem(storageKey)) || {};
+        if (typeof reminders !== 'object' || Array.isArray(reminders)) reminders = {};
     } catch (_) {
         reminders = {};
     }
@@ -36,7 +37,15 @@ document.addEventListener('DOMContentLoaded', () => {
     const cancelEdit = document.getElementById('cancelEdit');
     const saveLabel = document.getElementById('saveLabel');
 
-    const save = () => localStorage.setItem(storageKey, JSON.stringify(reminders));
+    const save = () => {
+        try {
+            localStorage.setItem(storageKey, JSON.stringify(reminders));
+            return true;
+        } catch (_) {
+            window.alert('This reminder could not be saved in this browser. Check browser storage settings or clear unused site data.');
+            return false;
+        }
+    };
     const tasksFor = key => Array.isArray(reminders[key]) ? reminders[key] : [];
     const formatDate = key => fromDateKey(key).toLocaleDateString('en-PH', {
         weekday: 'long', month: 'long', day: 'numeric', year: 'numeric'
@@ -99,6 +108,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     visibleMonth = new Date(date.getFullYear(), date.getMonth(), 1);
                 }
                 resetForm();
+                history.replaceState(null, '', '?date=' + encodeURIComponent(selectedDate));
                 renderAll();
                 titleInput.focus();
             });
@@ -200,6 +210,7 @@ document.addEventListener('DOMContentLoaded', () => {
         reminders[selectedDate] = existing;
         save();
         resetForm();
+        history.replaceState(null, '', '?date=' + encodeURIComponent(selectedDate));
         renderAll();
     });
 
