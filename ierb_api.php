@@ -232,7 +232,6 @@ if ($action === 'override') {
     }
 
     $change = describe_progress_change($cur, $newStage, $newStatus);
-    $newLoginUserId = null;
     try {
         $pdo->beginTransaction();
         $pdo->prepare('UPDATE students SET stage = :stage, status = :status, updated_at = NOW() WHERE id = :id')
@@ -344,7 +343,7 @@ if ($action === 'save') {
                     ':req' => $requirements, ':sub' => $submissionDate]);
             $id = (int)$pdo->lastInsertId();
 
-            $collision = $pdo->prepare('SELECT id, role FROM users WHERE email = :e OR username = :u LIMIT 1');
+            $collision = $pdo->prepare('SELECT id, role, status FROM users WHERE email = :e OR username = :u LIMIT 1');
             $collision->execute([':e' => $email, ':u' => $studentIdCode]);
             $existingLogin = $collision->fetch();
             if ($existingLogin && ($existingLogin['role'] ?? '') !== 'student') {
