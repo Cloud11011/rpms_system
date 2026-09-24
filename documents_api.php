@@ -183,11 +183,12 @@ if ($action === 'upload') {
         $own = $pdo->prepare('SELECT id, full_name, stage FROM students WHERE email = :e');
         $own->execute([':e' => $user['email']]);
         $ownRow = $own->fetch();
-        if ($ownRow) {
-            $studentDbId = (int)$ownRow['id'];
-            $studentName = $ownRow['full_name'];
-            $studentStage = $ownRow['stage'];
+        if (!$ownRow) {
+            json_out(['ok' => false, 'message' => 'Your login is not linked to a student record yet. Contact the RPMS office before uploading documents.'], 409);
         }
+        $studentDbId = (int)$ownRow['id'];
+        $studentName = $ownRow['full_name'];
+        $studentStage = $ownRow['stage'];
     } elseif ($studentName !== '') {
         $match = $pdo->prepare('SELECT id, full_name, stage FROM students WHERE full_name = :n OR student_id = :n LIMIT 1');
         $match->execute([':n' => $studentName]);
@@ -208,8 +209,12 @@ if ($action === 'upload') {
     }
 
     $documentType = trim((string)($_POST['documentType'] ?? '')) ?: 'Other';
-    // No stage sent? Use the student's current stage rather than always "Stage 1".
-    $stage = trim((string)($_POST['stage'] ?? ''));
+    $notes = trim((string)($_POST['notes'] ?? ''));
+    if (mb_strlen($documentType) > 100 || mb_strlen($notes) > 5000 || mb_strlen(basename((string)$file['name'])) > 255) {
+        json_out(['ok' => false, 'message' => 'The document type, notes, or file name is too long. Please shorten it and try again.'], 422);
+    }
+    // Students cannot choose a different workflow stage: uploads always belong to their current IERB stage.
+    $stage = $user['role'] === 'student' ? (string)$studentStage : trim((string)($_POST['stage'] ?? ''));
     if ($stage === '') {
         $stage = $studentStage ?: 'Stage 1';
     }
@@ -285,7 +290,7 @@ if ($action === 'upload') {
                 ':by' => $user['full_name'], ':role' => $user['role'], ':orig' => basename($file['name']),
                 ':stored' => $stored, ':mime' => $mime, ':size' => (int)$file['size'],
                 ':type' => $documentType, ':stage' => $stage,
-                ':notes' => trim((string)($_POST['notes'] ?? '')), ':review' => 'Submitted',
+                ':notes' => $notes, ':review' => 'Submitted',
                 ':adate' => $detectedDate, ':asrc' => $detectedSource,
                 ':ver' => $versionNo, ':prev' => $prev ? $prev['id'] : null,
             ]);
@@ -419,6 +424,12 @@ if ($action === 'review') {
         json_out(['ok' => false, 'message' => 'Invalid review status.'], 422);
     }
     $remarks = trim((string)($payload['remarks'] ?? ''));
+    if (mb_strlen($remarks) > 5000) {
+        json_out(['ok' => false, 'message' => 'Reviewer remarks must be 5,000 characters or fewer.'], 422);
+    }
+    if (in_array($status, ['Denied', 'Resubmission Requested'], true) && $remarks === '') {
+        json_out(['ok' => false, 'message' => 'Please add reviewer remarks explaining what the student needs to correct or resubmit.'], 422);
+    }
 
     if (!$isCurrent) {
         json_out(['ok' => false, 'message' => 'This is an older version. Review the latest version instead.'], 409);
