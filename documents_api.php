@@ -241,6 +241,24 @@ if ($action === 'upload') {
     }
     $mime = (new finfo(FILEINFO_MIME_TYPE))->file($target) ?: 'application/octet-stream';
 
+    // Extension alone is not enough. Reject clear extension/content mismatches before the file
+    // enters document processing or storage history.
+    $allowedMimes = [
+        'pdf' => ['application/pdf'],
+        'png' => ['image/png'],
+        'jpg' => ['image/jpeg'],
+        'jpeg' => ['image/jpeg'],
+        'txt' => ['text/plain'],
+        'rtf' => ['application/rtf', 'text/rtf', 'text/plain'],
+        'doc' => ['application/msword', 'application/CDFV2', 'application/octet-stream'],
+        'docx' => ['application/vnd.openxmlformats-officedocument.wordprocessingml.document', 'application/zip', 'application/octet-stream'],
+        'odt' => ['application/vnd.oasis.opendocument.text', 'application/zip', 'application/octet-stream'],
+    ];
+    if (isset($allowedMimes[$ext]) && !in_array($mime, $allowedMimes[$ext], true)) {
+        @unlink($target);
+        json_out(['ok' => false, 'message' => 'The uploaded file content does not match its file extension. Please upload the original document without renaming its extension.'], 415);
+    }
+
     // Best-effort approval-date detection; never blocks the upload.
     $detectedDate = null;
     $detectedSource = null;
