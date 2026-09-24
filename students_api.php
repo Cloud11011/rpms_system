@@ -86,6 +86,7 @@ if ($action === 'save') {
     $requirements = trim((string)($data['requirements'] ?? ''));
     $protocolCode = trim((string)($data['protocolCode'] ?? ''));
     $isPrincipal = !empty($data['isPrincipalInvestigator']) ? 1 : 0;
+    $reason = trim((string)($data['reason'] ?? ''));
 
     $ownAdviserId = null;
     if ($user['role'] === 'adviser') {
@@ -154,6 +155,8 @@ if ($action === 'save') {
     }
 
     $newLoginUserId = null;
+    $progressChanged = false;
+    $progressChangeText = '';
     try {
         $pdo->beginTransaction();
         if ($id > 0) {
@@ -180,18 +183,26 @@ if ($action === 'save') {
             sync_student_login_identity($pdo, (string)$before['email'], $studentId, $name, $email);
 
             if ($before['stage'] !== $stage || $before['status'] !== $status) {
+                if (!override_reason_valid($reason)) {
+                    if ($pdo->inTransaction()) $pdo->rollBack();
+                    json_out(['ok' => false, 'requiresReason' => true,
+                        'message' => 'Changing a student stage or status needs a reason for the progress history. ' . override_reason_message()], 422);
+                }
+                $progressChanged = true;
+                $progressChangeText = describe_student_progress($before['stage'], $before['status'], $stage, $status);
                 // v2 audit trail: this endpoint can also change stage/status, so it must be logged
                 // with who/what/before/after just like the IERB Override (it previously wasn't).
                 audit_log($user, $user['role'] === 'admin' ? 'admin_override_student_progress' : 'student_progress_changed', [
                     'entity_type' => 'student', 'entity_id' => $id, 'student_id' => $id,
                     'override' => $user['role'] === 'admin',
                     'before' => $before['stage'] . ' / ' . $before['status'], 'after' => "$stage / $status",
-                    'details' => describe_student_progress($before['stage'], $before['status'], $stage, $status),
+                    'details' => $progressChangeText, 'reason' => $reason,
                 ]);
                 $pdo->prepare('INSERT INTO ierb_history (student_id, stage, status, note, requirements, actor)
                     VALUES (:sid,:stage,:status,:note,:req,:actor)')->execute([
                     ':sid' => $id, ':stage' => $stage, ':status' => $status,
-                    ':note' => 'Record updated by ' . ($user['role'] === 'adviser' ? 'research adviser' : 'RPMS') . '.',
+                    ':note' => 'Progress updated by ' . ($user['role'] === 'adviser' ? 'research adviser' : 'RPMS')
+                        . '. ' . $progressChangeText . '. Reason: ' . $reason,
                     ':req' => $requirements, ':actor' => $user['full_name'],
                 ]);
             }
@@ -241,6 +252,12 @@ if ($action === 'save') {
 
     if ($newLoginUserId) {
         send_account_setup_email($pdo, $newLoginUserId, $email, $name);
+    }
+    if ($progressChanged) {
+        notify_student($pdo, $id, 'PRISM IERB Progress Updated',
+            "Hello $name,\n\nYour IERB progress was updated.\n$progressChangeText\nReason: $reason\n\n- CEU Malolos RPMS / PRISM",
+            "Your IERB progress was updated. $progressChangeText. Reason: $reason",
+            'Status Update', $user['full_name']);
     }
     log_activity($user['email'], 'student_saved', "student_id=$studentId");
     json_out(['ok' => true, 'id' => $id]);
