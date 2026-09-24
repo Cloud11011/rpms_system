@@ -76,7 +76,7 @@ if ($action === 'save') {
     $id = (int)($data['id'] ?? 0);
     $studentId = trim((string)($data['studentId'] ?? ''));
     $name = trim((string)($data['name'] ?? ''));
-    $email = trim((string)($data['email'] ?? ''));
+    $email = strtolower(trim((string)($data['email'] ?? '')));
     $research = trim((string)($data['research'] ?? ''));
     $group = trim((string)($data['group'] ?? ''));
     $course = trim((string)($data['course'] ?? ''));
@@ -110,6 +110,11 @@ if ($action === 'save') {
 
     if ($studentId === '' || $name === '' || !filter_var($email, FILTER_VALIDATE_EMAIL)) {
         json_out(['ok' => false, 'message' => 'Student ID, name, and a valid email are required.'], 422);
+    }
+    if (mb_strlen($studentId) > 100 || mb_strlen($name) > 190 || mb_strlen($research) > 255
+        || mb_strlen($group) > 190 || mb_strlen($course) > 100 || mb_strlen($requirements) > 255
+        || ($protocolCode !== null && mb_strlen((string)$protocolCode) > 100)) {
+        json_out(['ok' => false, 'message' => 'One or more fields are too long. Please shorten the entry and try again.'], 422);
     }
     if (!is_allowed_email_domain($email)) {
         json_out(['ok' => false, 'message' => 'Only ' . allowed_email_domains_hint() . ' email addresses are allowed.'], 422);
@@ -172,7 +177,7 @@ if ($action === 'save') {
                 ':status' => $status, ':req' => $requirements, ':pcode' => $finalProtocolCode,
                 ':pi' => $finalIsPrincipal, ':id' => $id]);
 
-            sync_student_login_email($pdo, (string)$before['email'], $email);
+            sync_student_login_identity($pdo, (string)$before['email'], $studentId, $name, $email);
 
             if ($before['stage'] !== $stage || $before['status'] !== $status) {
                 // v2 audit trail: this endpoint can also change stage/status, so it must be logged
@@ -202,9 +207,10 @@ if ($action === 'save') {
             $id = (int)$pdo->lastInsertId();
 
             // Auto-provision a student login account, per the study's "limited submission module" design.
-            $userStmt = $pdo->prepare('SELECT id FROM users WHERE email = :e OR username = :u');
+            $userStmt = $pdo->prepare('SELECT id, role, status FROM users WHERE email = :e OR username = :u LIMIT 1');
             $userStmt->execute([':e' => $email, ':u' => $studentId]);
-            if (!$userStmt->fetch()) {
+            $existingLogin = $userStmt->fetch();
+            if (!$existingLogin) {
                 $tempPassword = student_default_password($studentId);
                 $pdo->prepare('INSERT INTO users (username, password_hash, role, full_name, email, ref_id, must_change_password)
                     VALUES (:u,:p,"student",:n,:e,:ref,1)')->execute([
@@ -212,6 +218,9 @@ if ($action === 'save') {
                     ':n' => $name, ':e' => $email, ':ref' => $studentId,
                 ]);
                 $newLoginUserId = (int)$pdo->lastInsertId();
+            } elseif (($existingLogin['role'] ?? '') === 'student') {
+                $pdo->prepare("UPDATE users SET username=:u, full_name=:n, email=:e, ref_id=:ref, status='Active' WHERE id=:id")
+                    ->execute([':u' => $studentId, ':n' => $name, ':e' => $email, ':ref' => $studentId, ':id' => $existingLogin['id']]);
             }
 
             $pdo->prepare('INSERT INTO ierb_history (student_id, stage, status, note, requirements, actor)
@@ -222,7 +231,7 @@ if ($action === 'save') {
         }
         $pdo->commit();
     } catch (Throwable $e) {
-        $pdo->rollBack();
+        if ($pdo->inTransaction()) $pdo->rollBack();
         $sqlState = $e instanceof PDOException ? (string)($e->errorInfo[0] ?? '') : '';
         if ($sqlState === '23000' && stripos($e->getMessage(), 'foreign key') !== false) {
             json_out(['ok' => false, 'message' => 'The selected adviser is invalid.'], 422);
