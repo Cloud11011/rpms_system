@@ -26,18 +26,21 @@ if ($user) {
     $ins = db()->prepare('INSERT INTO password_resets (user_id, token, expires_at) VALUES (:u,:t,:x)');
     $ins->execute([':u' => $user['id'], ':t' => $token, ':x' => $expires]);
 
-    $resetLink = (isset($_SERVER['HTTPS']) ? 'https' : 'http') . '://' . $_SERVER['HTTP_HOST']
-        . dirname($_SERVER['SCRIPT_NAME']) . '/reset_password.php?token=' . $token;
+    if (APP_BASE_URL === '') {
+        log_api_error('password_reset', 'APP_BASE_URL is not configured; reset email was not sent.');
+    } else {
+        $resetLink = APP_BASE_URL . '/reset_password.php?token=' . urlencode($token);
 
-    $body = "Hello {$user['full_name']},\n\n"
-        . "A password reset was requested for your PRISM account.\n"
-        . "Reset your password using the link below (valid for 1 hour):\n\n"
-        . "{$resetLink}\n\n"
-        . "If you did not request this, you can safely ignore this email.\n\n"
-        . "- CEU Malolos RPMS / PRISM";
+        $body = "Hello {$user['full_name']},\n\n"
+            . "A password reset was requested for your PRISM account.\n"
+            . "Reset your password using the link below (valid for 1 hour):\n\n"
+            . "{$resetLink}\n\n"
+            . "If you did not request this, you can safely ignore this email.\n\n"
+            . "- CEU Malolos RPMS / PRISM";
 
-    send_notification_email($email, 'PRISM Password Reset Request', $body);
-    log_activity($email, 'password_reset_requested', '');
+        send_notification_email($email, 'PRISM Password Reset Request', $body);
+        log_activity($email, 'password_reset_requested', '');
+    }
 }
 
 $_SESSION['success'] = 'If that email is registered, a password reset link has been sent.';
