@@ -76,8 +76,9 @@
             const res = await fetch(`${apiUrl}?action=list`);
             const data = await res.json();
             records = data.ok ? (isAdviser ? data.advisers : data.students) : [];
-        } catch (_) {
+        } catch (e) {
             records = [];
+            PrismUI.toast(e.message || 'Could not load records.', 'error');
         }
         if (!isAdviser) {
             await loadAdviserOptions();
@@ -197,19 +198,22 @@
     }
 
     async function deleteRecord(record) {
-        if (!confirm(`Delete the record for ${record.name}? This cannot be undone.`)) return;
+        const answer = await PrismUI.confirm({
+            title:`Delete ${isAdviser ? 'adviser' : 'student'} record`,
+            icon:'fa-trash', tone:'danger', confirmText:'Delete',
+            message:`Delete the record for ${record.name}? The associated login will be deactivated.`
+        });
+        if (!answer) return;
         try {
-            const res = await fetch(`${apiUrl}?action=delete`, {
-                method: 'POST', headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ id: record.id }),
-            });
-            const data = await res.json();
-            if (!data.ok) { alert(data.message || 'Could not delete this record.'); return; }
+            const data = await PrismUI.postJson(`${apiUrl}?action=delete`, { id: record.id });
             await loadRecords();
-        } catch (_) {
-            alert('Could not reach the server to delete this record.');
+            PrismUI.toast(data.message || 'Record deleted.', 'success');
+        } catch (e) {
+            PrismUI.toast(e.message, 'error');
         }
     }
+
+    const recordNameForMessage = record => record?.name || 'this student';
 
     addBtn.addEventListener('click', () => openModal(null));
     closeBtn.addEventListener('click', closeModal);
@@ -242,17 +246,29 @@
             if (piField) payload.isPrincipalInvestigator = piField.checked;
         }
 
+        if (!isAdviser && payload.id) {
+            const original = records.find(r => r.id === payload.id);
+            if (original && (original.stage !== payload.stage || original.status !== payload.status)) {
+                const answer = await PrismUI.confirm({
+                    title:'Confirm progress change', icon:'fa-clipboard-check', confirmText:'Save changes',
+                    message:`Changing ${recordNameForMessage(original)}'s stage or status will be added to the official progress history and the student will be notified.`,
+                    reasonLabel:'Reason for this progress change', reasonRequired:true
+                });
+                if (!answer) return;
+                payload.reason = answer.reason;
+            }
+        }
+        const submitBtn = form.querySelector('[type="submit"]');
+        submitBtn.disabled = true;
         try {
-            const res = await fetch(`${apiUrl}?action=save`, {
-                method: 'POST', headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(payload),
-            });
-            const data = await res.json();
-            if (!data.ok) { alert(data.message || 'This record could not be saved.'); return; }
+            const data = await PrismUI.postJson(`${apiUrl}?action=save`, payload);
             closeModal();
             await loadRecords();
-        } catch (_) {
-            alert('Could not reach the server to save this record.');
+            PrismUI.toast(data.message || 'Record saved.', 'success');
+        } catch (e) {
+            PrismUI.toast(e.message, 'error');
+        } finally {
+            submitBtn.disabled = false;
         }
     });
 
