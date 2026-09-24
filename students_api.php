@@ -163,6 +163,8 @@ if ($action === 'save') {
     }
 
     $newLoginUserId = null;
+    $newLoginTempPassword = null;
+    $setupDelivery = null;
     $progressChanged = false;
     $progressChangeText = '';
     try {
@@ -233,6 +235,7 @@ if ($action === 'save') {
             $existingLogin = $userStmt->fetch();
             if (!$existingLogin) {
                 $tempPassword = student_default_password($studentId);
+                $newLoginTempPassword = $tempPassword;
                 $pdo->prepare('INSERT INTO users (username, password_hash, role, full_name, email, ref_id, must_change_password)
                     VALUES (:u,:p,"student",:n,:e,:ref,1)')->execute([
                     ':u' => $studentId, ':p' => password_hash($tempPassword, PASSWORD_DEFAULT),
