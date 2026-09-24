@@ -63,6 +63,8 @@ if ($action === 'save') {
     }
 
     $newLoginUserId = null;
+    $newLoginTempPassword = null;
+    $setupDelivery = null;
     try {
         $pdo->beginTransaction();
         if ($id > 0) {
@@ -91,6 +93,7 @@ if ($action === 'save') {
             $existingLogin = $userStmt->fetch();
             if (!$existingLogin) {
                 $tempPassword = adviser_default_password($employeeId);
+                $newLoginTempPassword = $tempPassword;
                 $pdo->prepare('INSERT INTO users (username, password_hash, role, full_name, email, ref_id, status, must_change_password)
                     VALUES (:u,:p,"adviser",:n,:e,:ref,:status,1)')->execute([
                     ':u' => $employeeId, ':p' => password_hash($tempPassword, PASSWORD_DEFAULT),
@@ -112,10 +115,19 @@ if ($action === 'save') {
     }
 
     if ($newLoginUserId && $status === 'Active') {
-        send_account_setup_email($pdo, $newLoginUserId, $email, $name);
+        $setupDelivery = send_account_setup_email($pdo, $newLoginUserId, $email, $name);
     }
     log_activity($user['email'], 'adviser_saved', "employee_id=$employeeId");
-    json_out(['ok' => true, 'id' => $id]);
+    $response = ['ok' => true, 'id' => $id, 'message' => 'Adviser record saved.'];
+    if ($newLoginUserId && $status === 'Active') {
+        $response['accountCreated'] = true;
+        $response['setupChannel'] = $setupDelivery['channel'] ?? 'none';
+        $response['setupMessage'] = $setupDelivery['message'] ?? '';
+        if (($setupDelivery['channel'] ?? 'none') === 'log' || !($setupDelivery['ok'] ?? false)) {
+            $response['temporaryPassword'] = $newLoginTempPassword;
+        }
+    }
+    json_out($response);
 }
 
 if ($action === 'delete') {
