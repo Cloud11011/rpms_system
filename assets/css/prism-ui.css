@@ -210,3 +210,514 @@
   .prism-toast { animation: none; }
   .prism-btn, .prism-link-btn, .prism-tip::after { transition: none; }
 }
+
+
+/* ---------- PRISM visibility & readability pass ---------- */
+/*
+   This section intentionally changes presentation only. It does not add new
+   workflows or permissions. The goal is to make existing PRISM information
+   easier to scan, read and operate on desktop, tablet and mobile.
+*/
+:root {
+  --prism-readable-muted: #566176;
+  --prism-row-hover: rgba(63, 68, 127, .045);
+  --prism-control-shadow: 0 1px 2px rgba(15, 23, 42, .04);
+}
+.dark-theme {
+  --prism-readable-muted: #aeb8cc;
+  --prism-row-hover: rgba(255, 255, 255, .045);
+}
+
+/* Base legibility and contrast */
+body {
+  line-height: 1.45;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+.management-page,
+.documents-page,
+.ierb-page,
+.reports-page,
+.calendar-page,
+.portal-main {
+  color: var(--text-primary);
+}
+.management-page .topbar p,
+.documents-heading p,
+.ierb-heading p,
+.reports-heading p,
+.calendar-heading p,
+.panel p,
+.management-card-head p,
+.documents-section-heading p,
+.ierb-table-heading p,
+.account-note {
+  color: var(--prism-readable-muted) !important;
+  font-size: 12px !important;
+  line-height: 1.55;
+}
+
+/* Page headings */
+.management-page h1,
+.documents-heading h1,
+.ierb-heading h1,
+.reports-heading h1,
+.calendar-heading h1,
+.portal-main .topbar h1 {
+  font-size: clamp(24px, 2.25vw, 30px) !important;
+  line-height: 1.2;
+  letter-spacing: -.02em;
+}
+.management-card-head h2,
+.documents-section-heading h2,
+.ierb-table-heading h2,
+.report-history-heading h2,
+.panel h2,
+.account-card h2 {
+  font-size: 16px !important;
+  line-height: 1.3;
+}
+
+/* Shared form controls: readable text, clear boundaries, reliable focus */
+.management-page input,
+.management-page select,
+.management-page textarea,
+.documents-page input,
+.documents-page select,
+.documents-page textarea,
+.ierb-page input,
+.ierb-page select,
+.ierb-page textarea,
+.reports-page input,
+.reports-page select,
+.reports-page textarea,
+.calendar-page input,
+.calendar-page select,
+.calendar-page textarea,
+.portal-main input,
+.portal-main select,
+.portal-main textarea,
+.prism-dialog input,
+.prism-dialog select,
+.prism-dialog textarea {
+  min-height: 40px;
+  font-size: 12px !important;
+  line-height: 1.35;
+  border-color: var(--prism-border) !important;
+  box-shadow: var(--prism-control-shadow);
+}
+textarea,
+.prism-dialog textarea { min-height: 92px; }
+input::placeholder,
+textarea::placeholder { color: var(--prism-readable-muted); opacity: .8; }
+input[readonly] { cursor: default; }
+
+.management-form-grid label,
+.document-form-grid label,
+.add-type-form label,
+.form-panel label,
+.account-form label,
+.support-modal-card label,
+.prism-dialog label,
+#dashboardTaskForm label {
+  font-size: 11px !important;
+  line-height: 1.35;
+  font-weight: 650 !important;
+}
+
+/* Strong, consistent keyboard focus across native and custom controls */
+a:focus-visible,
+button:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible,
+[tabindex]:focus-visible {
+  outline: 3px solid var(--prism-focus) !important;
+  outline-offset: 2px;
+}
+button,
+a,
+select,
+input[type="checkbox"],
+input[type="radio"] { accent-color: var(--accent-purple, #A21368); }
+
+/* Buttons and icon targets */
+.management-primary,
+.upload-document-button,
+.doc-primary,
+.doc-secondary,
+.ierb-add-link,
+.generate-report-button,
+.today-button,
+.save-task,
+.primary-btn {
+  min-height: 40px;
+  font-size: 11px !important;
+  line-height: 1.2;
+}
+.icon-btn,
+.record-action,
+.document-action-button,
+.task-action,
+.calendar-nav,
+.view-switch button,
+.document-modal-heading button,
+.management-modal-head button {
+  min-width: 36px !important;
+  min-height: 36px !important;
+}
+button:disabled,
+.prism-btn:disabled {
+  opacity: .58;
+  cursor: not-allowed !important;
+  filter: saturate(.7);
+}
+
+/* Tables: larger type, sticky headers, clearer row separation */
+.management-table-wrap,
+.documents-table-wrap,
+.ierb-table-wrap,
+.document-table-wrap,
+.report-table-wrap {
+  scrollbar-gutter: stable;
+}
+.management-table-wrap table,
+.documents-table,
+.ierb-table,
+.document-table-wrap table,
+.report-table {
+  line-height: 1.45;
+}
+.management-table-wrap th,
+.management-table-wrap td,
+.documents-table th,
+.documents-table td,
+.ierb-table th,
+.ierb-table td,
+.document-table-wrap th,
+.document-table-wrap td,
+.report-table th,
+.report-table td {
+  font-size: 11px !important;
+}
+.management-table-wrap th,
+.documents-table th,
+.ierb-table th,
+.document-table-wrap th,
+.report-table th {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  padding-top: 12px !important;
+  padding-bottom: 12px !important;
+  color: var(--prism-readable-muted) !important;
+  font-size: 10px !important;
+  font-weight: 700;
+  letter-spacing: .035em;
+  background: var(--bg-color) !important;
+  box-shadow: inset 0 -1px var(--border-color);
+}
+.management-table-wrap td,
+.documents-table td,
+.ierb-table td,
+.document-table-wrap td,
+.report-table td {
+  padding-top: 13px !important;
+  padding-bottom: 13px !important;
+}
+.management-table-wrap tbody tr:hover,
+.documents-table tbody tr:hover,
+.ierb-table tbody tr:hover,
+.document-table-wrap tbody tr:hover,
+.report-table tbody tr:hover {
+  background: var(--prism-row-hover);
+}
+
+/* Dense metadata should still be readable */
+.record-person span,
+.file-cell span,
+.folder-heading span,
+.folder-file,
+.doc-category small,
+.management-card small,
+.list-item span,
+.list-item time,
+.activity-row small,
+.dashboard-status-cards small,
+.dashboard-quick-access small {
+  font-size: 10px !important;
+  line-height: 1.45;
+}
+.record-chip,
+.protocol-badge,
+.pi-badge,
+.doc-category > span,
+.status-chip,
+.reminder-tag {
+  font-size: 10px !important;
+  line-height: 1.35;
+}
+
+/* Cards and panels gain clearer separation without changing the visual language */
+.management-card,
+.documents-table-wrap,
+.ierb-table-wrap,
+.report-history,
+.panel,
+.full-calendar-card,
+.reminder-panel,
+.document-folder,
+.progress-overview {
+  border-color: var(--prism-border) !important;
+}
+.management-card,
+.panel,
+.full-calendar-card,
+.reminder-panel,
+.document-folder {
+  box-shadow: 0 4px 18px rgba(15, 23, 42, .045);
+}
+.dark-theme .management-card,
+.dark-theme .panel,
+.dark-theme .full-calendar-card,
+.dark-theme .reminder-panel,
+.dark-theme .document-folder {
+  box-shadow: 0 5px 20px rgba(0, 0, 0, .18);
+}
+
+/* Filter/search bars: keep controls discoverable and aligned */
+.management-search,
+.document-search,
+.ierb-search {
+  min-height: 44px;
+  box-shadow: var(--prism-control-shadow);
+}
+.management-search input,
+.document-search input,
+.ierb-search input {
+  font-size: 12px !important;
+}
+.document-actions select,
+.ierb-filters select,
+.panel-head select {
+  min-height: 40px;
+  font-size: 11px !important;
+}
+
+/* Modals/dialogs: clearer hierarchy and more comfortable reading width */
+.management-dialog,
+.document-modal-dialog,
+.ierb-modal-dialog,
+.report-modal-dialog,
+.support-modal-card {
+  border-radius: 14px !important;
+}
+.management-modal-head span,
+.document-modal-heading span,
+.report-modal-heading span,
+.support-modal-head span,
+.overview-heading span {
+  font-size: 10px !important;
+  letter-spacing: .06em;
+}
+.management-modal-head h2,
+.document-modal-heading h2,
+.ierb-modal-heading h2,
+.report-modal-heading h2,
+.support-modal-head h2 {
+  font-size: 18px !important;
+  line-height: 1.3;
+}
+.summary-result {
+  font-size: 12px !important;
+  line-height: 1.7;
+}
+
+/* Toasts/status feedback should be noticeable without blocking the workflow */
+.prism-toast {
+  min-height: 46px;
+  max-width: 30rem;
+  padding: .85rem 1rem;
+  font-size: .92rem;
+  box-shadow: 0 12px 34px rgba(15, 23, 42, .22);
+}
+.prism-toast > i { font-size: 1rem; }
+.prism-badge { font-size: .8rem; }
+.prism-badge.is-small { font-size: .75rem; }
+
+/* Sidebar visibility */
+.sidebar ul li a {
+  min-height: 44px;
+  font-size: 13px !important;
+}
+.sidebar ul li a i { font-size: 17px; }
+.sidebar-profile .profile-info h4 { font-size: 12px !important; }
+.sidebar-profile .profile-info p { font-size: 10px !important; }
+.sidebar-brand-copy strong { font-size: 11px !important; }
+.sidebar-brand-copy span { font-size: 8.5px !important; }
+
+/* Student portal navigation and primary content */
+.portal-nav-links button {
+  min-height: 38px;
+  font-size: 11px !important;
+  font-weight: 600;
+}
+.portal-profile-btn strong { font-size: 10px !important; }
+.portal-profile-btn small { font-size: 8px !important; }
+.nav-badge { font-size: 9px !important; }
+.portal-main .welcome-card h2 { line-height: 1.25; }
+.portal-main .panel p,
+.portal-main .list-item span,
+.portal-main .list-item time,
+.portal-main .stage-card span {
+  font-size: 10px !important;
+  line-height: 1.5;
+}
+.portal-main .list-item strong,
+.portal-main .stage-card strong {
+  font-size: 11px !important;
+}
+.portal-main .stage-card { min-height: 92px; }
+
+/* Student document table readability */
+.portal-main .document-table-wrap th { font-size: 10px !important; }
+.portal-main .document-table-wrap td { font-size: 11px !important; }
+.portal-main .action-btn {
+  min-height: 34px;
+  padding: 7px 9px;
+  font-size: 10px !important;
+}
+
+/* Calendar visibility */
+.calendar-day,
+.dashboard-calendar-day {
+  transition: background-color .14s ease, border-color .14s ease, transform .14s ease;
+}
+.calendar-day:hover,
+.dashboard-calendar-day:hover {
+  transform: translateY(-1px);
+}
+.task-item h3 { font-size: 12px !important; line-height: 1.4; }
+.task-notes,
+.task-time { font-size: 10px !important; line-height: 1.5; }
+
+/* Scrolling affordance for wide data sets */
+.management-table-wrap,
+.documents-table-wrap,
+.ierb-table-wrap,
+.document-table-wrap,
+.report-table-wrap {
+  scrollbar-width: thin;
+  scrollbar-color: var(--prism-muted) transparent;
+}
+.management-table-wrap::-webkit-scrollbar,
+.documents-table-wrap::-webkit-scrollbar,
+.ierb-table-wrap::-webkit-scrollbar,
+.document-table-wrap::-webkit-scrollbar,
+.report-table-wrap::-webkit-scrollbar { height: 10px; }
+.management-table-wrap::-webkit-scrollbar-thumb,
+.documents-table-wrap::-webkit-scrollbar-thumb,
+.ierb-table-wrap::-webkit-scrollbar-thumb,
+.document-table-wrap::-webkit-scrollbar-thumb,
+.report-table-wrap::-webkit-scrollbar-thumb {
+  background: var(--prism-neutral-bd);
+  border: 2px solid transparent;
+  border-radius: 999px;
+  background-clip: padding-box;
+}
+
+/* Better responsive stacking while preserving all existing controls */
+@media (max-width: 980px) {
+  .topbar {
+    align-items: flex-start !important;
+    gap: 14px;
+    flex-wrap: wrap;
+  }
+  .management-controls,
+  .document-controls,
+  .ierb-controls {
+    align-items: stretch !important;
+    flex-wrap: wrap;
+  }
+  .document-actions,
+  .ierb-filters {
+    flex-wrap: wrap;
+  }
+}
+
+@media (max-width: 768px) {
+  .main-content:not(.portal-main) {
+    padding: 22px 18px !important;
+  }
+  .management-page h1,
+  .documents-heading h1,
+  .ierb-heading h1,
+  .reports-heading h1,
+  .calendar-heading h1,
+  .portal-main .topbar h1 {
+    font-size: 23px !important;
+  }
+  .management-primary,
+  .upload-document-button,
+  .ierb-add-link,
+  .generate-report-button,
+  .today-button,
+  .primary-btn {
+    min-height: 42px;
+  }
+  .document-actions > select,
+  .ierb-filters > select {
+    flex: 1 1 145px;
+  }
+  .management-table-wrap th,
+  .management-table-wrap td,
+  .documents-table th,
+  .documents-table td,
+  .ierb-table th,
+  .ierb-table td,
+  .document-table-wrap th,
+  .document-table-wrap td,
+  .report-table th,
+  .report-table td {
+    font-size: 11px !important;
+  }
+}
+
+@media (max-width: 620px) {
+  .portal-nav-links button {
+    min-height: 40px;
+    padding: 9px 10px !important;
+    font-size: 10px !important;
+  }
+  .portal-help,
+  .portal-notification {
+    width: 40px !important;
+    height: 40px !important;
+  }
+  .portal-main .panel,
+  .portal-main .form-panel {
+    padding: 16px !important;
+  }
+  .prism-dialog {
+    padding: 1.1rem;
+  }
+}
+
+@media (prefers-contrast: more) {
+  :root {
+    --prism-border: #aeb8c8;
+    --prism-readable-muted: #39465a;
+  }
+  .dark-theme {
+    --prism-border: #6e7890;
+    --prism-readable-muted: #d5dceb;
+  }
+  .prism-badge,
+  .management-card,
+  .panel,
+  input,
+  select,
+  textarea {
+    border-width: 2px !important;
+  }
+}
