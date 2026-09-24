@@ -28,7 +28,7 @@ document.addEventListener('DOMContentLoaded', () => {
         submit: ['Document Submission', 'Upload requirements for RPMS/IERB review.'],
         documents: ['My Documents', 'View and manage your submission history.'],
         notifications: ['Notifications', 'Stay updated on reviews, reminders, and follow-ups.'],
-        calendar: ['Calendar', 'View official deadlines and manage personal reminders.'],
+        calendar: ['Calendar', 'Manage personal reminders stored in this browser.'],
         profile: ['Profile', 'Manage your permitted personal and account information.'],
     };
 
