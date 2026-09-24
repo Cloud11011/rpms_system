@@ -1,0 +1,212 @@
+/* PRISM UI kit - shared components (badges, buttons, empty states, toasts, dialogs, tips, filters,
+   responsive tables). Loads after each page's own CSS; every class is prefixed "prism-" so it can't
+   collide with existing styles. Dark mode follows the site's existing `.dark-theme` class. */
+
+:root {
+  --prism-radius: 10px;
+  --prism-border: #dfe4ec;
+  --prism-muted: #64708a;
+  --prism-text: #1f2937;
+  --prism-surface: #ffffff;
+  --prism-surface-2: #f5f7fb;
+  --prism-focus: #2563eb;
+
+  --prism-success-bg: #e7f6ec; --prism-success-fg: #146c2e; --prism-success-bd: #b9e4c6;
+  --prism-info-bg:    #e6f0ff; --prism-info-fg:    #1d4ed8; --prism-info-bd:    #bcd3ff;
+  --prism-warning-bg: #fff4dc; --prism-warning-fg: #8a5a00; --prism-warning-bd: #f3d9a0;
+  --prism-danger-bg:  #fdeaea; --prism-danger-fg:  #a01c1c; --prism-danger-bd:  #f4bcbc;
+  --prism-neutral-bg: #eef1f6; --prism-neutral-fg: #475269; --prism-neutral-bd: #d7dce6;
+  --prism-override-bg:#f1e9ff; --prism-override-fg:#5b21b6; --prism-override-bd:#d9c6fb;
+}
+.dark-theme {
+  --prism-border: #2f3a4d;
+  --prism-muted: #9aa7bf;
+  --prism-text: #e5e9f2;
+  --prism-surface: #182131;
+  --prism-surface-2: #1e293b;
+  --prism-focus: #7aa7ff;
+
+  --prism-success-bg: rgba(34,197,94,.15);  --prism-success-fg: #86efac; --prism-success-bd: rgba(34,197,94,.35);
+  --prism-info-bg:    rgba(96,165,250,.15); --prism-info-fg:    #a9c9ff; --prism-info-bd:    rgba(96,165,250,.35);
+  --prism-warning-bg: rgba(251,191,36,.14); --prism-warning-fg: #fcd34d; --prism-warning-bd: rgba(251,191,36,.35);
+  --prism-danger-bg:  rgba(248,113,113,.15);--prism-danger-fg:  #fca5a5; --prism-danger-bd:  rgba(248,113,113,.35);
+  --prism-neutral-bg: rgba(148,163,184,.15);--prism-neutral-fg: #cbd5e1; --prism-neutral-bd: rgba(148,163,184,.3);
+  --prism-override-bg:rgba(167,139,250,.16);--prism-override-fg:#d4c2ff; --prism-override-bd:rgba(167,139,250,.38);
+}
+
+/* ---------- Status badges (colour + icon + text, never colour alone) ---------- */
+.prism-badge {
+  display: inline-flex; align-items: center; gap: .4em;
+  padding: .22em .7em; border-radius: 999px; border: 1px solid transparent;
+  font-size: .78rem; font-weight: 600; line-height: 1.45; white-space: nowrap; vertical-align: middle;
+}
+.prism-badge i { font-size: .85em; }
+.prism-badge.is-small { font-size: .72rem; padding: .12em .55em; }
+.prism-badge.tone-success  { background: var(--prism-success-bg);  color: var(--prism-success-fg);  border-color: var(--prism-success-bd); }
+.prism-badge.tone-info     { background: var(--prism-info-bg);     color: var(--prism-info-fg);     border-color: var(--prism-info-bd); }
+.prism-badge.tone-warning  { background: var(--prism-warning-bg);  color: var(--prism-warning-fg);  border-color: var(--prism-warning-bd); }
+.prism-badge.tone-danger   { background: var(--prism-danger-bg);   color: var(--prism-danger-fg);   border-color: var(--prism-danger-bd); }
+.prism-badge.tone-neutral  { background: var(--prism-neutral-bg);  color: var(--prism-neutral-fg);  border-color: var(--prism-neutral-bd); }
+.prism-badge.tone-override { background: var(--prism-override-bg); color: var(--prism-override-fg); border-color: var(--prism-override-bd); }
+.prism-badges { display: flex; flex-wrap: wrap; gap: .3rem; margin-top: .3rem; }
+.prism-sub { display: block; color: var(--prism-muted); font-size: .75rem; font-weight: 500; margin-top: .15rem; }
+
+/* ---------- Buttons ---------- */
+.prism-btn, .prism-link-btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: .5em;
+  padding: .55em 1em; border-radius: 8px; border: 1px solid transparent;
+  font: inherit; font-size: .88rem; font-weight: 600; line-height: 1.2; cursor: pointer; text-decoration: none;
+  transition: background-color .15s, border-color .15s, opacity .15s;
+}
+.prism-btn.is-sm { padding: .38em .75em; font-size: .8rem; }
+.prism-btn.is-primary   { background: #2563eb; color: #fff; }
+.prism-btn.is-primary:hover:not(:disabled)   { background: #1d4ed8; }
+.prism-btn.is-secondary { background: var(--prism-surface); color: var(--prism-text); border-color: var(--prism-border); }
+.prism-btn.is-secondary:hover:not(:disabled) { background: var(--prism-surface-2); }
+.prism-btn.is-danger    { background: #c62828; color: #fff; }
+.prism-btn.is-danger:hover:not(:disabled)    { background: #a81f1f; }
+.prism-btn.is-override  { background: #6d28d9; color: #fff; }
+.prism-btn.is-override:hover:not(:disabled)  { background: #5b21b6; }
+.prism-btn:disabled { opacity: .55; cursor: not-allowed; }
+.prism-link-btn { color: inherit; }
+.prism-btn:focus-visible, .prism-link-btn:focus-visible,
+.prism-tip:focus-visible, .prism-hint-close:focus-visible { outline: 3px solid var(--prism-focus); outline-offset: 2px; }
+
+/* Admin override entry points: always purple, always labelled */
+.prism-override-icon { color: var(--prism-override-fg) !important; }
+.prism-override-note {
+  display: flex; gap: .6rem; align-items: flex-start; padding: .7rem .85rem; margin: .5rem 0 0;
+  border: 1px solid var(--prism-override-bd); background: var(--prism-override-bg); color: var(--prism-override-fg);
+  border-radius: var(--prism-radius); font-size: .85rem; line-height: 1.45;
+}
+
+/* ---------- Empty states ---------- */
+.prism-empty { text-align: center; padding: 1.75rem 1rem; color: var(--prism-muted); }
+.prism-empty > i { font-size: 1.8rem; margin-bottom: .6rem; opacity: .75; }
+.prism-empty h4 { margin: 0 0 .25rem; font-size: 1rem; color: var(--prism-text); font-weight: 600; }
+.prism-empty p { margin: 0 auto .9rem; max-width: 34rem; font-size: .88rem; line-height: 1.5; }
+
+/* ---------- Toasts ---------- */
+.prism-toast-wrap {
+  position: fixed; z-index: 10000; right: 1rem; bottom: 1rem; left: 1rem;
+  display: flex; flex-direction: column; align-items: flex-end; gap: .5rem; pointer-events: none;
+}
+.prism-toast {
+  pointer-events: auto; display: flex; gap: .65rem; align-items: flex-start; max-width: 26rem;
+  padding: .75rem .95rem; border-radius: var(--prism-radius); border: 1px solid var(--prism-border);
+  background: var(--prism-surface); color: var(--prism-text); box-shadow: 0 8px 24px rgba(15, 23, 42, .18);
+  font-size: .88rem; line-height: 1.45;
+  animation: prism-toast-in .18s ease-out;
+}
+.prism-toast > i { margin-top: .15rem; }
+.prism-toast.is-success { border-left: 4px solid #16a34a; } .prism-toast.is-success > i { color: #16a34a; }
+.prism-toast.is-error   { border-left: 4px solid #dc2626; } .prism-toast.is-error   > i { color: #dc2626; }
+.prism-toast.is-info    { border-left: 4px solid #2563eb; } .prism-toast.is-info    > i { color: #2563eb; }
+@keyframes prism-toast-in { from { transform: translateY(8px); opacity: 0; } to { transform: none; opacity: 1; } }
+
+/* ---------- Confirm / reason dialog ---------- */
+.prism-overlay {
+  position: fixed; inset: 0; z-index: 9999; display: flex; align-items: center; justify-content: center;
+  padding: 1rem; background: rgba(15, 23, 42, .55);
+}
+.prism-dialog {
+  width: 100%; max-width: 30rem; max-height: 90vh; overflow: auto; padding: 1.25rem 1.35rem;
+  border-radius: 14px; background: var(--prism-surface); color: var(--prism-text);
+  border: 1px solid var(--prism-border); box-shadow: 0 20px 50px rgba(15, 23, 42, .35);
+}
+.prism-dialog h3 { margin: 0 0 .5rem; font-size: 1.1rem; display: flex; gap: .55rem; align-items: center; }
+.prism-dialog p { margin: 0 0 .85rem; font-size: .9rem; line-height: 1.5; color: var(--prism-muted); }
+.prism-dialog label { display: block; margin: .7rem 0 .25rem; font-size: .82rem; font-weight: 600; }
+.prism-dialog textarea, .prism-dialog select {
+  width: 100%; box-sizing: border-box; padding: .55rem .7rem; font: inherit; font-size: .9rem;
+  color: var(--prism-text); background: var(--prism-surface-2); border: 1px solid var(--prism-border); border-radius: 8px;
+}
+.prism-dialog textarea { min-height: 5.5rem; resize: vertical; }
+.prism-dialog .prism-field-error { color: var(--prism-danger-fg); font-size: .8rem; margin-top: .3rem; min-height: 1.1em; }
+.prism-dialog-actions { display: flex; justify-content: flex-end; gap: .6rem; margin-top: 1rem; flex-wrap: wrap; }
+.prism-version-list { list-style: none; margin: 0; padding: 0; display: grid; gap: .5rem; }
+.prism-version-list li {
+  display: flex; justify-content: space-between; gap: .75rem; align-items: center; flex-wrap: wrap;
+  padding: .6rem .75rem; border: 1px solid var(--prism-border); border-radius: 8px; background: var(--prism-surface-2);
+}
+.prism-version-list small { color: var(--prism-muted); display: block; }
+
+/* ---------- Tooltips + first-time hints ---------- */
+.prism-tip {
+  position: relative; display: inline-flex; align-items: center; justify-content: center;
+  width: 1.15rem; height: 1.15rem; margin-left: .35rem; border-radius: 50%;
+  font-size: .7rem; color: var(--prism-muted); border: 1px solid var(--prism-border); cursor: help; vertical-align: middle;
+}
+.prism-tip::after {
+  content: attr(data-tip); position: absolute; z-index: 50; left: 50%; bottom: calc(100% + .45rem);
+  transform: translateX(-50%); width: max-content; max-width: 17rem; padding: .5rem .65rem; border-radius: 8px;
+  background: #111827; color: #f3f4f6; font-size: .78rem; font-weight: 500; line-height: 1.4; text-align: left;
+  white-space: normal; opacity: 0; pointer-events: none; transition: opacity .12s;
+}
+.prism-tip:hover::after, .prism-tip:focus::after { opacity: 1; }
+
+.prism-hint {
+  display: flex; gap: .75rem; align-items: flex-start; margin: 0 0 1rem; padding: .85rem 1rem;
+  border: 1px solid var(--prism-info-bd); background: var(--prism-info-bg); color: var(--prism-info-fg);
+  border-radius: var(--prism-radius); font-size: .88rem; line-height: 1.5;
+}
+.prism-hint > i { margin-top: .2rem; }
+.prism-hint strong { display: block; margin-bottom: .15rem; }
+.prism-hint ol { margin: .35rem 0 0 1.1rem; padding: 0; }
+.prism-hint-close { margin-left: auto; background: none; border: 0; color: inherit; cursor: pointer; font-size: 1rem; padding: .1rem .3rem; border-radius: 6px; }
+
+/* ---------- Filter bar ---------- */
+.prism-filterbar { display: flex; flex-wrap: wrap; gap: .5rem; align-items: center; margin: 0 0 .75rem; }
+.prism-filterbar input[type="search"], .prism-filterbar select {
+  padding: .5rem .7rem; font: inherit; font-size: .86rem; color: var(--prism-text);
+  background: var(--prism-surface); border: 1px solid var(--prism-border); border-radius: 8px;
+}
+.prism-filterbar input[type="search"] { flex: 1 1 14rem; min-width: 10rem; }
+.prism-hidden { display: none !important; }
+
+/* ---------- Students Needing Attention + student workflow panel ---------- */
+.prism-attn-list, .prism-wf-list { list-style: none; margin: 0; padding: 0; display: grid; gap: .6rem; }
+.prism-attn-item, .prism-wf-item {
+  display: flex; gap: .75rem; justify-content: space-between; align-items: flex-start; flex-wrap: wrap;
+  padding: .75rem .9rem; border: 1px solid var(--prism-border); border-radius: var(--prism-radius);
+  background: var(--prism-surface); color: var(--prism-text);
+}
+.prism-attn-item.sev-3 { border-left: 4px solid #dc2626; }
+.prism-attn-item.sev-2 { border-left: 4px solid #d97706; }
+.prism-attn-item.sev-1 { border-left: 4px solid #2563eb; }
+.prism-attn-main { flex: 1 1 16rem; min-width: 0; }
+.prism-attn-main strong { display: block; }
+.prism-attn-reasons { margin: .35rem 0 0; padding: 0; list-style: none; font-size: .82rem; color: var(--prism-muted); }
+.prism-attn-reasons li { margin: .1rem 0; }
+.prism-wf-summary { display: flex; flex-wrap: wrap; gap: .5rem; margin: 0 0 .85rem; }
+.prism-wf-title { margin: 0 0 .6rem; font-size: 1rem; display: flex; align-items: center; gap: .5rem; }
+.prism-wf-panel { margin: 0 0 1.1rem; }
+.prism-wf-item .prism-wf-actions { display: flex; gap: .5rem; flex-wrap: wrap; align-items: center; }
+.prism-wf-remarks { margin: .35rem 0 0; font-size: .82rem; color: var(--prism-muted); }
+
+/* ---------- Responsive tables -> cards on small screens ---------- */
+@media (max-width: 760px) {
+  table.prism-cards, table.prism-cards tbody { display: block !important; width: 100% !important; }
+  table.prism-cards thead { display: none !important; }
+  table.prism-cards tr {
+    display: block !important; margin: 0 0 .75rem; padding: .35rem .8rem;
+    border: 1px solid var(--prism-border); border-radius: var(--prism-radius); background: var(--prism-surface);
+  }
+  table.prism-cards td {
+    display: flex !important; justify-content: space-between; align-items: flex-start; gap: 1rem;
+    width: auto !important; padding: .45rem 0 !important; border: 0 !important; text-align: right !important;
+  }
+  table.prism-cards td + td { border-top: 1px solid var(--prism-border) !important; }
+  table.prism-cards td[data-label]::before {
+    content: attr(data-label); flex: 0 0 38%; text-align: left; font-size: .76rem; font-weight: 600; color: var(--prism-muted);
+  }
+  table.prism-cards td[colspan] { display: block !important; text-align: center !important; }
+  table.prism-cards td[colspan]::before { content: none; }
+  .prism-toast-wrap { align-items: stretch; }
+  .prism-toast { max-width: none; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .prism-toast { animation: none; }
+  .prism-btn, .prism-link-btn, .prism-tip::after { transition: none; }
+}

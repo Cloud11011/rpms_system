@@ -7,7 +7,7 @@
  * and matching Hostinger's shared-hosting database offering), provides
  * session + role-based access helpers, and wraps the two external services
  * described in the paper:
- *   - OpenRouter API   -> predefined-query document summarization / report drafting
+ *   - OpenRouter API  -> predefined-query document summarization / report drafting
  *   - Google Email API (Gmail) -> automated status/reminder/follow-up notifications
  *
  * All settings below are safe local defaults. For production on Hostinger,
@@ -20,11 +20,11 @@ if (session_status() !== PHP_SESSION_ACTIVE) {
         || (($_SERVER['HTTP_X_FORWARDED_PROTO'] ?? '') === 'https');
     session_set_cookie_params([
         'lifetime' => 0,
-        'path' => '/',
-        'domain' => '',
-        'secure' => $isHttps,   // only require HTTPS-only cookies when actually served over HTTPS
-        'httponly' => true,     // never expose the session cookie to JavaScript
-        'samesite' => 'Lax',    // blocks cross-site POST (CSRF) while still allowing normal link navigation
+        'path'     => '/',
+        'domain'   => '',
+        'secure'   => $isHttps,   // only require HTTPS-only cookies when actually served over HTTPS
+        'httponly' => true,       // never expose the session cookie to JavaScript
+        'samesite' => 'Lax',      // blocks cross-site POST (CSRF) while still allowing normal link navigation
     ]);
     session_start();
 }
@@ -87,10 +87,10 @@ if (!defined('OPENROUTER_MODEL')) {
 // See BACKEND_README.md for the one-time setup steps. PRISM sends mail
 // through this API when all four values below are configured; otherwise it
 // falls back to PHP's mail() and, failing that, logs to storage/mail.log.
-if (!defined('GMAIL_CLIENT_ID'))     define('GMAIL_CLIENT_ID', getenv('GMAIL_CLIENT_ID') ?: '');
+if (!defined('GMAIL_CLIENT_ID')) define('GMAIL_CLIENT_ID', getenv('GMAIL_CLIENT_ID') ?: '');
 if (!defined('GMAIL_CLIENT_SECRET')) define('GMAIL_CLIENT_SECRET', getenv('GMAIL_CLIENT_SECRET') ?: '');
 if (!defined('GMAIL_REFRESH_TOKEN')) define('GMAIL_REFRESH_TOKEN', getenv('GMAIL_REFRESH_TOKEN') ?: '');
-if (!defined('GMAIL_SENDER_EMAIL'))  define('GMAIL_SENDER_EMAIL', getenv('GMAIL_SENDER_EMAIL') ?: '');
+if (!defined('GMAIL_SENDER_EMAIL')) define('GMAIL_SENDER_EMAIL', getenv('GMAIL_SENDER_EMAIL') ?: '');
 if (!defined('MAIL_FROM_NAME')) define('MAIL_FROM_NAME', 'CEU-Malolos RPMS / PRISM');
 
 // Gate for RPMS staff self-registration (register.php). Empty by default,
@@ -123,18 +123,21 @@ function db(): PDO
     if ($pdo instanceof PDO) {
         return $pdo;
     }
+
     $dsn = 'mysql:host=' . DB_HOST . ';port=' . DB_PORT . ';dbname=' . DB_NAME . ';charset=utf8mb4';
     $pdo = new PDO($dsn, DB_USER, DB_PASS, [
-        PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
+        PDO::ATTR_ERRMODE            => PDO::ERRMODE_EXCEPTION,
         PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
-        PDO::ATTR_EMULATE_PREPARES => true,
+        PDO::ATTR_EMULATE_PREPARES   => true,
     ]);
+
     migrate($pdo); // idempotent: safe to run on every request, keeps schema current on upgrades
 
     $hasAdmin = (int)$pdo->query("SELECT COUNT(*) FROM users WHERE role = 'admin'")->fetchColumn();
     if ($hasAdmin === 0) {
         seed($pdo);
     }
+
     return $pdo;
 }
 
@@ -300,15 +303,57 @@ function migrate(PDO $pdo): void
     add_column_if_missing($pdo, 'documents', 'detected_approval_date', "DATE NULL AFTER reviewed_at");
     add_column_if_missing($pdo, 'documents', 'approval_date_source', "VARCHAR(20) NULL COMMENT 'ai or regex or manual' AFTER detected_approval_date");
 
+    // ---- PRISM v2: workflow clarity, version history, audit trail --------------------------
+    $columnExists = function (string $table, string $column) use ($pdo): bool {
+        $q = $pdo->prepare('SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS
+            WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = :t AND COLUMN_NAME = :c');
+        $q->execute([':t' => $table, ':c' => $column]);
+        return (int)$q->fetchColumn() > 0;
+    };
+
+    // Version history: a re-upload for the same student + stage + document type becomes a new version.
+    add_column_if_missing($pdo, 'documents', 'version_no', "INT NOT NULL DEFAULT 1 AFTER stage");
+    add_column_if_missing($pdo, 'documents', 'is_current', "TINYINT(1) NOT NULL DEFAULT 1 AFTER version_no");
+    add_column_if_missing($pdo, 'documents', 'supersedes_id', "VARCHAR(40) NULL AFTER is_current");
+
+    // Formal RPMS submission + Admin Override marker on documents.
+    $hadRpmsColumn = $columnExists('documents', 'rpms_submitted_at');
+    add_column_if_missing($pdo, 'documents', 'rpms_submitted_at', "DATETIME NULL");
+    add_column_if_missing($pdo, 'documents', 'rpms_submitted_by', "VARCHAR(190) NULL");
+    add_column_if_missing($pdo, 'documents', 'admin_override', "TINYINT(1) NOT NULL DEFAULT 0");
+    add_column_if_missing($pdo, 'documents', 'override_reason', "TEXT NULL");
+    add_column_if_missing($pdo, 'documents', 'override_by', "VARCHAR(190) NULL");
+    add_column_if_missing($pdo, 'documents', 'override_at', "DATETIME NULL");
+    if (!$hadRpmsColumn) {
+        // One-time: documents approved BEFORE this step existed were already treated as done (the stage
+        // advanced on approval), so mark them submitted. Otherwise every old approval would suddenly
+        // show "Ready for Formal RPMS Submission".
+        $pdo->exec("UPDATE documents
+            SET rpms_submitted_at = COALESCE(reviewed_at, uploaded_at),
+                rpms_submitted_by = 'Legacy record (approved before the formal submission step existed)'
+            WHERE review_status = 'Approved' AND rpms_submitted_at IS NULL");
+    }
+
+    // Audit trail: extend the existing activity_logs table (old rows and log_activity() keep working).
+    add_column_if_missing($pdo, 'activity_logs', 'actor_name', "VARCHAR(190) NULL");
+    add_column_if_missing($pdo, 'activity_logs', 'actor_role', "VARCHAR(20) NULL");
+    add_column_if_missing($pdo, 'activity_logs', 'entity_type', "VARCHAR(40) NULL");
+    add_column_if_missing($pdo, 'activity_logs', 'entity_id', "VARCHAR(64) NULL");
+    add_column_if_missing($pdo, 'activity_logs', 'student_id', "INT NULL");
+    add_column_if_missing($pdo, 'activity_logs', 'reason', "TEXT NULL");
+    add_column_if_missing($pdo, 'activity_logs', 'before_value', "VARCHAR(255) NULL");
+    add_column_if_missing($pdo, 'activity_logs', 'after_value', "VARCHAR(255) NULL");
+    add_column_if_missing($pdo, 'activity_logs', 'is_override', "TINYINT(1) NOT NULL DEFAULT 0");
+
     // Seed default stage labels (feature request 7). Safe to re-run --
     // only inserts rows that don't already exist, so an admin's own edits
     // via stage_labels_api.php are never overwritten by this.
     $defaultLabels = [
-        'Stage 1' => 'Protocol Submission',
-        'Stage 2' => 'Initial Ethics Review',
-        'Stage 3' => 'Revisions & Resubmission',
-        'Stage 4' => 'Certificate of Approval',
-        'Stage 5' => 'Continuing Review / Monitoring',
+        'Stage 1'   => 'Protocol Submission',
+        'Stage 2'   => 'Initial Ethics Review',
+        'Stage 3'   => 'Revisions & Resubmission',
+        'Stage 4'   => 'Certificate of Approval',
+        'Stage 5'   => 'Continuing Review / Monitoring',
         'Completed' => 'IERB Process Completed',
     ];
     $insertLabel = $pdo->prepare('INSERT IGNORE INTO stage_labels (stage_key, label) VALUES (:k, :l)');
@@ -565,9 +610,10 @@ function openrouter_generate(string $systemPrompt, string $userContent): ?string
     if (!openrouter_available()) {
         return null;
     }
+
     $payload = json_encode([
-        'model' => OPENROUTER_MODEL,
-        'messages' => [
+        'model'       => OPENROUTER_MODEL,
+        'messages'    => [
             ['role' => 'system', 'content' => $systemPrompt],
             ['role' => 'user', 'content' => mb_substr($userContent, 0, 12000)],
         ],
@@ -577,18 +623,18 @@ function openrouter_generate(string $systemPrompt, string $userContent): ?string
     $ch = curl_init('https://openrouter.ai/api/v1/chat/completions');
     curl_setopt_array($ch, [
         CURLOPT_RETURNTRANSFER => true,
-        CURLOPT_POST => true,
-        CURLOPT_POSTFIELDS => $payload,
-        CURLOPT_TIMEOUT => 40,
-        CURLOPT_HTTPHEADER => [
+        CURLOPT_POST           => true,
+        CURLOPT_POSTFIELDS     => $payload,
+        CURLOPT_TIMEOUT        => 40,
+        CURLOPT_HTTPHEADER     => [
             'Content-Type: application/json',
             'Authorization: Bearer ' . OPENROUTER_API_KEY,
             'HTTP-Referer: https://prism.ceu-malolos.local',
             'X-Title: PRISM RPMS',
         ],
     ]);
-    $response = curl_exec($ch);
-    $status = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+    $response  = curl_exec($ch);
+    $status    = curl_getinfo($ch, CURLINFO_HTTP_CODE);
     $curlError = curl_error($ch);
     curl_close($ch);
 
@@ -632,17 +678,17 @@ function gmail_access_token(): ?string
     $ch = curl_init('https://oauth2.googleapis.com/token');
     curl_setopt_array($ch, [
         CURLOPT_RETURNTRANSFER => true,
-        CURLOPT_POST => true,
-        CURLOPT_POSTFIELDS => http_build_query([
-            'client_id' => GMAIL_CLIENT_ID,
+        CURLOPT_POST           => true,
+        CURLOPT_POSTFIELDS     => http_build_query([
+            'client_id'     => GMAIL_CLIENT_ID,
             'client_secret' => GMAIL_CLIENT_SECRET,
             'refresh_token' => GMAIL_REFRESH_TOKEN,
-            'grant_type' => 'refresh_token',
+            'grant_type'    => 'refresh_token',
         ]),
-        CURLOPT_TIMEOUT => 20,
+        CURLOPT_TIMEOUT        => 20,
     ]);
-    $response = curl_exec($ch);
-    $status = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+    $response  = curl_exec($ch);
+    $status    = curl_getinfo($ch, CURLINFO_HTTP_CODE);
     $curlError = curl_error($ch);
     curl_close($ch);
 
@@ -655,7 +701,7 @@ function gmail_access_token(): ?string
         log_api_error('gmail_token', 'No access_token in response: ' . substr((string)$response, 0, 500));
         return null;
     }
-    $cachedToken = $decoded['access_token'];
+    $cachedToken  = $decoded['access_token'];
     $cachedExpiry = time() + (int)($decoded['expires_in'] ?? 3000) - 60;
     return $cachedToken;
 }
@@ -681,16 +727,16 @@ function gmail_api_send(string $to, string $subject, string $body): bool
     $ch = curl_init('https://gmail.googleapis.com/gmail/v1/users/me/messages/send');
     curl_setopt_array($ch, [
         CURLOPT_RETURNTRANSFER => true,
-        CURLOPT_POST => true,
-        CURLOPT_POSTFIELDS => json_encode(['raw' => $encoded]),
-        CURLOPT_TIMEOUT => 20,
-        CURLOPT_HTTPHEADER => [
+        CURLOPT_POST           => true,
+        CURLOPT_POSTFIELDS     => json_encode(['raw' => $encoded]),
+        CURLOPT_TIMEOUT        => 20,
+        CURLOPT_HTTPHEADER     => [
             'Authorization: Bearer ' . $accessToken,
             'Content-Type: application/json',
         ],
     ]);
-    $response = curl_exec($ch);
-    $status = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+    $response  = curl_exec($ch);
+    $status    = curl_getinfo($ch, CURLINFO_HTTP_CODE);
     $curlError = curl_error($ch);
     curl_close($ch);
 

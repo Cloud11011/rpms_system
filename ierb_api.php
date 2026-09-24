@@ -1,10 +1,13 @@
 <?php
+
 require __DIR__ . '/config.php';
+require_once __DIR__ . '/workflow.php';
+
 $user = api_require_login(['admin', 'adviser', 'student']);
 $pdo = db();
 $action = $_GET['action'] ?? 'list';
 
-function ierb_row(array $r): array
+function ierb_row(array $r, array $docCounts = []): array
 {
     return [
         'id' => (int)$r['id'],
@@ -23,10 +26,14 @@ function ierb_row(array $r): array
         'lastSubmissionDate' => $r['last_submission_date'],
         'progress' => stage_progress_percent($r['stage']),
         'adviser' => $r['adviser_name'] ?? null,
+        // Current document versions by workflow state (see workflow.php)
+        'docs' => $docCounts[(int)$r['id']] ?? empty_doc_counts(),
     ];
 }
 
-if ($action === 'list') {
+/** Student rows visible to this user (students: themselves, advisers: their advisees, admin: all). */
+function load_student_rows(PDO $pdo, array $user): array
+{
     if ($user['role'] === 'student') {
         $stmt = $pdo->prepare('SELECT s.*, f.full_name AS adviser_name FROM students s
             LEFT JOIN advisers f ON f.id = s.adviser_id WHERE s.email = :e');
@@ -40,8 +47,62 @@ if ($action === 'list') {
         $stmt = $pdo->query('SELECT s.*, f.full_name AS adviser_name FROM students s
             LEFT JOIN advisers f ON f.id = s.adviser_id ORDER BY s.full_name');
     }
-    $rows = $stmt->fetchAll();
-    json_out(['ok' => true, 'records' => array_map('ierb_row', $rows)]);
+    return $stmt->fetchAll();
+}
+
+/** Optional filters shared by the list and the CSV export: q, stage, status. */
+function apply_student_filters(array $rows, array $query): array
+{
+    $q = mb_strtolower(trim((string)($query['q'] ?? '')));
+    $stage = trim((string)($query['stage'] ?? ''));
+    $status = trim((string)($query['status'] ?? ''));
+    if ($q === '' && $stage === '' && $status === '') {
+        return $rows;
+    }
+    return array_values(array_filter($rows, function ($r) use ($q, $stage, $status) {
+        if ($stage !== '' && $r['stage'] !== $stage) return false;
+        if ($status !== '' && $r['status'] !== $status) return false;
+        if ($q !== '') {
+            $hay = mb_strtolower(implode(' ', [
+                $r['protocol_code'] ?? '', $r['student_id'], $r['full_name'], $r['email'],
+                $r['research_title'], $r['research_group'], $r['course'], $r['adviser_name'] ?? '',
+            ]));
+            if (mb_strpos($hay, $q) === false) return false;
+        }
+        return true;
+    }));
+}
+
+/** Spreadsheet formula-injection guard for CSV cells. */
+function csv_safe($value): string
+{
+    $s = (string)($value ?? '');
+    if ($s !== '' && in_array($s[0], ['=', '+', '-', '@', "\t", "\r"], true)) {
+        return "'" . $s;
+    }
+    return $s;
+}
+
+/** Plain-language description of a stage/status change, e.g. "Stage: A -> B; Status: On Track -> Delayed". */
+function describe_progress_change(array $old, string $newStage, string $newStatus): string
+{
+    $parts = [];
+    if ($old['stage'] !== $newStage) {
+        $parts[] = 'Stage: ' . stage_label($old['stage']) . ' (' . $old['stage'] . ') -> ' . stage_label($newStage) . ' (' . $newStage . ')';
+    }
+    if ($old['status'] !== $newStatus) {
+        $parts[] = 'Status: ' . $old['status'] . ' -> ' . $newStatus;
+    }
+    return implode('; ', $parts);
+}
+
+// ---------------------------------------------------------------------
+// list (search + filters: ?q=&stage=&status=)
+// ---------------------------------------------------------------------
+if ($action === 'list') {
+    $rows = apply_student_filters(load_student_rows($pdo, $user), $_GET);
+    $counts = student_document_counts($pdo);
+    json_out(['ok' => true, 'records' => array_map(fn($r) => ierb_row($r, $counts), $rows)]);
 }
 
 if ($action === 'history') {
@@ -54,7 +115,7 @@ if ($action === 'history') {
             json_out(['ok' => false, 'message' => 'Not authorized.'], 403);
         }
     }
-    $stmt = $pdo->prepare('SELECT * FROM ierb_history WHERE student_id = :id ORDER BY created_at DESC');
+    $stmt = $pdo->prepare('SELECT * FROM ierb_history WHERE student_id = :id ORDER BY created_at DESC, id DESC');
     $stmt->execute([':id' => $studentId]);
     json_out(['ok' => true, 'history' => $stmt->fetchAll()]);
 }
@@ -64,9 +125,121 @@ if ($action === 'stage_distribution') {
     json_out(['ok' => true, 'distribution' => $rows]);
 }
 
+// ---------------------------------------------------------------------
+// needs_attention: students who need someone to act (admin: all, adviser: own students)
+// ---------------------------------------------------------------------
+if ($action === 'needs_attention') {
+    api_require_login(['admin', 'adviser']);
+    $all = students_needing_attention($pdo, $user);
+    $limit = max(1, min(100, (int)($_GET['limit'] ?? 15)));
+    json_out(['ok' => true, 'total' => count($all), 'students' => array_slice($all, 0, $limit),
+        'thresholds' => ['reviewDays' => ATTENTION_REVIEW_DAYS, 'unsubmittedDays' => ATTENTION_UNSUBMITTED_DAYS,
+                         'overdueDays' => ATTENTION_OVERDUE_DAYS]]);
+}
+
+// ---------------------------------------------------------------------
+// export_csv: the student progress list (same scope + filters as list)
+// ---------------------------------------------------------------------
+if ($action === 'export_csv') {
+    api_require_login(['admin', 'adviser']);
+    $rows = apply_student_filters(load_student_rows($pdo, $user), $_GET);
+    $counts = student_document_counts($pdo);
+    $attention = [];
+    foreach (students_needing_attention($pdo, $user) as $a) {
+        $attention[$a['id']] = implode(' | ', array_column($a['reasons'], 'label'));
+    }
+
+    $filename = 'prism_student_progress_' . date('Ymd_His') . '.csv';
+    header('Content-Type: text/csv; charset=UTF-8');
+    header('Content-Disposition: attachment; filename="' . $filename . '"');
+    header('Cache-Control: no-store');
+    $out = fopen('php://output', 'w');
+    fwrite($out, "\xEF\xBB\xBF"); // UTF-8 BOM so Excel reads accents correctly
+    $put = function (array $cells) use ($out) {
+        fputcsv($out, array_map('csv_safe', $cells), ',', '"', '');
+    };
+    $put(['Protocol Code', 'Student ID', 'Student Name', 'Email', 'Course', 'Research Group', 'Research Title',
+        'Adviser', 'Stage', 'Stage Name', 'Status', 'Progress (%)', 'Pending Requirements', 'Last Submission Date',
+        'Docs Pending Adviser Review', 'Docs Ready for RPMS Submission', 'Docs Submitted to RPMS', 'Needs Attention']);
+    foreach ($rows as $r) {
+        $c = $counts[(int)$r['id']] ?? empty_doc_counts();
+        $put([
+            $r['protocol_code'] ?? '', $r['student_id'], $r['full_name'], $r['email'], $r['course'],
+            $r['research_group'], $r['research_title'], $r['adviser_name'] ?? '', $r['stage'], stage_label($r['stage']),
+            $r['status'], stage_progress_percent($r['stage']), $r['requirements'], $r['last_submission_date'],
+            $c['pendingReview'], $c['readyForRpms'], $c['submittedToRpms'], $attention[(int)$r['id']] ?? '',
+        ]);
+    }
+    fclose($out);
+    audit_log($user, 'progress_exported', ['entity_type' => 'progress_list', 'details' => 'CSV export, ' . count($rows) . ' rows']);
+    exit;
+}
+
 // Everything below is RPMS-only (or the assigned research adviser, read/annotate only).
 $data = json_body();
 
+// ---------------------------------------------------------------------
+// override (admin only): change a student's stage and/or status, always with a logged reason
+// ---------------------------------------------------------------------
+if ($action === 'override') {
+    api_require_login('admin');
+    $id = (int)($data['id'] ?? 0);
+    $newStage = trim((string)($data['stage'] ?? ''));
+    $newStatus = trim((string)($data['status'] ?? ''));
+    $reason = trim((string)($data['reason'] ?? ''));
+
+    $cur = student_with_adviser($pdo, $id);
+    if (!$cur) {
+        json_out(['ok' => false, 'message' => 'Student record not found.'], 404);
+    }
+    $newStage = $newStage !== '' ? $newStage : $cur['stage'];
+    $newStatus = $newStatus !== '' ? $newStatus : $cur['status'];
+    if (!in_array($newStage, STAGE_SEQUENCE, true)) {
+        json_out(['ok' => false, 'message' => 'Invalid IERB stage.'], 422);
+    }
+    if (!in_array($newStatus, ['On Track', 'Pending', 'Delayed'], true)) {
+        json_out(['ok' => false, 'message' => 'Invalid status.'], 422);
+    }
+    if ($newStage === $cur['stage'] && $newStatus === $cur['status']) {
+        json_out(['ok' => false, 'message' => 'Nothing to override: the stage and status already have those values.'], 422);
+    }
+    if (!override_reason_valid($reason)) {
+        json_out(['ok' => false, 'requiresReason' => true, 'message' => override_reason_message()], 422);
+    }
+
+    $change = describe_progress_change($cur, $newStage, $newStatus);
+    try {
+        $pdo->beginTransaction();
+        $pdo->prepare('UPDATE students SET stage = :stage, status = :status, updated_at = NOW() WHERE id = :id')
+            ->execute([':stage' => $newStage, ':status' => $newStatus, ':id' => $id]);
+        record_history($pdo, $id, $newStage, $newStatus, 'ADMIN OVERRIDE - ' . $change . '. Reason: ' . $reason,
+            null, $user['full_name'] . ' (Admin Override)');
+        $pdo->commit();
+    } catch (Throwable $e) {
+        if ($pdo->inTransaction()) {
+            $pdo->rollBack();
+        }
+        log_api_error('ierb_override', $e->getMessage());
+        json_out(['ok' => false, 'message' => 'The override could not be saved. Nothing was changed.'], 500);
+    }
+
+    audit_log($user, 'admin_override_student_progress', [
+        'entity_type' => 'student', 'entity_id' => $id, 'student_id' => $id, 'override' => true, 'reason' => $reason,
+        'before' => $cur['stage'] . ' / ' . $cur['status'], 'after' => $newStage . ' / ' . $newStatus, 'details' => $change,
+    ]);
+
+    notify_student($pdo, $id, 'PRISM IERB Progress Updated',
+        "Hello {$cur['full_name']},\n\nAn RPMS administrator updated your IERB record.\n$change\nReason: $reason\n\n- CEU Malolos RPMS / PRISM",
+        "RPMS updated your IERB record. $change. Reason: $reason", 'Status Update', $user['full_name'] . ' (Admin Override)');
+    notify_adviser_of_student($pdo, $id, 'Admin Override on a student record',
+        "{$user['full_name']} updated {$cur['full_name']}'s IERB record. $change. Reason: $reason", 'Admin Override', $user['full_name']);
+
+    json_out(['ok' => true, 'message' => "Admin Override saved for {$cur['full_name']}. Your name, the time and your reason were added to the audit log."]);
+}
+
+// ---------------------------------------------------------------------
+// save (admin only)
+// ---------------------------------------------------------------------
 if ($action === 'save') {
     api_require_login('admin');
     $id = (int)($data['id'] ?? 0);
@@ -80,10 +253,12 @@ if ($action === 'save') {
     $status = trim((string)($data['status'] ?? 'On Track'));
     $requirements = trim((string)($data['requirements'] ?? ''));
     $submissionDate = trim((string)($data['submissionDate'] ?? '')) ?: null;
+    $reason = trim((string)($data['reason'] ?? ''));
 
     if ($studentIdCode === '' || $name === '' || !filter_var($email, FILTER_VALIDATE_EMAIL)) {
         json_out(['ok' => false, 'message' => 'Student ID, name, and a valid email are required.'], 422);
     }
+
     $validStages = STAGE_SEQUENCE;
     $validStatuses = ['On Track', 'Pending', 'Delayed'];
     if (!in_array($stage, $validStages, true)) {
@@ -91,6 +266,23 @@ if ($action === 'save') {
     }
     if (!in_array($status, $validStatuses, true)) {
         json_out(['ok' => false, 'message' => 'Invalid status.'], 422);
+    }
+
+    // Changing stage/status of an existing record is an Admin Override: always logged.
+    $override = false;
+    $change = '';
+    if ($id > 0) {
+        $old = $pdo->prepare('SELECT stage, status FROM students WHERE id = :id');
+        $old->execute([':id' => $id]);
+        $oldRow = $old->fetch();
+        if ($oldRow && ($oldRow['stage'] !== $stage || $oldRow['status'] !== $status)) {
+            if (REQUIRE_OVERRIDE_REASON_ON_SAVE && !override_reason_valid($reason)) {
+                json_out(['ok' => false, 'requiresReason' => true,
+                    'message' => 'Changing the stage or status is an Admin Override. ' . override_reason_message()], 422);
+            }
+            $override = true;
+            $change = describe_progress_change($oldRow, $stage, $status);
+        }
     }
 
     try {
@@ -111,19 +303,43 @@ if ($action === 'save') {
                     ':req' => $requirements, ':sub' => $submissionDate]);
             $id = (int)$pdo->lastInsertId();
         }
+
+        $note = 'IERB entry saved by RPMS.'
+            . ($override ? ' ADMIN OVERRIDE - ' . $change . '. Reason: ' . ($reason !== '' ? $reason : '(none recorded)') : '');
         $pdo->prepare('INSERT INTO ierb_history (student_id, stage, status, note, requirements, submission_date, actor)
             VALUES (:sid,:stage,:status,:note,:req,:sub,:actor)')->execute([
-            ':sid' => $id, ':stage' => $stage, ':status' => $status, ':note' => 'IERB entry saved by RPMS.',
-            ':req' => $requirements, ':sub' => $submissionDate, ':actor' => $user['full_name'],
+            ':sid' => $id, ':stage' => $stage, ':status' => $status, ':note' => $note,
+            ':req' => $requirements, ':sub' => $submissionDate,
+            ':actor' => $user['full_name'] . ($override ? ' (Admin Override)' : ''),
         ]);
         $pdo->commit();
     } catch (Throwable $e) {
-        $pdo->rollBack();
-        json_out(['ok' => false, 'message' => 'That student ID or email is already in use.'], 422);
+        if ($pdo->inTransaction()) {
+            $pdo->rollBack();
+        }
+        if ($e instanceof PDOException && (string)$e->getCode() === '23000') {
+            json_out(['ok' => false, 'message' => 'That student ID or email is already in use.'], 422);
+        }
+        log_api_error('ierb_save', $e->getMessage());
+        json_out(['ok' => false, 'message' => 'The IERB record could not be saved. Please try again.'], 500);
     }
 
-    log_activity($user['email'], 'ierb_saved', "student_id=$studentIdCode stage=$stage status=$status");
-    json_out(['ok' => true, 'id' => $id]);
+    audit_log($user, $override ? 'admin_override_student_progress' : 'ierb_saved', [
+        'entity_type' => 'student', 'entity_id' => $id, 'student_id' => $id, 'override' => $override,
+        'reason' => $override ? ($reason !== '' ? $reason : '(none recorded)') : null,
+        'details' => $override ? $change : "student_id=$studentIdCode stage=$stage status=$status",
+        'after' => "$stage / $status",
+    ]);
+    if ($override) {
+        notify_student($pdo, $id, 'PRISM IERB Progress Updated',
+            "Hello $name,\n\nAn RPMS administrator updated your IERB record.\n$change"
+                . ($reason !== '' ? "\nReason: $reason" : '') . "\n\n- CEU Malolos RPMS / PRISM",
+            "RPMS updated your IERB record. $change" . ($reason !== '' ? ". Reason: $reason" : ''),
+            'Status Update', $user['full_name']);
+    }
+
+    json_out(['ok' => true, 'id' => $id, 'override' => $override,
+        'message' => "IERB record for $name saved." . ($override ? ' The stage/status change was logged as an Admin Override.' : '')]);
 }
 
 if ($action === 'note') {
@@ -131,7 +347,7 @@ if ($action === 'note') {
     $studentId = (int)($data['studentId'] ?? 0);
     $note = trim((string)($data['note'] ?? ''));
     if ($studentId <= 0 || $note === '') {
-        json_out(['ok' => false, 'message' => 'A note is required.'], 422);
+        json_out(['ok' => false, 'message' => 'Write a note before saving.'], 422);
     }
     $current = $pdo->prepare('SELECT stage, status FROM students WHERE id = :id');
     $current->execute([':id' => $studentId]);
@@ -139,21 +355,26 @@ if ($action === 'note') {
     if (!$row) {
         json_out(['ok' => false, 'message' => 'Student not found.'], 404);
     }
-    $pdo->prepare('INSERT INTO ierb_history (student_id, stage, status, note, actor)
-        VALUES (:sid,:stage,:status,:note,:actor)')->execute([
-        ':sid' => $studentId, ':stage' => $row['stage'], ':status' => $row['status'],
-        ':note' => $note, ':actor' => $user['full_name'] . ' (' . ucfirst($user['role']) . ')',
-    ]);
-    log_activity($user['email'], 'ierb_note_added', "student_id=$studentId");
-    json_out(['ok' => true]);
+    record_history($pdo, $studentId, $row['stage'], $row['status'], $note, null,
+        $user['full_name'] . ' (' . ucfirst($user['role']) . ')');
+    audit_log($user, 'ierb_note_added', ['entity_type' => 'student', 'entity_id' => $studentId,
+        'student_id' => $studentId, 'details' => mb_substr($note, 0, 200)]);
+    json_out(['ok' => true, 'message' => 'Note saved to the progress history.']);
 }
 
 if ($action === 'delete') {
     api_require_login('admin');
     $id = (int)($data['id'] ?? $_GET['id'] ?? 0);
+    $info = $pdo->prepare('SELECT student_id, full_name, protocol_code, stage, status FROM students WHERE id = :id');
+    $info->execute([':id' => $id]);
+    $gone = $info->fetch();
     $pdo->prepare('DELETE FROM students WHERE id = :id')->execute([':id' => $id]);
-    log_activity($user['email'], 'ierb_deleted', "id=$id");
-    json_out(['ok' => true]);
+    audit_log($user, 'ierb_deleted', [
+        'entity_type' => 'student', 'entity_id' => $id,
+        'details' => $gone ? "{$gone['full_name']} ({$gone['student_id']}" . (!empty($gone['protocol_code']) ? ", {$gone['protocol_code']}" : '')
+            . "), {$gone['stage']} / {$gone['status']}" : "id=$id (not found)",
+    ]);
+    json_out(['ok' => true, 'message' => $gone ? "Deleted the IERB record for {$gone['full_name']}." : 'Record deleted.']);
 }
 
 json_out(['ok' => false, 'message' => 'Unknown action.'], 400);
