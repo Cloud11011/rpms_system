@@ -48,8 +48,9 @@
             const res = await fetch('ierb_api.php?action=list');
             const data = await res.json();
             records = data.ok ? data.records : [];
-        } catch (_) {
+        } catch (e) {
             records = [];
+            PrismUI.toast(e.message || 'Could not load IERB records.', 'error');
         }
         renderOverview();
         renderTable();
@@ -87,7 +88,11 @@
 
         if (!rows.length) {
             const tr = document.createElement('tr');
-            tr.innerHTML = '<td colspan="7" class="empty-state">No IERB records match your filters.</td>';
+            tr.innerHTML = '<td colspan="7">' + PrismUI.emptyState({
+                icon:'fa-magnifying-glass',
+                title:records.length ? 'No matching IERB records' : 'No IERB records yet',
+                text:records.length ? 'Try clearing or changing the filters.' : 'Add a student record to begin tracking IERB progress.'
+            }) + '</td>';
             tableBody.appendChild(tr);
             return;
         }
@@ -192,30 +197,42 @@
             submissionDate: document.getElementById('entrySubmissionDate').value,
             status: document.getElementById('entryStatus').value,
         };
-        try {
-            const res = await fetch('ierb_api.php?action=save', {
-                method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload),
+        const original = editingId ? records.find(r => r.id === editingId) : null;
+        if (original && (original.stage !== payload.stage || original.status !== payload.status)) {
+            const answer = await PrismUI.confirm({
+                title:'Confirm progress override', icon:'fa-user-shield', tone:'override', confirmText:'Save changes',
+                message:'Changing the official stage or status is recorded as an Admin Override and the student will be notified.',
+                reasonLabel:'Reason for this change', reasonRequired:true
             });
-            const data = await res.json();
-            if (!data.ok) { alert(data.message || 'This entry could not be saved.'); return; }
+            if (!answer) return;
+            payload.reason = answer.reason;
+        }
+        const saveBtn = entryForm.querySelector('[type="submit"]');
+        saveBtn.disabled = true;
+        try {
+            const data = await PrismUI.postJson('ierb_api.php?action=save', payload);
             closeEntryModal();
             await loadRecords();
-        } catch (_) {
-            alert('Could not reach the server to save this entry.');
+            PrismUI.toast(data.message || 'IERB record saved.', 'success');
+        } catch (e) {
+            PrismUI.toast(e.message, 'error');
+        } finally {
+            saveBtn.disabled = false;
         }
     });
 
     async function deleteEntry(record) {
-        if (!confirm(`Delete the IERB record for ${record.name}?`)) return;
+        const answer = await PrismUI.confirm({
+            title:'Delete student record', icon:'fa-trash', tone:'danger', confirmText:'Delete',
+            message:`Delete the IERB/student record for ${record.name}? The associated login will be deactivated.`
+        });
+        if (!answer) return;
         try {
-            const res = await fetch('ierb_api.php?action=delete', {
-                method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id: record.id }),
-            });
-            const data = await res.json();
-            if (!data.ok) { alert(data.message || 'Could not delete this record.'); return; }
+            const data = await PrismUI.postJson('ierb_api.php?action=delete', { id: record.id });
             await loadRecords();
-        } catch (_) {
-            alert('Could not reach the server to delete this record.');
+            PrismUI.toast(data.message || 'Record deleted.', 'success');
+        } catch (e) {
+            PrismUI.toast(e.message, 'error');
         }
     }
 
@@ -243,34 +260,32 @@
 
     actionForm.addEventListener('submit', async event => {
         event.preventDefault();
+        const note = actionText.value.trim();
+        if (!note) { PrismUI.toast('Write a note before saving.', 'error'); actionText.focus(); return; }
+        const btn = actionForm.querySelector('[type="submit"]');
+        btn.disabled = true;
         try {
-            const res = await fetch('ierb_api.php?action=note', {
-                method: 'POST', headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ studentId: noteTargetId, note: actionText.value.trim() }),
-            });
-            const data = await res.json();
-            if (!data.ok) { alert(data.message || 'The note could not be saved.'); return; }
+            const data = await PrismUI.postJson('ierb_api.php?action=note', { studentId: noteTargetId, note });
             closeActionModal();
-        } catch (_) {
-            alert('Could not reach the server to save this note.');
+            PrismUI.toast(data.message || 'Note saved.', 'success');
+        } catch (e) {
+            PrismUI.toast(e.message, 'error');
+        } finally {
+            btn.disabled = false;
         }
     });
 
     async function sendFollowup(record) {
-        if (!confirm(`Send an IERB follow-up email to ${record.name}?`)) return;
+        const answer = await PrismUI.confirm({
+            title:'Send follow-up', icon:'fa-paper-plane', confirmText:'Send follow-up',
+            message:`Send the standard IERB progress follow-up to ${record.name} at ${record.email}?`
+        });
+        if (!answer) return;
         try {
-            const res = await fetch('send_followup.php', {
-                method: 'POST', headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    email: record.email, name: record.name, studentDbId: record.id,
-                    studentId: record.studentId, stage: record.stage, status: record.status,
-                    requirements: record.requirements,
-                }),
-            });
-            const data = await res.json();
-            alert(data.message || (data.ok ? 'Follow-up sent.' : 'Could not send follow-up.'));
-        } catch (_) {
-            alert('Could not reach the server to send the follow-up email.');
+            const data = await PrismUI.postJson('send_followup.php', { studentDbId: record.id });
+            PrismUI.toast(data.message || 'Follow-up sent.', 'success');
+        } catch (e) {
+            PrismUI.toast(e.message, 'error');
         }
     }
 
