@@ -29,6 +29,12 @@ if ($password === '' || strlen($password) < 8) {
     header('Location: reset_password.php?token=' . urlencode($token));
     exit;
 }
+if (strlen($password) > 200) {
+    if ($pdo->inTransaction()) $pdo->rollBack();
+    $_SESSION['error'] = 'Password is too long.';
+    header('Location: reset_password.php?token=' . urlencode($token));
+    exit;
+}
 if ($password !== $confirm) {
     if ($pdo->inTransaction()) $pdo->rollBack();
     $_SESSION['error'] = 'Password and confirmation do not match.';
