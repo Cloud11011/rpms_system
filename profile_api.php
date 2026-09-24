@@ -49,8 +49,18 @@ if ($action === 'change_password') {
     if (password_verify($new, $user['password_hash'])) {
         json_out(['ok' => false, 'message' => 'Choose a new password that is different from your current password.'], 422);
     }
-    $pdo->prepare('UPDATE users SET password_hash = :p, must_change_password = 0 WHERE id = :id')
-        ->execute([':p' => password_hash($new, PASSWORD_DEFAULT), ':id' => $user['id']]);
+    $pdo->beginTransaction();
+    try {
+        $pdo->prepare('UPDATE users SET password_hash = :p, must_change_password = 0 WHERE id = :id')
+            ->execute([':p' => password_hash($new, PASSWORD_DEFAULT), ':id' => $user['id']]);
+        $pdo->prepare('UPDATE password_resets SET used = 1 WHERE user_id = :id AND used = 0')
+            ->execute([':id' => $user['id']]);
+        $pdo->commit();
+    } catch (Throwable $e) {
+        if ($pdo->inTransaction()) $pdo->rollBack();
+        json_out(['ok' => false, 'message' => 'Password could not be changed. Please try again.'], 500);
+    }
+    session_regenerate_id(true);
     $_SESSION['must_change_password'] = 0;
     log_activity($user['email'], 'password_changed', '');
     json_out(['ok' => true]);
