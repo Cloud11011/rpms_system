@@ -103,9 +103,12 @@ document.addEventListener('DOMContentLoaded', () => {
         submitBtn.disabled = true;
         try {
             const data = await PrismUI.postJson('notifications_api.php?action=send', payload);
-            PrismUI.toast(data.scheduled
+            const deliveryText = data.scheduled
                 ? `Scheduled for ${data.total} recipient(s).`
-                : `Sent to ${data.sent} of ${data.total} recipient(s).`, 'success');
+                : (data.logged
+                    ? `Delivered to ${data.sent}; logged locally for ${data.logged} recipient(s) because live email is not configured.`
+                    : `Sent to ${data.sent} of ${data.total} recipient(s).`);
+            PrismUI.toast(deliveryText, data.logged ? 'info' : 'success');
             form.reset();
             groupLabel.hidden = true;
             syncScheduleUi();
