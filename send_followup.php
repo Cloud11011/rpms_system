@@ -50,7 +50,7 @@ $pdo->prepare('INSERT INTO notifications (recipient_type, recipient_id, recipien
     VALUES ("student",:sid,:email,:name,:subj,:msg,"Follow-up",:status,:info,NOW(),:by)')
     ->execute([
         ':sid' => $studentDbId, ':email' => $email, ':name' => $safeName, ':subj' => $subject,
-        ':msg' => $message, ':status' => $result['ok'] ? 'Sent' : 'Failed', ':info' => $result['message'],
+        ':msg' => $message, ':status' => $result['ok'] ? (($result['channel'] ?? '') === 'log' ? 'Logged' : 'Sent') : 'Failed', ':info' => $result['message'],
         ':by' => $user['full_name'],
     ]);
 
