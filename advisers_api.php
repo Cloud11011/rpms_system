@@ -137,7 +137,9 @@ if ($action === 'delete') {
         json_out(['ok' => false, 'message' => 'The adviser could not be deleted.'], 500);
     }
     log_activity($user['email'], 'adviser_deleted', "id=$id");
-    json_out(['ok' => true]);
+    json_out(['ok' => true, 'message' => $adviserEmail !== ''
+        ? 'Adviser record deleted, assigned students were unassigned, and the associated login was deactivated.'
+        : 'Adviser record deleted and assigned students were unassigned.']);
 }
 
 json_out(['ok' => false, 'message' => 'Unknown action.'], 400);
