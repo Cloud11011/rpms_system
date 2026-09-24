@@ -6,7 +6,7 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     exit;
 }
 
-$email = trim((string)($_POST['email'] ?? $_POST['username'] ?? ''));
+$email = strtolower(trim((string)($_POST['email'] ?? $_POST['username'] ?? '')));
 $password = (string)($_POST['password'] ?? '');
 
 if ($email === '' || $password === '') {
@@ -28,7 +28,7 @@ if (too_many_recent_failures($email)) {
 // ID as login identifiers) -- role is whatever the matched account's row
 // says, not something the person selects beforehand.
 $stmt = db()->prepare('SELECT * FROM users WHERE email = :e LIMIT 1');
-$stmt->execute([':e' => strtolower($email)]);
+$stmt->execute([':e' => $email]);
 $user = $stmt->fetch();
 
 // Always run password_verify(), even for a nonexistent user, against a
