@@ -179,11 +179,19 @@ document.addEventListener('DOMContentLoaded', () => {
         titleInput.focus();
     }
 
-    function deleteTask(id) {
-        if (!window.confirm('Delete this reminder?')) return;
+    async function deleteTask(id) {
+        const answer = await PrismUI.confirm({
+            title:'Delete reminder', icon:'fa-trash', tone:'danger', confirmText:'Delete',
+            message:'Delete this personal reminder from this browser?'
+        });
+        if (!answer) return;
+        const previous = reminders[selectedDate] ? reminders[selectedDate].slice() : null;
         reminders[selectedDate] = tasksFor(selectedDate).filter(task => task.id !== id);
         if (!reminders[selectedDate].length) delete reminders[selectedDate];
-        save();
+        if (!save()) {
+            if (previous) reminders[selectedDate] = previous;
+            return;
+        }
         resetForm();
         renderAll();
     }
@@ -208,7 +216,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (index >= 0) existing[index] = task;
         else existing.push(task);
         reminders[selectedDate] = existing;
-        save();
+        if (!save()) return;
         resetForm();
         history.replaceState(null, '', '?date=' + encodeURIComponent(selectedDate));
         renderAll();
@@ -227,6 +235,7 @@ document.addEventListener('DOMContentLoaded', () => {
         selectedDate = toDateKey(today);
         visibleMonth = new Date(today.getFullYear(), today.getMonth(), 1);
         resetForm();
+        history.replaceState(null, '', '?date=' + encodeURIComponent(selectedDate));
         renderAll();
     });
 
