@@ -27,6 +27,8 @@ Options -Indexes
     RewriteRule (^|/)\.git(/|$) - [R=404,L]
     # Private documents/reports must only be served through authenticated PHP endpoints.
     RewriteRule ^storage(?:/|$) - [F,L]
-    # Maintenance utilities are CLI/cron only and must never be directly web-accessible.
+    # The one-time Gmail OAuth helper is browser-based but also enforces loopback-only access itself.
+    RewriteRule ^tools/gmail_get_refresh_token\.php$ - [L]
+    # Other maintenance utilities are CLI/cron only and must never be directly web-accessible.
     RewriteRule ^tools(?:/|$) - [F,L]
 </IfModule>
