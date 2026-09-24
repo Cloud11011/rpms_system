@@ -20,7 +20,7 @@
         container.innerHTML = STAGE_ORDER.map(key => `
             <div style="display:grid;grid-template-columns:110px 1fr auto;gap:8px;align-items:center">
                 <strong style="font-size:9px;color:var(--text-secondary)">${key}</strong>
-                <input data-stage="${key}" value="${(labels[key] || key).replace(/"/g, '&quot;')}"
+                <input data-stage="${key}" maxlength="190" value="${(labels[key] || key).replace(/"/g, '&quot;')}"
                     style="padding:8px;border:1px solid var(--border-color);border-radius:6px;background:var(--input-bg);color:var(--text-primary);font:9px Montserrat">
                 <button data-save="${key}" class="management-primary" style="padding:8px 12px;font-size:9px">Save</button>
             </div>`).join('');
@@ -33,14 +33,10 @@
         const input = container.querySelector(`input[data-stage="${key}"]`);
         btn.disabled = true;
         try {
-            const res = await fetch('stage_labels_api.php?action=save', {
-                method: 'POST', headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ stageKey: key, label: input.value.trim() }),
-            });
-            const data = await res.json();
-            if (!data.ok) alert(data.message || 'Could not save this label.');
-        } catch (_) {
-            alert('Could not reach the server.');
+            const data = await PrismUI.postJson('stage_labels_api.php?action=save', { stageKey: key, label: input.value.trim() });
+            PrismUI.toast('Stage label saved.', 'success');
+        } catch (e) {
+            PrismUI.toast(e.message, 'error');
         } finally {
             btn.disabled = false;
         }
