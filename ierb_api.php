@@ -358,10 +358,12 @@ if ($action === 'save') {
                         ':n' => $name, ':e' => $email, ':ref' => $studentIdCode]);
                 $newLoginUserId = (int)$pdo->lastInsertId();
             } else {
+                $wasInactive = strcasecmp((string)($existingLogin['status'] ?? ''), 'Active') !== 0;
                 $pdo->prepare("UPDATE users SET username=:u, full_name=:n, email=:e, ref_id=:ref, status='Active'
                     WHERE id=:id AND role='student'")
                     ->execute([':u' => $studentIdCode, ':n' => $name, ':e' => $email,
                         ':ref' => $studentIdCode, ':id' => $existingLogin['id']]);
+                if ($wasInactive) $newLoginUserId = (int)$existingLogin['id'];
             }
         }
 
@@ -380,6 +382,9 @@ if ($action === 'save') {
         }
         if ($e instanceof PDOException && (string)$e->getCode() === '23000') {
             json_out(['ok' => false, 'message' => 'That student ID or email is already in use.'], 422);
+        }
+        if ($e instanceof RuntimeException && str_contains($e->getMessage(), 'different account type')) {
+            json_out(['ok' => false, 'message' => $e->getMessage()], 422);
         }
         log_api_error('ierb_save', $e->getMessage());
         json_out(['ok' => false, 'message' => 'The IERB record could not be saved. Please try again.'], 500);
