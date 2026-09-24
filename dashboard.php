@@ -581,7 +581,7 @@ async function generateAIReport(mode = 'summary') {
         renderReportHistory();
         PrismUI.toast(data.aiUsed
             ? 'AI report generated. Review it before distribution.'
-            : 'AI service was unavailable; PRISM used the local fallback summary.', data.aiUsed ? 'success' : 'warning');
+            : 'AI service was unavailable; PRISM used the local fallback summary.', data.aiUsed ? 'success' : 'info');
         window.open(`reports_api.php?action=file&id=${encodeURIComponent(data.report.id)}&download=1`, '_blank', 'noopener');
     } catch (e) {
         PrismUI.toast(e.message || 'The report could not be generated right now.', 'error');
