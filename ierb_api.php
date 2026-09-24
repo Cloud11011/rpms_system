@@ -137,7 +137,15 @@ if ($action === 'history') {
 }
 
 if ($action === 'stage_distribution') {
-    $rows = $pdo->query('SELECT stage, COUNT(*) c FROM students GROUP BY stage')->fetchAll();
+    $distribution = [];
+    foreach (load_student_rows($pdo, $user) as $row) {
+        $stage = (string)$row['stage'];
+        $distribution[$stage] = ($distribution[$stage] ?? 0) + 1;
+    }
+    $rows = [];
+    foreach (STAGE_SEQUENCE as $stage) {
+        $rows[] = ['stage' => $stage, 'c' => $distribution[$stage] ?? 0];
+    }
     json_out(['ok' => true, 'distribution' => $rows]);
 }
 
@@ -224,6 +232,7 @@ if ($action === 'override') {
     }
 
     $change = describe_progress_change($cur, $newStage, $newStatus);
+    $newLoginUserId = null;
     try {
         $pdo->beginTransaction();
         $pdo->prepare('UPDATE students SET stage = :stage, status = :status, updated_at = NOW() WHERE id = :id')
@@ -261,7 +270,7 @@ if ($action === 'save') {
     $id = (int)($data['id'] ?? 0);
     $studentIdCode = trim((string)($data['studentId'] ?? ''));
     $name = trim((string)($data['name'] ?? ''));
-    $email = trim((string)($data['email'] ?? ''));
+    $email = strtolower(trim((string)($data['email'] ?? '')));
     $groupId = trim((string)($data['groupId'] ?? ''));
     $course = trim((string)($data['course'] ?? ''));
     $research = trim((string)($data['research'] ?? ''));
@@ -273,6 +282,19 @@ if ($action === 'save') {
 
     if ($studentIdCode === '' || $name === '' || !filter_var($email, FILTER_VALIDATE_EMAIL)) {
         json_out(['ok' => false, 'message' => 'Student ID, name, and a valid email are required.'], 422);
+    }
+    if (!is_allowed_email_domain($email)) {
+        json_out(['ok' => false, 'message' => 'Only ' . allowed_email_domains_hint() . ' email addresses are allowed.'], 422);
+    }
+    if (mb_strlen($studentIdCode) > 100 || mb_strlen($name) > 190 || mb_strlen($groupId) > 190
+        || mb_strlen($course) > 100 || mb_strlen($research) > 255 || mb_strlen($requirements) > 255) {
+        json_out(['ok' => false, 'message' => 'One or more fields are too long. Please shorten the entry and try again.'], 422);
+    }
+    if ($submissionDate !== null) {
+        $dateObj = DateTime::createFromFormat('Y-m-d', $submissionDate);
+        if (!$dateObj || $dateObj->format('Y-m-d') !== $submissionDate || $submissionDate > date('Y-m-d')) {
+            json_out(['ok' => false, 'message' => 'Latest submission date must be a valid date that is not in the future.'], 422);
+        }
     }
 
     $validStages = STAGE_SEQUENCE;
@@ -312,7 +334,7 @@ if ($action === 'save') {
                 ->execute([':sid' => $studentIdCode, ':name' => $name, ':email' => $email, ':grp' => $groupId,
                     ':course' => $course, ':research' => $research, ':stage' => $stage, ':status' => $status,
                     ':req' => $requirements, ':sub' => $submissionDate, ':id' => $id]);
-            sync_student_login_email($pdo, $previousEmail, $email);
+            sync_student_login_identity($pdo, $previousEmail, $studentIdCode, $name, $email);
         } else {
             $pdo->prepare('INSERT INTO students (student_id, full_name, email, research_group, course,
                 research_title, stage, status, requirements, last_submission_date)
@@ -321,6 +343,26 @@ if ($action === 'save') {
                     ':course' => $course, ':research' => $research, ':stage' => $stage, ':status' => $status,
                     ':req' => $requirements, ':sub' => $submissionDate]);
             $id = (int)$pdo->lastInsertId();
+
+            $collision = $pdo->prepare('SELECT id, role FROM users WHERE email = :e OR username = :u LIMIT 1');
+            $collision->execute([':e' => $email, ':u' => $studentIdCode]);
+            $existingLogin = $collision->fetch();
+            if ($existingLogin && ($existingLogin['role'] ?? '') !== 'student') {
+                throw new RuntimeException('The email or student ID already belongs to a different account type.');
+            }
+            if (!$existingLogin) {
+                $tempPassword = generate_temporary_password();
+                $pdo->prepare('INSERT INTO users (username,password_hash,role,full_name,email,ref_id,must_change_password)
+                    VALUES (:u,:p,"student",:n,:e,:ref,1)')
+                    ->execute([':u' => $studentIdCode, ':p' => password_hash($tempPassword, PASSWORD_DEFAULT),
+                        ':n' => $name, ':e' => $email, ':ref' => $studentIdCode]);
+                $newLoginUserId = (int)$pdo->lastInsertId();
+            } else {
+                $pdo->prepare("UPDATE users SET username=:u, full_name=:n, email=:e, ref_id=:ref, status='Active'
+                    WHERE id=:id AND role='student'")
+                    ->execute([':u' => $studentIdCode, ':n' => $name, ':e' => $email,
+                        ':ref' => $studentIdCode, ':id' => $existingLogin['id']]);
+            }
         }
 
         $note = 'IERB entry saved by RPMS.'
@@ -341,6 +383,10 @@ if ($action === 'save') {
         }
         log_api_error('ierb_save', $e->getMessage());
         json_out(['ok' => false, 'message' => 'The IERB record could not be saved. Please try again.'], 500);
+    }
+
+    if ($newLoginUserId) {
+        send_account_setup_email($pdo, $newLoginUserId, $email, $name);
     }
 
     audit_log($user, $override ? 'admin_override_student_progress' : 'ierb_saved', [
@@ -368,6 +414,9 @@ if ($action === 'note') {
     if ($studentId <= 0 || $note === '') {
         json_out(['ok' => false, 'message' => 'Write a note before saving.'], 422);
     }
+    if (mb_strlen($note) > 500) {
+        json_out(['ok' => false, 'message' => 'Notes must be 500 characters or fewer.'], 422);
+    }
     if (!adviser_may_access_student($pdo, $user, $studentId)) {
         json_out(['ok' => false, 'message' => 'This student is assigned to another adviser.'], 403);
     }
@@ -387,16 +436,29 @@ if ($action === 'note') {
 if ($action === 'delete') {
     api_require_login('admin');
     $id = (int)($data['id'] ?? 0);
-    $info = $pdo->prepare('SELECT student_id, full_name, protocol_code, stage, status FROM students WHERE id = :id');
+    $info = $pdo->prepare('SELECT student_id, full_name, email, protocol_code, stage, status FROM students WHERE id = :id');
     $info->execute([':id' => $id]);
     $gone = $info->fetch();
-    $pdo->prepare('DELETE FROM students WHERE id = :id')->execute([':id' => $id]);
+    if (!$gone) {
+        json_out(['ok' => false, 'message' => 'Student record not found.'], 404);
+    }
+    try {
+        $pdo->beginTransaction();
+        $pdo->prepare('DELETE FROM students WHERE id = :id')->execute([':id' => $id]);
+        $pdo->prepare("UPDATE users SET status='Inactive' WHERE role='student' AND email=:email")
+            ->execute([':email' => $gone['email']]);
+        $pdo->commit();
+    } catch (Throwable $e) {
+        if ($pdo->inTransaction()) $pdo->rollBack();
+        log_api_error('ierb_delete', $e->getMessage());
+        json_out(['ok' => false, 'message' => 'The student record could not be deleted.'], 500);
+    }
     audit_log($user, 'ierb_deleted', [
         'entity_type' => 'student', 'entity_id' => $id,
-        'details' => $gone ? "{$gone['full_name']} ({$gone['student_id']}" . (!empty($gone['protocol_code']) ? ", {$gone['protocol_code']}" : '')
-            . "), {$gone['stage']} / {$gone['status']}" : "id=$id (not found)",
+        'details' => "{$gone['full_name']} ({$gone['student_id']}" . (!empty($gone['protocol_code']) ? ", {$gone['protocol_code']}" : '')
+            . "), {$gone['stage']} / {$gone['status']}",
     ]);
-    json_out(['ok' => true, 'message' => $gone ? "Deleted the IERB record for {$gone['full_name']}." : 'Record deleted.']);
+    json_out(['ok' => true, 'message' => "Deleted the IERB record for {$gone['full_name']} and deactivated the associated login."]);
 }
 
 json_out(['ok' => false, 'message' => 'Unknown action.'], 400);
