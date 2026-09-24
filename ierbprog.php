@@ -17,6 +17,7 @@ $profile_img = 'assets/images/default-avatar.svg';
     <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="assets/css/dashboard.css">
     <link rel="stylesheet" href="assets/css/ierbprog.css">
+    <link rel="stylesheet" href="assets/css/prism-ui.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.6.0/css/all.min.css">
 </head>
 <body data-ierb-user="<?php echo htmlspecialchars(hash('sha256', $user_email), ENT_QUOTES, 'UTF-8'); ?>" data-role="<?php echo htmlspecialchars($_SESSION['account_type'] ?? 'admin', ENT_QUOTES, 'UTF-8'); ?>">
@@ -90,6 +91,7 @@ $profile_img = 'assets/images/default-avatar.svg';
         <form id="ierbActionForm"><label for="ierbActionText" id="ierbActionLabel">Internal note</label><textarea id="ierbActionText" rows="4" maxlength="500" required></textarea><div class="ierb-modal-actions"><button type="button" class="ierb-secondary" id="cancelIerbAction">Cancel</button><button type="submit" class="ierb-primary"><i class="fa-solid fa-floppy-disk"></i> Save</button></div></form>
     </div>
 </div>
+<script src="assets/js/prism-ui.js"></script>
 <script src="assets/js/ierbprog.js"></script>
 </body>
 </html>
