@@ -23,11 +23,18 @@ if ($action === 'update_profile') {
     if (mb_strlen($name) > 190) {
         json_out(['ok' => false, 'message' => 'Name must be 190 characters or fewer.'], 422);
     }
-    $pdo->prepare('UPDATE users SET full_name = :n WHERE id = :id')->execute([':n' => $name, ':id' => $user['id']]);
-    if ($user['role'] === 'student') {
-        $pdo->prepare('UPDATE students SET full_name = :n WHERE email = :e')->execute([':n' => $name, ':e' => $user['email']]);
-    } elseif ($user['role'] === 'adviser') {
-        $pdo->prepare('UPDATE advisers SET full_name = :n WHERE email = :e')->execute([':n' => $name, ':e' => $user['email']]);
+    $pdo->beginTransaction();
+    try {
+        $pdo->prepare('UPDATE users SET full_name = :n WHERE id = :id')->execute([':n' => $name, ':id' => $user['id']]);
+        if ($user['role'] === 'student') {
+            $pdo->prepare('UPDATE students SET full_name = :n WHERE email = :e')->execute([':n' => $name, ':e' => $user['email']]);
+        } elseif ($user['role'] === 'adviser') {
+            $pdo->prepare('UPDATE advisers SET full_name = :n WHERE email = :e')->execute([':n' => $name, ':e' => $user['email']]);
+        }
+        $pdo->commit();
+    } catch (Throwable $e) {
+        if ($pdo->inTransaction()) $pdo->rollBack();
+        json_out(['ok' => false, 'message' => 'Profile could not be updated. Please try again.'], 500);
     }
     $_SESSION['user_name'] = $name;
     log_activity($user['email'], 'profile_updated', '');
