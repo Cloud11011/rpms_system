@@ -306,6 +306,9 @@ if ($action === 'generate') {
         }
     } else {
         $stage = trim((string)($data['stage'] ?? ''));
+        if ($stage !== '' && !in_array($stage, STAGE_SEQUENCE, true)) {
+            json_out(['ok' => false, 'message' => 'Invalid IERB stage for this report.'], 422);
+        }
         $students = report_students_for_user($pdo, $user, $stage);
 
         $scopeTitle = $user['role'] === 'adviser' ? 'Assigned Students' : 'All Students';
