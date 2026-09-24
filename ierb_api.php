@@ -309,6 +309,9 @@ if ($action === 'save') {
     $override = false;
     $change = '';
     $previousEmail = '';
+    $newLoginUserId = null;
+    $newLoginTempPassword = null;
+    $setupDelivery = null;
     if ($id > 0) {
         $old = $pdo->prepare('SELECT stage, status, email FROM students WHERE id = :id');
         $old->execute([':id' => $id]);
@@ -351,6 +354,7 @@ if ($action === 'save') {
             }
             if (!$existingLogin) {
                 $tempPassword = generate_temporary_password();
+                $newLoginTempPassword = $tempPassword;
                 $pdo->prepare('INSERT INTO users (username,password_hash,role,full_name,email,ref_id,must_change_password)
                     VALUES (:u,:p,"student",:n,:e,:ref,1)')
                     ->execute([':u' => $studentIdCode, ':p' => password_hash($tempPassword, PASSWORD_DEFAULT),
@@ -358,11 +362,21 @@ if ($action === 'save') {
                 $newLoginUserId = (int)$pdo->lastInsertId();
             } else {
                 $wasInactive = strcasecmp((string)($existingLogin['status'] ?? ''), 'Active') !== 0;
-                $pdo->prepare("UPDATE users SET username=:u, full_name=:n, email=:e, ref_id=:ref, status='Active'
-                    WHERE id=:id AND role='student'")
-                    ->execute([':u' => $studentIdCode, ':n' => $name, ':e' => $email,
-                        ':ref' => $studentIdCode, ':id' => $existingLogin['id']]);
-                if ($wasInactive) $newLoginUserId = (int)$existingLogin['id'];
+                if ($wasInactive) {
+                    $tempPassword = generate_temporary_password();
+                    $newLoginTempPassword = $tempPassword;
+                    $pdo->prepare("UPDATE users SET username=:u, full_name=:n, email=:e, ref_id=:ref, status='Active',
+                            password_hash=:p, must_change_password=1
+                        WHERE id=:id AND role='student'")
+                        ->execute([':u' => $studentIdCode, ':n' => $name, ':e' => $email, ':ref' => $studentIdCode,
+                            ':p' => password_hash($tempPassword, PASSWORD_DEFAULT), ':id' => $existingLogin['id']]);
+                    $newLoginUserId = (int)$existingLogin['id'];
+                } else {
+                    $pdo->prepare("UPDATE users SET username=:u, full_name=:n, email=:e, ref_id=:ref
+                        WHERE id=:id AND role='student'")
+                        ->execute([':u' => $studentIdCode, ':n' => $name, ':e' => $email,
+                            ':ref' => $studentIdCode, ':id' => $existingLogin['id']]);
+                }
             }
         }
 
@@ -390,7 +404,7 @@ if ($action === 'save') {
     }
 
     if ($newLoginUserId) {
-        send_account_setup_email($pdo, $newLoginUserId, $email, $name);
+        $setupDelivery = send_account_setup_email($pdo, $newLoginUserId, $email, $name);
     }
 
     audit_log($user, $override ? 'admin_override_student_progress' : 'ierb_saved', [
@@ -407,8 +421,17 @@ if ($action === 'save') {
             'Status Update', $user['full_name']);
     }
 
-    json_out(['ok' => true, 'id' => $id, 'override' => $override,
-        'message' => "IERB record for $name saved." . ($override ? ' The stage/status change was logged as an Admin Override.' : '')]);
+    $response = ['ok' => true, 'id' => $id, 'override' => $override,
+        'message' => "IERB record for $name saved." . ($override ? ' The stage/status change was logged as an Admin Override.' : '')];
+    if ($newLoginUserId) {
+        $response['accountCreated'] = true;
+        $response['setupChannel'] = $setupDelivery['channel'] ?? 'none';
+        $response['setupMessage'] = $setupDelivery['message'] ?? '';
+        if (($setupDelivery['channel'] ?? 'none') === 'log' || !($setupDelivery['ok'] ?? false)) {
+            $response['temporaryPassword'] = $newLoginTempPassword;
+        }
+    }
+    json_out($response);
 }
 
 if ($action === 'note') {
