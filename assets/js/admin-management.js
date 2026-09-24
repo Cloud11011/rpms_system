@@ -179,6 +179,8 @@
                 document.getElementById('accountStatus').value = record.status || 'Active';
             } else {
                 document.getElementById('research').value = record.research || '';
+                document.getElementById('course').value = record.course || '';
+                document.getElementById('requirements').value = record.requirements || '';
                 document.getElementById('group').value = record.group || '';
                 document.getElementById('adviser').value = record.adviserId || '';
                 document.getElementById('stage').value = record.stage || 'Stage 1';
@@ -237,6 +239,8 @@
             payload.studentId = accountIdField.value.trim();
             payload.research = document.getElementById('research').value.trim();
             payload.group = document.getElementById('group').value.trim();
+            payload.course = document.getElementById('course').value.trim();
+            payload.requirements = document.getElementById('requirements').value.trim();
             payload.adviserId = document.getElementById('adviser').value || null;
             payload.stage = document.getElementById('stage').value;
             payload.status = document.getElementById('recordStatus').value;
