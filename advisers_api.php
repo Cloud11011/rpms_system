@@ -37,13 +37,16 @@ if ($action === 'save') {
     $id = (int)($data['id'] ?? 0);
     $employeeId = trim((string)($data['employeeId'] ?? ''));
     $name = trim((string)($data['name'] ?? ''));
-    $email = trim((string)($data['email'] ?? ''));
+    $email = strtolower(trim((string)($data['email'] ?? '')));
     $department = trim((string)($data['department'] ?? ''));
     $groups = trim((string)($data['groups'] ?? ''));
     $status = trim((string)($data['status'] ?? 'Active'));
 
     if ($employeeId === '' || $name === '' || !filter_var($email, FILTER_VALIDATE_EMAIL)) {
         json_out(['ok' => false, 'message' => 'Employee ID, name, and a valid email are required.'], 422);
+    }
+    if (mb_strlen($employeeId) > 100 || mb_strlen($name) > 190 || mb_strlen($department) > 190 || mb_strlen($groups) > 255) {
+        json_out(['ok' => false, 'message' => 'One or more fields are too long. Please shorten the entry and try again.'], 422);
     }
     if (!is_allowed_email_domain($email)) {
         json_out(['ok' => false, 'message' => 'Only ' . allowed_email_domains_hint() . ' email addresses are allowed.'], 422);
@@ -71,8 +74,10 @@ if ($action === 'save') {
                 ->execute([':eid' => $employeeId, ':name' => $name, ':email' => $email, ':dept' => $department,
                     ':grp' => $groups, ':status' => $status, ':id' => $id]);
             if ($oldEmail !== '') {
-                $pdo->prepare("UPDATE users SET email = :new, status = :status WHERE email = :old AND role = 'adviser'")
-                    ->execute([':new' => $email, ':status' => $status, ':old' => $oldEmail]);
+                $pdo->prepare("UPDATE users SET username=:u, full_name=:n, email=:new, ref_id=:ref, status=:status
+                    WHERE email=:old AND role='adviser'")
+                    ->execute([':u' => $employeeId, ':n' => $name, ':new' => $email, ':ref' => $employeeId,
+                        ':status' => $status, ':old' => $oldEmail]);
             }
         } else {
             $stmt = $pdo->prepare('INSERT INTO advisers (employee_id, full_name, email, department, assigned_groups, status)
@@ -95,7 +100,7 @@ if ($action === 'save') {
         }
         $pdo->commit();
     } catch (Throwable $e) {
-        $pdo->rollBack();
+        if ($pdo->inTransaction()) $pdo->rollBack();
         json_out(['ok' => false, 'message' => 'That employee ID or email is already in use.'], 422);
     }
 
