@@ -286,7 +286,7 @@ try {
 </main>
 </div>
 
-<script>window.PRISM_STAGE_LABELS = <?php echo json_encode(stage_labels_map()); ?>;</script>
+<script>window.PRISM_STAGE_LABELS = <?php echo json_encode(stage_labels_map(), JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT); ?>;</script>
 <script src="assets/js/prism-ui.js"></script>
 <!-- MODAL: DASHBOARD DAY TASKS -->
 <div class="modal-overlay" id="dashboardDayModal">
