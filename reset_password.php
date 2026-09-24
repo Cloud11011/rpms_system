@@ -22,7 +22,7 @@ if (!$tokenValid) {
 
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-    <title>Reset Password | AI Workload Assistant</title>
+    <title>Reset Password | PRISM</title>
 
     <link rel="icon" type="image/png" href="assets/images/prismicon.png">
     <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600;700&display=swap" rel="stylesheet">
@@ -87,6 +87,8 @@ if (!$tokenValid) {
                 name="password"
                 id="password"
                 placeholder="New Password"
+                autocomplete="new-password"
+                minlength="8"
                 required>
 
                 <span class="toggle-password">
@@ -106,6 +108,8 @@ if (!$tokenValid) {
                 name="confirm_password"
                 id="confirmPassword"
                 placeholder="Confirm Password"
+                autocomplete="new-password"
+                minlength="8"
                 required>
 
                 <span class="toggle-password">
