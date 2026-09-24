@@ -209,7 +209,7 @@
           return;
         }
         const values = o.collect ? o.collect(m.dialog) : {};
-        const problem = o.validate ? o.validate(values) : null;
+        const problem = o.validate ? o.validate(values, reason) : null;
         if (problem) { err.textContent = problem; return; }
         m.close();
         resolve({ reason: reason, values: values });
