@@ -15,6 +15,14 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const esc = v => String(v ?? '').replace(/[&<>'"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' })[c]);
     const isAdmin = document.body.dataset.userRole === 'admin';
+    function downloadReport(id) {
+        const link = document.createElement('a');
+        link.href = `reports_api.php?action=file&download=1&id=${encodeURIComponent(id)}`;
+        link.download = '';
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+    }
 
     function openModal(m) { m.classList.add('show'); m.style.display = 'flex'; }
     function closeModal(m) { m.classList.remove('show'); m.style.display = 'none'; }
@@ -52,7 +60,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 note.textContent = 'Report generated using AI. Review it before sharing officially.';
             }
             await loadReports();
-            window.open(`reports_api.php?action=file&id=${encodeURIComponent(data.report.id)}&download=1`, '_blank');
+            downloadReport(data.report.id);
         } catch (_) {
             note.textContent = 'Could not reach the server to generate this report.';
             note.classList.add('warn');
@@ -70,15 +78,26 @@ document.addEventListener('DOMContentLoaded', () => {
         const select = document.getElementById('reportStudent');
         select.replaceChildren();
         try {
-            const res = await fetch('ierb_api.php?action=list');
-            const data = await res.json();
-            (data.ok ? data.records : []).forEach(r => {
+            const data = await PrismUI.request('ierb_api.php?action=list');
+            (data.records || []).forEach(r => {
                 const opt = document.createElement('option');
                 opt.value = r.id;
                 opt.textContent = `${r.name} (${r.studentId})`;
                 select.appendChild(opt);
             });
-        } catch (_) { /* leave empty */ }
+            if (!select.options.length) {
+                const opt = document.createElement('option');
+                opt.value = '';
+                opt.textContent = 'No students available';
+                select.appendChild(opt);
+            }
+        } catch (e) {
+            const opt = document.createElement('option');
+            opt.value = '';
+            opt.textContent = 'Could not load students';
+            select.appendChild(opt);
+            PrismUI.toast(e.message, 'error');
+        }
     }
 
     async function loadDocumentOptions() {
@@ -89,26 +108,29 @@ document.addEventListener('DOMContentLoaded', () => {
         blank.textContent = '— Select an uploaded document —';
         select.appendChild(blank);
         try {
-            const res = await fetch('documents_api.php?action=list');
-            const data = await res.json();
-            (data.ok ? data.documents : []).forEach(d => {
+            const data = await PrismUI.request('documents_api.php?action=list');
+            (data.documents || []).forEach(d => {
                 const opt = document.createElement('option');
                 opt.value = d.id;
                 opt.textContent = `${d.originalName} (${d.student || 'Unassigned'})`;
                 select.appendChild(opt);
             });
-        } catch (_) { /* leave empty */ }
+            if (select.options.length === 1) blank.textContent = '— No repository documents available —';
+        } catch (e) {
+            blank.textContent = '— Could not load repository documents —';
+            PrismUI.toast(e.message, 'error');
+        }
     }
 
     let reports = [];
 
     async function loadReports() {
         try {
-            const res = await fetch('reports_api.php?action=list');
-            const data = await res.json();
-            reports = data.ok ? data.reports : [];
-        } catch (_) {
+            const data = await PrismUI.request('reports_api.php?action=list');
+            reports = data.reports || [];
+        } catch (e) {
             reports = [];
+            PrismUI.toast(e.message, 'error');
         }
         renderReports();
     }
@@ -148,13 +170,18 @@ document.addEventListener('DOMContentLoaded', () => {
                 del.title = 'Delete';
                 del.innerHTML = '<i class="fa-solid fa-trash"></i>';
                 del.addEventListener('click', async () => {
-                    if (!confirm(`Delete report "${r.title}"?`)) return;
-                    const res = await fetch('reports_api.php?action=delete', {
-                        method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id: r.id }),
+                    const answer = await PrismUI.confirm({
+                        title:'Delete report', icon:'fa-trash', tone:'danger', confirmText:'Delete',
+                        message:`Delete “${r.title}”? This removes the generated PDF from PRISM.`
                     });
-                    const data = await res.json();
-                    if (!data.ok) alert(data.message || 'The report could not be deleted.');
-                    await loadReports();
+                    if (!answer) return;
+                    try {
+                        const data = await PrismUI.postJson('reports_api.php?action=delete', { id: r.id });
+                        PrismUI.toast(data.message || 'Report deleted.', 'success');
+                        await loadReports();
+                    } catch (e) {
+                        PrismUI.toast(e.message, 'error');
+                    }
                 });
                 actions.append(del);
             }
@@ -164,15 +191,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
     async function generateReport(payload) {
         try {
-            const res = await fetch('reports_api.php?action=generate', {
-                method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload),
-            });
-            const data = await res.json();
-            if (!data.ok) { alert(data.message || 'The report could not be generated.'); return null; }
+            const data = await PrismUI.postJson('reports_api.php?action=generate', payload);
             await loadReports();
+            PrismUI.toast('Report generated successfully.', 'success');
             return data.report;
-        } catch (_) {
-            alert('Could not reach the server to generate this report.');
+        } catch (e) {
+            PrismUI.toast(e.message, 'error');
             return null;
         }
     }
@@ -180,48 +204,40 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('studentReportForm').addEventListener('submit', async event => {
         event.preventDefault();
         const studentId = document.getElementById('reportStudent').value;
-        if (!studentId) { alert('Select a student.'); return; }
+        if (!studentId) { PrismUI.toast('Select a student.', 'error'); return; }
+        const btn = event.target.querySelector('[type="submit"], .generate-report-button');
+        btn.disabled = true;
         const report = await generateReport({ type: 'Student Report', studentId: Number(studentId) });
+        btn.disabled = false;
         if (report) {
             closeModal(studentModal);
-            window.open(`reports_api.php?action=file&id=${encodeURIComponent(report.id)}&download=1`, '_blank');
+            downloadReport(report.id);
         }
     });
 
     document.getElementById('documentReportForm').addEventListener('submit', async event => {
         event.preventDefault();
-        let documentId = document.getElementById('reportDocument').value;
-        const fileInput = document.getElementById('reportDocumentFile');
+        const documentId = document.getElementById('reportDocument').value;
         const submitBtn = event.target.querySelector('[type="submit"], .generate-report-button');
+        if (!documentId) { PrismUI.toast('Select a repository document.', 'error'); return; }
         submitBtn.disabled = true;
         try {
-            if (!documentId && fileInput.files.length) {
-                const formData = new FormData();
-                formData.append('document', fileInput.files[0]);
-                formData.append('documentType', 'Other');
-                formData.append('stage', 'Stage 1');
-                const uploadRes = await fetch('documents_api.php?action=upload', { method: 'POST', body: formData });
-                const uploadData = await uploadRes.json();
-                if (!uploadData.ok) { alert(uploadData.message || 'Upload failed.'); return; }
-                documentId = uploadData.document.id;
-            }
-            if (!documentId) { alert('Select or upload a document.'); return; }
-
-            const summarizeRes = await fetch(`documents_api.php?action=summarize&id=${encodeURIComponent(documentId)}`, { method: 'POST' });
-            const summarizeData = await summarizeRes.json();
-            if (!summarizeData.ok) { alert(summarizeData.message || 'The document could not be summarized.'); return; }
-
+            const summarizeData = await PrismUI.request(`documents_api.php?action=summarize&id=${encodeURIComponent(documentId)}`, { method: 'POST' });
+            if (!summarizeData.summary) throw new Error('The document summary could not be generated.');
             const report = await generateReport({ type: 'Document Summary', documentId });
             if (report) {
                 closeModal(documentModal);
-                window.open(`reports_api.php?action=file&id=${encodeURIComponent(report.id)}&download=1`, '_blank');
+                downloadReport(report.id);
             }
+        } catch (e) {
+            PrismUI.toast(e.message, 'error');
         } finally {
             submitBtn.disabled = false;
         }
     });
 
     document.getElementById('exportExcel').addEventListener('click', () => {
+        if (!reports.length) { PrismUI.toast('There are no report-history rows to export yet.', 'error'); return; }
         const rows = [['Report Name', 'Date Generated', 'Type']];
         reports.forEach(r => rows.push([r.title, r.generated_at, r.type]));
         // Prefix any cell that starts with =, +, -, @, tab, or CR with a leading
