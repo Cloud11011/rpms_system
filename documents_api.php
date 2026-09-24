@@ -189,10 +189,19 @@ if ($action === 'upload') {
         $studentDbId = (int)$ownRow['id'];
         $studentName = $ownRow['full_name'];
         $studentStage = $ownRow['stage'];
-    } elseif ($studentName !== '') {
-        $match = $pdo->prepare('SELECT id, full_name, stage FROM students WHERE full_name = :n OR student_id = :n LIMIT 1');
-        $match->execute([':n' => $studentName]);
-        $matchRow = $match->fetch();
+    } else {
+        $requestedStudentId = (int)($_POST['studentDbId'] ?? 0);
+        if ($requestedStudentId > 0) {
+            $match = $pdo->prepare('SELECT id, full_name, stage FROM students WHERE id = :id LIMIT 1');
+            $match->execute([':id' => $requestedStudentId]);
+        } elseif ($studentName !== '') {
+            // Backward-compatible fallback for older clients.
+            $match = $pdo->prepare('SELECT id, full_name, stage FROM students WHERE full_name = :n OR student_id = :n LIMIT 1');
+            $match->execute([':n' => $studentName]);
+        } else {
+            $match = null;
+        }
+        $matchRow = $match ? $match->fetch() : false;
         if ($matchRow) {
             $studentDbId = (int)$matchRow['id'];
             $studentName = $matchRow['full_name'];
