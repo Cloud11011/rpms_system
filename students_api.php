@@ -10,8 +10,7 @@ if (in_array($action, ['save', 'delete'], true)) {
 
 function student_default_password(string $studentId): string
 {
-    // Simple, predictable initial credential; students are told to change it.
-    return 'Ceu@' . preg_replace('/[^A-Za-z0-9]/', '', $studentId);
+    return generate_temporary_password();
 }
 
 function describe_student_progress(string $oldStage, string $oldStatus, string $newStage, string $newStatus): string
@@ -236,7 +235,21 @@ if ($action === 'save') {
 if ($action === 'delete') {
     api_require_login('admin');
     $id = (int)($data['id'] ?? 0);
-    $pdo->prepare('DELETE FROM students WHERE id = :id')->execute([':id' => $id]);
+    $row = $pdo->prepare('SELECT email FROM students WHERE id = :id');
+    $row->execute([':id' => $id]);
+    $studentEmail = (string)($row->fetchColumn() ?: '');
+    $pdo->beginTransaction();
+    try {
+        $pdo->prepare('DELETE FROM students WHERE id = :id')->execute([':id' => $id]);
+        if ($studentEmail !== '') {
+            $pdo->prepare("UPDATE users SET status = 'Inactive' WHERE role = 'student' AND email = :e")
+                ->execute([':e' => $studentEmail]);
+        }
+        $pdo->commit();
+    } catch (Throwable $e) {
+        if ($pdo->inTransaction()) $pdo->rollBack();
+        json_out(['ok' => false, 'message' => 'The student could not be deleted.'], 500);
+    }
     log_activity($user['email'], 'student_deleted', "id=$id");
     json_out(['ok' => true]);
 }
