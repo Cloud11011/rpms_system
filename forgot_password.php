@@ -1,3 +1,6 @@
+<?php
+require __DIR__ . '/config.php';
+?>
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -5,7 +8,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-    <title>Forgot Password | AI Workload Assistant</title>
+    <title>Forgot Password | PRISM</title>
 
     <link rel="icon" type="image/png" href="assets/images/prismicon.png">
     <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600;700&display=swap" rel="stylesheet">
@@ -36,9 +39,7 @@
         </p>
     <?php
 
-    session_start();
-
-    if(isset($_SESSION["error"])){
+        if(isset($_SESSION["error"])){
 
         echo "<div class='error-message'>" . htmlspecialchars($_SESSION["error"], ENT_QUOTES, 'UTF-8') . "</div>";
 
@@ -64,7 +65,8 @@
                 <input
                     type="email"
                     name="email"
-                    placeholder="CEU Email"
+                    placeholder="<?php echo htmlspecialchars(allowed_email_domains_hint(), ENT_QUOTES, 'UTF-8'); ?> email"
+                    autocomplete="email"
                     required>
 
             </div>
