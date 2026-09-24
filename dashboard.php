@@ -483,21 +483,16 @@ function filterAndSortProgress() {
 }
 
 async function sendMonitorFollowup(record) {
-    if (!confirm(`Send an IERB follow-up email to ${record.name}?`)) return;
+    const answer = await PrismUI.confirm({
+        title:'Send follow-up', icon:'fa-paper-plane', confirmText:'Send follow-up',
+        message:`Send the standard IERB progress follow-up to ${record.name} at ${record.email}?`
+    });
+    if (!answer) return;
     try {
-        const res = await fetch('send_followup.php', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                email: record.email, name: record.name, studentDbId: record.id,
-                studentId: record.studentId, stage: record.stage, status: record.status,
-                requirements: record.requirements
-            })
-        });
-        const data = await res.json();
-        PrismUI.toast(data.message || (data.ok ? 'Follow-up sent.' : 'Could not send follow-up.'), data.ok ? 'success' : 'error');
-    } catch (_) {
-        PrismUI.toast('Could not reach the server to send the follow-up email. Try again in a moment.', 'error');
+        const data = await PrismUI.postJson('send_followup.php', { studentDbId: record.id });
+        PrismUI.toast(data.message || 'Follow-up processed.', data.ok ? 'success' : 'error');
+    } catch (e) {
+        PrismUI.toast(e.message || 'Could not send the follow-up email.', 'error');
     }
 }
 
@@ -785,7 +780,11 @@ function closeDashboardDay() {
 function saveDashboardReminders() {
     try {
         localStorage.setItem(reminderStorageKey, JSON.stringify(dashboardReminders));
-    } catch (_) {}
+        return true;
+    } catch (_) {
+        PrismUI.toast('This reminder could not be saved in this browser. Check browser storage settings or clear unused site data.', 'error');
+        return false;
+    }
 }
 function renderDashboardDayTasks() {
     dashboardDayTasks.replaceChildren();
@@ -825,11 +824,19 @@ function renderDashboardDayTasks() {
         dashboardDayTasks.appendChild(item);
     });
 }
-function deleteDashboardTask(id) {
-    if (!confirm('Delete this reminder?')) return;
+async function deleteDashboardTask(id) {
+    const answer = await PrismUI.confirm({
+        title:'Delete reminder', icon:'fa-trash', tone:'danger', confirmText:'Delete',
+        message:'Delete this personal reminder from this browser?'
+    });
+    if (!answer) return;
+    const previous = dashboardReminders[dashboardSelectedDate] ? dashboardReminders[dashboardSelectedDate].slice() : null;
     dashboardReminders[dashboardSelectedDate] = dashboardReminders[dashboardSelectedDate].filter(task => task.id !== id);
     if (!dashboardReminders[dashboardSelectedDate].length) delete dashboardReminders[dashboardSelectedDate];
-    saveDashboardReminders();
+    if (!saveDashboardReminders()) {
+        if (previous) dashboardReminders[dashboardSelectedDate] = previous;
+        return;
+    }
     renderDashboardDayTasks();
     renderCalendar();
     renderDashboardReminders();
@@ -846,7 +853,11 @@ dashboardTaskForm.addEventListener('submit', event => {
         notes: dashboardTaskNotes.value.trim()
     });
     dashboardReminders[dashboardSelectedDate] = tasks;
-    saveDashboardReminders();
+    if (!saveDashboardReminders()) {
+        tasks.pop();
+        if (!tasks.length) delete dashboardReminders[dashboardSelectedDate];
+        return;
+    }
     dashboardTaskForm.reset();
     renderDashboardDayTasks();
     renderCalendar();
