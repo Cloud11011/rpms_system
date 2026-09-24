@@ -65,9 +65,9 @@ try {
 <i class="fa-solid fa-chevron-down dropdown-arrow"></i>
 </div>
 <div class="profile-menu" id="profileMenu">
-<a href="#"><i class="fa-solid fa-user-gear"></i> Profile</a>
-<a href="#"><i class="fa-solid fa-gear"></i> Settings</a>
-<a href="#"><i class="fa-solid fa-sliders"></i> Activity Logs</a>
+<a href="account.php#profile"><i class="fa-solid fa-user-gear"></i> Profile</a>
+<a href="account.php#security"><i class="fa-solid fa-gear"></i> Settings</a>
+<a href="account.php#activity"><i class="fa-solid fa-sliders"></i> Activity Logs</a>
 <hr>
 <a href="logout.php" class="logout-btn"><i class="fa-solid fa-right-from-bracket"></i> Log Out</a>
 </div>
