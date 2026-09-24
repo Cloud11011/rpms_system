@@ -19,7 +19,7 @@ $landing = $user['role'] === 'admin' ? 'dashboard.php' : ($user['role'] === 'adv
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-    <title>Change Your Password | AI Workload Assistant</title>
+    <title>Change Your Password | PRISM</title>
 
     <link rel="icon" type="image/png" href="assets/images/prismicon.png">
     <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600;700&display=swap" rel="stylesheet">
@@ -77,6 +77,8 @@ $landing = $user['role'] === 'admin' ? 'dashboard.php' : ($user['role'] === 'adv
                     id="newPassword"
                     placeholder="New password (min. 8 characters)"
                     minlength="8"
+                    maxlength="200"
+                    autocomplete="new-password"
                     required>
 
                 <span class="toggle-password"><i class="fa-solid fa-eye" id="toggleNewPassword"></i></span>
@@ -92,6 +94,8 @@ $landing = $user['role'] === 'admin' ? 'dashboard.php' : ($user['role'] === 'adv
                     id="confirmPassword"
                     placeholder="Confirm new password"
                     minlength="8"
+                    maxlength="200"
+                    autocomplete="new-password"
                     required>
 
                 <span class="toggle-password"><i class="fa-solid fa-eye" id="toggleConfirmNewPassword"></i></span>
