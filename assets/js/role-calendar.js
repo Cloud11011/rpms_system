@@ -13,6 +13,7 @@ document.addEventListener('DOMContentLoaded', () => {
     let reminders;
     try {
         reminders = JSON.parse(localStorage.getItem(storageKey)) || {};
+        if (typeof reminders !== 'object' || Array.isArray(reminders)) reminders = {};
     } catch (_) {
         reminders = {};
     }
@@ -39,7 +40,15 @@ document.addEventListener('DOMContentLoaded', () => {
     const dashboardMonthLabel = document.getElementById('dashboardMonthLabel');
     const dashboardDeadlineValue = document.getElementById('dashboardDeadlineValue');
 
-    const save = () => { try { localStorage.setItem(storageKey, JSON.stringify(reminders)); } catch (_) { /* quota */ } };
+    const save = () => {
+        try {
+            localStorage.setItem(storageKey, JSON.stringify(reminders));
+            return true;
+        } catch (_) {
+            window.alert('This reminder could not be saved in this browser. Check browser storage settings or clear unused site data.');
+            return false;
+        }
+    };
     const tasksFor = key => Array.isArray(reminders[key]) ? reminders[key] : [];
     const formatDate = key => fromDateKey(key).toLocaleDateString('en-PH', {
         weekday: 'long', month: 'long', day: 'numeric', year: 'numeric',
