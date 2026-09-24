@@ -94,6 +94,7 @@ if ($action === 'send') {
     $isScheduled = $automated;
     $subject = "PRISM $type - CEU Malolos RPMS";
     $sentCount = 0;
+    $loggedCount = 0;
 
     foreach ($recipients as $recipient) {
         $status = $isScheduled ? 'Scheduled' : 'Sent';
@@ -109,6 +110,7 @@ if ($action === 'send') {
             if ($result['ok']) {
                 if (($result['channel'] ?? '') === 'log') {
                     $status = 'Logged';
+                    $loggedCount++;
                 } else {
                     $sentCount++;
                 }
@@ -130,7 +132,8 @@ if ($action === 'send') {
     }
 
     log_activity($user['email'], 'notification_sent', "audience=$audience type=$type recipients=" . count($recipients));
-    json_out(['ok' => true, 'sent' => $sentCount, 'total' => count($recipients), 'scheduled' => $isScheduled]);
+    json_out(['ok' => true, 'sent' => $sentCount, 'logged' => $loggedCount,
+        'total' => count($recipients), 'scheduled' => $isScheduled]);
 }
 
 function resolve_recipients(PDO $pdo, array $user, string $audience, string $group): array
