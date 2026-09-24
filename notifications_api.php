@@ -107,7 +107,11 @@ if ($action === 'send') {
             $delivery = $result['message'];
             $sentAt = date('Y-m-d H:i:s');
             if ($result['ok']) {
-                $sentCount++;
+                if (($result['channel'] ?? '') === 'log') {
+                    $status = 'Logged';
+                } else {
+                    $sentCount++;
+                }
             } else {
                 $status = 'Failed';
             }
