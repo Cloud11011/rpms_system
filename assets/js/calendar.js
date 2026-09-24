@@ -206,6 +206,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const title = titleInput.value.trim();
         if (!title) return;
         const existing = tasksFor(selectedDate);
+        const previous = existing.map(item => ({ ...item }));
         const task = {
             id: editingId.value || `${Date.now()}-${Math.random().toString(16).slice(2)}`,
             title,
@@ -216,7 +217,11 @@ document.addEventListener('DOMContentLoaded', () => {
         if (index >= 0) existing[index] = task;
         else existing.push(task);
         reminders[selectedDate] = existing;
-        if (!save()) return;
+        if (!save()) {
+            if (previous.length) reminders[selectedDate] = previous;
+            else delete reminders[selectedDate];
+            return;
+        }
         resetForm();
         history.replaceState(null, '', '?date=' + encodeURIComponent(selectedDate));
         renderAll();
