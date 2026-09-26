@@ -141,15 +141,6 @@ if ($action === 'save') {
             json_out(['ok' => false, 'message' => 'Selected adviser was not found.'], 422);
         }
     }
-    if ($id > 0 && $user['role'] === 'adviser') {
-        // An adviser may only edit a student that's already assigned to them.
-        $ownershipCheck = $pdo->prepare('SELECT adviser_id FROM students WHERE id = :id');
-        $ownershipCheck->execute([':id' => $id]);
-        $currentAdviserId = $ownershipCheck->fetchColumn();
-        if ((string)$currentAdviserId !== (string)$ownAdviserId) {
-            json_out(['ok' => false, 'message' => 'You can only manage students assigned to you.'], 403);
-        }
-    }
     if ($id === 0) {
         // Creating a new student: the email/ID must not already belong to a
         // login of a DIFFERENT role, or the auto-provisioned account below
@@ -170,11 +161,17 @@ if ($action === 'save') {
     try {
         $pdo->beginTransaction();
         if ($id > 0) {
-            $existing = $pdo->prepare('SELECT * FROM students WHERE id = :id');
+            $existing = $pdo->prepare('SELECT * FROM students WHERE id = :id FOR UPDATE');
             $existing->execute([':id' => $id]);
             $before = $existing->fetch();
             if (!$before) {
-                throw new RuntimeException('Student record not found.');
+                $pdo->rollBack();
+                json_out(['ok' => false, 'message' => 'Student record not found.'], 404);
+            }
+            // Revalidate ownership on the locked row, after any concurrent reassignment.
+            if ($user['role'] === 'adviser' && (string)$before['adviser_id'] !== (string)$ownAdviserId) {
+                $pdo->rollBack();
+                json_out(['ok' => false, 'message' => 'You can only manage students assigned to you.'], 403);
             }
             // Advisers can't touch protocol code / PI status (set to null
             // above) -- keep whatever was already on the record.
@@ -267,11 +264,15 @@ if ($action === 'save') {
         $pdo->commit();
     } catch (Throwable $e) {
         if ($pdo->inTransaction()) $pdo->rollBack();
-        $sqlState = $e instanceof PDOException ? (string)($e->errorInfo[0] ?? '') : '';
-        if ($sqlState === '23000' && stripos($e->getMessage(), 'foreign key') !== false) {
+        $driverCode = $e instanceof PDOException ? (int)($e->errorInfo[1] ?? 0) : 0;
+        if ($driverCode === 1452) {
             json_out(['ok' => false, 'message' => 'The selected adviser is invalid.'], 422);
         }
-        json_out(['ok' => false, 'message' => 'That student ID or email is already in use.'], 422);
+        if ($driverCode === 1062) {
+            json_out(['ok' => false, 'message' => 'That student ID or email is already in use.'], 422);
+        }
+        log_api_error('student_save', $e->getMessage());
+        json_out(['ok' => false, 'message' => 'The student record could not be saved. Please try again.'], 500);
     }
 
     if ($newLoginUserId) {
@@ -287,11 +288,7 @@ if ($action === 'save') {
     $response = ['ok' => true, 'id' => $id, 'message' => 'Student record saved.'];
     if ($newLoginUserId) {
         $response['accountCreated'] = true;
-        $response['setupChannel'] = $setupDelivery['channel'] ?? 'none';
-        $response['setupMessage'] = $setupDelivery['message'] ?? '';
-        if (($setupDelivery['channel'] ?? 'none') === 'log' || !($setupDelivery['ok'] ?? false)) {
-            $response['temporaryPassword'] = $newLoginTempPassword;
-        }
+        $response = array_merge($response, account_setup_response_fields($setupDelivery, $newLoginTempPassword));
     }
     json_out($response);
 }
@@ -299,11 +296,16 @@ if ($action === 'save') {
 if ($action === 'delete') {
     api_require_login('admin');
     $id = (int)($data['id'] ?? 0);
-    $row = $pdo->prepare('SELECT email FROM students WHERE id = :id');
-    $row->execute([':id' => $id]);
-    $studentEmail = (string)($row->fetchColumn() ?: '');
-    $pdo->beginTransaction();
     try {
+        $pdo->beginTransaction();
+        $row = $pdo->prepare('SELECT email FROM students WHERE id = :id FOR UPDATE');
+        $row->execute([':id' => $id]);
+        $before = $row->fetch();
+        if (!$before) {
+            $pdo->rollBack();
+            json_out(['ok' => false, 'message' => 'Student record not found.'], 404);
+        }
+        $studentEmail = (string)$before['email'];
         $pdo->prepare('DELETE FROM students WHERE id = :id')->execute([':id' => $id]);
         if ($studentEmail !== '') {
             $pdo->prepare("UPDATE users SET status = 'Inactive' WHERE role = 'student' AND email = :e")

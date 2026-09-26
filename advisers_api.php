@@ -68,9 +68,14 @@ if ($action === 'save') {
     try {
         $pdo->beginTransaction();
         if ($id > 0) {
-            $beforeStmt = $pdo->prepare('SELECT email FROM advisers WHERE id = :id');
+            $beforeStmt = $pdo->prepare('SELECT email FROM advisers WHERE id = :id FOR UPDATE');
             $beforeStmt->execute([':id' => $id]);
-            $oldEmail = (string)($beforeStmt->fetchColumn() ?: '');
+            $before = $beforeStmt->fetch();
+            if (!$before) {
+                $pdo->rollBack();
+                json_out(['ok' => false, 'message' => 'Adviser record not found.'], 404);
+            }
+            $oldEmail = (string)$before['email'];
             $pdo->prepare('UPDATE advisers SET employee_id=:eid, full_name=:name, email=:email,
                 department=:dept, assigned_groups=:grp, status=:status, updated_at=NOW() WHERE id=:id')
                 ->execute([':eid' => $employeeId, ':name' => $name, ':email' => $email, ':dept' => $department,
@@ -120,7 +125,11 @@ if ($action === 'save') {
         $pdo->commit();
     } catch (Throwable $e) {
         if ($pdo->inTransaction()) $pdo->rollBack();
-        json_out(['ok' => false, 'message' => 'That employee ID or email is already in use.'], 422);
+        if ($e instanceof PDOException && (int)($e->errorInfo[1] ?? 0) === 1062) {
+            json_out(['ok' => false, 'message' => 'That employee ID or email is already in use.'], 422);
+        }
+        log_api_error('adviser_save', $e->getMessage());
+        json_out(['ok' => false, 'message' => 'The adviser record could not be saved. Please try again.'], 500);
     }
 
     if ($newLoginUserId && $status === 'Active') {
@@ -130,22 +139,27 @@ if ($action === 'save') {
     $response = ['ok' => true, 'id' => $id, 'message' => 'Adviser record saved.'];
     if ($newLoginUserId && $status === 'Active') {
         $response['accountCreated'] = true;
-        $response['setupChannel'] = $setupDelivery['channel'] ?? 'none';
-        $response['setupMessage'] = $setupDelivery['message'] ?? '';
-        if (($setupDelivery['channel'] ?? 'none') === 'log' || !($setupDelivery['ok'] ?? false)) {
-            $response['temporaryPassword'] = $newLoginTempPassword;
-        }
+        $response = array_merge($response, account_setup_response_fields($setupDelivery, $newLoginTempPassword));
     }
     json_out($response);
 }
 
 if ($action === 'delete') {
     $id = (int)($data['id'] ?? 0);
-    $row = $pdo->prepare('SELECT email FROM advisers WHERE id = :id');
-    $row->execute([':id' => $id]);
-    $adviserEmail = (string)($row->fetchColumn() ?: '');
-    $pdo->beginTransaction();
     try {
+        $pdo->beginTransaction();
+        // Student writes take student locks first; use the same order when unassigning.
+        $assigned = $pdo->prepare('SELECT id FROM students WHERE adviser_id = :id ORDER BY id FOR UPDATE');
+        $assigned->execute([':id' => $id]);
+        $assigned->fetchAll();
+        $row = $pdo->prepare('SELECT email FROM advisers WHERE id = :id FOR UPDATE');
+        $row->execute([':id' => $id]);
+        $before = $row->fetch();
+        if (!$before) {
+            $pdo->rollBack();
+            json_out(['ok' => false, 'message' => 'Adviser record not found.'], 404);
+        }
+        $adviserEmail = (string)$before['email'];
         $pdo->prepare('UPDATE students SET adviser_id = NULL WHERE adviser_id = :id')->execute([':id' => $id]);
         $pdo->prepare('DELETE FROM advisers WHERE id = :id')->execute([':id' => $id]);
         if ($adviserEmail !== '') {

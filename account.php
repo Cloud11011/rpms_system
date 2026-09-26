@@ -17,12 +17,10 @@ $isAdmin = $authUser['role'] === 'admin';
 <link rel="stylesheet" href="assets/css/dashboard.css">
 <link rel="stylesheet" href="assets/css/admin-management.css">
 <link rel="stylesheet" href="assets/css/prism-ui.css">
+<link rel="stylesheet" href="assets/css/workspace-pages.css">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.6.0/css/all.min.css">
-<style>
-.account-grid{display:grid;grid-template-columns:minmax(0,1fr) minmax(280px,.7fr);gap:16px}.account-card{padding:18px}.account-form{display:grid;gap:12px}.account-form label{display:grid;gap:6px;font-size:11px;font-weight:600}.account-form input{padding:10px 12px;border:1px solid var(--border-color);border-radius:8px;background:var(--input-bg);color:var(--text-primary);font:inherit}.account-form input[readonly]{opacity:.75}.activity-filters{display:grid;grid-template-columns:minmax(180px,1fr) 150px 150px auto auto;gap:8px;align-items:end}.activity-list{display:grid;gap:10px;margin-top:14px}.activity-row{padding:12px;border:1px solid var(--border-color);border-radius:9px;background:var(--card-bg)}.activity-row header{display:flex;justify-content:space-between;gap:10px}.activity-row small{display:block;color:var(--text-secondary);margin-top:5px}.activity-row p{margin:7px 0 0;white-space:pre-wrap}.account-note{font-size:11px;color:var(--text-secondary);margin-top:6px}@media(max-width:900px){.account-grid{grid-template-columns:1fr}.activity-filters{grid-template-columns:1fr 1fr}.activity-filters .wide{grid-column:1/-1}}
-</style>
 </head>
-<body>
+<body class="account-page">
 <div class="container">
 <aside class="sidebar">
 <div class="sidebar-header"><img src="assets/images/prismlogo1.png?v=2" alt="PRISM" class="sidebar-brand-logo"><div class="sidebar-brand-copy"><strong>IERB Progress &amp; Reporting System</strong><span>Centro Escolar University - Malolos &bull; RPMS</span></div></div>
@@ -59,14 +57,13 @@ $isAdmin = $authUser['role'] === 'admin';
 <button class="management-primary" type="submit"><i class="fa-solid fa-key"></i> Change password</button>
 </form><p class="account-note">Use at least 8 characters and choose a password different from your current one.</p></section>
 </div>
-<section class="management-card account-card" id="activity" style="margin-top:16px">
+<section class="management-card account-card activity-card" id="activity">
 <div class="management-card-head"><div><h2>Activity Logs</h2><p><?php echo $isAdmin ? 'Audit activity across PRISM.' : 'Audit activity for students assigned to you.'; ?></p></div><p id="activityCount">0 entries</p></div>
 <form id="activityFilterForm" class="activity-filters">
-<label class="wide">Search<input id="activitySearch" placeholder="Action, student, protocol code, details"></label>
-<label>From<input id="activityFrom" type="date"></label>
-<label>To<input id="activityTo" type="date"></label>
-<label class="check-label"><input id="activityOverride" type="checkbox"> Overrides only</label>
-<button class="management-primary" type="submit"><i class="fa-solid fa-filter"></i> Apply</button>
+<label class="activity-field activity-search-field" for="activitySearch"><span>Search</span><input id="activitySearch" type="search" placeholder="Action, student, protocol code, or details"></label>
+<fieldset class="activity-date-group"><legend>Date range</legend><div class="activity-date-fields"><label for="activityFrom"><span>From</span><input id="activityFrom" type="date"></label><label for="activityTo"><span>To</span><input id="activityTo" type="date"></label></div></fieldset>
+<label class="activity-field" for="activityOverride"><span>Log type</span><span class="activity-override-control"><input id="activityOverride" type="checkbox"><span>Overrides only</span></span></label>
+<div class="activity-submit-field"><span class="activity-control-label">Apply filters</span><button class="management-primary" type="submit"><i class="fa-solid fa-filter"></i> Apply</button></div>
 </form>
 <div id="activityList" class="activity-list"></div>
 </section>

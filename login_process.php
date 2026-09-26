@@ -5,6 +5,7 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     header('Location: login.php');
     exit;
 }
+require_post_same_origin();
 
 $email = strtolower(trim((string)($_POST['email'] ?? $_POST['username'] ?? '')));
 $password = (string)($_POST['password'] ?? '');
@@ -54,6 +55,7 @@ $accountType = $user['role'];
 
 session_regenerate_id(true);
 $_SESSION['user_id'] = $user['id'];
+$_SESSION['credential_fingerprint'] = hash('sha256', $user['password_hash']);
 $_SESSION['user_name'] = $user['full_name'];
 $_SESSION['user_email'] = $user['email'];
 $_SESSION['user_role'] = $accountType === 'admin'

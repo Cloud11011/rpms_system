@@ -21,13 +21,51 @@ if ($user['role'] === 'adviser') {
 }
 
 /** Loads one document joined with the student fields the UI needs. */
-function fetch_doc(PDO $pdo, string $id): ?array
+function fetch_doc(PDO $pdo, string $id, bool $forUpdate = false): ?array
 {
     $stmt = $pdo->prepare('SELECT d.*, s.course, s.protocol_code, s.adviser_id
-        FROM documents d LEFT JOIN students s ON s.id = d.student_id WHERE d.id = :id');
+        FROM documents d LEFT JOIN students s ON s.id = d.student_id WHERE d.id = :id'
+        . ($forUpdate ? ' FOR UPDATE' : ''));
     $stmt->execute([':id' => $id]);
     $row = $stmt->fetch();
     return $row ?: null;
+}
+
+class DocumentWriteConflict extends RuntimeException {}
+
+/** Filesystem cleanup cannot participate in a database rollback; record any failure for follow-up. */
+function remove_document_file(string $path, string $documentId, string $context): void
+{
+    if (is_file($path) && !@unlink($path)) {
+        log_api_error('document_file_cleanup', 'Could not remove file for document ' . $documentId . ' (' . $context . ').');
+    }
+}
+
+/** Serialize document/version writes and reject decisions made from an outdated row. */
+function begin_document_write(PDO $pdo, array $document): void
+{
+    $pdo->beginTransaction();
+    // Use the same lock order as uploads, including when no previous version exists.
+    if (!empty($document['student_id'])) {
+        $student = $pdo->prepare('SELECT id FROM students WHERE id = :id FOR UPDATE');
+        $student->execute([':id' => $document['student_id']]);
+        $student->fetchColumn();
+    }
+    $current = fetch_doc($pdo, (string)$document['id'], true);
+    $fields = ['student_id', 'adviser_id', 'is_current', 'supersedes_id', 'review_status',
+        'review_remarks', 'reviewed_by', 'reviewed_at', 'rpms_submitted_at', 'admin_override',
+        'override_reason', 'override_by', 'override_at'];
+    if ($current) {
+        foreach ($fields as $field) {
+            if (($current[$field] ?? null) !== ($document[$field] ?? null)) {
+                $current = null;
+                break;
+            }
+        }
+    }
+    if (!$current) {
+        throw new DocumentWriteConflict('This document changed while you were working. Refresh to see its latest status and try again.');
+    }
 }
 
 /** May this user change the review status of this document? (Locking is checked separately.) */
@@ -235,22 +273,6 @@ if ($action === 'upload') {
         json_out(['ok' => false, 'message' => 'Invalid IERB stage.'], 422);
     }
 
-    // Is this a new version of something already uploaded?
-    $prev = null;
-    if ($studentDbId) {
-        $p = $pdo->prepare('SELECT * FROM documents
-            WHERE student_id = :sid AND stage = :stage AND document_type = :type AND is_current = 1
-            ORDER BY version_no DESC, uploaded_at DESC LIMIT 1');
-        $p->execute([':sid' => $studentDbId, ':stage' => $stage, ':type' => $documentType]);
-        $prev = $p->fetch() ?: null;
-        if ($prev && $user['role'] === 'student' && document_is_locked($prev)) {
-            json_out(['ok' => false, 'message' => 'This document was already submitted to RPMS on '
-                . date('M j, Y', strtotime($prev['rpms_submitted_at']))
-                . ' and is locked. Contact RPMS if it needs to be replaced.'], 409);
-        }
-    }
-    $versionNo = $prev ? ((int)$prev['version_no'] + 1) : 1;
-
     $id = bin2hex(random_bytes(12));
     $stored = $id . '.' . $ext;
     $target = DOCS_DIR . DIRECTORY_SEPARATOR . $stored;
@@ -273,7 +295,7 @@ if ($action === 'upload') {
         'odt' => ['application/vnd.oasis.opendocument.text', 'application/zip', 'application/octet-stream'],
     ];
     if (isset($allowedMimes[$ext]) && !in_array($mime, $allowedMimes[$ext], true)) {
-        @unlink($target);
+        remove_document_file($target, $id, 'rejected upload');
         json_out(['ok' => false, 'message' => 'The uploaded file content does not match its file extension. Please upload the original document without renaming its extension.'], 415);
     }
 
@@ -293,6 +315,30 @@ if ($action === 'upload') {
 
     try {
         $pdo->beginTransaction();
+        // Lock the student before selecting a version. Two first uploads must also serialize.
+        $studentLock = $pdo->prepare('SELECT id, full_name, stage, adviser_id, email FROM students WHERE id = :id FOR UPDATE');
+        $studentLock->execute([':id' => $studentDbId]);
+        $currentStudent = $studentLock->fetch();
+        if (!$currentStudent
+            || ($user['role'] === 'student' && strcasecmp((string)$currentStudent['email'], (string)$user['email']) !== 0)
+            || ($user['role'] === 'adviser' && (int)$currentStudent['adviser_id'] !== $viewerAdviserId)) {
+            throw new DocumentWriteConflict('The student record changed while the file was uploading. Refresh and select the student again.');
+        }
+        $studentName = $currentStudent['full_name'];
+        if ($user['role'] === 'student' && (string)$currentStudent['stage'] !== (string)$studentStage) {
+            throw new DocumentWriteConflict('Your IERB stage changed while the file was uploading. Refresh and upload the document for your current stage.');
+        }
+        $p = $pdo->prepare('SELECT * FROM documents
+            WHERE student_id = :sid AND stage = :stage AND document_type = :type AND is_current = 1
+            ORDER BY version_no DESC, uploaded_at DESC LIMIT 1 FOR UPDATE');
+        $p->execute([':sid' => $studentDbId, ':stage' => $stage, ':type' => $documentType]);
+        $prev = $p->fetch() ?: null;
+        if ($prev && $user['role'] === 'student' && document_is_locked($prev)) {
+            throw new DocumentWriteConflict('This document was already submitted to RPMS on '
+                . date('M j, Y', strtotime($prev['rpms_submitted_at']))
+                . ' and is locked. Contact RPMS if it needs to be replaced.');
+        }
+        $versionNo = $prev ? ((int)$prev['version_no'] + 1) : 1;
         $pdo->prepare('INSERT INTO documents (id, student_id, student_name, uploaded_by, uploaded_by_role,
                 original_name, stored_name, mime, size, document_type, stage, notes, review_status,
                 detected_approval_date, approval_date_source, version_no, is_current, supersedes_id)
@@ -314,11 +360,17 @@ if ($action === 'upload') {
             $pdo->prepare('UPDATE students SET last_submission_date = CURDATE() WHERE id = :id')->execute([':id' => $studentDbId]);
         }
         $pdo->commit();
+    } catch (DocumentWriteConflict $e) {
+        if ($pdo->inTransaction()) {
+            $pdo->rollBack();
+        }
+        remove_document_file($target, $id, 'upload conflict');
+        json_out(['ok' => false, 'message' => $e->getMessage()], 409);
     } catch (Throwable $e) {
         if ($pdo->inTransaction()) {
             $pdo->rollBack();
         }
-        @unlink($target);
+        remove_document_file($target, $id, 'failed upload');
         log_api_error('document_upload', $e->getMessage());
         json_out(['ok' => false, 'message' => 'The document could not be saved. Please try again.'], 500);
     }
@@ -461,16 +513,31 @@ if ($action === 'review') {
         json_out(['ok' => true, 'noChange' => true, 'message' => 'Nothing to save: the status is already ' . $status . '.']);
     }
 
-    $pdo->prepare('UPDATE documents SET review_status = :s, review_remarks = :r, reviewed_by = :by, reviewed_at = NOW(),
-            admin_override = IF(:changed = 1, 0, admin_override)
-        WHERE id = :id')
-        ->execute([':s' => $status, ':r' => $remarks, ':by' => $user['full_name'], ':changed' => $changed ? 1 : 0, ':id' => $id]);
-
-    // Legacy behaviour (STAGE_ADVANCE_TRIGGER = 'approval'): advance as soon as the adviser approves.
     $advancedTo = null;
-    if ($changed && $status === 'Approved' && STAGE_ADVANCE_TRIGGER === 'approval' && $doc['student_id']) {
-        $advancedTo = advance_stage_for_document($pdo, $doc, $user,
-            $doc['detected_approval_date'] ?: date('Y-m-d'), "after \"$docName\" was approved");
+    try {
+        begin_document_write($pdo, $doc);
+        $pdo->prepare('UPDATE documents SET review_status = :s, review_remarks = :r, reviewed_by = :by, reviewed_at = NOW(),
+                admin_override = IF(:changed = 1, 0, admin_override)
+            WHERE id = :id')
+            ->execute([':s' => $status, ':r' => $remarks, ':by' => $user['full_name'], ':changed' => $changed ? 1 : 0, ':id' => $id]);
+
+        // Legacy behaviour (STAGE_ADVANCE_TRIGGER = 'approval'): advance as soon as the adviser approves.
+        if ($changed && $status === 'Approved' && STAGE_ADVANCE_TRIGGER === 'approval' && $doc['student_id']) {
+            $advancedTo = advance_stage_for_document($pdo, $doc, $user,
+                $doc['detected_approval_date'] ?: date('Y-m-d'), "after \"$docName\" was approved");
+        }
+        $pdo->commit();
+    } catch (DocumentWriteConflict $e) {
+        if ($pdo->inTransaction()) {
+            $pdo->rollBack();
+        }
+        json_out(['ok' => false, 'message' => $e->getMessage()], 409);
+    } catch (Throwable $e) {
+        if ($pdo->inTransaction()) {
+            $pdo->rollBack();
+        }
+        log_api_error('document_review', $e->getMessage());
+        json_out(['ok' => false, 'message' => 'The review could not be saved. Nothing was changed - please try again.'], 500);
     }
 
     // Notify the student.
@@ -554,7 +621,7 @@ if ($action === 'submit_to_rpms') {
     $submittedBy = $user['full_name'] . ($user['role'] === 'admin' ? ' (RPMS Admin' . ($isOverride ? ', Admin Override' : '') . ')' : '');
     $advancedTo = null;
     try {
-        $pdo->beginTransaction();
+        begin_document_write($pdo, $doc);
 
         $sql = 'UPDATE documents SET rpms_submitted_at = NOW(), rpms_submitted_by = :by';
         $params = [':by' => $submittedBy, ':id' => $id];
@@ -589,6 +656,11 @@ if ($action === 'submit_to_rpms') {
             }
         }
         $pdo->commit();
+    } catch (DocumentWriteConflict $e) {
+        if ($pdo->inTransaction()) {
+            $pdo->rollBack();
+        }
+        json_out(['ok' => false, 'message' => $e->getMessage()], 409);
     } catch (Throwable $e) {
         if ($pdo->inTransaction()) {
             $pdo->rollBack();
@@ -666,10 +738,31 @@ if ($action === 'override_review') {
         json_out(['ok' => false, 'message' => 'The status is already ' . $status . '. Nothing to override.'], 422);
     }
 
-    $pdo->prepare('UPDATE documents SET review_status = :s, review_remarks = :r, reviewed_by = :by, reviewed_at = NOW(),
-            admin_override = 1, override_reason = :reason, override_by = :ob, override_at = NOW() WHERE id = :id')
-        ->execute([':s' => $status, ':r' => 'Admin override: ' . $reason, ':by' => $user['full_name'] . ' (Admin Override)',
-            ':reason' => $reason, ':ob' => $user['full_name'], ':id' => $id]);
+    $advancedTo = null;
+    try {
+        begin_document_write($pdo, $doc);
+        $pdo->prepare('UPDATE documents SET review_status = :s, review_remarks = :r, reviewed_by = :by, reviewed_at = NOW(),
+                admin_override = 1, override_reason = :reason, override_by = :ob, override_at = NOW() WHERE id = :id')
+            ->execute([':s' => $status, ':r' => 'Admin override: ' . $reason, ':by' => $user['full_name'] . ' (Admin Override)',
+                ':reason' => $reason, ':ob' => $user['full_name'], ':id' => $id]);
+        if ($status === 'Approved' && STAGE_ADVANCE_TRIGGER === 'approval' && $doc['student_id']) {
+            $advancedTo = advance_stage_for_document($pdo, $doc, $user,
+                $doc['detected_approval_date'] ?: date('Y-m-d'),
+                "after \"$docName\" was approved by Admin Override (reason: $reason)");
+        }
+        $pdo->commit();
+    } catch (DocumentWriteConflict $e) {
+        if ($pdo->inTransaction()) {
+            $pdo->rollBack();
+        }
+        json_out(['ok' => false, 'message' => $e->getMessage()], 409);
+    } catch (Throwable $e) {
+        if ($pdo->inTransaction()) {
+            $pdo->rollBack();
+        }
+        log_api_error('document_override_review', $e->getMessage());
+        json_out(['ok' => false, 'message' => 'The override could not be saved. Nothing was changed - please try again.'], 500);
+    }
 
     audit_log($user, 'admin_override_document', [
         'entity_type' => 'document', 'entity_id' => $id, 'student_id' => $doc['student_id'],
@@ -681,19 +774,27 @@ if ($action === 'override_review') {
         $srow = $pdo->prepare('SELECT full_name FROM students WHERE id = :id');
         $srow->execute([':id' => $doc['student_id']]);
         $sname = (string)$srow->fetchColumn();
-        $next = $status === 'Approved' ? "\n\nNext step: open My Documents in PRISM and click \"Submit to RPMS\"." : '';
+        $next = $status === 'Approved'
+            ? ($advancedTo
+                ? "\n\nYour IERB stage has advanced to: " . stage_label($advancedTo) . " ($advancedTo)."
+                : "\n\nNext step: open My Documents in PRISM and click \"Submit to RPMS\".")
+            : '';
         notify_student($pdo, (int)$doc['student_id'], 'PRISM Document Status Update',
             "Hello $sname,\n\nAn RPMS administrator changed the status of your document \"$docName\" from $before to $status."
                 . "\nReason: $reason$next\n\n- CEU Malolos RPMS / PRISM",
-            "An RPMS administrator changed \"$docName\" to $status. Reason: $reason",
+            "An RPMS administrator changed \"$docName\" to $status. Reason: $reason"
+                . ($advancedTo ? ' Your stage is now ' . stage_label($advancedTo) . '.' : ''),
             'Status Update', $user['full_name'] . ' (Admin Override)');
         notify_adviser_of_student($pdo, (int)$doc['student_id'], 'Admin Override on a document',
-            "{$user['full_name']} changed \"$docName\" from $before to $status. Reason: $reason",
+            "{$user['full_name']} changed \"$docName\" from $before to $status. Reason: $reason"
+                . ($advancedTo ? ' The student advanced to ' . stage_label($advancedTo) . '.' : ''),
             'Admin Override', $user['full_name']);
     }
 
     json_out(['ok' => true, 'workflowState' => document_workflow_state(array_merge($doc, ['review_status' => $status])),
-        'message' => "Admin Override saved: \"$docName\" is now $status. Your name, the time and your reason were added to the audit log."]);
+        'stageAdvanced' => $advancedTo !== null, 'newStage' => $advancedTo,
+        'message' => "Admin Override saved: \"$docName\" is now $status. Your name, the time and your reason were added to the audit log."
+            . ($advancedTo ? ' The student advanced to ' . stage_label($advancedTo) . '.' : '')]);
 }
 
 // ---------------------------------------------------------------------
@@ -716,7 +817,7 @@ if ($action === 'delete') {
     }
     $restoredId = null;
     try {
-        $pdo->beginTransaction();
+        begin_document_write($pdo, $doc);
         $pdo->prepare('DELETE FROM documents WHERE id = :id')->execute([':id' => $id]);
         // Keep the version chain intact: link the next version to this one's predecessor,
         // and if the newest version was deleted, make the previous one current again.
@@ -727,6 +828,11 @@ if ($action === 'delete') {
             $restoredId = $doc['supersedes_id'];
         }
         $pdo->commit();
+    } catch (DocumentWriteConflict $e) {
+        if ($pdo->inTransaction()) {
+            $pdo->rollBack();
+        }
+        json_out(['ok' => false, 'message' => $e->getMessage()], 409);
     } catch (Throwable $e) {
         if ($pdo->inTransaction()) {
             $pdo->rollBack();
@@ -734,9 +840,7 @@ if ($action === 'delete') {
         log_api_error('document_delete', $e->getMessage());
         json_out(['ok' => false, 'message' => 'The document could not be deleted. Nothing was changed.'], 500);
     }
-    if (is_file($path)) {
-        @unlink($path);
-    }
+    remove_document_file($path, (string)$id, 'committed deletion');
     audit_log($user, 'document_deleted', [
         'entity_type' => 'document', 'entity_id' => $id, 'student_id' => $doc['student_id'],
         'before' => document_workflow_state($doc), 'reason' => $reason !== '' ? $reason : null, 'override' => $locked,

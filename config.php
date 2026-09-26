@@ -15,6 +15,10 @@
  * or set the matching environment variables in hPanel.
  */
 
+require_once __DIR__ . '/security.php';
+require_once __DIR__ . '/auth_rate_limit.php';
+install_application_security();
+
 if (session_status() !== PHP_SESSION_ACTIVE) {
     $isHttps = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off')
         || (($_SERVER['HTTP_X_FORWARDED_PROTO'] ?? '') === 'https');
@@ -55,6 +59,17 @@ foreach ([STORAGE_DIR, DOCS_DIR, REPORTS_DIR] as $dir) {
 // ---------------------------------------------------------------------
 if (is_file(BASE_DIR . '/config.local.php')) {
     require BASE_DIR . '/config.local.php';
+}
+
+// Reapply web error/header policy after local overrides; no diagnostic text is sent to browsers.
+install_application_security();
+if (!defined('APP_ENV')) {
+    $environment = strtolower(trim((string)(getenv('APP_ENV') ?: '')));
+    define('APP_ENV', $environment !== '' ? $environment
+        : (PHP_SAPI !== 'cli' && is_loopback_development_request() ? 'development' : 'production'));
+}
+if (!defined('ALLOW_DEVELOPMENT_PASSWORD_RESPONSE')) {
+    define('ALLOW_DEVELOPMENT_PASSWORD_RESPONSE', getenv('ALLOW_DEVELOPMENT_PASSWORD_RESPONSE') === '1');
 }
 
 // ---------------------------------------------------------------------
@@ -142,19 +157,21 @@ function db(): PDO
     }
 
     $dsn = 'mysql:host=' . DB_HOST . ';port=' . DB_PORT . ';dbname=' . DB_NAME . ';charset=utf8mb4';
-    $pdo = new PDO($dsn, DB_USER, DB_PASS, [
+    $connection = new PDO($dsn, DB_USER, DB_PASS, [
         PDO::ATTR_ERRMODE            => PDO::ERRMODE_EXCEPTION,
         PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
         PDO::ATTR_EMULATE_PREPARES   => true,
     ]);
 
-    migrate($pdo); // idempotent: safe to run on every request, keeps schema current on upgrades
+    migrate($connection); // idempotent: safe to run on every request, keeps schema current on upgrades
 
-    $hasAdmin = (int)$pdo->query("SELECT COUNT(*) FROM users WHERE role = 'admin'")->fetchColumn();
+    $hasAdmin = (int)$connection->query("SELECT COUNT(*) FROM users WHERE role = 'admin'")->fetchColumn();
     if ($hasAdmin === 0) {
-        seed($pdo);
+        seed($connection);
     }
 
+    // Cache only a completely initialized connection, including after a caught initialization failure.
+    $pdo = $connection;
     return $pdo;
 }
 
@@ -473,10 +490,17 @@ function current_user(): ?array
     $stmt = db()->prepare('SELECT * FROM users WHERE id = :id');
     $stmt->execute([':id' => $_SESSION['user_id']]);
     $user = $stmt->fetch();
-    if ($user && strcasecmp((string)$user['status'], 'Active') !== 0) {
-        // Deactivated after logging in: end the session instead of letting it keep working.
-        unset($_SESSION['user_id']);
+    if ($user && (strcasecmp((string)$user['status'], 'Active') !== 0
+        || !is_string($_SESSION['credential_fingerprint'] ?? null)
+        || !hash_equals(hash('sha256', $user['password_hash']), $_SESSION['credential_fingerprint']))) {
+        // A deactivated account or a changed password invalidates every older session.
+        // Sessions created before credential binding must sign in again as well.
+        $_SESSION = [];
         $user = false;
+    }
+    if ($user) {
+        // Account resets can require a new password after this session was created.
+        $_SESSION['must_change_password'] = (int)($user['must_change_password'] ?? 0);
     }
     $cached = $user ?: null;
     return $cached;
@@ -491,9 +515,7 @@ function require_login($roles = null): array
         exit;
     }
 
-    // Force a password change before allowing access to anything else if the
-    // account still has its auto-generated, predictable temporary password
-    // (see student_default_password()/adviser_default_password()).
+    // Enforce the account's current password-change requirement before continuing.
     $currentScript = basename($_SERVER['SCRIPT_NAME'] ?? '');
     $exemptFromForcedChange = ['change_password_required.php', 'logout.php'];
     if (!empty($_SESSION['must_change_password']) && !in_array($currentScript, $exemptFromForcedChange, true)) {
@@ -540,9 +562,9 @@ function api_require_login($roles = null): array
 }
 
 /**
- * CSRF guard for state-changing API actions: POST only, and if the browser sent an Origin
- * (or Referer) header it must be this site. SameSite=Lax alone does not stop a link click
- * from firing a GET like ?action=delete&id=5 with the victim's cookies.
+ * State-changing requests require POST and a same-origin Origin or Referer.
+ * Browser forms/AJAX send one of these; callers without origin evidence fail closed.
+ * CLI workers do not invoke this request guard.
  */
 function require_post_same_origin(): void
 {
@@ -552,17 +574,15 @@ function require_post_same_origin(): void
         echo json_encode(['ok' => false, 'message' => 'This action must be sent as a POST request.']);
         exit;
     }
-    $source = $_SERVER['HTTP_ORIGIN'] ?? $_SERVER['HTTP_REFERER'] ?? '';
-    if ($source !== '') {
-        $sourceHost = parse_url($source, PHP_URL_HOST);
-        $sourcePort = parse_url($source, PHP_URL_PORT);
-        $hostHeader = $_SERVER['HTTP_HOST'] ?? '';
-        $sourceAuth = $sourceHost . ($sourcePort ? ':' . $sourcePort : '');
-        if ($sourceHost === null || strcasecmp($sourceAuth, $hostHeader) !== 0) {
-            http_response_code(403);
-            echo json_encode(['ok' => false, 'message' => 'Cross-site request blocked.']);
-            exit;
-        }
+    $source = (string)($_SERVER['HTTP_ORIGIN'] ?? $_SERVER['HTTP_REFERER'] ?? '');
+    $host = (string)($_SERVER['HTTP_HOST'] ?? '');
+    $expected = preg_match('/^(?:[a-z0-9.-]+|\[[a-f0-9:]+\])(?::[0-9]+)?$/i', $host)
+        ? normalized_http_origin((request_uses_https() ? 'https' : 'http') . '://' . $host) : null;
+    $actual = normalized_http_origin($source);
+    if ($actual === null || $expected === null || $actual !== $expected) {
+        http_response_code(403);
+        echo json_encode(['ok' => false, 'message' => 'Cross-site request blocked.']);
+        exit;
     }
 }
 
@@ -631,9 +651,9 @@ function generate_temporary_password(int $bytes = 12): string
 /** Issues a one-time password setup link for a newly provisioned account. */
 function send_account_setup_email(PDO $pdo, int $userId, string $email, string $name): array
 {
-    if (APP_BASE_URL === '') {
-        log_api_error('account_setup', 'APP_BASE_URL is not configured; account setup email was not sent for user_id=' . $userId);
-        return ['ok' => false, 'channel' => 'none', 'message' => 'APP_BASE_URL is not configured, so no setup email could be sent.'];
+    if (!app_base_url_is_valid()) {
+        log_api_error('account_setup', 'Canonical URL configuration prevents account setup delivery.');
+        return ['ok' => false, 'channel' => 'none', 'message' => 'Password setup email is currently unavailable.'];
     }
     try {
         $token = bin2hex(random_bytes(32));
@@ -643,13 +663,13 @@ function send_account_setup_email(PDO $pdo, int $userId, string $email, string $
             ->execute([':u' => $userId]);
         $pdo->prepare('INSERT INTO password_resets (user_id, token, expires_at) VALUES (:u,:t,:x)')
             ->execute([':u' => $userId, ':t' => $token, ':x' => $expires]);
-        $link = APP_BASE_URL . '/reset_password.php?token=' . urlencode($token);
+        $link = rtrim(APP_BASE_URL, '/') . '/reset_password.php?token=' . urlencode($token);
         $body = "Hello $name,\n\nYour PRISM account has been created. Set your password using the one-time link below (valid for 1 hour):\n\n"
             . $link . "\n\nIf you were not expecting this account, contact the RPMS office.\n\n- CEU Malolos RPMS / PRISM";
         return send_notification_email($email, 'Set up your PRISM account', $body);
     } catch (Throwable $e) {
         log_api_error('account_setup', $e->getMessage());
-        return ['ok' => false, 'channel' => 'none', 'message' => 'The account was created, but the setup link could not be issued. Use the one-time temporary password shown by PRISM.'];
+        return ['ok' => false, 'channel' => 'none', 'message' => 'The account was created, but the setup link could not be issued. Contact the RPMS office to arrange access.'];
     }
 }
 

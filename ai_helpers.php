@@ -14,8 +14,16 @@ if (!function_exists('extract_document_text')) {
             try {
                 $archive = new ZipArchive();
                 if ($archive->open($path) === true) {
-                    $xml = $archive->getFromName('word/document.xml');
-                    $archive->close();
+                    // Upload limits measure compressed bytes; bound the expanded XML as well.
+                    $maxXmlBytes = 1500000;
+                    try {
+                        $entry = $archive->statName('word/document.xml');
+                        $xml = $entry !== false && $entry['size'] <= $maxXmlBytes
+                            ? $archive->getFromName('word/document.xml', $maxXmlBytes)
+                            : false;
+                    } finally {
+                        $archive->close();
+                    }
                     if ($xml !== false) {
                         $text = strip_tags(str_replace(['</w:p>', '</w:tab>'], [".\n", ' '], $xml));
                     }
@@ -63,7 +71,8 @@ if (!function_exists('ai_detect_approval_date')) {
             );
             if ($raw !== null) {
                 $raw = trim($raw);
-                if (preg_match('/^\d{4}-\d{2}-\d{2}$/', $raw) && strtotime($raw) !== false) {
+                if (preg_match('/^(\d{4})-(\d{2})-(\d{2})$/', $raw, $parts)
+                    && checkdate((int)$parts[2], (int)$parts[3], (int)$parts[1])) {
                     return ['date' => $raw, 'source' => 'ai'];
                 }
                 // AI said NONE or returned something unparseable -- fall through to regex,
@@ -71,7 +80,8 @@ if (!function_exists('ai_detect_approval_date')) {
             }
         }
 
-        return ['date' => regex_detect_approval_date($text), 'source' => $text !== '' ? 'regex' : null];
+        $date = regex_detect_approval_date($text);
+        return ['date' => $date, 'source' => $date !== null ? 'regex' : null];
     }
 }
 
@@ -79,31 +89,29 @@ if (!function_exists('ai_detect_approval_date')) {
 if (!function_exists('regex_detect_approval_date')) {
     function regex_detect_approval_date(string $text): ?string
     {
-        // Numeric formats: 2026-03-14, 03/14/2026, 14/03/2026
-        if (preg_match('/\b(20\d{2})-(\d{2})-(\d{2})\b/', $text, $m)) {
-            $candidate = "{$m[1]}-{$m[2]}-{$m[3]}";
-            if (checkdate((int)$m[2], (int)$m[3], (int)$m[1])) {
-                return $candidate;
-            }
-        }
-        // Written formats: "14th day of March 2026", "March 14, 2026", "14 March 2026"
+        // A date elsewhere in the document is not evidence of approval.
+        preg_match_all('/\b(?:date\s+(?:of\s+)?approval|date\s+approved|approval\s+date|approval(?=\s*:)|approved|date\s+of\s+issuance|issuance\s+date|issued)\b/i',
+            $text, $anchors, PREG_OFFSET_CAPTURE);
         $months = 'January|February|March|April|May|June|July|August|September|October|November|December';
-        if (preg_match('/\b(\d{1,2})(?:st|nd|rd|th)?\s+day\s+of\s+(' . $months . ')\s+(\d{4})\b/i', $text, $m)) {
-            $ts = strtotime("{$m[1]} {$m[2]} {$m[3]}");
-            if ($ts !== false) {
-                return date('Y-m-d', $ts);
+        foreach ($anchors[0] as [$anchor, $offset]) {
+            $prefix = substr($text, max(0, $offset - 40), min(40, $offset));
+            if (preg_match('/\b(?:not|never|no|awaiting|pending|without)\b[^.;!]*$|\b(?:to|will|may|could|should|would|can)\s+be\s*$/i', $prefix)) {
+                continue;
             }
-        }
-        if (preg_match('/\b(' . $months . ')\s+(\d{1,2}),?\s+(\d{4})\b/i', $text, $m)) {
-            $ts = strtotime("{$m[1]} {$m[2]} {$m[3]}");
-            if ($ts !== false) {
-                return date('Y-m-d', $ts);
+            // Only inspect the short clause following an approval/issuance label.
+            $context = preg_split('/[.;!]/', substr($text, $offset + strlen($anchor), 120), 2)[0];
+            // A later submission/expiry date in the clause is not the approval date.
+            $context = preg_replace('/^\s*[:\-]?\s*(?:(?:on|this|the|as\s+of|dated)\s+)*/i', '', $context);
+            $year = $month = $day = null;
+            if (preg_match('/^(20\d{2})-(\d{2})-(\d{2})\b/', $context, $m)) {
+                [$year, $month, $day] = [(int)$m[1], (int)$m[2], (int)$m[3]];
+            } elseif (preg_match('/^(\d{1,2})(?:st|nd|rd|th)?\s+(?:day\s+of\s+)?(' . $months . ')\s+(\d{4})\b/i', $context, $m)) {
+                [$year, $month, $day] = [(int)$m[3], (int)date('n', strtotime($m[2] . ' 1, 2000')), (int)$m[1]];
+            } elseif (preg_match('/^(' . $months . ')\s+(\d{1,2}),?\s+(\d{4})\b/i', $context, $m)) {
+                [$year, $month, $day] = [(int)$m[3], (int)date('n', strtotime($m[1] . ' 1, 2000')), (int)$m[2]];
             }
-        }
-        if (preg_match('/\b(\d{1,2})\s+(' . $months . ')\s+(\d{4})\b/i', $text, $m)) {
-            $ts = strtotime("{$m[1]} {$m[2]} {$m[3]}");
-            if ($ts !== false) {
-                return date('Y-m-d', $ts);
+            if ($year !== null && checkdate($month, $day, $year)) {
+                return sprintf('%04d-%02d-%02d', $year, $month, $day);
             }
         }
         return null;

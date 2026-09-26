@@ -129,11 +129,17 @@ togglePassword('confirmPassword', 'toggleConfirmNewPassword');
 document.getElementById('forcedPasswordForm').addEventListener('submit', async (event) => {
     event.preventDefault();
     const messageBox = document.getElementById('formMessage');
-    messageBox.innerHTML = '';
+    messageBox.replaceChildren();
+    const showError = message => {
+        const error = document.createElement('div');
+        error.className = 'error-message';
+        error.textContent = message;
+        messageBox.replaceChildren(error);
+    };
     const newPassword = document.getElementById('newPassword').value;
     const confirmPassword = document.getElementById('confirmPassword').value;
     if (newPassword !== confirmPassword) {
-        messageBox.innerHTML = '<div class="error-message">New passwords do not match.</div>';
+        showError('New passwords do not match.');
         return;
     }
     try {
@@ -147,12 +153,12 @@ document.getElementById('forcedPasswordForm').addEventListener('submit', async (
         });
         const data = await res.json();
         if (!data.ok) {
-            messageBox.innerHTML = `<div class="error-message">${data.message || 'Password could not be changed.'}</div>`;
+            showError(data.message || 'Password could not be changed.');
             return;
         }
         window.location.href = <?php echo json_encode($landing); ?>;
     } catch (_) {
-        messageBox.innerHTML = '<div class="error-message">Could not reach the server. Please try again.</div>';
+        showError('Could not reach the server. Please try again.');
     }
 });
 </script>

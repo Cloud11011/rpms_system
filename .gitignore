@@ -10,3 +10,5 @@ Add-Content .gitignore "`nvendor/"
 vendor/
 
 vendor/
+
+storage/auth_rate_limits/

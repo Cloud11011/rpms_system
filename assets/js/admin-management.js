@@ -270,6 +270,9 @@
             closeModal();
             await loadRecords();
             PrismUI.toast(data.message || 'Record saved.', 'success');
+            if (data.setupPending && !data.temporaryPassword) {
+                PrismUI.toast(data.setupMessage || 'Account created. Contact the RPMS office to arrange password setup.', 'info');
+            }
             if (data.temporaryPassword) {
                 await PrismUI.confirm({
                     title:'Account setup required',

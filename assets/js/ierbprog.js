@@ -32,6 +32,8 @@
     if (!isAdmin && addBtn) addBtn.style.display = 'none';
 
     let records = [];
+    let recordRequestSequence = 0;
+    let loadError = '';
     const STAGES = ['Stage 1', 'Stage 2', 'Stage 3', 'Stage 4', 'Stage 5', 'Completed'];
     const stageLabels = window.PRISM_STAGE_LABELS || {};
     const labelForStage = stageKey => stageLabels[stageKey] || stageKey;
@@ -44,27 +46,73 @@
     });
 
     async function loadRecords() {
+        const requestSequence = ++recordRequestSequence;
+        loadError = '';
+        stageChart.setAttribute('aria-busy', 'true');
+        tableBody.setAttribute('aria-busy', 'true');
         try {
-            const res = await fetch('ierb_api.php?action=list');
-            const data = await res.json();
-            records = data.ok ? data.records : [];
+            const data = await PrismUI.request('ierb_api.php?action=list');
+            if (requestSequence !== recordRequestSequence) return;
+            if (!Array.isArray(data.records)) throw new Error('The server returned an invalid record list.');
+            records = data.records;
         } catch (e) {
+            if (requestSequence !== recordRequestSequence) return;
             records = [];
-            PrismUI.toast(e.message || 'Could not load IERB records.', 'error');
+            loadError = e.message || 'Could not load IERB records.';
+            PrismUI.toast(loadError, 'error');
+        } finally {
+            if (requestSequence === recordRequestSequence) {
+                stageChart.setAttribute('aria-busy', 'false');
+                tableBody.setAttribute('aria-busy', 'false');
+            }
         }
         renderOverview();
         renderTable();
     }
 
     function renderOverview() {
-        overviewTotal.textContent = `${records.length} student${records.length === 1 ? '' : 's'}`;
+        overviewTotal.textContent = loadError ? 'Unavailable' : `${records.length} student${records.length === 1 ? '' : 's'}`;
         stageChart.replaceChildren();
+        stageChart.classList.toggle('is-empty', records.length === 0);
+        stageChart.setAttribute('role', records.length ? 'img' : 'status');
+        if (!records.length) {
+            stageChart.removeAttribute('aria-label');
+            const state = document.createElement('div');
+            state.className = 'ierb-overview-empty';
+            const icon = document.createElement('i');
+            icon.className = 'fa-solid fa-chart-column';
+            icon.setAttribute('aria-hidden', 'true');
+            const copy = document.createElement('div');
+            const title = document.createElement('strong');
+            title.textContent = loadError ? 'Progress overview unavailable' : 'No progress data yet';
+            const description = document.createElement('span');
+            description.textContent = loadError || (isAdmin
+                ? 'Stage distribution will appear after the first IERB record is added.'
+                : 'Stage distribution will appear when IERB records are available for your assigned students.');
+            copy.append(title, description);
+            state.append(icon, copy);
+            stageChart.appendChild(state);
+            return;
+        }
         const max = Math.max(1, ...STAGES.map(s => records.filter(r => r.stage === s).length));
+        stageChart.setAttribute('aria-label', STAGES.map(stage => `${labelForStage(stage)}: ${records.filter(r => r.stage === stage).length}`).join('; '));
         STAGES.forEach(stage => {
             const count = records.filter(r => r.stage === stage).length;
             const col = document.createElement('div');
             col.className = 'stage-bar-col';
-            col.innerHTML = `<div class="stage-bar" style="height:${Math.max(4, (count / max) * 100)}%"><span>${count}</span></div><small title="${escapeHtml(stage)}">${escapeHtml(labelForStage(stage))}</small>`;
+            const area = document.createElement('div');
+            area.className = 'stage-bar-area';
+            const bar = document.createElement('div');
+            bar.className = 'stage-bar';
+            bar.style.height = `${Math.max(4, (count / max) * 100)}%`;
+            const countLabel = document.createElement('span');
+            countLabel.textContent = String(count);
+            bar.appendChild(countLabel);
+            const stageLabel = document.createElement('small');
+            stageLabel.title = `${stage}: ${labelForStage(stage)}`;
+            stageLabel.textContent = labelForStage(stage);
+            area.appendChild(bar);
+            col.append(area, stageLabel);
             stageChart.appendChild(col);
         });
     }
@@ -83,16 +131,31 @@
 
     function renderTable() {
         const rows = filteredRecords();
-        recordCount.textContent = `${rows.length} record${rows.length === 1 ? '' : 's'}`;
+        recordCount.textContent = loadError ? 'Unavailable' : `${rows.length} record${rows.length === 1 ? '' : 's'}`;
         tableBody.replaceChildren();
+        tableBody.closest('table').classList.toggle('is-empty', rows.length === 0);
 
         if (!rows.length) {
             const tr = document.createElement('tr');
-            tr.innerHTML = '<td colspan="7">' + PrismUI.emptyState({
-                icon:'fa-magnifying-glass',
-                title:records.length ? 'No matching IERB records' : 'No IERB records yet',
-                text:records.length ? 'Try clearing or changing the filters.' : 'Add a student record to begin tracking IERB progress.'
-            }) + '</td>';
+            tr.className = 'ierb-empty-row';
+            const cell = document.createElement('td');
+            cell.colSpan = 7;
+            const state = document.createElement('div');
+            state.className = 'ierb-table-empty';
+            const icon = document.createElement('i');
+            icon.className = records.length ? 'fa-solid fa-filter-circle-xmark' : 'fa-solid fa-folder-open';
+            icon.setAttribute('aria-hidden', 'true');
+            const title = document.createElement('h3');
+            title.textContent = loadError ? 'Could not load IERB records' : (records.length ? 'No matching IERB records' : 'No IERB records yet');
+            const description = document.createElement('p');
+            description.textContent = loadError || (records.length
+                ? 'Try clearing the search or choosing different stage and status filters.'
+                : (isAdmin
+                    ? 'Add an IERB entry to begin tracking student stages, requirements, and submissions.'
+                    : 'Progress records for your assigned students will appear here.'));
+            state.append(icon, title, description);
+            cell.appendChild(state);
+            tr.appendChild(cell);
             tableBody.appendChild(tr);
             return;
         }
@@ -106,7 +169,7 @@
                 <td>${escapeHtml(record.progress)}%</td>
                 <td>${escapeHtml(record.requirements || 'None')}</td>
                 <td>${escapeHtml(record.lastSubmissionDate || 'N/A')}</td>
-                <td><span class="status-badge ${statusClass}">${escapeHtml(record.status)}</span></td>
+                <td><span class="status-badge ${escapeHtml(statusClass)}">${escapeHtml(record.status)}</span></td>
                 <td class="row-actions"></td>`;
             const actions = tr.querySelector('.row-actions');
 
@@ -197,23 +260,27 @@
             submissionDate: document.getElementById('entrySubmissionDate').value,
             status: document.getElementById('entryStatus').value,
         };
-        const original = editingId ? records.find(r => r.id === editingId) : null;
-        if (original && (original.stage !== payload.stage || original.status !== payload.status)) {
-            const answer = await PrismUI.confirm({
-                title:'Confirm progress override', icon:'fa-user-shield', tone:'override', confirmText:'Save changes',
-                message:'Changing the official stage or status is recorded as an Admin Override and the student will be notified.',
-                reasonLabel:'Reason for this change', reasonRequired:true
-            });
-            if (!answer) return;
-            payload.reason = answer.reason;
-        }
         const saveBtn = entryForm.querySelector('[type="submit"]');
+        if (saveBtn.disabled) return;
         saveBtn.disabled = true;
         try {
+            const original = editingId ? records.find(r => r.id === editingId) : null;
+            if (original && (original.stage !== payload.stage || original.status !== payload.status)) {
+                const answer = await PrismUI.confirm({
+                    title:'Confirm progress override', icon:'fa-user-shield', tone:'override', confirmText:'Save changes',
+                    message:'Changing the official stage or status is recorded as an Admin Override and the student will be notified.',
+                    reasonLabel:'Reason for this change', reasonRequired:true
+                });
+                if (!answer) return;
+                payload.reason = answer.reason;
+            }
             const data = await PrismUI.postJson('ierb_api.php?action=save', payload);
             closeEntryModal();
             await loadRecords();
             PrismUI.toast(data.message || 'IERB record saved.', 'success');
+            if (data.setupPending && !data.temporaryPassword) {
+                PrismUI.toast(data.setupMessage || 'Account created. Contact the RPMS office to arrange password setup.', 'info');
+            }
             if (data.temporaryPassword) {
                 await PrismUI.confirm({
                     title:'Account setup required',

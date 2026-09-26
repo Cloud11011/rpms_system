@@ -47,15 +47,16 @@ $profile_img = 'assets/images/default-avatar.svg';
         </section>
 
         <section class="ierb-controls" aria-label="IERB progress filters">
-            <div class="ierb-search"><i class="fa-solid fa-magnifying-glass"></i><input id="ierbSearch" type="search" placeholder="Search student, ID, group, or research title"></div>
+            <label class="ierb-control-field ierb-search-field" for="ierbSearch"><span>Search records</span><span class="ierb-search"><i class="fa-solid fa-magnifying-glass"></i><input id="ierbSearch" type="search" placeholder="Student, ID, group, or research title"></span></label>
             <div class="ierb-filters">
-                <select id="stageFilter" aria-label="Filter by stage"><option value="">All Stages</option><option value="Stage 1">Stage 1</option><option value="Stage 2">Stage 2</option><option value="Stage 3">Stage 3</option><option value="Stage 4">Stage 4</option><option value="Stage 5">Stage 5</option><option value="Completed">Completed</option></select>
-                <select id="ierbStatusFilter" aria-label="Filter by status"><option value="">All Statuses</option><option>On Track</option><option>Pending</option><option>Delayed</option></select>
+                <label class="ierb-control-field" for="stageFilter"><span>Stage</span><select id="stageFilter"><option value="">All Stages</option><option value="Stage 1">Stage 1</option><option value="Stage 2">Stage 2</option><option value="Stage 3">Stage 3</option><option value="Stage 4">Stage 4</option><option value="Stage 5">Stage 5</option><option value="Completed">Completed</option></select></label>
+                <label class="ierb-control-field" for="ierbStatusFilter"><span>Status</span><select id="ierbStatusFilter"><option value="">All Statuses</option><option>On Track</option><option>Pending</option><option>Delayed</option></select></label>
             </div>
+            <?php if ($authUser['role'] === 'admin'): ?><div class="ierb-add-field"><span>New record</span><button type="button" class="ierb-add-link" id="addIerbEntry"><i class="fa-solid fa-plus"></i> Add IERB Entry</button></div><?php endif; ?>
         </section>
 
         <section class="ierb-directory" aria-labelledby="ierbTableTitle">
-            <div class="ierb-table-heading"><div><h2 id="ierbTableTitle">Detailed Progress</h2><p id="ierbRecordCount">0 records</p></div><?php if ($authUser['role'] === 'admin'): ?><button type="button" class="ierb-add-link" id="addIerbEntry"><i class="fa-solid fa-plus"></i> Add IERB entry</button><?php endif; ?></div>
+            <div class="ierb-table-heading"><div><h2 id="ierbTableTitle">Detailed Progress</h2><p id="ierbRecordCount">0 records</p></div></div>
             <div class="ierb-table-wrap"><table class="ierb-table">
                 <thead><tr><th>Student Name</th><th>Current Stage</th><th>Completed Stages</th><th>Pending Requirements</th><th>Submission Dates</th><th>Delay Status</th><th>Actions</th></tr></thead>
                 <tbody id="ierbTableBody"></tbody>

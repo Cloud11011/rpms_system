@@ -58,7 +58,7 @@ if (!$tokenValid) {
 
         if(isset($_SESSION["error"])){
 
-            echo "<div class='error-message'>".$_SESSION["error"]."</div>";
+            echo "<div class='error-message'>".htmlspecialchars((string)$_SESSION["error"], ENT_QUOTES, 'UTF-8')."</div>";
 
             unset($_SESSION["error"]);
 
@@ -66,7 +66,7 @@ if (!$tokenValid) {
 
         if(isset($_SESSION["success"])){
 
-            echo "<div class='success-message'>".$_SESSION["success"]."</div>";
+            echo "<div class='success-message'>".htmlspecialchars((string)$_SESSION["success"], ENT_QUOTES, 'UTF-8')."</div>";
 
             unset($_SESSION["success"]);
 

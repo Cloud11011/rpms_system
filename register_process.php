@@ -6,6 +6,8 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     exit;
 }
 
+require_post_same_origin();
+
 function back_with_error(string $message): void
 {
     $_SESSION['error'] = $message;
@@ -20,6 +22,11 @@ $username   = $employeeId;
 $password   = (string)($_POST['password'] ?? '');
 $confirm    = (string)($_POST['confirm_password'] ?? '');
 $regCode    = (string)($_POST['registration_code'] ?? '');
+
+// Bound code guesses even when the submitted email/employee ID changes.
+if (!consume_auth_attempt('admin_registration_ip', (string)($_SERVER['REMOTE_ADDR'] ?? 'unknown'), 8, 900)) {
+    back_with_error('Too many registration attempts. Please try again later.');
+}
 
 if (ADMIN_REGISTRATION_CODE === '') {
     back_with_error('Self-registration is currently disabled. Ask an existing RPMS administrator to set ADMIN_REGISTRATION_CODE in config.local.php to enable it, or to create your account for you.');

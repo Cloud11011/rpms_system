@@ -312,24 +312,26 @@ if ($action === 'save') {
     $newLoginUserId = null;
     $newLoginTempPassword = null;
     $setupDelivery = null;
-    if ($id > 0) {
-        $old = $pdo->prepare('SELECT stage, status, email FROM students WHERE id = :id');
-        $old->execute([':id' => $id]);
-        $oldRow = $old->fetch();
-        $previousEmail = (string)($oldRow['email'] ?? '');
-        if ($oldRow && ($oldRow['stage'] !== $stage || $oldRow['status'] !== $status)) {
-            if (REQUIRE_OVERRIDE_REASON_ON_SAVE && !override_reason_valid($reason)) {
-                json_out(['ok' => false, 'requiresReason' => true,
-                    'message' => 'Changing the stage or status is an Admin Override. ' . override_reason_message()], 422);
-            }
-            $override = true;
-            $change = describe_progress_change($oldRow, $stage, $status);
-        }
-    }
-
     try {
         $pdo->beginTransaction();
         if ($id > 0) {
+            $old = $pdo->prepare('SELECT stage, status, email FROM students WHERE id = :id FOR UPDATE');
+            $old->execute([':id' => $id]);
+            $oldRow = $old->fetch();
+            if (!$oldRow) {
+                $pdo->rollBack();
+                json_out(['ok' => false, 'message' => 'Student record not found.'], 404);
+            }
+            $previousEmail = (string)$oldRow['email'];
+            if ($oldRow['stage'] !== $stage || $oldRow['status'] !== $status) {
+                if (REQUIRE_OVERRIDE_REASON_ON_SAVE && !override_reason_valid($reason)) {
+                    $pdo->rollBack();
+                    json_out(['ok' => false, 'requiresReason' => true,
+                        'message' => 'Changing the stage or status is an Admin Override. ' . override_reason_message()], 422);
+                }
+                $override = true;
+                $change = describe_progress_change($oldRow, $stage, $status);
+            }
             $pdo->prepare('UPDATE students SET student_id=:sid, full_name=:name, email=:email,
                 research_group=:grp, course=:course, research_title=:research, stage=:stage, status=:status,
                 requirements=:req, last_submission_date=:sub, updated_at=NOW() WHERE id=:id')
@@ -393,7 +395,7 @@ if ($action === 'save') {
         if ($pdo->inTransaction()) {
             $pdo->rollBack();
         }
-        if ($e instanceof PDOException && (string)$e->getCode() === '23000') {
+        if ($e instanceof PDOException && (int)($e->errorInfo[1] ?? 0) === 1062) {
             json_out(['ok' => false, 'message' => 'That student ID or email is already in use.'], 422);
         }
         if ($e instanceof RuntimeException && str_contains($e->getMessage(), 'different account type')) {
@@ -425,11 +427,7 @@ if ($action === 'save') {
         'message' => "IERB record for $name saved." . ($override ? ' The stage/status change was logged as an Admin Override.' : '')];
     if ($newLoginUserId) {
         $response['accountCreated'] = true;
-        $response['setupChannel'] = $setupDelivery['channel'] ?? 'none';
-        $response['setupMessage'] = $setupDelivery['message'] ?? '';
-        if (($setupDelivery['channel'] ?? 'none') === 'log' || !($setupDelivery['ok'] ?? false)) {
-            $response['temporaryPassword'] = $newLoginTempPassword;
-        }
+        $response = array_merge($response, account_setup_response_fields($setupDelivery, $newLoginTempPassword));
     }
     json_out($response);
 }
@@ -463,14 +461,15 @@ if ($action === 'note') {
 if ($action === 'delete') {
     api_require_login('admin');
     $id = (int)($data['id'] ?? 0);
-    $info = $pdo->prepare('SELECT student_id, full_name, email, protocol_code, stage, status FROM students WHERE id = :id');
-    $info->execute([':id' => $id]);
-    $gone = $info->fetch();
-    if (!$gone) {
-        json_out(['ok' => false, 'message' => 'Student record not found.'], 404);
-    }
     try {
         $pdo->beginTransaction();
+        $info = $pdo->prepare('SELECT student_id, full_name, email, protocol_code, stage, status FROM students WHERE id = :id FOR UPDATE');
+        $info->execute([':id' => $id]);
+        $gone = $info->fetch();
+        if (!$gone) {
+            $pdo->rollBack();
+            json_out(['ok' => false, 'message' => 'Student record not found.'], 404);
+        }
         $pdo->prepare('DELETE FROM students WHERE id = :id')->execute([':id' => $id]);
         $pdo->prepare("UPDATE users SET status='Inactive' WHERE role='student' AND email=:email")
             ->execute([':email' => $gone['email']]);

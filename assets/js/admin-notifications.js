@@ -9,6 +9,21 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const esc = v => String(v ?? '').replace(/[&<>'"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' })[c]);
 
+    function showHistoryState(iconClass, titleText, descriptionText) {
+        historyList.replaceChildren();
+        const state = document.createElement('div');
+        state.className = 'workspace-empty-state';
+        const icon = document.createElement('i');
+        icon.className = `fa-solid ${iconClass}`;
+        icon.setAttribute('aria-hidden', 'true');
+        const title = document.createElement('strong');
+        title.textContent = titleText;
+        const description = document.createElement('span');
+        description.textContent = descriptionText;
+        state.append(icon, title, description);
+        historyList.appendChild(state);
+    }
+
     const form = document.getElementById('notificationForm');
     const audience = document.getElementById('noticeAudience');
     const groupLabel = document.getElementById('groupLabel');
@@ -38,17 +53,19 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     automated.addEventListener('change', syncScheduleUi);
 
+    let historyRequestSequence = 0;
     async function loadHistory() {
+        const requestSequence = ++historyRequestSequence;
+        historyCount.textContent = 'Loading notifications...';
+        historyList.setAttribute('aria-busy', 'true');
         try {
             const data = await PrismUI.request('notifications_api.php?action=list');
+            if (requestSequence !== historyRequestSequence) return;
             const items = data.notifications || [];
             historyCount.textContent = `${items.length} notification${items.length === 1 ? '' : 's'}`;
             historyList.replaceChildren();
             if (!items.length) {
-                const empty = document.createElement('p');
-                empty.className = 'empty-state';
-                empty.textContent = 'No notifications sent yet.';
-                historyList.appendChild(empty);
+                showHistoryState('fa-bell', 'No notifications yet', 'Sent and scheduled notifications will appear here with their recipients and delivery status.');
                 return;
             }
             items.forEach(n => {
@@ -66,11 +83,11 @@ document.addEventListener('DOMContentLoaded', () => {
                 historyList.appendChild(card);
             });
         } catch (e) {
-            historyList.replaceChildren();
-            const error = document.createElement('p');
-            error.className = 'empty-state';
-            error.textContent = e.message;
-            historyList.appendChild(error);
+            if (requestSequence !== historyRequestSequence) return;
+            historyCount.textContent = 'History unavailable';
+            showHistoryState('fa-triangle-exclamation', 'Could not load notification history', e.message);
+        } finally {
+            if (requestSequence === historyRequestSequence) historyList.setAttribute('aria-busy', 'false');
         }
     }
 

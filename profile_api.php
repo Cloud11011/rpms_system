@@ -56,10 +56,16 @@ if ($action === 'change_password') {
     if (password_verify($new, $user['password_hash'])) {
         json_out(['ok' => false, 'message' => 'Choose a new password that is different from your current password.'], 422);
     }
+    $newHash = password_hash($new, PASSWORD_DEFAULT);
     $pdo->beginTransaction();
     try {
-        $pdo->prepare('UPDATE users SET password_hash = :p, must_change_password = 0 WHERE id = :id')
-            ->execute([':p' => password_hash($new, PASSWORD_DEFAULT), ':id' => $user['id']]);
+        $update = $pdo->prepare('UPDATE users SET password_hash = :p, must_change_password = 0
+            WHERE id = :id AND password_hash = :previous');
+        $update->execute([':p' => $newHash, ':id' => $user['id'], ':previous' => $user['password_hash']]);
+        if ($update->rowCount() !== 1) {
+            $pdo->rollBack();
+            json_out(['ok' => false, 'message' => 'Your password changed in another session. Please sign in again.'], 409);
+        }
         $pdo->prepare('UPDATE password_resets SET used = 1 WHERE user_id = :id AND used = 0')
             ->execute([':id' => $user['id']]);
         $pdo->commit();
@@ -68,6 +74,7 @@ if ($action === 'change_password') {
         json_out(['ok' => false, 'message' => 'Password could not be changed. Please try again.'], 500);
     }
     session_regenerate_id(true);
+    $_SESSION['credential_fingerprint'] = hash('sha256', $newHash);
     $_SESSION['must_change_password'] = 0;
     log_activity($user['email'], 'password_changed', '');
     json_out(['ok' => true]);
