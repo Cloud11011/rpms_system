@@ -1,3 +1,5 @@
+> Historical snapshot - superseded for current status by [AUDIT_REVIEW.md](AUDIT_REVIEW.md) and [RELEASE_CHECKLIST.md](RELEASE_CHECKLIST.md). The old TODO/known-issue sections below are retained as history: override reasons, denial/resubmission remarks and Activity Logs are implemented in the current workspace. Do not use this snapshot as the current release checklist.
+
 # PRISM v2 – workflow clarity, usability and record integrity
 
 Built on top of the 12 feature requests already in `main`. No new roles, no new AI prompts

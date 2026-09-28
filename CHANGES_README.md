@@ -1,3 +1,5 @@
+> Historical installation instructions - do not apply these overwrite/delete steps to the current workspace. Current fixes include uncommitted work. Use [RELEASE_CHECKLIST.md](RELEASE_CHECKLIST.md) and [AUDIT_REVIEW.md](AUDIT_REVIEW.md); historical testing claims below are not evidence for the current deployment.
+
 # PRISM — 12 Feature Requests: What Changed & How to Apply
 
 Everything here was built and tested against a real, running MySQL 

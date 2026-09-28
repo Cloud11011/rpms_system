@@ -117,3 +117,79 @@ Production readiness is **not established** by these fixtures. Still required on
 7. Test the deployed Apache access restrictions, production error display/header settings and external font/icon resources, then complete the four UI workflows against real authorized accounts.
 
 Existing uncommitted UI work was preserved. No API route/request parameter, role definition, page ID or database migration was changed. No commit or destructive Git operation was performed. `config.local.php` was not opened or modified.
+
+## Approved production hardening - 26 September 2026
+
+The user approved applying the remaining production-hardening fixes. This section supersedes the previous section's pending P1-P4, S1, E3 and R1 status. It records application-level fixes and isolated verification; it does not certify the deployment's private settings or live integrations.
+
+During this work, Git HEAD advanced externally to 05903f0 and the current branch became prism-v2-production-hardening. The assistant did not create that commit or switch branches. Those changes were preserved. Verification includes the full affected file set since cf269a9 plus newly added files, rather than only the final uncommitted diff.
+
+| Finding | Status in current code | Implementation and evidence |
+| --- | --- | --- |
+| P1 - database/exception output | Fixed in application; hosting verification required | security.php installs a non-database exception handler, generic HTML/JSON failures, no-store error responses, and disabled web error display before and after configuration overrides. Exceptions do not expose messages, SQL, credentials or stack traces. config.php caches PDO only after migration/seed initialization completes. Tests cover safe PDO responses and retry after connection/migration/seed failure. Host PHP settings must also suppress failures before bootstrap. |
+| P2 - canonical link configuration | Fixed; deployment configuration/delivery still unverified | Canonical URL validation rejects missing/malformed URLs, userinfo, query/fragment, and non-HTTPS production URLs. Recovery checks configuration before account lookup/token invalidation and retains the same generic confirmation. Setup delivery reports a pending state. tools/check_configuration.php provides operator diagnostics without configured values. It was not run against private local configuration. |
+| P3 - plaintext provisioning passwords | Fixed for production; explicit local-only exception | All three provisioning APIs use account_setup_response_fields(). A password is returned only when APP_ENV is development, ALLOW_DEVELOPMENT_PASSWORD_RESPONSE is boolean true, and both peer address and request host are loopback. The flag defaults off. Production/remote failures return setupPending and a safe setupMessage; the management/IERB UI displays the notice using textContent through PrismUI.toast. Actual provisioning fixtures cover log/failure/delivered/local-opt-in paths. |
+| P4 - ordinary-page headers | Fixed in application; deployed server still to verify | Configured pages receive nosniff, SAMEORIGIN, strict-origin-when-cross-origin, and a CSP limited to frame-ancestors self and base-uri self. Existing script/style/CDN behavior is preserved. Document responses retain their stricter document-specific CSP. The four-page browser suite runs with the actual header helper and detects CSP violations. |
+| S1 - absent origin evidence | Fixed | State-changing POST requests require a valid matching Origin or Referer. Scheme, host and effective port must match; absent/null/cross-site evidence is rejected. Default ports, local ports, IPv6 and the existing HTTPS proxy convention are tested. No CSRF tokens or parameter changes were introduced. The unchanged CLI notification worker does not call this HTTP guard. |
+| E3 - logout cookie attributes | Fixed | Logout expires the cookie using its current path, domain, Secure, HttpOnly and SameSite attributes, defaulting missing SameSite to Lax. Session clearing/destruction, audit behavior and redirect are preserved in four isolated cases. |
+| R1 - recovery/registration abuse limits | Fixed for a single shared filesystem; perimeter limits remain operational work | File-backed, locked counters admit registration attempts before code checking and recovery attempts before account lookup. Counts include unknown accounts and wrong registration codes. Storage/corruption failures fail closed with a fixed diagnostic. A directory mutex also covers first-counter creation; twenty simultaneous processes admitted exactly seven attempts in the concurrency fixture. Existing recovery issuance cooldown remains. |
+| D1/D2 - unused prototype assets | Partially fixed | Source searches found no current references to student.js, student.css or empty dashboard.js. Explicit export-ignore rules exclude them from git archive releases while preserving local files. Active student.php, role-portal assets and dashboard.css are retained. Manual copies still require a checked deployment manifest. |
+| D3 - patches/outdated notes | Partially fixed | Historical patch artifacts are excluded from git archive; their contents were not opened. Old notes/instructions are explicitly marked historical and superseded. RELEASE_CHECKLIST.md describes current release gates and manual-copy exclusions. Files remain locally; no archive or deletion was performed. |
+
+Original finding coverage after both approved batches: **12 / 21 fixed in current application code; 4 / 21 partially fixed (D1-D3, L2); 5 / 21 retained design/operational limitations (L1, L3-L6).** N1-N4 from the post-fix review remain fixed with regression coverage. These counts describe code coverage, not completed production integration testing.
+
+### Current settings and behavior
+
+- APP_ENV defaults to production, except for a browser request with both a loopback peer and loopback host. Explicit production configuration is recommended for deployment, including behind a proxy.
+- Production APP_BASE_URL must be a valid public HTTPS URL. Configure a working email transport before real account provisioning. Failed setup email does not disclose a production credential.
+- Development password disclosure remains disabled unless explicitly enabled with ALLOW_DEVELOPMENT_PASSWORD_RESPONSE=1 (environment), or a boolean true override. It still requires the development environment and loopback request. Production ignores this opt-in.
+- Registration permits **8 attempts per peer IP per 15 minutes**. Recovery permits **20 attempts per peer IP and 5 per normalized email per 15 minutes**. The **five-minute per-account reset issuance cooldown** remains.
+- Quotas use REMOTE_ADDR, not caller-supplied forwarded-IP headers. Shared NAT/proxy addresses share quotas; multiple application hosts require shared atomic storage or an external limiter.
+- Counter files under storage/auth_rate_limits contain hashed filenames and bounded count/timestamp state. They are excluded from Git and denied by Apache rules. Windows expire logically; old files must be reclaimed only during maintenance with authentication traffic stopped. Storage capacity/permissions require monitoring.
+- Requests without origin evidence now fail closed. Browser forms/AJAX retain their parameter names; any non-browser HTTP client must provide valid origin evidence. CLI workers are unchanged.
+
+### Latest complete verification
+
+| Check | Result |
+| --- | --- |
+| PHP syntax across affected files, excluding private configuration/dependencies | 29 passed |
+| JavaScript/CJS syntax across affected files | 7 passed |
+| Actual four-page browser fixtures, real security headers, five widths, light/dark, role/state/race/payload checks | 472 assertions passed; no fixture runtime errors or detected CSP violations |
+| Backend with temporary DOCX/ZipArchive fixtures | 86 assertions passed |
+| Authentication guards | 12 cases passed |
+| Authentication handlers, including throttling/misconfiguration confirmation and registration | 31 checks passed |
+| CRUD/provisioning endpoints | 42 cases passed |
+| Document workflows | 24 cases passed |
+| Security boundaries, including database initialization retries | 41 cases passed |
+| Atomic rate limiting, including 20 concurrent PHP processes | 45 assertions passed |
+| Logout cookies/session/audit/redirect | 28 assertions across 4 cases passed |
+| Forced-password JavaScript handler | 5 cases passed |
+| Original IDs on the four UI pages | 77 preserved; no duplicates |
+| Git diff whitespace checks | Passed, including the complete affected diff since cf269a9 |
+| Release exclusions | Verified with git check-attr; active student/dashboard/security files remain included |
+
+Additional isolated suites:
+
+```powershell
+& 'C:\xampp\php\php.exe' tests/security-audit.php
+& 'C:\xampp\php\php.exe' tests/rate-limit-audit.php
+& 'C:\xampp\php\php.exe' tests/logout-audit.php
+```
+
+The security suite evaluates actual helper/guard code with fixture HTTP functions and a fake database constructor. It never opens a real connection. The rate-limit suite exercises real file locking in a private temporary directory and safely removes that directory afterward. Browser tests block external resources, so fonts/icons still need deployment testing.
+
+### Files in this hardening batch
+
+- Shared policy/bootstrap: security.php (new), auth_rate_limit.php (new), config.php.
+- Recovery/registration/session: forgot_password_process.php, register_process.php, logout.php.
+- Provisioning: students_api.php, advisers_api.php, ierb_api.php; setup-pending presentation in assets/js/admin-management.js and assets/js/ierbprog.js.
+- Diagnostics/tests: tools/check_configuration.php (new); tests/security-audit.php, tests/rate-limit-audit.php, tests/logout-audit.php (new); tests/auth-flows.php, tests/crud-audit.php and tests/ui-audit.cjs expanded.
+- Hygiene/documentation: .gitignore, .gitattributes (new), PRISM_V2_NOTES.md, CHANGES_README.md, RELEASE_CHECKLIST.md (new), and this report.
+
+### Release decision and remaining gates
+
+Controlled local testing is ready. The workspace is ready for deliberate staging integration tests, but **external deployment and production release are not yet verified**. The earlier live MySQL/migration/concurrency, real session/browser, filesystem, email/scheduling, AI/report and Apache/proxy integration checklist still applies.
+
+The new configuration-check command must be run by the operator on the target deployment with its private settings; the assistant did not run it or open config.local.php. Confirm host-level error-display settings, public HTTPS URL, email delivery, writable protected throttle storage, proxy behavior, and the final deployment manifest. Application CSP deliberately does not restrict scripts/styles; a stricter script/style policy would require a separate compatibility pass.
+
+No reset/restore/checkout/clean/commit/push/rebase or destructive file removal was performed by the assistant. Existing work and the externally advanced branch/commit were preserved.

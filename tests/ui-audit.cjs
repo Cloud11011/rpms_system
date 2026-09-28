@@ -25,6 +25,17 @@ const browser = process.env.PRISM_TEST_BROWSER || [
 const stages = ['Stage 1', 'Stage 2', 'Stage 3', 'Stage 4', 'Stage 5', 'Completed'];
 const attack = '<img src=x onerror="window.__fixtureXss=1">';
 const labels = Object.fromEntries(stages.map((s, i) => [s, ['Ethics application', 'Initial review', 'Revision and resubmission', 'Final review', 'Approval certificate', 'Completed'][i]]));
+// Read only the pure security helper, never the application configuration.
+const policy = spawnSync(php, ['-r', 'require "security.php"; echo json_encode(application_security_headers());'], {
+  cwd: root, encoding: 'utf8', windowsHide: true,
+});
+assert.equal(policy.status, 0, policy.stderr);
+assert.equal(policy.stderr, '');
+const securityHeaders = Object.fromEntries(JSON.parse(policy.stdout).map(line => {
+  const separator = line.indexOf(':');
+  return [line.slice(0, separator), line.slice(separator + 1).trim()];
+}));
+let setupPendingFixture = false;
 const requests = [];
 const errors = [];
 const failures = [];
@@ -65,6 +76,9 @@ function fixtureTemplate(file) {
 }
 
 function mockApi(file, action) {
+  if (setupPendingFixture && file === 'ierb_api.php' && action === 'save') {
+    return { ok: true, accountCreated: true, setupPending: true, setupMessage: 'Setup pending ' + attack };
+  }
   if (scenario === 'error') return { ok: false, message: 'Fixture error ' + attack };
   const populated = scenario === 'populated' || scenario === 'long-labels';
   if (file === 'notifications_api.php') return { ok: true, notifications: populated ? [{ id: 1, subject: attack, type: 'Reminder', recipient_name: attack, recipient_email: 'fixture@example.test', status: 'Sent', created_at: '2026-09-24 08:00:00', message: attack, delivery_info: 'Fixture only' }] : [], total: 1, scheduled: false, sent: 1 };
@@ -82,7 +96,7 @@ async function serve(req, res) {
     const url = new URL(req.url, origin);
     const file = url.pathname.slice(1);
     if (pages.includes(file)) {
-      res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8', 'Cache-Control': 'no-store' });
+      res.writeHead(200, { ...securityHeaders, 'Content-Type': 'text/html; charset=utf-8', 'Cache-Control': 'no-store' });
       res.end(fixtureTemplate(file));
     } else if (/^(notifications|reports|stage_labels|ierb|audit|profile)_api\.php$/.test(file) || file === 'send_followup.php') {
       let body = '';
@@ -297,6 +311,9 @@ async function run() {
       message.error ? p.reject(new Error(message.error.message)) : p.resolve(message.result);
     } else if (message.method === 'Runtime.exceptionThrown') {
       errors.push(message.params.exceptionDetails.exception?.description || message.params.exceptionDetails.text);
+    } else if (message.method === 'Log.entryAdded' && message.params.entry.source === 'security'
+        && /content security policy|\bcsp\b|violat/i.test(message.params.entry.text)) {
+      errors.push('CSP: ' + message.params.entry.text);
     } else if (message.method === 'Fetch.requestPaused') {
       const request = message.params;
       const allowed = request.request.url.startsWith(origin + '/') || /^(data:|about:)/.test(request.request.url);
@@ -307,8 +324,16 @@ async function run() {
   sessionId = (await command('Target.attachToTarget', { targetId: target.targetId, flatten: true }, true)).sessionId;
   await command('Page.enable');
   await command('Runtime.enable');
+  await command('Log.enable');
   await command('Fetch.enable', { patterns: [{ urlPattern: '*' }] });
   await command('Browser.setDownloadBehavior', { behavior: 'deny' }, true);
+
+  for (const file of pages) {
+    const response = await fetch(origin + '/' + file);
+    check(Object.entries(securityHeaders).every(([name, value]) => response.headers.get(name) === value),
+      file + ': actual application security headers served');
+    await response.text();
+  }
 
   for (const width of [375, 768, 1024, 1280, 1600]) {
     for (const file of pages) {
@@ -449,6 +474,7 @@ async function run() {
   });
   await waitFor('document.getElementById("ierbActionModal").getAttribute("aria-hidden") === "true"');
   checkPayload('ierb_api.php', 'note', { studentId: 1, note: 'Fixture note' }, 'IERB note preserves API parameter names');
+  setupPendingFixture = true;
   await evaluateFunction(() => {
     document.getElementById('addIerbEntry').click();
     const fields = { entryStudentName: 'Fixture Student', entryStudentId: 'F-001', entryEmail: 'fixture@example.test', entryGroupId: 'Fixture Group', entryCourse: 'Fixture Course', entryStage: 'Stage 1', entryResearchTitle: 'Fixture Research', entryRequirements: 'Fixture Requirements', entrySubmissionDate: '2026-09-25', entryStatus: 'Pending' };
@@ -457,6 +483,13 @@ async function run() {
   });
   await waitFor('document.getElementById("ierbEntryModal").getAttribute("aria-hidden") === "true"');
   checkPayload('ierb_api.php', 'save', { id: null, name: 'Fixture Student', studentId: 'F-001', email: 'fixture@example.test', groupId: 'Fixture Group', course: 'Fixture Course', stage: 'Stage 1', research: 'Fixture Research', requirements: 'Fixture Requirements', submissionDate: '2026-09-25', status: 'Pending' }, 'IERB entry preserves API parameter names and stage keys');
+
+  await waitFor('document.querySelector(".prism-toast-wrap")?.textContent.includes("Setup pending")');
+  check(await evaluateFunction(attack => {
+    const host = document.querySelector('.prism-toast-wrap');
+    return host.textContent.includes('Setup pending ' + attack) && !host.querySelector('img, script');
+  }, attack), 'IERB displays pending setup safely without a password');
+  setupPendingFixture = false;
 
   await checkListRequestRaces('admin_notifications.php', 'notifications_api.php');
   await checkListRequestRaces('ierbprog.php', 'ierb_api.php');
