@@ -19,17 +19,15 @@ $profile_img = 'assets/images/default-avatar.svg';
     <link rel="stylesheet" href="assets/css/ierbprog.css">
     <link rel="stylesheet" href="assets/css/prism-ui.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.6.0/css/all.min.css">
+<link rel="stylesheet" href="assets/css/dashboard-sidebar.css">
+<script src="assets/js/dashboard-sidebar.js" defer></script>
 </head>
 <body data-ierb-user="<?php echo htmlspecialchars(hash('sha256', $user_email), ENT_QUOTES, 'UTF-8'); ?>" data-role="<?php echo htmlspecialchars($_SESSION['account_type'] ?? 'admin', ENT_QUOTES, 'UTF-8'); ?>">
 <script>window.PRISM_STAGE_LABELS = <?php echo json_encode(stage_labels_map(), JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT); ?>;</script>
 <div class="container">
-    <aside class="sidebar">
-        <div class="sidebar-header">
-            <img src="assets/images/prismlogo1.png?v=2" alt="PRISM Assistant logo" class="sidebar-brand-logo">
-            <div class="sidebar-brand-copy"><strong>IERB Progress &amp; Reporting System</strong><span>Centro Escolar University - Malolos &bull; RPMS</span></div>
-        </div>
-        <ul class="nav-links"><?php if ($authUser['role'] === 'admin'): ?><li><a href="dashboard.php"><i class="fa-solid fa-chart-line"></i><span>Dashboard</span></a></li><?php endif; ?><li><a href="admin_students.php"><i class="fa-solid fa-user-graduate"></i><span>Students</span></a></li><?php if ($authUser['role'] === 'admin'): ?><li><a href="admin_advisers.php"><i class="fa-solid fa-user-tie"></i><span>Research Advisers</span></a></li><?php endif; ?><li class="active"><a href="ierbprog.php"><i class="fa-solid fa-file-signature"></i><span>IERB Progress</span></a></li><li><a href="documents.php"><i class="fa-solid fa-folder-open"></i><span>Documents</span></a></li><li><a href="admin_notifications.php"><i class="fa-solid fa-bell"></i><span>Notifications</span></a></li><li><a href="admin_ai.php"><i class="fa-solid fa-wand-magic-sparkles"></i><span>AI</span></a></li><li><a href="reports.php"><i class="fa-solid fa-file-pdf"></i><span>Reports</span></a></li><li><a href="calendar.php"><i class="fa-solid fa-calendar-days"></i><span>Calendar</span></a></li></ul>
-        <div class="sidebar-bottom"><div class="profile-dropdown-wrapper">
+    <aside class="sidebar prism-sidebar">
+<?php $prismCurrentPage = 'ierbprog.php'; require __DIR__ . '/includes/prism-navigation.php'; ?>
+<div class="sidebar-bottom"><div class="profile-dropdown-wrapper">
             <div class="sidebar-profile" id="profileToggle"><img src="<?php echo htmlspecialchars($profile_img, ENT_QUOTES, 'UTF-8'); ?>" alt="Profile picture"><div class="profile-info"><h4><?php echo htmlspecialchars($user_name, ENT_QUOTES, 'UTF-8'); ?></h4><p><?php echo htmlspecialchars($user_role, ENT_QUOTES, 'UTF-8'); ?></p></div><i class="fa-solid fa-chevron-down dropdown-arrow"></i></div>
             <div class="profile-menu" id="profileMenu"><a href="account.php#profile"><i class="fa-solid fa-user-gear"></i> Profile</a><a href="account.php#security"><i class="fa-solid fa-gear"></i> Settings</a><a href="account.php#activity"><i class="fa-solid fa-sliders"></i> Activity Logs</a><hr><a href="logout.php" class="logout-btn"><i class="fa-solid fa-right-from-bracket"></i> Log Out</a></div>
         </div></div>

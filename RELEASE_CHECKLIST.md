@@ -1,6 +1,6 @@
 # PRISM release checklist
 
-The workspace contains remaining uncommitted hardening and verification files. Earlier fixes are also present in the externally advanced HEAD (05903f0). A release built only from that HEAD would omit the remaining files, including auth_rate_limit.php required by config.php. The assistant did not create a commit or release archive.
+The current UI checkpoint is on prism-v2-ui-polish, based on hardening commit 3394bf34ace411098764bc982c10e8b146fa9e6f (Complete production hardening). UI integration remains uncommitted. See UI_INTEGRATION_REVIEW.md for the exact inventory, per-batch gates, and remaining manual tests. No commit, push, checkpoint branch, or academic migration was performed by the assistant. The deployment and operational gates below still apply.
 
 ## Select the reviewed source
 
@@ -28,7 +28,7 @@ If a trusted proxy terminates HTTPS, verify its handling of HTTPS/forwarded-prot
 - Test password reset/change races, expired links, inactive accounts, forced changes, multiple sessions and logout cookies with real browsers.
 - Test real setup/recovery mail, generic recovery responses under misconfiguration and throttling, notification scheduling, CLI processing, AI failure/fallback and generated report access.
 - Verify ordinary-page headers and document-specific CSP, and confirm legitimate forms/AJAX work while cross-site or originless mutation requests fail.
-- Verify Apache denies direct access to private storage, tests, .git, logs, SQL, MD, diff and patch artifacts. Verify equivalent rules if deploying without Apache or without AllowOverride.
+- Verify Apache denies direct access to private storage, includes, tests, .git, logs, SQL, MD, diff and patch artifacts. Verify equivalent rules if deploying without Apache or without AllowOverride.
 - Exercise the four UI workflows on mobile and desktop, light/dark themes, and all authorized roles with real data and external fonts/icons.
 
 ## Operational limits

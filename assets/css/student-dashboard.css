@@ -1,0 +1,160 @@
+/* Student workspace presentation; guarded data and workflow controls stay unchanged. */
+.student-dashboard-page { padding-top: 112px; }
+.student-dashboard-page .portal-main { width: 100%; max-width: 1500px; margin: 0 auto; padding: 24px 32px 40px; min-width: 0; }
+.student-dashboard-page .portal-navbar { grid-template-columns: 130px minmax(0, 1fr) auto; grid-template-rows: auto; gap: 14px; height: auto; min-height: 76px; padding: 8px 18px; }
+.student-dashboard-page .portal-brand { min-width: 0; }
+.student-dashboard-page .portal-brand img { width: 130px; max-width: 100%; height: 54px; transform: none; }
+.student-dashboard-page .portal-nav-links { min-width: 0; flex-wrap: wrap; gap: 2px; }
+.student-dashboard-page .portal-nav-links li { min-width: 0; }
+.student-dashboard-page .portal-nav-links button { padding: 8px; white-space: normal; }
+.student-dashboard-page .portal-navigation-toggle { display: none; padding: 9px 10px; border: 1px solid var(--border-color); border-radius: 8px; background: var(--card-bg); color: var(--text-primary); font: 600 11px Montserrat, sans-serif; cursor: pointer; }
+.student-dashboard-page .portal-nav-right { min-width: 0; gap: 8px; }
+.student-dashboard-page .portal-profile-dropdown { display: grid; max-width: calc(100vw - 32px); }
+.student-dashboard-page .portal-profile-dropdown[hidden],
+.student-dashboard-page .portal-nav-links[hidden] { display: none; }
+.student-dashboard-page .portal-profile-menu:hover .portal-profile-btn > i,
+.student-dashboard-page .portal-profile-menu:focus-within .portal-profile-btn > i { transform: none; }
+.student-dashboard-page .portal-profile-btn[aria-expanded="true"] > i { transform: rotate(180deg); }
+.student-dashboard-page button:focus-visible,
+.student-dashboard-page a:focus-visible,
+.student-dashboard-page [tabindex="0"]:focus-visible { outline: 3px solid var(--accent-pink); outline-offset: 3px; }
+.student-dashboard-page .topbar { gap: 16px; }
+.student-dashboard-page .topbar > div { min-width: 0; }
+.student-dashboard-page .theme-toggle { flex-shrink: 0; }
+.student-dashboard-page .student-dashboard-state { margin: 0 0 14px; color: var(--text-secondary); font-size: 12px; line-height: 1.5; overflow-wrap: anywhere; }
+.student-dashboard-page .student-dashboard-state:empty { display: none; }
+.student-dashboard-page .portal-page { margin-top: 18px; }
+.student-dashboard-page .welcome-card { margin-bottom: 18px; }
+.student-dashboard-page .welcome-card > div,
+.student-dashboard-page .dashboard-progress-copy,
+.student-dashboard-page .dashboard-pending-card > span { min-width: 0; }
+.student-dashboard-page .welcome-card p,
+.student-dashboard-page .welcome-card h2,
+.student-dashboard-page .dashboard-progress-copy h2,
+.student-dashboard-page .dashboard-progress-copy p { overflow-wrap: anywhere; }
+.student-dashboard-page .welcome-card .primary-btn { flex-shrink: 0; }
+.student-dashboard-page .dashboard-priority { margin: 18px 0; }
+.student-dashboard-page .dashboard-progress-copy h2 { font-size: 23px; }
+.student-dashboard-page .dashboard-progress-copy p,
+.student-dashboard-page .dashboard-pending-card strong { font-size: 12px; }
+.student-dashboard-page .dashboard-pending-card small { font-size: 11px; line-height: 1.5; }
+.student-dashboard-page .student-summary-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); grid-auto-rows: 1fr; align-items: stretch; gap: 14px; margin-bottom: 18px; }
+.student-dashboard-page .student-summary-card { min-width: 0; padding: 18px; border: 1px solid var(--border-color); border-radius: 12px; color: var(--text-primary); background: var(--card-bg); overflow-wrap: anywhere; }
+.student-dashboard-page .student-summary-heading { display: flex; flex-wrap: wrap; align-items: start; justify-content: space-between; gap: 8px; margin-bottom: 16px; }
+.student-dashboard-page .student-summary-heading h2 { font-size: 13px; line-height: 1.5; }
+.student-dashboard-page .student-summary-heading button { position: static; display: inline-flex; min-height: 32px; padding: 5px 0; border: 0; border-radius: 4px; background: transparent; color: var(--accent-pink); font: 600 11px Montserrat, sans-serif; text-align: left; cursor: pointer; }
+.student-dashboard-page .student-summary-heading button:hover { transform: none; box-shadow: none; text-decoration: underline; }
+.student-dashboard-page .student-summary-card > strong { display: block; margin: 0 0 10px; font-size: 20px; line-height: 1.4; }
+.student-dashboard-page .student-summary-card p { margin: 0 0 10px; color: var(--text-primary); font-size: 12px; line-height: 1.6; white-space: pre-wrap; }
+.student-dashboard-page .student-summary-card > small { display: block; color: var(--text-secondary); font-size: 11px; line-height: 1.5; }
+.student-dashboard-page #studentRecentNotifications { font-size: 12px; }
+.student-dashboard-page #studentRecentNotifications .list-item:first-child { border-top: 0; padding-top: 0; }
+.student-dashboard-page #studentRecentNotifications .list-item { gap: 8px; }
+.student-dashboard-page #studentRecentNotifications .list-item > i { flex-shrink: 0; width: 14px; }
+.student-dashboard-page .dashboard-overview-grid { grid-template-columns: minmax(0, .8fr) minmax(0, 1.2fr); gap: 18px; }
+.student-dashboard-page .dashboard-overview-grid > *,
+.student-dashboard-page .portal-two-col > *,
+.student-dashboard-page .panel,
+.student-dashboard-page .form-grid > *,
+.student-dashboard-page .calendar-layout > * { min-width: 0; }
+.student-dashboard-page .list-item > div { min-width: 0; }
+.student-dashboard-page .list-item strong,
+.student-dashboard-page .list-item span,
+.student-dashboard-page .list-item time,
+.student-dashboard-page .protocol-code-card strong,
+.student-dashboard-page .protocol-reveal,
+.student-dashboard-page .stage-card,
+.student-dashboard-page .panel-head { overflow-wrap: anywhere; }
+.student-dashboard-page .list-item span { white-space: pre-wrap; }
+.student-dashboard-page .list-item > i,
+.student-dashboard-page .list-item > button { flex-shrink: 0; }
+.student-dashboard-page .panel-head { flex-wrap: wrap; }
+.student-dashboard-page .panel-head > div { min-width: 0; }
+.student-dashboard-page .panel-head select { min-width: 0; max-width: 100%; }
+.student-dashboard-page .form-panel input,
+.student-dashboard-page .form-panel select,
+.student-dashboard-page .form-panel textarea,
+.student-dashboard-page #reminderForm input,
+.student-dashboard-page #reminderForm textarea { min-width: 0; max-width: 100%; }
+.student-dashboard-page .document-table-wrap { max-width: 100%; }
+.student-dashboard-page .document-table-wrap table:has(.empty-state) { min-width: 0; }
+.student-dashboard-page .document-table-wrap td { overflow-wrap: anywhere; }
+.student-dashboard-page .document-table-wrap td:first-child { max-width: 300px; }
+.student-dashboard-page .empty-state { padding: 20px 12px; line-height: 1.6; }
+.student-dashboard-page .student-summary-card .empty-state { padding: 8px 0; text-align: left; }
+.student-dashboard-page .prism-wf-panel,
+.student-dashboard-page .prism-wf-item,
+.student-dashboard-page .prism-wf-item > div,
+.student-dashboard-page .prism-badges,
+.student-dashboard-page .prism-badge span { min-width: 0; max-width: 100%; }
+.student-dashboard-page .prism-wf-item > div:first-child { flex: 1 1 260px; }
+.student-dashboard-page .prism-wf-item strong,
+.student-dashboard-page .prism-wf-remarks,
+.student-dashboard-page .prism-sub { overflow-wrap: anywhere; }
+.student-dashboard-page .prism-badge { max-width: 100%; white-space: normal; }
+.student-dashboard-page .prism-badge span { white-space: normal; overflow-wrap: anywhere; }
+.student-dashboard-page .prism-wf-actions button { max-width: 100%; white-space: normal; overflow-wrap: anywhere; }
+.student-dashboard-page .dashboard-calendar-nav strong { font-size: 12px; }
+.student-dashboard-page .dashboard-calendar-weekdays span { font-size: 10px; }
+.student-dashboard-page .dashboard-calendar-day { min-height: 34px; font-size: 11px; }
+.student-dashboard-page .calendar-toolbar { gap: 12px; }
+.student-dashboard-page .calendar-toolbar h2 { min-width: 0; }
+.student-dashboard-page .calendar-nav { flex-shrink: 0; }
+.student-dashboard-page .month-grid,
+.student-dashboard-page .weekday-row { grid-template-columns: repeat(7, minmax(0, 1fr)); }
+.student-dashboard-page .calendar-page-actions { flex-wrap: wrap; }
+.student-dashboard-page .calendar-page-actions > div { min-width: 0; }
+.student-dashboard-page .progress-summary { gap: 16px; }
+.student-dashboard-page .progress-summary > div:first-child { min-width: 0; overflow-wrap: anywhere; }
+.student-dashboard-page .progress-ring { flex-shrink: 0; }
+.student-dashboard-page .support-modal-card { min-width: 0; max-height: calc(100vh - 36px); overflow-y: auto; }
+.student-dashboard-page .support-modal-card input,
+.student-dashboard-page .support-modal-card select,
+.student-dashboard-page .support-modal-card textarea { min-width: 0; }
+.student-dashboard-page .toast { max-width: calc(100vw - 32px); overflow-wrap: anywhere; }
+@media (max-width: 1120px) {
+  .student-dashboard-page { padding-top: 100px; }
+  .student-dashboard-page .portal-navbar { grid-template-columns: minmax(0, 1fr) auto auto; grid-template-rows: auto; gap: 12px; min-height: 66px; padding: 6px 16px; }
+  .student-dashboard-page .portal-navigation-toggle { display: block; grid-column: 2; grid-row: 1; }
+  .student-dashboard-page .portal-nav-right { grid-column: 3; grid-row: 1; }
+  .student-dashboard-page .portal-nav-links { position: absolute; top: calc(100% + 8px); left: 0; display: grid; grid-template-columns: 1fr; grid-column: auto; grid-row: auto; width: 100%; max-height: calc(100vh - 112px); overflow-y: auto; padding: 10px; border: 1px solid var(--border-color); border-radius: 12px; background: var(--card-bg); box-shadow: var(--shadow); }
+  .student-dashboard-page .portal-nav-links button { width: 100%; min-height: 40px; text-align: left; }
+  .student-dashboard-page .student-summary-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media (max-width: 900px) {
+  .student-dashboard-page .portal-main { padding: 18px 20px 32px; }
+  .student-dashboard-page .dashboard-overview-grid { grid-template-columns: minmax(0, 1fr); }
+}
+@media (max-width: 620px) {
+  .student-dashboard-page { padding-top: 90px; }
+  .student-dashboard-page .portal-navbar { top: 10px; width: calc(100% - 20px); gap: 8px; padding: 6px 10px; }
+  .student-dashboard-page .portal-brand img { width: 94px; height: 44px; }
+  .student-dashboard-page .portal-navigation-toggle { padding: 9px 7px; }
+  .student-dashboard-page .portal-nav-right { gap: 6px; }
+  .student-dashboard-page .portal-profile-btn,
+  .student-dashboard-page .portal-help,
+  .student-dashboard-page .portal-notification { min-width: 36px; min-height: 36px; width: 36px; height: 36px; }
+  .student-dashboard-page .portal-help { margin-right: 0; }
+  .student-dashboard-page .portal-profile-btn { padding: 2px; }
+  .student-dashboard-page .portal-profile-btn > i { display: none; }
+  .student-dashboard-page .portal-main { padding: 16px 12px 28px; }
+  .student-dashboard-page .student-summary-grid { grid-template-columns: minmax(0, 1fr); grid-auto-rows: auto; }
+  .student-dashboard-page .welcome-card { padding: 20px; }
+  .student-dashboard-page .welcome-card .primary-btn { width: 100%; white-space: normal; }
+  .student-dashboard-page .dashboard-progress-copy h2 { font-size: 20px; }
+  .student-dashboard-page .dashboard-progress-feature { min-width: 0; }
+  .student-dashboard-page .dashboard-pending-card { align-items: flex-start; }
+  .student-dashboard-page .dashboard-pending-card strong { line-height: 1.5; }
+  .student-dashboard-page .prism-wf-item { padding: 12px; }
+  .student-dashboard-page .prism-wf-item .prism-wf-actions { width: 100%; }
+  .student-dashboard-page .prism-wf-actions button { width: 100%; justify-content: center; }
+  .student-dashboard-page .portal-calendar { padding: 0; }
+  .student-dashboard-page .calendar-layout { grid-template-columns: minmax(0, 1fr); gap: 16px; }
+  .student-dashboard-page .calendar-toolbar { gap: 8px; }
+  .student-dashboard-page .calendar-toolbar h2 { font-size: 15px; }
+  .student-dashboard-page .day-number { width: auto; min-width: 22px; }
+  .student-dashboard-page .weekday-row span { padding: 8px 0; }
+  .student-dashboard-page .reminder-panel { padding: 16px; }
+  .student-dashboard-page .panel-title { flex-wrap: wrap; }
+  .student-dashboard-page .support-modal-actions { flex-wrap: wrap; }
+}

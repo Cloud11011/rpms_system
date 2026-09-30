@@ -18,23 +18,14 @@ $user_email = $authUser['email'];
     <link rel="stylesheet" href="assets/css/prism-ui.css">
     <link rel="stylesheet" href="assets/css/workspace-pages.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.6.0/css/all.min.css">
+<link rel="stylesheet" href="assets/css/dashboard-sidebar.css">
+<script src="assets/js/dashboard-sidebar.js" defer></script>
 </head>
 <body class="ai-report-page" data-admin-user="<?php echo htmlspecialchars(hash('sha256', $user_email), ENT_QUOTES); ?>">
 <div class="container">
-    <aside class="sidebar">
-        <div class="sidebar-header"><img src="assets/images/prismlogo1.png?v=2" class="sidebar-brand-logo" alt="PRISM"></div>
-        <ul class="nav-links">
-            <?php if ($authUser['role'] === 'admin'): ?><li><a href="dashboard.php"><i class="fa-solid fa-chart-line"></i><span>Dashboard</span></a></li><?php endif; ?>
-            <li><a href="admin_students.php"><i class="fa-solid fa-user-graduate"></i><span>Students</span></a></li>
-            <?php if ($authUser['role'] === 'admin'): ?><li><a href="admin_advisers.php"><i class="fa-solid fa-user-tie"></i><span>Research Advisers</span></a></li><?php endif; ?>
-            <li><a href="ierbprog.php"><i class="fa-solid fa-file-signature"></i><span>IERB Progress</span></a></li>
-            <li><a href="documents.php"><i class="fa-solid fa-folder-open"></i><span>Documents</span></a></li>
-            <li><a href="admin_notifications.php"><i class="fa-solid fa-bell"></i><span>Notifications</span></a></li>
-            <li class="active"><a href="admin_ai.php"><i class="fa-solid fa-wand-magic-sparkles"></i><span>AI</span></a></li>
-            <li><a href="reports.php"><i class="fa-solid fa-file-pdf"></i><span>Reports</span></a></li>
-            <li><a href="calendar.php"><i class="fa-solid fa-calendar-days"></i><span>Calendar</span></a></li>
-        </ul>
-    </aside>
+    <aside class="sidebar prism-sidebar">
+<?php $prismCurrentPage = 'admin_ai.php'; require __DIR__ . '/includes/prism-navigation.php'; ?>
+</aside>
     <main class="main-content management-page">
         <header class="topbar">
             <div><h1>AI Progress Reports</h1><p>Generate a focused summary or a full progress report. If the AI service is unavailable, PRISM uses its built-in local summarizer.</p></div>

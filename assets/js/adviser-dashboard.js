@@ -1,0 +1,207 @@
+document.addEventListener('DOMContentLoaded', () => {
+    'use strict';
+    const byId = id => document.getElementById(id);
+    const queue = byId('adviserQueue');
+    const search = byId('adviserQueueSearch');
+    const filter = byId('adviserQueueFilter');
+    const refresh = byId('adviserRefresh');
+    const notices = byId('adviserNotifications');
+    const profile = byId('adviserProfile');
+    const dialog = byId('adviserReviewDialog');
+    const form = byId('adviserReviewForm');
+    const reviewStatus = byId('adviserReviewStatus');
+    const remarks = byId('adviserReviewRemarks');
+    const save = byId('adviserReviewSave');
+    const cancel = byId('adviserReviewCancel');
+    const reviewError = byId('adviserReviewError');
+    const status = byId('adviserStatus');
+    let documents = [];
+    let queueState = 'loading';
+    let loadSequence = 0;
+    let reviewDocument = null;
+    let reviewOpener = null;
+    let saving = false;
+
+    function node(tag, text, className) {
+        const item = document.createElement(tag);
+        if (text != null) item.textContent = String(text);
+        if (className) item.className = className;
+        return item;
+    }
+    function state(container, title, detail) {
+        const wrapper = node('div', null, 'adviser-panel-state');
+        wrapper.append(node('strong', title), node('span', detail));
+        container.replaceChildren(wrapper);
+    }
+    function dateText(value) {
+        if (!value) return 'Not recorded';
+        const parsed = new Date(String(value).replace(' ', 'T'));
+        return Number.isNaN(parsed.getTime()) ? String(value) : parsed.toLocaleString('en-PH');
+    }
+    function field(list, label, value) {
+        const entry = node('div');
+        entry.append(node('dt', label), node('dd', value == null || value === '' ? 'Not recorded' : value));
+        list.append(entry);
+    }
+    function reviewRequired() {
+        remarks.required = ['Denied', 'Resubmission Requested'].includes(reviewStatus.value);
+    }
+    function setSaving(pending) {
+        saving = pending;
+        [save, cancel, reviewStatus, remarks, refresh].forEach(control => { control.disabled = pending; });
+        form.setAttribute('aria-busy', String(pending));
+        save.textContent = pending ? 'Saving review...' : 'Save review';
+    }
+    function openReview(doc, opener) {
+        reviewDocument = doc;
+        reviewOpener = opener;
+        byId('adviserReviewTitle').textContent = 'Review: ' + (doc.originalName || 'Document');
+        reviewStatus.value = [...reviewStatus.options].some(option => option.value === doc.reviewStatus) ? doc.reviewStatus : 'Under Review';
+        remarks.value = doc.reviewRemarks || '';
+        reviewError.textContent = '';
+        reviewRequired();
+        dialog.showModal();
+        reviewStatus.focus();
+    }
+    function renderQueue() {
+        if (queueState !== 'ready') return;
+        const term = search.value.trim().toLocaleLowerCase();
+        const selected = documents.filter(doc => (!filter.value || doc.workflowState === filter.value)
+            && (!term || [doc.student, doc.originalName, doc.documentType, doc.stage, doc.stageLabel, doc.protocolCode].some(value => String(value || '').toLocaleLowerCase().includes(term))));
+        if (!selected.length) {
+            state(queue, documents.length ? 'No matching submissions' : 'No current submissions', documents.length ? 'Adjust your search or workflow status filter.' : 'Documents from your assigned students will appear here when they upload them.');
+            return;
+        }
+        queue.replaceChildren();
+        selected.forEach(doc => {
+            const card = node('article', null, 'adviser-document');
+            card.append(node('h3', doc.originalName || 'Untitled document'));
+            const badge = node('span', doc.workflowState || 'Status unavailable', 'adviser-workflow-badge');
+            card.append(badge);
+            const meta = node('dl', null, 'adviser-document-meta');
+            field(meta, 'Student', doc.student);
+            field(meta, 'Document type', doc.documentType);
+            field(meta, 'Stage', doc.stageLabel || doc.stage);
+            field(meta, 'Version', doc.versionNo);
+            field(meta, 'Uploaded', dateText(doc.uploadedAt));
+            field(meta, 'Review status', doc.reviewStatus);
+            card.append(meta);
+            if (doc.reviewRemarks) card.append(node('p', 'Reviewer remarks: ' + doc.reviewRemarks, 'adviser-document-remarks'));
+            const actions = node('div', null, 'adviser-document-actions');
+            const fileLink = node('a', 'Open document', 'adviser-button');
+            fileLink.href = 'documents_api.php?action=file&id=' + encodeURIComponent(String(doc.id));
+            fileLink.target = '_blank';
+            fileLink.rel = 'noopener noreferrer';
+            actions.append(fileLink);
+            if (doc.actions && doc.actions.review === true) {
+                const review = node('button', 'Review document', 'adviser-button is-primary');
+                review.type = 'button';
+                review.dataset.reviewId = String(doc.id);
+                review.addEventListener('click', () => openReview(doc, review));
+                actions.append(review);
+            }
+            card.append(actions);
+            queue.append(card);
+        });
+    }
+    function renderProfile(user) {
+        const details = node('dl', null, 'adviser-profile-details');
+        field(details, 'Name', user.name);
+        field(details, 'Email', user.email);
+        field(details, 'Role', user.role);
+        profile.replaceChildren(details);
+    }
+    function renderNotices(items, email) {
+        const personal = items.filter(item => String(item.recipient_email || '').toLocaleLowerCase() === email.toLocaleLowerCase());
+        if (!personal.length) {
+            state(notices, 'No recent messages', 'Messages addressed to your account will appear here.');
+            return;
+        }
+        notices.replaceChildren();
+        personal.forEach(item => {
+            const card = node('article', null, 'adviser-notice');
+            card.append(node('h3', item.subject || item.type || 'Notification'), node('p', item.message || ''), node('small', dateText(item.created_at) + ' | ' + (item.status || 'Status unavailable') + (item.read_at ? ' | Read' : ' | Unread')));
+            notices.append(card);
+        });
+    }
+    async function reload() {
+        const sequence = ++loadSequence;
+        queueState = 'loading';
+        documents = [];
+        status.textContent = '';
+        [queue, notices, profile].forEach(panel => panel.setAttribute('aria-busy', 'true'));
+        state(queue, 'Loading submissions...', 'Checking current document versions.');
+        state(notices, 'Loading notifications...', 'Checking recent messages for your account.');
+        state(profile, 'Loading account...', 'Checking your current account information.');
+        ['adviserStudentsCount', 'adviserPendingCount', 'adviserRevisionCount', 'adviserApprovedCount'].forEach(id => { byId(id).textContent = 'Loading...'; });
+        const results = await Promise.allSettled([
+            PrismUI.request('students_api.php?action=list'),
+            PrismUI.request('documents_api.php?action=list'),
+            PrismUI.request('profile_api.php?action=me'),
+            PrismUI.request('notifications_api.php?action=list')
+        ]);
+        if (sequence !== loadSequence) return;
+        const [studentsResult, documentsResult, profileResult, noticesResult] = results;
+        const students = studentsResult.status === 'fulfilled' && Array.isArray(studentsResult.value.students) ? studentsResult.value.students : null;
+        byId('adviserStudentsCount').textContent = students ? String(students.length) : 'Unavailable';
+        if (documentsResult.status === 'fulfilled' && Array.isArray(documentsResult.value.documents)) {
+            documents = documentsResult.value.documents;
+            queueState = 'ready';
+            byId('adviserPendingCount').textContent = String(documents.filter(doc => doc.workflowState === 'Pending Adviser Review').length);
+            byId('adviserRevisionCount').textContent = String(documents.filter(doc => doc.workflowState === 'Needs Revision').length);
+            byId('adviserApprovedCount').textContent = String(documents.filter(doc => ['Ready for Formal RPMS Submission', 'Submitted to RPMS'].includes(doc.workflowState)).length);
+            renderQueue();
+        } else {
+            queueState = 'error';
+            ['adviserPendingCount', 'adviserRevisionCount', 'adviserApprovedCount'].forEach(id => { byId(id).textContent = 'Unavailable'; });
+            state(queue, 'Could not load submissions', 'Use Refresh to try again. No document counts are available.');
+        }
+        const user = profileResult.status === 'fulfilled' && profileResult.value.user;
+        if (user && typeof user.email === 'string' && user.email) renderProfile(user);
+        else state(profile, 'Could not load account', 'Use Refresh to try again or open your account page.');
+        if (user && typeof user.email === 'string' && user.email && noticesResult.status === 'fulfilled' && Array.isArray(noticesResult.value.notifications)) {
+            renderNotices(noticesResult.value.notifications, user.email);
+        } else state(notices, 'Could not load personal notifications', 'Your account and notification information must both be available. Use Refresh to try again.');
+        [queue, notices, profile].forEach(panel => panel.setAttribute('aria-busy', 'false'));
+        if (!students || queueState === 'error' || !user || noticesResult.status === 'rejected') status.textContent = 'Some dashboard information is unavailable. Refresh to try again.';
+    }
+    search.addEventListener('input', renderQueue);
+    filter.addEventListener('change', renderQueue);
+    refresh.addEventListener('click', reload);
+    reviewStatus.addEventListener('change', reviewRequired);
+    cancel.addEventListener('click', () => { if (!saving) dialog.close(); });
+    dialog.addEventListener('cancel', event => { if (saving) event.preventDefault(); });
+    dialog.addEventListener('close', () => { if (reviewOpener && reviewOpener.isConnected) reviewOpener.focus(); reviewDocument = null; });
+    form.addEventListener('submit', async event => {
+        event.preventDefault();
+        if (saving || !reviewDocument) return;
+        reviewError.textContent = '';
+        reviewRequired();
+        if (!form.reportValidity()) return;
+        const text = remarks.value.trim();
+        if ((remarks.required && !text) || Array.from(text).length > 5000) {
+            reviewError.textContent = 'Add reviewer remarks when requesting changes, using no more than 5,000 characters.';
+            remarks.focus();
+            return;
+        }
+        const payload = { id: reviewDocument.id, status: reviewStatus.value, remarks: text };
+        setSaving(true);
+        try {
+            await PrismUI.postJson('documents_api.php?action=review', payload);
+            dialog.close();
+            await reload();
+            search.focus();
+            status.textContent = queueState === 'ready' ? 'Review saved. Current submissions have been refreshed.' : 'Review saved, but current submissions could not be refreshed. Use Refresh to try again.';
+        } catch (error) {
+            reviewError.textContent = error.message || 'Review could not be saved. Your remarks have been kept; try again or refresh the queue.';
+        } finally { setSaving(false); }
+    });
+    const theme = byId('themeToggle');
+    theme.setAttribute('aria-pressed', String(document.documentElement.classList.contains('dark-theme')));
+    theme.addEventListener('click', () => {
+        const dark = document.documentElement.classList.toggle('dark-theme');
+        theme.setAttribute('aria-pressed', String(dark));
+        try { localStorage.setItem('prismTheme', dark ? 'dark' : 'light'); } catch (_) {}
+    });
+    reload();
+});

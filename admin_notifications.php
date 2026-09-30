@@ -17,23 +17,14 @@ $user_email = $authUser['email'];
     <link rel="stylesheet" href="assets/css/prism-ui.css">
     <link rel="stylesheet" href="assets/css/workspace-pages.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.6.0/css/all.min.css">
+<link rel="stylesheet" href="assets/css/dashboard-sidebar.css">
+<script src="assets/js/dashboard-sidebar.js" defer></script>
 </head>
 <body class="notification-center-page" data-admin-user="<?php echo htmlspecialchars(hash('sha256', $user_email), ENT_QUOTES); ?>" data-user-role="<?php echo htmlspecialchars($authUser['role'], ENT_QUOTES, 'UTF-8'); ?>">
 <div class="container">
-    <aside class="sidebar">
-        <div class="sidebar-header"><img src="assets/images/prismlogo1.png?v=2" class="sidebar-brand-logo" alt="PRISM"></div>
-        <ul class="nav-links">
-            <?php if ($authUser['role'] === 'admin'): ?><li><a href="dashboard.php"><i class="fa-solid fa-chart-line"></i><span>Dashboard</span></a></li><?php endif; ?>
-            <li><a href="admin_students.php"><i class="fa-solid fa-user-graduate"></i><span>Students</span></a></li>
-            <?php if ($authUser['role'] === 'admin'): ?><li><a href="admin_advisers.php"><i class="fa-solid fa-user-tie"></i><span>Research Advisers</span></a></li><?php endif; ?>
-            <li><a href="ierbprog.php"><i class="fa-solid fa-file-signature"></i><span>IERB Progress</span></a></li>
-            <li><a href="documents.php"><i class="fa-solid fa-folder-open"></i><span>Documents</span></a></li>
-            <li class="active"><a href="admin_notifications.php"><i class="fa-solid fa-bell"></i><span>Notifications</span></a></li>
-            <li><a href="admin_ai.php"><i class="fa-solid fa-wand-magic-sparkles"></i><span>AI</span></a></li>
-            <li><a href="reports.php"><i class="fa-solid fa-file-pdf"></i><span>Reports</span></a></li>
-            <li><a href="calendar.php"><i class="fa-solid fa-calendar-days"></i><span>Calendar</span></a></li>
-        </ul>
-    </aside>
+    <aside class="sidebar prism-sidebar">
+<?php $prismCurrentPage = 'admin_notifications.php'; require __DIR__ . '/includes/prism-navigation.php'; ?>
+</aside>
     <main class="main-content management-page">
         <header class="topbar">
             <div><h1>Notification Center</h1><p>Send updates, schedule automated reminders, and review notification history.</p></div>
@@ -65,11 +56,12 @@ $user_email = $authUser['email'];
                         </select>
                     </label>
                     <label id="groupLabel" hidden>Research group<input id="noticeGroup" maxlength="80"></label>
-                    <label class="notification-message-field">Message<textarea id="noticeMessage" rows="5" maxlength="600" required></textarea></label>
+                    <p id="noticeRecipientPreview" class="notification-recipient-preview" role="status" aria-live="polite">Checking recipients...</p>
+                    <label class="notification-message-field">Message<textarea id="noticeMessage" rows="5" maxlength="600" aria-describedby="noticeMessageCount" required></textarea><span id="noticeMessageCount" class="notification-message-count">0 / 600 characters</span></label>
                     <div class="notification-schedule-row">
                         <label class="check-label"><input id="automatedNotice" type="checkbox"> Schedule for later</label>
                         <label id="scheduleLabel" hidden>Send date and time<input id="noticeSchedule" type="datetime-local"></label>
-                        <div class="notification-submit"><button class="management-primary" type="submit"><i class="fa-solid fa-paper-plane"></i> <span id="noticeSubmitLabel">Send notification</span></button></div>
+                        <div class="notification-submit"><button id="cancelNotification" class="notification-secondary" type="reset">Clear form</button><button class="management-primary" type="submit"><i class="fa-solid fa-paper-plane"></i> <span id="noticeSubmitLabel">Send notification</span></button></div>
                     </div>
                 </form>
             </section>
@@ -80,6 +72,13 @@ $user_email = $authUser['email'];
         </div>
     </main>
 </div>
+<dialog id="notificationDetail" class="notification-detail" aria-labelledby="notificationDetailTitle">
+    <div class="notification-detail-heading"><span>Notification details</span><h2 id="notificationDetailTitle"></h2></div>
+    <dl id="notificationDetailMeta" class="notification-detail-meta"></dl>
+    <section class="notification-detail-section"><h3>Message</h3><p id="notificationDetailMessage"></p></section>
+    <section class="notification-detail-section"><h3>Delivery information</h3><p id="notificationDetailDelivery"></p></section>
+    <form method="dialog" class="notification-detail-actions"><button id="closeNotificationDetail" class="management-primary" autofocus>Close details</button></form>
+</dialog>
 <script src="assets/js/prism-ui.js"></script>
 <script src="assets/js/admin-notifications.js"></script>
 </body>

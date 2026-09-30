@@ -40,20 +40,16 @@ try {
 <link rel="stylesheet" href="assets/css/dashboard.css">
 <link rel="stylesheet" href="assets/css/prism-ui.css">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.6.0/css/all.min.css">
+<link rel="stylesheet" href="assets/css/dashboard-sidebar.css">
+<script src="assets/js/dashboard-sidebar.js" defer></script>
+<link rel="stylesheet" href="assets/css/dashboard-overview.css">
 </head>
-<body data-reminder-user="<?php echo htmlspecialchars(hash('sha256', $user_email), ENT_QUOTES, 'UTF-8'); ?>">
+<body class="dashboard-page" data-reminder-user="<?php echo htmlspecialchars(hash('sha256', $user_email), ENT_QUOTES, 'UTF-8'); ?>">
 
 <div class="container">
 <!-- SIDEBAR WITH EASY-TO-UNDERSTAND LABELS -->
-<aside class="sidebar">
-<div class="sidebar-header">
-<img src="assets/images/prismlogo1.png?v=2" alt="PRISM Assistant logo" class="sidebar-brand-logo">
-<div class="sidebar-brand-copy">
-<strong>IERB Progress &amp; Reporting System</strong>
-<span>Centro Escolar University - Malolos &bull; RPMS</span>
-</div>
-</div>
-<ul class="nav-links"><li class="active"><a href="dashboard.php"><i class="fa-solid fa-chart-line"></i><span>Dashboard</span></a></li><li><a href="admin_students.php"><i class="fa-solid fa-user-graduate"></i><span>Students</span></a></li><li><a href="admin_advisers.php"><i class="fa-solid fa-user-tie"></i><span>Research Advisers</span></a></li><li><a href="ierbprog.php"><i class="fa-solid fa-file-signature"></i><span>IERB Progress</span></a></li><li><a href="documents.php"><i class="fa-solid fa-folder-open"></i><span>Documents</span></a></li><li><a href="admin_notifications.php"><i class="fa-solid fa-bell"></i><span>Notifications</span></a></li><li><a href="admin_ai.php"><i class="fa-solid fa-wand-magic-sparkles"></i><span>AI</span></a></li><li><a href="reports.php"><i class="fa-solid fa-file-pdf"></i><span>Reports</span></a></li><li><a href="calendar.php"><i class="fa-solid fa-calendar-days"></i><span>Calendar</span></a></li></ul>
+<aside class="sidebar prism-sidebar">
+<?php $prismCurrentPage = 'dashboard.php'; require __DIR__ . '/includes/prism-navigation.php'; ?>
 <div class="sidebar-bottom">
 <div class="profile-dropdown-wrapper">
 <div class="sidebar-profile" id="profileToggle">
@@ -80,7 +76,7 @@ try {
 <header class="topbar">
 <div class="search-box">
 <i class="fa-solid fa-magnifying-glass"></i>
-<input type="text" placeholder="Search groups, ethics stage, or document title...">
+<input id="dashboardSearch" type="search" aria-label="Search IERB records" placeholder="Search students, groups or research...">
 </div>
 <div class="top-controls">
 <div class="quick-actions-menu-wrap">
@@ -130,7 +126,7 @@ try {
 </div>
 </div>
 </header>
-<section class="welcome-header">
+<section class="welcome-header"><p class="dashboard-eyebrow">ADMINISTRATION / OVERVIEW</p>
 <h1><?php echo $greeting; ?>, <span><?php echo htmlspecialchars($user_name); ?></span>! 👋</h1>
 <p class="current-date"><i class="fa-regular fa-calendar"></i> <?php echo $current_date_formatted; ?></p>
 </section>
@@ -219,7 +215,7 @@ try {
 <a class="btn-secondary-sm prism-link-btn" href="ierb_api.php?action=export_csv" title="Download the student progress list as a CSV file"><i class="fa-solid fa-file-arrow-down"></i> Export CSV</a>
 </div>
 </div>
-<table class="data-table">
+<div class="dashboard-table-scroll" tabindex="0" role="region" aria-label="IERB progress records"><table class="data-table">
 <thead>
 <tr>
 <th>Protocol Code / Group</th>
@@ -233,7 +229,7 @@ try {
 </tr>
 </thead>
 <tbody id="ierbMonitorBody"></tbody>
-</table>
+</table></div>
 </div>
 <!-- DOCUMENT REPOSITORY SUMMARY -->
 <div class="content-box">
@@ -401,6 +397,8 @@ const courseFilter = document.getElementById('courseFilter');
 const progressSort = document.getElementById('progressSort');
 const progressTableBody = document.getElementById('ierbMonitorBody');
 let monitorRecords = [];
+let monitorError = '';
+let monitorRequest = 0;
 const escapeMonitorHtml = value => String(value ?? '').replace(/[&<>'"]/g, char => ({
     '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;'
 })[char]);
@@ -408,12 +406,19 @@ const progressRows = () => Array.from(progressTableBody.querySelectorAll('tr[dat
 const progressNumber = value => parseFloat(String(value).replace('%', '')) || 0;
 
 async function loadMonitorStudents() {
+    const requestId = ++monitorRequest;
+    progressTableBody.setAttribute('aria-busy', 'true');
     try {
-        const res = await fetch('ierb_api.php?action=list');
-        const data = await res.json();
-        monitorRecords = data.ok ? data.records : [];
-    } catch (_) {
+        const data = await PrismUI.request('ierb_api.php?action=list');
+        if (requestId !== monitorRequest) return;
+        monitorRecords = data.records || [];
+        monitorError = '';
+    } catch (error) {
+        if (requestId !== monitorRequest) return;
         monitorRecords = [];
+        monitorError = error.message;
+    } finally {
+        if (requestId === monitorRequest) progressTableBody.setAttribute('aria-busy', 'false');
     }
 }
 
@@ -443,6 +448,17 @@ function populateCourseFilter(records) {
 
 function renderIerbMonitor() {
     progressTableBody.replaceChildren();
+    if (monitorError) {
+        ['totalResearchersMetric','pendingIerbMetric','approvedEthicsMetric','delayedSubmissionsMetric',
+         'initialStageCount','reviewStageCount','revisionStageCount','approvedStageCount'].forEach(id => {
+            document.getElementById(id).textContent = 'Unavailable';
+        });
+        const row = document.createElement('tr');
+        const cell = document.createElement('td'); cell.colSpan = 8;
+        cell.textContent = 'Could not load IERB records. ' + monitorError;
+        row.appendChild(cell); progressTableBody.appendChild(row);
+        return;
+    }
     updateMonitorMetrics(monitorRecords);
     populateCourseFilter(monitorRecords);
     if (!monitorRecords.length) {
@@ -464,9 +480,9 @@ function renderIerbMonitor() {
             <td>${escapeMonitorHtml(record.requirements || 'None')}</td>
             <td><span class="progress-value">${escapeMonitorHtml(record.progress || '0')}%</span></td>
             <td>${PrismUI.badge(record.status || 'Pending')}</td>
-            <td><button class="icon-btn" data-monitor-action="remind" title="Send follow-up email"><i class="fa-solid fa-paper-plane"></i></button><button class="icon-btn" data-monitor-action="summary" title="AI summary" data-id="${record.id}"><i class="fa-solid fa-file-lines"></i></button><button class="icon-btn prism-override-icon" data-monitor-action="override" title="Admin Override (always logged)" aria-label="Admin Override for ${escapeMonitorHtml(record.name)}"><i class="fa-solid fa-user-shield"></i></button></td>`;
+            <td><button class="icon-btn" data-monitor-action="remind" title="Send follow-up email"><i class="fa-solid fa-paper-plane"></i></button><button class="icon-btn" data-monitor-action="summary" title="AI summary" data-id="${escapeMonitorHtml(record.id)}"><i class="fa-solid fa-file-lines"></i></button><button class="icon-btn prism-override-icon" data-monitor-action="override" title="Admin Override (always logged)" aria-label="Admin Override for ${escapeMonitorHtml(record.name)}"><i class="fa-solid fa-user-shield"></i></button></td>`;
         row.querySelector('[data-monitor-action="remind"]').addEventListener('click', () => sendMonitorFollowup(record));
-        row.querySelector('[data-monitor-action="summary"]').addEventListener('click', () => openSummaryModal(record.name, record.id));
+        row.querySelector('[data-monitor-action="summary"]').addEventListener('click', () => openSummaryModal(record.name));
         row.querySelector('[data-monitor-action="override"]').addEventListener('click', async () => { if (await PrismUI.overrideStudent(record)) { await loadMonitorStudents(); renderIerbMonitor(); } });
         progressTableBody.appendChild(row);
     });
@@ -475,7 +491,8 @@ function renderIerbMonitor() {
 
 function filterAndSortProgress() {
     const rows = progressRows();
-    rows.forEach(row => row.style.display = !courseFilter.value || row.dataset.course === courseFilter.value ? '' : 'none');
+    const query = document.getElementById('dashboardSearch').value.trim().toLowerCase();
+    rows.forEach(row => row.style.display = (!courseFilter.value || row.dataset.course === courseFilter.value) && (!query || row.textContent.toLowerCase().includes(query)) ? '' : 'none');
     if (progressSort.value !== 'default') {
         const direction = progressSort.value === 'high-to-low' ? -1 : 1;
         rows.sort((a, b) => direction * (progressNumber(a.dataset.progress) - progressNumber(b.dataset.progress))).forEach(row => progressTableBody.appendChild(row));
@@ -496,6 +513,7 @@ async function sendMonitorFollowup(record) {
     }
 }
 
+document.getElementById('dashboardSearch').addEventListener('input', filterAndSortProgress);
 courseFilter.addEventListener('change', filterAndSortProgress);
 progressSort.addEventListener('change', filterAndSortProgress);
 
@@ -551,9 +569,10 @@ function renderReportHistory() {
     }
     history.forEach(report => {
         const item = document.createElement('li');
-        item.style.cursor = 'pointer';
-        item.title = 'Open PDF report';
-        item.addEventListener('click', () => window.open(`reports_api.php?action=file&id=${encodeURIComponent(report.id)}`, '_blank'));
+        const link = document.createElement('a');
+        link.href = `reports_api.php?action=file&id=${encodeURIComponent(report.id)}`;
+        link.target = '_blank'; link.rel = 'noopener noreferrer';
+        link.title = 'Open PDF report';
         const icon = document.createElement('i');
         icon.className = 'fa-regular fa-file-pdf';
         const copy = document.createElement('span');
@@ -564,7 +583,7 @@ function renderReportHistory() {
             month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit'
         });
         copy.append(title, date);
-        item.append(icon, copy);
+        link.append(icon, copy); item.appendChild(link);
         list.appendChild(item);
     });
 }

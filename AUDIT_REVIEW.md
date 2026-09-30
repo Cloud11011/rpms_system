@@ -193,3 +193,10 @@ Controlled local testing is ready. The workspace is ready for deliberate staging
 The new configuration-check command must be run by the operator on the target deployment with its private settings; the assistant did not run it or open config.local.php. Confirm host-level error-display settings, public HTTPS URL, email delivery, writable protected throttle storage, proxy behavior, and the final deployment manifest. Application CSP deliberately does not restrict scripts/styles; a stricter script/style policy would require a separate compatibility pass.
 
 No reset/restore/checkout/clean/commit/push/rebase or destructive file removal was performed by the assistant. Existing work and the externally advanced branch/commit were preserved.
+
+
+## UI integration checkpoint - 29 September 2026
+
+Approved UI batches A-F are integrated on prism-v2-ui-polish above hardening commit 3394bf34ace411098764bc982c10e8b146fa9e6f. See UI_INTEGRATION_REVIEW.md for the exact changed-file inventory and batch results. The final completed browser gate passed 1,651 checks; all nine other existing suites passed. Syntax checks passed for 58 first-party PHP and 18 JS/CJS files. Existing template IDs remain, and protected backend/API/authentication/workflow files have no diff.
+
+The new adviser dashboard uses existing scoped APIs and is accessible from adviser navigation. Both config.php and loading.php remain unchanged; a future adviser landing change must coordinate both. Academic batches G-J have not started. New institutional content and imported image assets remain deferred pending approval. No configuration secrets were opened, no live database or integration services were used, and no commit or push was made.

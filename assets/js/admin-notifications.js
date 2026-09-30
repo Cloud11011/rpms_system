@@ -7,8 +7,6 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    const esc = v => String(v ?? '').replace(/[&<>'"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' })[c]);
-
     function showHistoryState(iconClass, titleText, descriptionText) {
         historyList.replaceChildren();
         const state = document.createElement('div');
@@ -36,9 +34,98 @@ document.addEventListener('DOMContentLoaded', () => {
     const historyList = document.getElementById('noticeHistory');
     const historyCount = document.getElementById('noticeCount');
 
-    audience.addEventListener('change', () => {
+    const recipientPreview = document.getElementById('noticeRecipientPreview');
+    const messageCount = document.getElementById('noticeMessageCount');
+    const cancelButton = document.getElementById('cancelNotification');
+    const detailDialog = document.getElementById('notificationDetail');
+    let recipientRequestSequence = 0;
+    let recipientPreviewTimer;
+    let sending = false;
+
+    function syncMessageCount() {
+        messageCount.textContent = `${Array.from(message.value).length} / 600 characters`;
+    }
+
+    function refreshRecipientPreview(delay = 0) {
+        // Invalidate immediately, including while a new debounced request is waiting.
+        const requestSequence = ++recipientRequestSequence;
+        clearTimeout(recipientPreviewTimer);
         groupLabel.hidden = audience.value !== 'Specific Research Group';
+        const payload = { audience: audience.value, group: groupInput.value.trim() };
+        recipientPreview.classList.remove('is-error');
+        if (payload.audience === 'Specific Research Group' && !payload.group) {
+            recipientPreview.textContent = 'Enter a research group to preview its recipients.';
+            recipientPreview.setAttribute('aria-busy', 'false');
+            return;
+        }
+        recipientPreview.textContent = 'Checking recipients...';
+        recipientPreview.setAttribute('aria-busy', 'true');
+        recipientPreviewTimer = setTimeout(async () => {
+            try {
+                const data = await PrismUI.postJson('notifications_api.php?action=recipients_preview', payload);
+                if (requestSequence !== recipientRequestSequence) return;
+                if (!Array.isArray(data.recipients)) throw new Error('Recipient preview is unavailable.');
+                const count = data.recipients.length;
+                recipientPreview.textContent = count
+                    ? `${count} matching recipient${count === 1 ? '' : 's'}. Recipients are checked again when sending.`
+                    : 'No matching recipients. Choose another audience or check the research group.';
+            } catch (e) {
+                if (requestSequence !== recipientRequestSequence) return;
+                recipientPreview.classList.add('is-error');
+                recipientPreview.textContent = `Could not preview recipients. ${e.message || 'Please try again.'}`;
+            } finally {
+                if (requestSequence === recipientRequestSequence) recipientPreview.setAttribute('aria-busy', 'false');
+            }
+        }, delay);
+    }
+
+    audience.addEventListener('change', () => refreshRecipientPreview());
+    groupInput.addEventListener('input', () => refreshRecipientPreview(220));
+    message.addEventListener('input', syncMessageCount);
+    form.addEventListener('reset', () => {
+        // Native reset applies field defaults after the reset event has finished.
+        queueMicrotask(() => {
+            syncScheduleUi();
+            syncMessageCount();
+            refreshRecipientPreview();
+        });
     });
+
+    function formatNoticeDate(value) {
+        if (!value) return 'Not recorded';
+        const date = new Date(String(value).replace(' ', 'T'));
+        return Number.isNaN(date.getTime()) ? String(value) : date.toLocaleString('en-PH');
+    }
+
+    function showNoticeDetail(notification) {
+        document.getElementById('notificationDetailTitle').textContent = notification.subject || notification.type || 'Notification';
+        const metadata = document.getElementById('notificationDetailMeta');
+        metadata.replaceChildren();
+        const fields = [
+            ['Recipient', notification.recipient_name],
+            ['Email', notification.recipient_email],
+            ['Recipient type', notification.recipient_type],
+            ['Recipient ID', notification.recipient_id],
+            ['Notification ID', notification.id],
+            ['Type', notification.type],
+            ['Status', notification.status],
+            ['Created by', notification.created_by],
+            ['Created', formatNoticeDate(notification.created_at)],
+            ['Scheduled for', notification.scheduled_at ? formatNoticeDate(notification.scheduled_at) : 'Not scheduled'],
+            ['Sent at', notification.sent_at ? formatNoticeDate(notification.sent_at) : 'Not recorded'],
+            ['Read at', notification.read_at ? formatNoticeDate(notification.read_at) : 'Not recorded'],
+        ];
+        fields.forEach(([label, value]) => {
+            const term = document.createElement('dt');
+            term.textContent = label;
+            const description = document.createElement('dd');
+            description.textContent = value == null || value === '' ? 'Not recorded' : String(value);
+            metadata.append(term, description);
+        });
+        document.getElementById('notificationDetailMessage').textContent = notification.message || '';
+        document.getElementById('notificationDetailDelivery').textContent = notification.delivery_info || 'No delivery information recorded.';
+        if (!detailDialog.open) detailDialog.showModal();
+    }
     function syncScheduleUi() {
         scheduleLabel.hidden = !automated.checked;
         scheduleInput.required = automated.checked;
@@ -71,15 +158,40 @@ document.addEventListener('DOMContentLoaded', () => {
             items.forEach(n => {
                 const card = document.createElement('article');
                 card.className = 'history-item';
+                const heading = document.createElement('strong');
+                heading.textContent = n.subject || n.type || 'Notification';
+                const metadata = document.createElement('small');
+                metadata.className = 'notification-history-meta';
+                const recipient = document.createElement('span');
+                recipient.textContent = n.recipient_name || n.recipient_email || 'Recipient not recorded';
+                const kind = document.createElement('span');
+                kind.textContent = n.type || 'Notification';
+                const status = document.createElement('span');
+                status.className = 'status-badge';
                 const statusClass = String(n.status || '').toLowerCase();
-                const when = n.status === 'Scheduled' && n.scheduled_at
-                    ? `Scheduled for ${new Date(n.scheduled_at.replace(' ', 'T')).toLocaleString('en-PH')}`
-                    : new Date(n.created_at.replace(' ', 'T')).toLocaleString('en-PH');
-                card.innerHTML = `<strong>${esc(n.subject || n.type)}</strong>
-                    <small>${esc(n.recipient_name || n.recipient_email)} &bull; ${esc(n.type)} &bull;
-                    <span class="status-badge ${esc(statusClass)}">${esc(n.status)}</span> &bull;
-                    ${esc(when)}</small>
-                    <p>${esc(n.message)}</p>${n.delivery_info ? `<small>${esc(n.delivery_info)}</small>` : ''}`;
+                if (['scheduled', 'sent', 'logged', 'failed', 'pending'].includes(statusClass)) status.classList.add(statusClass);
+                status.textContent = n.status || 'Status not recorded';
+                const when = document.createElement('span');
+                when.textContent = n.status === 'Scheduled' && n.scheduled_at
+                    ? `Scheduled for ${formatNoticeDate(n.scheduled_at)}`
+                    : formatNoticeDate(n.created_at);
+                metadata.append(recipient, kind, status, when);
+                const content = document.createElement('p');
+                content.textContent = n.message || '';
+                card.append(heading, metadata, content);
+                if (n.delivery_info) {
+                    const delivery = document.createElement('small');
+                    delivery.textContent = n.delivery_info;
+                    card.appendChild(delivery);
+                }
+                const detailButton = document.createElement('button');
+                detailButton.type = 'button';
+                detailButton.className = 'notification-detail-button';
+                detailButton.dataset.noticeDetail = String(n.id ?? '');
+                detailButton.textContent = 'View details';
+                detailButton.setAttribute('aria-label', `View details for ${n.subject || n.type || 'notification'} to ${n.recipient_name || n.recipient_email || 'recipient'}`);
+                detailButton.addEventListener('click', () => showNoticeDetail(n));
+                card.appendChild(detailButton);
                 historyList.appendChild(card);
             });
         } catch (e) {
@@ -93,6 +205,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     form.addEventListener('submit', async event => {
         event.preventDefault();
+        if (sending) return;
         const payload = {
             audience: audience.value,
             group: groupInput.value.trim(),
@@ -117,7 +230,9 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
         const submitBtn = form.querySelector('[type="submit"]');
+        sending = true;
         submitBtn.disabled = true;
+        cancelButton.disabled = true;
         try {
             const data = await PrismUI.postJson('notifications_api.php?action=send', payload);
             const deliveryText = data.scheduled
@@ -127,16 +242,18 @@ document.addEventListener('DOMContentLoaded', () => {
                     : `Sent to ${data.sent} of ${data.total} recipient(s).`);
             PrismUI.toast(deliveryText, data.logged ? 'info' : 'success');
             form.reset();
-            groupLabel.hidden = true;
-            syncScheduleUi();
             await loadHistory();
         } catch (e) {
             PrismUI.toast(e.message, 'error');
         } finally {
+            sending = false;
             submitBtn.disabled = false;
+            cancelButton.disabled = false;
         }
     });
 
     syncScheduleUi();
+    syncMessageCount();
+    refreshRecipientPreview();
     loadHistory();
 });
