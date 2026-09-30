@@ -1,6 +1,6 @@
 # PRISM release checklist
 
-The UI baseline was committed separately by the project owner as `0ef69bcea2de3783ac2bb6d5dba5fbc899f3afec` (`0ef69bc`), above hardening commit `3394bf34ace411098764bc982c10e8b146fa9e6f`. The current branch `prism-v2-academic-fields` descends from that checkpoint; academic integration remains uncommitted for owner review. See UI_INTEGRATION_REVIEW.md for historical UI results and ACADEMIC_INTEGRATION_REVIEW.md for the academic change inventory and verification. The assistant performed no commit, push, branch switch, live migration, or production deployment.
+The UI baseline was committed separately by the project owner as `0ef69bcea2de3783ac2bb6d5dba5fbc899f3afec` (`0ef69bc`), above hardening commit `3394bf34ace411098764bc982c10e8b146fa9e6f`. The current branch `prism-v2-academic-fields` descends from that checkpoint; academic integration was committed as `b6323f5bce501f66faa9bdec15e512a48630ad16` (`Add academic program and year fields`). See UI_INTEGRATION_REVIEW.md for historical UI results and ACADEMIC_INTEGRATION_REVIEW.md for the academic change inventory and verification. The assistant performed no commit, push, branch switch, live migration, or production deployment.
 
 ## Select the reviewed source
 

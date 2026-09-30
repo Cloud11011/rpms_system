@@ -1,19 +1,19 @@
 # PRISM academic integration G-J - 1 October 2026
 
-G1-G4, H, I and J are complete for owner review, together with the explicitly approved dashboard shortcut and documentation cleanup. Changes remain uncommitted. This is isolated verification, not production readiness or live migration certification.
+G1-G4, H, I and J are complete, together with the explicitly approved dashboard shortcut and documentation cleanup. Academic integration was committed as `b6323f5bce501f66faa9bdec15e512a48630ad16` (`Add academic program and year fields`). This is isolated verification, not production readiness or live migration certification.
 
 ## Source and preserved baseline
 
 Workspace: `C:/xampp/htdocs/rpms_system`.
 Branch: `prism-v2-academic-fields`.
-Current HEAD: `0ef69bcea2de3783ac2bb6d5dba5fbc899f3afec`.
+Academic checkpoint: `b6323f5bce501f66faa9bdec15e512a48630ad16`.
 UI checkpoint `0ef69bcea2de3783ac2bb6d5dba5fbc899f3afec` (`0ef69bc`) is an ancestor and was committed separately by the owner. The initial academic preflight found a clean tree on the correct branch with that checkpoint present. The assistant preserved the subsequent work and did not commit, push, switch branches, reset, restore, clean, merge or rebase.
 
 Private configuration/secrets were not opened, printed or modified. No live MySQL connection, application bootstrap, email, scheduler, AI integration, migration or production deployment was executed. Syntax checks parse PHP without executing it; isolated fixtures extract only reviewed code or load pure helpers.
 
 ## Exact file inventory
 
-Modified tracked files:
+Files modified by the academic integration:
 
 | File | Academic/final-cleanup change |
 | --- | --- |
@@ -31,7 +31,7 @@ Modified tracked files:
 | `RELEASE_CHECKLIST.md` | Correct checkpoint/branch, guarded academic migration and remaining deployment requirements. |
 | `AUDIT_REVIEW.md` | UI checkpoint note corrected and current academic report linked. |
 
-New files:
+Files added by the academic integration:
 
 - `includes/academic_catalog.php`: one pure authoritative catalog and validator; denies direct execution and inherits existing includes/.htaccess denial.
 - `assets/js/academic-fields.js`: shared dependent selects and safe read-only summary renderer.
@@ -175,9 +175,9 @@ The temporary fixture failures were reported and their corrections were isolated
 
 Academic suites total 2,089 assertions; hardened PHP suites total 309 checks/assertions, plus five forced-password browser cases. Browser gate tests actual templates/assets with mocked APIs, at 375/768/1024/1280/1600px, both themes and permitted role views. No runtime exception or CSP violation was recorded. External CDN fonts/icons were blocked. Database fixtures demonstrate branch/parameter/locking behavior, not actual MySQL persistence or concurrency.
 
-## Current git status
+## Historical pre-commit git status
 
-13 tracked files modified; eight new files. No files staged.
+Before academic checkpoint `b6323f5`, 13 tracked files were modified and eight files were new, with nothing staged. The snapshot below records that pre-commit state; those changes were subsequently committed.
 
 ```text
  M AUDIT_REVIEW.md
@@ -203,9 +203,9 @@ Academic suites total 2,089 assertions; hardened PHP suites total 309 checks/ass
 ?? tools/migrate-academic.php
 ```
 
-## Current git diff --stat
+## Historical pre-commit git diff --stat
 
-Tracked files only; the eight new files above are absent from this numeric summary.
+This historical pre-commit summary covers tracked files only; the eight then-new files above were absent from these statistics but were included in academic checkpoint `b6323f5`.
 
 ```text
  AUDIT_REVIEW.md               |   6 +-
@@ -234,4 +234,4 @@ Tracked files only; the eight new files above are absent from this numeric summa
 - Review real Chrome/Edge/mobile rendering, zoom, keyboard/screen-reader announcements, native select behavior, long legacy text and CDN fonts/icons. Validate current required academic selections with institution users.
 - Exercise real setup/recovery mail, notification scheduling/CLI delivery, AI integration/local fallback and PDF ownership/downloads; these existing release gates remain unverified by fixtures.
 - Confirm official academic-unit labels/mappings, graduate unit/standing/year-level rules and Academic Year maintenance. No institutional rollover or active year is inferred; unprovided graduate rules remain nullable.
-- Owner review of this uncommitted academic checkpoint precedes any commit/push or deployment. No live migration or production deployment is authorized by these fixture results.
+- Academic integration is recorded in checkpoint `b6323f5`. Further commits, pushes or deployment require separate owner authorization. No live migration or production deployment is authorized by these fixture results.
