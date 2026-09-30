@@ -69,6 +69,8 @@
     const accountIdField = document.getElementById('accountId');
     const emailField = document.getElementById('recordEmail');
 
+    const academicFields = isAdviser ? null : PrismAcademicFields.mount(document.getElementById('studentAcademicFields'));
+    let returnFocus = null;
     let records = [];
 
     async function loadRecords() {
@@ -148,6 +150,7 @@
                     <td>${protocolBadge}${piBadge}</td>
                     <td class="row-actions"></td>`;
             }
+            if (!isAdviser) PrismAcademicFields.appendSummary(tr.cells[2], record);
             const actions = tr.querySelector('.row-actions');
             const editBtn = document.createElement('button');
             editBtn.className = 'icon-btn';
@@ -166,7 +169,9 @@
     }
 
     function openModal(record) {
+        returnFocus = document.activeElement;
         form.reset();
+        academicFields?.setRecord(record);
         idField.value = record ? record.id : '';
         modalTitle.textContent = record ? `Edit ${isAdviser ? 'Research Adviser' : 'Student'} Record` : `Add ${isAdviser ? 'Research Adviser' : 'Student'}`;
 
@@ -180,7 +185,6 @@
                 document.getElementById('accountStatus').value = record.status || 'Active';
             } else {
                 document.getElementById('research').value = record.research || '';
-                document.getElementById('course').value = record.course || '';
                 document.getElementById('requirements').value = record.requirements || '';
                 document.getElementById('group').value = record.group || '';
                 document.getElementById('adviser').value = record.adviserId || '';
@@ -198,6 +202,7 @@
 
     function closeModal() {
         modal.style.display = 'none';
+        returnFocus?.focus();
     }
 
     async function deleteRecord(record) {
@@ -222,6 +227,14 @@
     closeBtn.addEventListener('click', closeModal);
     cancelBtn.addEventListener('click', closeModal);
     modal.addEventListener('click', e => { if (e.target === modal) closeModal(); });
+    modal.addEventListener('keydown', event => {
+        if (event.key === 'Escape') { event.preventDefault(); event.stopPropagation(); closeModal(); }
+        if (event.key !== 'Tab') return;
+        const controls = [...modal.querySelectorAll('button,input,select,textarea,[tabindex]')].filter(e => !e.disabled && e.tabIndex >= 0 && e.getClientRects().length);
+        const first = controls[0], last = controls[controls.length - 1];
+        if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last.focus(); }
+        else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first.focus(); }
+    });
     searchInput.addEventListener('input', render);
 
     form.addEventListener('submit', async event => {
@@ -240,7 +253,7 @@
             payload.studentId = accountIdField.value.trim();
             payload.research = document.getElementById('research').value.trim();
             payload.group = document.getElementById('group').value.trim();
-            payload.course = document.getElementById('course').value.trim();
+            Object.assign(payload, academicFields.payload());
             payload.requirements = document.getElementById('requirements').value.trim();
             payload.adviserId = document.getElementById('adviser').value || null;
             payload.stage = document.getElementById('stage').value;

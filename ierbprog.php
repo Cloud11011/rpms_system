@@ -1,6 +1,7 @@
 <?php
 require __DIR__ . '/config.php';
 $authUser = require_login(['admin','adviser']);
+require_once __DIR__ . '/includes/academic_catalog.php';
 $user_name = $authUser['full_name'];
 $user_email = $authUser['email'];
 $user_role = $_SESSION['user_role'] ?? 'RPMS Administrator';
@@ -17,6 +18,7 @@ $profile_img = 'assets/images/default-avatar.svg';
     <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="assets/css/dashboard.css">
     <link rel="stylesheet" href="assets/css/ierbprog.css">
+    <link rel="stylesheet" href="assets/css/academic-fields.css">
     <link rel="stylesheet" href="assets/css/prism-ui.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.6.0/css/all.min.css">
 <link rel="stylesheet" href="assets/css/dashboard-sidebar.css">
@@ -72,7 +74,18 @@ $profile_img = 'assets/images/default-avatar.svg';
                 <div><label for="entryStudentId">Student ID</label><input id="entryStudentId" maxlength="40" required></div>
                 <div><label for="entryEmail">Email address</label><input id="entryEmail" type="email" maxlength="150" required></div>
                 <div><label for="entryGroupId">Research group ID</label><input id="entryGroupId" maxlength="40" required></div>
-                <div><label for="entryCourse">Course</label><input id="entryCourse" maxlength="80" required></div>
+                <fieldset class="academic-fields" id="entryAcademicFields">
+                    <legend>Academic information</legend>
+                    <div class="academic-fields-grid">
+                        <label for="entryAcademicUnit">Academic Unit<select id="entryAcademicUnit" data-academic="unit"></select></label>
+                        <label for="entryCourse">Program<select id="entryCourse" data-academic="program" aria-describedby="entryAcademicSummary"></select></label>
+                        <label for="entryYearLevel">Year Level<select id="entryYearLevel" data-academic="year"></select></label>
+                        <label for="entryAcademicYear">Academic Year<select id="entryAcademicYear" data-academic="academic-year"></select></label>
+                    </div>
+                    <p id="entryAcademicSummary" data-academic="summary" aria-live="polite"></p>
+                    <p data-academic="legacy" hidden></p>
+                    <button type="button" data-academic="reset" hidden>Keep existing academic values</button>
+                </fieldset>
                 <div><label for="entryStage">Current IERB stage</label><select id="entryStage"><option value="Stage 1">Stage 1</option><option value="Stage 2">Stage 2</option><option value="Stage 3">Stage 3</option><option value="Stage 4">Stage 4</option><option value="Stage 5">Stage 5</option><option value="Completed">Completed</option></select></div>
                 <div class="ierb-entry-wide"><label for="entryResearchTitle">Research title</label><input id="entryResearchTitle" maxlength="250" required></div>
                 <div><label for="entryRequirements">Pending requirements</label><input id="entryRequirements" maxlength="180" placeholder="e.g. Missing Ethics Consent Form"></div>
@@ -91,6 +104,8 @@ $profile_img = 'assets/images/default-avatar.svg';
     </div>
 </div>
 <script src="assets/js/prism-ui.js"></script>
+<script>window.PRISM_ACADEMIC_CATALOG = <?php echo json_encode(academic_catalog(), JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT); ?>;</script>
+<script src="assets/js/academic-fields.js"></script>
 <script src="assets/js/ierbprog.js"></script>
 </body>
 </html>

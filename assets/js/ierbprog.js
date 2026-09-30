@@ -171,6 +171,7 @@
                 <td>${escapeHtml(record.lastSubmissionDate || 'N/A')}</td>
                 <td><span class="status-badge ${escapeHtml(statusClass)}">${escapeHtml(record.status)}</span></td>
                 <td class="row-actions"></td>`;
+            PrismAcademicFields.appendSummary(tr.cells[0], record);
             const actions = tr.querySelector('.row-actions');
 
             const noteBtn = document.createElement('button');
@@ -215,10 +216,14 @@
     const entryModal = document.getElementById('ierbEntryModal');
     const entryForm = document.getElementById('ierbEntryForm');
     const entryTitle = document.getElementById('ierbEntryTitle');
+    const academicFields = PrismAcademicFields.mount(document.getElementById('entryAcademicFields'));
+    let entryReturnFocus = null;
     let editingId = null;
 
     function openEntryModal(record) {
+        entryReturnFocus = document.activeElement;
         entryForm.reset();
+        academicFields.setRecord(record);
         editingId = record ? record.id : null;
         entryTitle.textContent = record ? 'Edit IERB Entry' : 'Add IERB Entry';
         if (record) {
@@ -226,7 +231,6 @@
             document.getElementById('entryStudentId').value = record.studentId || '';
             document.getElementById('entryEmail').value = record.email || '';
             document.getElementById('entryGroupId').value = record.groupId || '';
-            document.getElementById('entryCourse').value = record.course || '';
             document.getElementById('entryStage').value = record.stage || 'Stage 1';
             document.getElementById('entryResearchTitle').value = record.research || '';
             document.getElementById('entryRequirements').value = record.requirements || '';
@@ -235,15 +239,26 @@
         }
         entryModal.setAttribute('aria-hidden', 'false');
         entryModal.style.display = 'flex';
+        document.getElementById('entryStudentName').focus();
     }
     function closeEntryModal() {
-        entryModal.setAttribute('aria-hidden', 'true');
         entryModal.style.display = 'none';
+        entryReturnFocus?.focus();
+        entryModal.setAttribute('aria-hidden', 'true');
     }
     document.getElementById('addIerbEntry')?.addEventListener('click', () => openEntryModal(null));
     document.getElementById('closeIerbEntry').addEventListener('click', closeEntryModal);
     document.getElementById('cancelIerbEntry').addEventListener('click', closeEntryModal);
     entryModal.addEventListener('click', e => { if (e.target === entryModal) closeEntryModal(); });
+    entryModal.addEventListener('keydown', event => {
+        if (event.key === 'Escape') { event.preventDefault(); event.stopPropagation(); closeEntryModal(); return; }
+        if (event.key !== 'Tab') return;
+        const controls = [...entryModal.querySelectorAll('button,input,select,textarea,[tabindex]')].filter(e => !e.disabled && e.tabIndex >= 0 && e.getClientRects().length);
+        if (!controls.length) return;
+        const first = controls[0], last = controls[controls.length - 1];
+        if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last.focus(); }
+        else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first.focus(); }
+    });
 
     entryForm.addEventListener('submit', async event => {
         event.preventDefault();
@@ -253,13 +268,13 @@
             studentId: document.getElementById('entryStudentId').value.trim(),
             email: document.getElementById('entryEmail').value.trim(),
             groupId: document.getElementById('entryGroupId').value.trim(),
-            course: document.getElementById('entryCourse').value.trim(),
             stage: document.getElementById('entryStage').value,
             research: document.getElementById('entryResearchTitle').value.trim(),
             requirements: document.getElementById('entryRequirements').value.trim(),
             submissionDate: document.getElementById('entrySubmissionDate').value,
             status: document.getElementById('entryStatus').value,
         };
+        Object.assign(payload, academicFields.payload());
         const saveBtn = entryForm.querySelector('[type="submit"]');
         if (saveBtn.disabled) return;
         saveBtn.disabled = true;

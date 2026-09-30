@@ -2,6 +2,7 @@
 
 require __DIR__ . '/config.php';
 require_once __DIR__ . '/workflow.php';
+require_once __DIR__ . '/includes/academic_catalog.php';
 
 $user = api_require_login(['admin', 'adviser', 'student']);
 $pdo = db();
@@ -30,6 +31,10 @@ function ierb_row(array $r, array $docCounts = []): array
         'email' => $r['email'],
         'groupId' => $r['research_group'],
         'course' => $r['course'],
+        'academicUnitKey' => $r['academic_unit_key'] ?? null,
+        'programKey' => $r['program_key'] ?? null,
+        'yearLevel' => $r['year_level'] ?? null,
+        'academicYear' => $r['academic_year'] ?? null,
         'research' => $r['research_title'],
         'stage' => $r['stage'],
         'stageLabel' => stage_label($r['stage']),
@@ -271,7 +276,6 @@ if ($action === 'save') {
     $name = trim((string)($data['name'] ?? ''));
     $email = strtolower(trim((string)($data['email'] ?? '')));
     $groupId = trim((string)($data['groupId'] ?? ''));
-    $course = trim((string)($data['course'] ?? ''));
     $research = trim((string)($data['research'] ?? ''));
     $stage = trim((string)($data['stage'] ?? 'Stage 1'));
     $status = trim((string)($data['status'] ?? 'On Track'));
@@ -286,7 +290,7 @@ if ($action === 'save') {
         json_out(['ok' => false, 'message' => 'Only ' . allowed_email_domains_hint() . ' email addresses are allowed.'], 422);
     }
     if (mb_strlen($studentIdCode) > 100 || mb_strlen($name) > 190 || mb_strlen($groupId) > 190
-        || mb_strlen($course) > 100 || mb_strlen($research) > 255 || mb_strlen($requirements) > 255) {
+        || mb_strlen($research) > 255 || mb_strlen($requirements) > 255) {
         json_out(['ok' => false, 'message' => 'One or more fields are too long. Please shorten the entry and try again.'], 422);
     }
     if ($submissionDate !== null) {
@@ -315,12 +319,18 @@ if ($action === 'save') {
     try {
         $pdo->beginTransaction();
         if ($id > 0) {
-            $old = $pdo->prepare('SELECT stage, status, email FROM students WHERE id = :id FOR UPDATE');
+            $old = $pdo->prepare('SELECT * FROM students WHERE id = :id FOR UPDATE');
             $old->execute([':id' => $id]);
             $oldRow = $old->fetch();
             if (!$oldRow) {
                 $pdo->rollBack();
                 json_out(['ok' => false, 'message' => 'Student record not found.'], 404);
+            }
+            try {
+                $academic = academic_validate($data, $oldRow);
+            } catch (\InvalidArgumentException $e) {
+                $pdo->rollBack();
+                json_out(['ok' => false, 'message' => $e->getMessage()], 422);
             }
             $previousEmail = (string)$oldRow['email'];
             if ($oldRow['stage'] !== $stage || $oldRow['status'] !== $status) {
@@ -333,18 +343,31 @@ if ($action === 'save') {
                 $change = describe_progress_change($oldRow, $stage, $status);
             }
             $pdo->prepare('UPDATE students SET student_id=:sid, full_name=:name, email=:email,
-                research_group=:grp, course=:course, research_title=:research, stage=:stage, status=:status,
+                research_group=:grp, course=:course, academic_unit_key=:academic_unit, program_key=:program,
+                year_level=:year_level, academic_year=:academic_year, research_title=:research, stage=:stage, status=:status,
                 requirements=:req, last_submission_date=:sub, updated_at=NOW() WHERE id=:id')
                 ->execute([':sid' => $studentIdCode, ':name' => $name, ':email' => $email, ':grp' => $groupId,
-                    ':course' => $course, ':research' => $research, ':stage' => $stage, ':status' => $status,
+                    ':course' => $academic['course'],
+                    ':academic_unit' => $academic['academic_unit_key'], ':program' => $academic['program_key'],
+                    ':year_level' => $academic['year_level'], ':academic_year' => $academic['academic_year'], ':research' => $research, ':stage' => $stage, ':status' => $status,
                     ':req' => $requirements, ':sub' => $submissionDate, ':id' => $id]);
             sync_student_login_identity($pdo, $previousEmail, $studentIdCode, $name, $email);
         } else {
+            try {
+                $academic = academic_validate($data, null);
+            } catch (\InvalidArgumentException $e) {
+                $pdo->rollBack();
+                json_out(['ok' => false, 'message' => $e->getMessage()], 422);
+            }
             $pdo->prepare('INSERT INTO students (student_id, full_name, email, research_group, course,
+                academic_unit_key, program_key, year_level, academic_year,
                 research_title, stage, status, requirements, last_submission_date)
-                VALUES (:sid,:name,:email,:grp,:course,:research,:stage,:status,:req,:sub)')
+                VALUES (:sid,:name,:email,:grp,:course,:academic_unit,:program,:year_level,:academic_year,
+                    :research,:stage,:status,:req,:sub)')
                 ->execute([':sid' => $studentIdCode, ':name' => $name, ':email' => $email, ':grp' => $groupId,
-                    ':course' => $course, ':research' => $research, ':stage' => $stage, ':status' => $status,
+                    ':course' => $academic['course'],
+                    ':academic_unit' => $academic['academic_unit_key'], ':program' => $academic['program_key'],
+                    ':year_level' => $academic['year_level'], ':academic_year' => $academic['academic_year'], ':research' => $research, ':stage' => $stage, ':status' => $status,
                     ':req' => $requirements, ':sub' => $submissionDate]);
             $id = (int)$pdo->lastInsertId();
 

@@ -86,6 +86,11 @@ if (($argv[1] ?? '') === '--case') {
     $payload = ['id' => !empty($case['create']) ? 0 : 11, 'studentId' => 'ST-11', 'employeeId' => 'AD-11', 'name' => 'Fixture Student',
         'email' => 'student@example.test', 'adviserId' => 7, 'stage' => !empty($case['progress']) ? 'Stage 2' : 'Stage 1',
         'status' => $case['file'] === 'advisers_api.php' ? 'Active' : 'On Track'];
+    $record = array_replace($record, $case['storedAcademic'] ?? []);
+    if (in_array($case['file'], ['students_api.php', 'ierb_api.php'], true) && !empty($case['create']) && !array_key_exists('academicInput', $case)) {
+        $payload += ['academicUnitKey' => 'amt', 'programKey' => 'bsit', 'yearLevel' => '2nd Year', 'academicYear' => '2026-2027'];
+    }
+    $payload = array_replace($payload, $case['academicInput'] ?? []);
     if (!empty($case['reason'])) $payload['reason'] = 'Verified correction for fixture review.';
     $_GET = ['action' => $case['action'] ?? 'save'];
     $audit = $errors = $notifications = [];
@@ -110,6 +115,10 @@ if (($argv[1] ?? '') === '--case') {
     $source = str_replace("require __DIR__ . '/config.php';", '', $source, $configIncludes);
     $source = str_replace("require_once __DIR__ . '/workflow.php';", '', $source, $workflowIncludes);
     if ($configIncludes !== 1 || $workflowIncludes !== ($case['file'] === 'advisers_api.php' ? 0 : 1)) throw new RuntimeException('Unexpected bootstrap.');
+    $source = str_replace("require_once __DIR__ . '/includes/academic_catalog.php';", '', $source, $academicIncludes);
+    if ($academicIncludes !== ($case['file'] === 'advisers_api.php' ? 0 : 1)) throw new RuntimeException('Unexpected academic include.');
+    if (preg_match('/\b(?:require|include)(?:_once)?\b/', $source)) throw new RuntimeException('Unexpected endpoint include.');
+    require_once __DIR__ . '/../includes/academic_catalog.php'; // Pure catalog, exact path only.
     eval('namespace ' . __NAMESPACE__ . '; use \PDO; use \PDOException; use \Throwable; use \RuntimeException; use \DateTime; ' . preg_replace('/^<\?php\s*/', '', $source));
     exit;
 }

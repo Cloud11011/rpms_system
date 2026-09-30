@@ -1,6 +1,6 @@
 # PRISM release checklist
 
-The current UI checkpoint is on prism-v2-ui-polish, based on hardening commit 3394bf34ace411098764bc982c10e8b146fa9e6f (Complete production hardening). UI integration remains uncommitted. See UI_INTEGRATION_REVIEW.md for the exact inventory, per-batch gates, and remaining manual tests. No commit, push, checkpoint branch, or academic migration was performed by the assistant. The deployment and operational gates below still apply.
+The UI baseline was committed separately by the project owner as `0ef69bcea2de3783ac2bb6d5dba5fbc899f3afec` (`0ef69bc`), above hardening commit `3394bf34ace411098764bc982c10e8b146fa9e6f`. The current branch `prism-v2-academic-fields` descends from that checkpoint; academic integration remains uncommitted for owner review. See UI_INTEGRATION_REVIEW.md for historical UI results and ACADEMIC_INTEGRATION_REVIEW.md for the academic change inventory and verification. The assistant performed no commit, push, branch switch, live migration, or production deployment.
 
 ## Select the reviewed source
 
@@ -40,3 +40,13 @@ Counters expire logically; files remain until an operator performs bounded clean
 File deletion and database commits are not atomic. Reconcile logged orphan-file cleanup failures. Fixture success is not proof of live database concurrency, production email delivery or deployment readiness.
 
 See AUDIT_REVIEW.md for the exact changes, test results and unresolved design/operational limits.
+
+## Academic schema v5 deployment gate
+
+Schema v5 is implemented but has NOT been applied to the local/live database by this work. Pending v4/fresh databases deliberately reject ordinary application DB initialization before any migration DDL. Already-v5 databases need no migration opt-in.
+
+Before any important-database migration, obtain explicit owner authorization, make and verify a database backup, restore a disposable/staging copy, and test the guarded migration there. The intended command is `C:\xampp\php\php.exe tools/migrate-academic.php --apply` with `PRISM_ALLOW_SCHEMA_V5_MIGRATION=1` set only in that approved CLI process. Do not leave this opt-in in routine worker environments. The tool uses the existing application initializer; fresh installs also retain its existing account-seeding behavior. No migration command was run during implementation.
+
+Check all four nullable academic columns and the course width/attributes, compare legacy row counts and course values, verify new/edit/readback through both APIs, repeat migration for idempotence, and exercise retry after a partial DDL failure on disposable data. ALTER TABLE may commit implicitly; rollback is not a backup/recovery plan. Schedule the important-database migration only after staging passes, then verify application behavior and rollback/recovery procedures appropriate to DDL.
+
+The initial Academic Year allowlist is 2025-2026, 2026-2027, 2027-2028, with no automatically active year. Confirm future year additions and official institutional academic-unit labels. Graduate unit mappings and standing/year-level rules remain unresolved and nullable; do not infer them. Reports/PDF academic expansion remains deferred.

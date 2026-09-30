@@ -1,6 +1,7 @@
 <?php
 require __DIR__ . '/config.php';
 require_once __DIR__ . '/workflow.php';
+require_once __DIR__ . '/includes/academic_catalog.php';
 $user = api_require_login(['admin', 'adviser']);
 $pdo = db();
 $action = $_GET['action'] ?? 'list';
@@ -31,6 +32,10 @@ function row_to_student(array $r): array
         'research' => $r['research_title'],
         'group' => $r['research_group'],
         'course' => $r['course'],
+        'academicUnitKey' => $r['academic_unit_key'] ?? null,
+        'programKey' => $r['program_key'] ?? null,
+        'yearLevel' => $r['year_level'] ?? null,
+        'academicYear' => $r['academic_year'] ?? null,
         'adviserId' => $r['adviser_id'] ? (int)$r['adviser_id'] : null,
         'adviserName' => $r['adviser_name'] ?? null,
         'stage' => $r['stage'],
@@ -79,8 +84,6 @@ if ($action === 'save') {
     $email = strtolower(trim((string)($data['email'] ?? '')));
     $research = trim((string)($data['research'] ?? ''));
     $group = trim((string)($data['group'] ?? ''));
-    $courseProvided = array_key_exists('course', $data);
-    $course = $courseProvided ? trim((string)$data['course']) : null;
     $adviserId = !empty($data['adviserId']) ? (int)$data['adviserId'] : null;
     $stage = trim((string)($data['stage'] ?? 'Stage 1'));
     $status = trim((string)($data['status'] ?? 'On Track'));
@@ -121,9 +124,6 @@ if ($action === 'save') {
     }
     if (!is_allowed_email_domain($email)) {
         json_out(['ok' => false, 'message' => 'Only ' . allowed_email_domains_hint() . ' email addresses are allowed.'], 422);
-    }
-    if ($course !== null && mb_strlen($course) > 100) {
-        json_out(['ok' => false, 'message' => 'Course must be 100 characters or fewer.'], 422);
     }
     if ($requirements !== null && mb_strlen($requirements) > 255) {
         json_out(['ok' => false, 'message' => 'Pending requirements must be 255 characters or fewer.'], 422);
@@ -177,15 +177,24 @@ if ($action === 'save') {
             // above) -- keep whatever was already on the record.
             $finalProtocolCode = $protocolCode !== null ? ($protocolCode !== '' ? $protocolCode : null) : $before['protocol_code'];
             $finalIsPrincipal = $isPrincipal !== null ? $isPrincipal : (int)$before['is_principal_investigator'];
-            $finalCourse = $courseProvided ? $course : $before['course'];
+            try {
+                $academic = academic_validate($data, $before);
+            } catch (\InvalidArgumentException $e) {
+                $pdo->rollBack();
+                json_out(['ok' => false, 'message' => $e->getMessage()], 422);
+            }
             $finalRequirements = $requirementsProvided ? $requirements : $before['requirements'];
 
             $stmt = $pdo->prepare('UPDATE students SET student_id=:sid, full_name=:name, email=:email,
-                research_title=:research, research_group=:grp, course=:course, adviser_id=:adv,
+                research_title=:research, research_group=:grp, course=:course,
+                academic_unit_key=:academic_unit, program_key=:program, year_level=:year_level,
+                academic_year=:academic_year, adviser_id=:adv,
                 stage=:stage, status=:status, requirements=:req, protocol_code=:pcode,
                 is_principal_investigator=:pi, updated_at=NOW() WHERE id=:id');
             $stmt->execute([':sid' => $studentId, ':name' => $name, ':email' => $email, ':research' => $research,
-                ':grp' => $group, ':course' => $finalCourse, ':adv' => $adviserId, ':stage' => $stage,
+                ':grp' => $group, ':course' => $academic['course'],
+                ':academic_unit' => $academic['academic_unit_key'], ':program' => $academic['program_key'],
+                ':year_level' => $academic['year_level'], ':academic_year' => $academic['academic_year'], ':adv' => $adviserId, ':stage' => $stage,
                 ':status' => $status, ':req' => $finalRequirements, ':pcode' => $finalProtocolCode,
                 ':pi' => $finalIsPrincipal, ':id' => $id]);
 
@@ -216,11 +225,21 @@ if ($action === 'save') {
                 ]);
             }
         } else {
+            try {
+                $academic = academic_validate($data, null);
+            } catch (\InvalidArgumentException $e) {
+                $pdo->rollBack();
+                json_out(['ok' => false, 'message' => $e->getMessage()], 422);
+            }
             $stmt = $pdo->prepare('INSERT INTO students (student_id, full_name, email, research_title,
-                research_group, course, adviser_id, stage, status, requirements, protocol_code, is_principal_investigator)
-                VALUES (:sid,:name,:email,:research,:grp,:course,:adv,:stage,:status,:req,:pcode,:pi)');
+                research_group, course, academic_unit_key, program_key, year_level, academic_year,
+                adviser_id, stage, status, requirements, protocol_code, is_principal_investigator)
+                VALUES (:sid,:name,:email,:research,:grp,:course,:academic_unit,:program,:year_level,:academic_year,
+                    :adv,:stage,:status,:req,:pcode,:pi)');
             $stmt->execute([':sid' => $studentId, ':name' => $name, ':email' => $email, ':research' => $research,
-                ':grp' => $group, ':course' => ($course ?? ''), ':adv' => $adviserId, ':stage' => $stage,
+                ':grp' => $group, ':course' => $academic['course'],
+                ':academic_unit' => $academic['academic_unit_key'], ':program' => $academic['program_key'],
+                ':year_level' => $academic['year_level'], ':academic_year' => $academic['academic_year'], ':adv' => $adviserId, ':stage' => $stage,
                 ':status' => $status, ':req' => ($requirements ?? ''),
                 ':pcode' => ($protocolCode !== null && $protocolCode !== '') ? $protocolCode : null,
                 ':pi' => $isPrincipal ?? 0]);

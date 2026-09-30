@@ -178,25 +178,36 @@ function db(): PDO
 // Bump this whenever you add anything to migrate(). migrate() is skipped entirely on requests
 // where the stored version already matches, instead of running ~45 INFORMATION_SCHEMA/ALTER
 // checks on every single request.
-const SCHEMA_VERSION = 4;
+const SCHEMA_VERSION = 5;
 
 function migrate(PDO $pdo): void
 {
-    $pdo->exec("CREATE TABLE IF NOT EXISTS schema_meta (
-        k VARCHAR(40) PRIMARY KEY, v VARCHAR(40) NOT NULL
-    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;");
-    $stored = $pdo->query("SELECT v FROM schema_meta WHERE k = 'schema_version'")->fetchColumn();
+    // Read before creating even schema_meta: an ordinary request must never apply v5 DDL.
+    $hasMeta = (int)$pdo->query("SELECT COUNT(*) FROM INFORMATION_SCHEMA.TABLES
+        WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'schema_meta'")->fetchColumn() > 0;
+    $stored = $hasMeta
+        ? $pdo->query("SELECT v FROM schema_meta WHERE k = 'schema_version'")->fetchColumn()
+        : false;
     if ($stored !== false && (int)$stored >= SCHEMA_VERSION) {
         return;
     }
-    // Two first requests arriving together must not both try to ALTER the same table.
+    if (PHP_SAPI !== 'cli' || getenv('PRISM_ALLOW_SCHEMA_V5_MIGRATION') !== '1') {
+        throw new RuntimeException(
+            'PRISM schema v5 migration is pending. Back up the database and verify a disposable copy before running the explicitly enabled CLI migration.'
+        );
+    }
+    // Two authorized migration processes must not both try to ALTER the same table.
     $locked = (int)$pdo->query("SELECT GET_LOCK('prism_migrate', 30)")->fetchColumn() === 1;
     if (!$locked) {
         throw new RuntimeException('Could not obtain the PRISM schema migration lock.');
     }
     try {
+        $pdo->exec("CREATE TABLE IF NOT EXISTS schema_meta (
+            k VARCHAR(40) PRIMARY KEY, v VARCHAR(40) NOT NULL
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;");
         $stored = $pdo->query("SELECT v FROM schema_meta WHERE k = 'schema_version'")->fetchColumn();
         if ($stored === false || (int)$stored < SCHEMA_VERSION) {
+            // ALTER TABLE may commit implicitly. Every step must remain safe to retry.
             migrate_schema($pdo);
             $pdo->prepare("REPLACE INTO schema_meta (k, v) VALUES ('schema_version', :v)")
                 ->execute([':v' => (string)SCHEMA_VERSION]);
@@ -254,7 +265,7 @@ function migrate_schema(PDO $pdo): void
         email VARCHAR(190) UNIQUE NOT NULL,
         research_title VARCHAR(255),
         research_group VARCHAR(190),
-        course VARCHAR(100),
+        course VARCHAR(255),
         adviser_id INT NULL,
         stage VARCHAR(20) NOT NULL DEFAULT 'Stage 1',
         status VARCHAR(30) NOT NULL DEFAULT 'On Track',
@@ -415,6 +426,13 @@ function migrate_schema(PDO $pdo): void
     // Reports are authorized by immutable account id rather than display name.
     add_column_if_missing($pdo, 'reports', 'generated_by_user_id', "INT NULL AFTER generated_by");
 
+    // Academic fields are additive; existing course labels and rows are never backfilled.
+    widen_student_course_if_needed($pdo);
+    add_column_if_missing($pdo, 'students', 'academic_unit_key', "VARCHAR(64) NULL DEFAULT NULL");
+    add_column_if_missing($pdo, 'students', 'program_key', "VARCHAR(80) NULL DEFAULT NULL");
+    add_column_if_missing($pdo, 'students', 'year_level', "VARCHAR(40) NULL DEFAULT NULL");
+    add_column_if_missing($pdo, 'students', 'academic_year', "VARCHAR(9) NULL DEFAULT NULL");
+
     // Seed default stage labels (feature request 7). Safe to re-run --
     // only inserts rows that don't already exist, so an admin's own edits
     // via stage_labels_api.php are never overwritten by this.
@@ -430,6 +448,85 @@ function migrate_schema(PDO $pdo): void
     foreach ($defaultLabels as $key => $label) {
         $insertLabel->execute([':k' => $key, ':l' => $label]);
     }
+}
+
+
+/**
+ * Read complete top-level declarations from SHOW CREATE TABLE. Keep quoted defaults,
+ * comments and generated expressions intact, including commas and newlines in strings.
+ */
+function migration_column_declarations(string $sql, bool $noBackslashEscapes): array
+{
+    $opening = strpos($sql, '(');
+    if ($opening === false) {
+        throw new RuntimeException('Could not inspect the students table definition safely.');
+    }
+    $depth = 1;
+    $quote = null;
+    $start = $opening + 1;
+    $declarations = [];
+    $length = strlen($sql);
+    for ($i = $start; $i < $length; $i++) {
+        $char = $sql[$i];
+        if ($quote !== null) {
+            if ($char === '\\' && !$noBackslashEscapes && $quote !== '`') {
+                ++$i;
+            } elseif ($char === $quote) {
+                if ($i + 1 < $length && $sql[$i + 1] === $quote) {
+                    ++$i;
+                } else {
+                    $quote = null;
+                }
+            }
+            continue;
+        }
+        if ($char === "'" || $char === '"' || $char === '`') {
+            $quote = $char;
+        } elseif ($char === '(') {
+            ++$depth;
+        } elseif ($char === ')') {
+            --$depth;
+            if ($depth === 0) {
+                $declarations[] = trim(substr($sql, $start, $i - $start));
+                return $declarations;
+            }
+        } elseif ($char === ',' && $depth === 1) {
+            $declarations[] = trim(substr($sql, $start, $i - $start));
+            $start = $i + 1;
+        }
+    }
+    throw new RuntimeException('Could not inspect the students table definition safely.');
+}
+
+/** Widen only the course type, preserving every other server-reported column attribute. */
+function widen_student_course_if_needed(PDO $pdo): void
+{
+    $definition = (string)$pdo->query('SHOW CREATE TABLE `students`')->fetchColumn(1);
+    $sqlMode = (string)$pdo->query('SELECT @@SESSION.sql_mode')->fetchColumn();
+    $noBackslashEscapes = in_array('NO_BACKSLASH_ESCAPES', explode(',', strtoupper($sqlMode)), true);
+    $course = null;
+    foreach (migration_column_declarations($definition, $noBackslashEscapes) as $declaration) {
+        if (preg_match('/^(?:`course`|"course"|course)\s+/i', $declaration)) {
+            if ($course !== null) {
+                throw new RuntimeException('Ambiguous students.course definition; migration stopped.');
+            }
+            $course = $declaration;
+        }
+    }
+    if ($course === null) {
+        throw new RuntimeException('Missing students.course; migration stopped without replacing legacy data.');
+    }
+    if (preg_match('/^(?:`course`|"course"|course)\s+(?:mediumtext|longtext|text)\b/i', $course)) {
+        return; // These types already hold more than 255 characters; never shrink them.
+    }
+    if (!preg_match('/^((?:`course`|"course"|course)\s+)(?:var)?char\s*\(\s*(\d+)\s*\)/i', $course, $match)) {
+        throw new RuntimeException('Unsupported students.course type; migration requires manual review.');
+    }
+    if ((int)$match[2] >= 255) {
+        return;
+    }
+    $widened = $match[1] . 'VARCHAR(255)' . substr($course, strlen($match[0]));
+    $pdo->exec('ALTER TABLE `students` MODIFY COLUMN ' . $widened);
 }
 
 /**

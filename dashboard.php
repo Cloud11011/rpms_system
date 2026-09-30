@@ -480,9 +480,8 @@ function renderIerbMonitor() {
             <td>${escapeMonitorHtml(record.requirements || 'None')}</td>
             <td><span class="progress-value">${escapeMonitorHtml(record.progress || '0')}%</span></td>
             <td>${PrismUI.badge(record.status || 'Pending')}</td>
-            <td><button class="icon-btn" data-monitor-action="remind" title="Send follow-up email"><i class="fa-solid fa-paper-plane"></i></button><button class="icon-btn" data-monitor-action="summary" title="AI summary" data-id="${escapeMonitorHtml(record.id)}"><i class="fa-solid fa-file-lines"></i></button><button class="icon-btn prism-override-icon" data-monitor-action="override" title="Admin Override (always logged)" aria-label="Admin Override for ${escapeMonitorHtml(record.name)}"><i class="fa-solid fa-user-shield"></i></button></td>`;
+            <td><button class="icon-btn" data-monitor-action="remind" title="Send follow-up email"><i class="fa-solid fa-paper-plane"></i></button><a class="icon-btn" data-monitor-action="documents" href="documents.php" title="Open Documents" aria-label="Open Documents">Open Documents</a><button class="icon-btn prism-override-icon" data-monitor-action="override" title="Admin Override (always logged)" aria-label="Admin Override for ${escapeMonitorHtml(record.name)}"><i class="fa-solid fa-user-shield"></i></button></td>`;
         row.querySelector('[data-monitor-action="remind"]').addEventListener('click', () => sendMonitorFollowup(record));
-        row.querySelector('[data-monitor-action="summary"]').addEventListener('click', () => openSummaryModal(record.name));
         row.querySelector('[data-monitor-action="override"]').addEventListener('click', async () => { if (await PrismUI.overrideStudent(record)) { await loadMonitorStudents(); renderIerbMonitor(); } });
         progressTableBody.appendChild(row);
     });

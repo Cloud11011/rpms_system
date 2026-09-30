@@ -1,10 +1,12 @@
 # PRISM UI integration checkpoint - 29 September 2026
 
-Approved UI batches A-F are complete for local review. This is an uncommitted UI checkpoint, not production-release certification. Academic batches G-J have not started. No commit, push, reset, restore, checkout, clean, rebase, migration, or live-service call was performed.
+Approved UI batches A-F were completed and subsequently committed separately by the project owner as `0ef69bcea2de3783ac2bb6d5dba5fbc899f3afec` (`0ef69bc`, Complete PRISM UI integration checkpoint). The assistant did not create or push that commit. This historical report describes that UI checkpoint, not production-release certification. The approved academic work on the descendant branch is documented separately in ACADEMIC_INTEGRATION_REVIEW.md.
 
-Workspace: `C:/xampp/htdocs/rpms_system`  
-Branch: `prism-v2-ui-polish`  
-Hardening baseline / current HEAD: `3394bf34ace411098764bc982c10e8b146fa9e6f`
+Workspace: `C:/xampp/htdocs/rpms_system`
+UI implementation branch: `prism-v2-ui-polish`
+Committed UI checkpoint: `0ef69bcea2de3783ac2bb6d5dba5fbc899f3afec`
+Hardening baseline: `3394bf34ace411098764bc982c10e8b146fa9e6f`
+Current academic branch: `prism-v2-academic-fields` (checkpoint ancestry verified)
 
 ## Batch results
 
@@ -44,7 +46,7 @@ Browser coverage uses 375, 768, 1024, 1280, and 1600px, light/dark themes, empty
 
 ## Preserved boundaries and API proof
 
-- Authentication, authorization, role definitions, workflow helpers, schema/migrations, hardened APIs, config.php, loading.php, and shared prism-ui.js/css have no diff from HEAD.
+- Authentication, authorization, role definitions, workflow helpers, schema/migrations, hardened APIs, config.php, loading.php, and shared prism-ui.js/css had no changes in the UI checkpoint relative to its hardening baseline. Academic-phase migration/API changes are described in the separate academic report.
 - The adviser page calls require_login('adviser') before output. Existing page guards remain. Navigation visibility does not replace server authorization.
 - Existing adviser-scoped students_api.php?action=list supplies assigned students. documents_api.php?action=list supplies current documents and permitted actions. documents_api.php?action=review receives the existing id/status/remarks JSON payload. No new summary endpoint was needed.
 - notifications_api.php?action=list plus profile_api.php?action=me supply recent personal notifications; the adviser view filters the already-scoped results to the account email. Counts describe current documents, not students or an all-time unread total.
@@ -73,11 +75,11 @@ Only tests/ui-audit.cjs changed. The original assertions were retained. Changes 
 4. Test real notification delivery, group scoping, schedule/timezone behavior and CLI scheduled processing; real setup/recovery mail; external AI and local fallback; generated PDF ownership/downloads.
 5. Verify Apache actually returns 403/404 for /includes/, private storage, tests and release artifacts. Fixture checks validate directives and PHP denial, not live Apache configuration. Confirm normal-page and document-specific headers on the deployment host.
 6. Perform the existing deployment configuration checks and staging migration tests in RELEASE_CHECKLIST.md. Do not use the fixture result as proof of live database or production configuration readiness.
-7. Review and authorize a local checkpoint/academic branch before any G-J implementation. No academic catalog, academic fields, dropdowns, backfill, schema v5 or migration was created. A future schema-v5 migration still requires a backup and disposable/staging migration test before any important database; ALTER TABLE is not protected by transaction rollback.
+7. The owner subsequently committed UI checkpoint 0ef69bc and authorized academic G-J on prism-v2-academic-fields. That checkpoint/branch approval gate is fulfilled. See ACADEMIC_INTEGRATION_REVIEW.md for schema-v5 implementation and tests. No live migration has been performed; a backup and disposable/staging test still precede any important-database migration, and ALTER TABLE is not protected by transaction rollback.
 
-## Exact changed-file inventory / git status
+## Historical pre-commit UI inventory / git status
 
-The following includes every modified and untracked file. No files are staged.
+The following records the UI working-tree inventory before the owner committed 0ef69bc. It is historical, not the current academic git status. See ACADEMIC_INTEGRATION_REVIEW.md for the current inventory.
 
 ```text
  M AUDIT_REVIEW.md
@@ -108,9 +110,9 @@ The following includes every modified and untracked file. No files are staged.
 ?? research_adviser.php
 ```
 
-## git diff --stat
+## Historical pre-commit UI git diff --stat
 
-Git diff statistics cover tracked changes only. Newly added CSS/JS, the adviser page, protected includes and this report are untracked and are listed above; they are not included in the numeric summary below.
+These historical diff statistics covered tracked changes before the UI commit. At that time, the newly added CSS/JS, adviser page, protected includes and this report were untracked and therefore absent from the numeric summary. They were subsequently included in the owner-created UI checkpoint.
 
 ```text
  AUDIT_REVIEW.md                  |   7 +
@@ -132,4 +134,4 @@ Git diff statistics cover tracked changes only. Newly added CSS/JS, the adviser 
  16 files changed, 887 insertions(+), 185 deletions(-)
 ```
 
-`git diff --cached` is empty. `git diff --check` passes. Stop here for the owner's UI checkpoint review; no academic work or commit/push is authorized automatically.
+At the end of UI integration, the staged diff was empty and diff checks passed. The owner subsequently approved and committed checkpoint 0ef69bc, then separately authorized academic G-J. The assistant has not committed or pushed the academic changes; they remain subject to owner review.

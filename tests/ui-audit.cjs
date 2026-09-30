@@ -16,7 +16,7 @@ const { once } = require('node:events');
 
 const root = path.resolve(__dirname, '..');
 const pages = ['admin_notifications.php', 'admin_ai.php', 'ierbprog.php', 'account.php'];
-const extraPages = ['dashboard.php', 'research_adviser.php', 'role_portal.php'];
+const extraPages = ['dashboard.php', 'research_adviser.php', 'role_portal.php', 'admin_people.php'];
 const php = process.env.PRISM_TEST_PHP || (process.platform === 'win32' ? 'C:\\xampp\\php\\php.exe' : 'php');
 const browser = process.env.PRISM_TEST_BROWSER || [
   'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe',
@@ -36,6 +36,8 @@ const securityHeaders = Object.fromEntries(JSON.parse(policy.stdout).map(line =>
   const separator = line.indexOf(':');
   return [line.slice(0, separator), line.slice(separator + 1).trim()];
 }));
+let academicRecord = null;
+let academicSaveError = false;
 let setupPendingFixture = false;
 let reviewFailure = 0;
 let reviewedStatus = null;
@@ -70,6 +72,14 @@ function fixtureTemplate(file) {
   const navigationSource = fs.readFileSync(path.join(root, 'includes/prism-navigation.php'), 'utf8');
   assert(!/\b(?:require|include)(?:_once)?\s*(?:\(|["'$])/i.test(navigationSource), 'Unexpected nested include in navigation partial');
   isolated = isolated.replace(navigationInclude, () => '?>' + navigationSource + '<?php ');
+  const academicInclude = "require_once __DIR__ . '/includes/academic_catalog.php';";
+  const academicAllowed = ['admin_people.php', 'ierbprog.php'].includes(file);
+  assert.equal(isolated.split(academicInclude).length - 1, academicAllowed ? 1 : 0, `${file}: exact academic include count`);
+  if (academicAllowed) {
+    const academicSource = fs.readFileSync(path.join(root, 'includes/academic_catalog.php'), 'utf8');
+    assert(!/\b(?:require|include)(?:_once)?\s*(?:\(|["'$])/i.test(academicSource), 'Unexpected nested academic include');
+    isolated = isolated.replace(academicInclude, () => academicSource.replace(/^<\?php\s*/, ''));
+  }
   assert(!/\b(?:require|include)(?:_once)?\s*(?:\(|["'$])/i.test(isolated), `${file}: unexpected include in fixture`);
   const stub = `<?php
     const STAGE_SEQUENCE = ['Stage 1','Stage 2','Stage 3','Stage 4','Stage 5','Completed'];
@@ -106,12 +116,17 @@ function mockApi(file, action) {
   if(file==='ierb_api.php' && role==='student') return action==='history'?{ok:true,history:[{stage:'Stage 1',status:'On Track',note:attack,actor:attack,created_at:'2026-09-24'}]}:{ok:true,records:populated?[{id:1,name:attack,research:attack,groupId:'Fixture Group',stage:'Stage 1',status:'On Track',progress:20,requirements:attack}]:[]};
   if (file === 'notifications_api.php' && action === 'recipients_preview') return {ok:true, recipients:populated ? [{id:1,name:attack,email:'fixture@example.test'}, {id:2,name:'Second recipient',email:'second@example.test'}] : []};
   if (file === 'notifications_api.php') return { ok: true, notifications: populated ? [{ id: 1, subject: attack, type: 'Reminder', recipient_name: attack, recipient_email: 'fixture@example.test', status: 'Sent', created_at: '2026-09-24 08:00:00', message: attack, delivery_info: 'Fixture only' }] : [], total: 1, scheduled: false, sent: 1 };
+  if (file === 'students_api.php' && action === 'adviser_options') return {ok:true,advisers:[]};
+  if (file === 'students_api.php' && action === 'save' && academicSaveError) return {ok:false,message:'Academic validation error '+attack};
+  if (file === 'students_api.php' && academicRecord) return {ok:true,students:[academicRecord]};
   if (file === 'students_api.php') return {ok:true,students:populated?[{id:1,name:attack,research:attack,course:'Fixture Course',stage:'Stage 1',status:'On Track'}]:[]};
   if (file === 'documents_api.php' && role === 'adviser') return {ok:true,documents:populated?[{id:'fixture-doc',originalName:attack+'LongFileName'.repeat(15)+'.pdf',student:attack,studentId:1,documentType:'Research Protocol',stage:'Stage 1',uploadedAt:'2026-09-24',workflowState:reviewedStatus==='Approved'?'Ready for Formal RPMS Submission':(['Denied','Resubmission Requested'].includes(reviewedStatus)?'Needs Revision':'Pending Adviser Review'),reviewStatus:reviewedStatus||'Submitted',reviewRemarks:attack,versionNo:1,isCurrent:true,actions:{review:true}}]:[],counts:{}};
   if (file === 'documents_api.php') return { ok:true, documents:populated ? [{ id:'fixture-doc', originalName:attack, student:'Fixture Student', studentId:1, documentType:'Protocol', stage:'Stage 1', stageLabel:'Initial review', uploadedAt:'2026-09-24', workflowState:'Pending Adviser Review', reviewStatus:'Submitted', versionNo:1, isCurrent:true, actions:{review:true} }] : [], counts:{} };
   if (file === 'ierb_api.php' && action === 'needs_attention') return {ok:true, students:[], total:0};
   if (file === 'reports_api.php') return { ok: true, reports: populated ? [{ id: 'fixture-report', title: attack, type: 'AI Summarized Report', generated_at: '2026-09-24 08:00:00', generated_by: attack }] : [], report: { id: 'fixture-report' }, aiUsed: false };
   if (file === 'stage_labels_api.php') return { ok: true, labels: labelsForScenario() };
+  if (file === 'ierb_api.php' && action === 'save' && academicSaveError) return {ok:false,message:'Academic validation error '+attack};
+  if (file === 'ierb_api.php' && action === 'list' && academicRecord) return {ok:true,records:[academicRecord]};
   if (file === 'ierb_api.php') return { ok: true, records: populated ? Array.from({ length: 6 }, (_, i) => ({ id: i + 1, name: i ? `Student ${i}` : attack, studentId: `S${i + 1}`, email: 'fixture@example.test', groupId: 'A', course:'Fixture Course', stage: i < 4 ? 'Stage 1' : 'Stage 2', status: 'On Track', progress: 20, research: 'Fixture research', requirements: attack, lastSubmissionDate: '2026-09-24' })) : [] };
   if (file === 'audit_api.php') return { ok: true, entries: populated ? [{ id: 1, action: 'document_override', actionLabel: 'Document override', at: '2026-09-24 08:00:00', actorName: attack, actorEmail: 'fixture@example.test', actorRole: role, studentName: attack, protocolCode: 'P-001', override: true, details: 'Fixture details ' + attack, reason: 'Fixture reason ' + attack }] : [] };
   if (file === 'profile_api.php') return { ok: true, user: { name: 'UI Audit Fixture', email: 'fixture@example.test', role, refId: 'FIXTURE' }, message: action === 'change_password' ? 'Password updated.' : 'Updated.' };
@@ -196,7 +211,7 @@ async function navigate(file, width, dark, data = 'empty', viewer = 'admin') {
   if(file==='role_portal.php') studentSubmitted=false;
   await command('Emulation.setDeviceMetricsOverride', { width, height: 1000, deviceScaleFactor: 1, mobile: false });
   await command('Page.navigate', { url: `${origin}/${file}?fixture=${Date.now()}` });
-  const ready = { 'admin_notifications.php': '#noticeHistory > *', 'admin_ai.php': '#aiHistory > *', 'ierbprog.php': '#stageChart > *', 'account.php': '#activityList > *', 'dashboard.php':'#ierbMonitorBody > *', 'research_adviser.php':'#adviserQueue > *', 'role_portal.php':'#studentDashboardState' }[file];
+  const ready = { 'admin_notifications.php': '#noticeHistory > *', 'admin_ai.php': '#aiHistory > *', 'ierbprog.php': '#stageChart > *', 'account.php': '#activityList > *', 'dashboard.php':'#ierbMonitorBody > *', 'research_adviser.php':'#adviserQueue > *', 'role_portal.php':'#studentDashboardState', 'admin_people.php':'#recordRows > *' }[file];
   await waitFor(`document.readyState === 'complete' && !!document.querySelector(${JSON.stringify(ready)})`);
   if (file === 'role_portal.php') await waitFor('document.getElementById("studentDashboardState").getAttribute("aria-busy")==="false"');
   if (file === 'research_adviser.php') await waitFor('document.getElementById("adviserQueue").getAttribute("aria-busy")==="false"');
@@ -289,8 +304,11 @@ async function checkListRequestRaces(file, endpoint) {
             document.getElementById('addIerbEntry').click();
             const fields = { entryStudentName: 'Race Fixture', entryStudentId: 'RACE-001',
               entryEmail: 'race@example.test', entryGroupId: 'Race Group',
-              entryCourse: 'Fixture Course', entryResearchTitle: 'Race Research' };
+              entryResearchTitle: 'Race Research' };
             for (const [id, value] of Object.entries(fields)) document.getElementById(id).value = value;
+            for (const [id,value] of Object.entries({entryAcademicUnit:'amt',entryCourse:'bsit',entryYearLevel:'2nd Year',entryAcademicYear:'2026-2027'})) {
+              const control=document.getElementById(id); control.value=value; control.dispatchEvent(new Event('change'));
+            }
             document.getElementById('ierbEntryForm').requestSubmit();
           }
         }, notification);
@@ -388,9 +406,18 @@ async function checkDashboard() {
   check(await evaluate(`document.getElementById('ierbMonitorBody').textContent.includes(${JSON.stringify(attack)}) && !document.querySelector('#ierbMonitorBody img')`), 'Dashboard hostile research/student labels stay literal');
   await evaluateFunction(()=>{const search=document.getElementById('dashboardSearch');search.value='no matching fixture';search.dispatchEvent(new Event('input'));});
   check(await evaluate(`[...document.querySelectorAll('#ierbMonitorBody tr[data-course]')].every(row=>row.style.display==='none')`), 'Dashboard search filters existing authorized records');
-  await evaluateFunction(()=>{const search=document.getElementById('dashboardSearch');search.value='';search.dispatchEvent(new Event('input'));document.querySelector('[data-monitor-action="summary"]').click();});
-  check(await evaluate(`document.getElementById('summaryModalText').textContent.includes('Open a document')`), 'Student-row summary control does not substitute a student ID for a document ID');
-  await evaluate('closeSummaryModal()');
+  const summariesBefore = requests.filter(r=>r.file==='documents_api.php' && r.action==='summarize').length;
+  await evaluateFunction(()=>{
+    const search=document.getElementById('dashboardSearch');search.value='';search.dispatchEvent(new Event('input'));
+    const link=document.querySelector('[data-monitor-action="documents"]');
+    link.addEventListener('click', event=>{event.preventDefault();window.__openDocumentsActivated=true;},{once:true});link.focus();
+  });
+  await keyPress('Enter','Enter',13);
+  await waitFor('window.__openDocumentsActivated === true');
+  check(await evaluateFunction(()=>{
+    const link=document.querySelector('[data-monitor-action="documents"]');
+    return link.tagName==='A' && link.getAttribute('href')==='documents.php' && link.textContent==='Open Documents' && !link.hasAttribute('data-id');
+  }) && requests.filter(r=>r.file==='documents_api.php' && r.action==='summarize').length===summariesBefore, 'Student-row Open Documents link is keyboard accessible and never substitutes a student ID for a document ID');
   check(await evaluate(`!!document.querySelector('#recentAiReportList a[rel*="noopener"]')`), 'Dashboard PDF history is a secure keyboard link');
 }
 
@@ -559,6 +586,158 @@ async function checkStudentPortal() {
   await waitFor('document.querySelector(".portal-page.active").dataset.section==="documents" && !document.querySelector("#submissionForm button[type=submit]").disabled');
   const upload=requests.findLast(r=>r.file==='documents_api.php' && r.action==='upload');
   check(upload?.method==='POST' && ['name="document"','filename="fixture.txt"','name="documentType"','Research Protocol','name="stage"','Stage 1','name="notes"','Research title: Fixture title | Group: Fixture group | Fixture notes'].every(part=>upload.body.includes(part)),'Student upload keeps existing multipart names and notes composition');
+}
+
+
+async function checkAcademicManagement() {
+  const select = async (id, value) => evaluateFunction((id, value) => {
+    const field = document.getElementById(id); field.value = value; field.dispatchEvent(new Event('change', {bubbles:true}));
+  }, id, value);
+  for (const width of [375,768,1024,1280,1600]) for (const dark of [false,true]) {
+    await navigate('admin_people.php', width, dark, 'populated');
+    await measure('admin_people.php', width, dark, ' academic form');
+    await evaluate('document.getElementById("addRecord").focus(); document.getElementById("addRecord").click()');
+    check(await evaluate('document.activeElement.id === "recordName"'), 'Academic add form receives focus');
+    check(await evaluate('document.getElementById("academicYear").value === ""'), 'Academic Year has no inferred default');
+    await select('academicYear','2026-2027');
+    await select('academicUnit','dentistry');
+    await select('course','ddm');
+    await select('yearLevel','6th Year');
+    check(await evaluate('document.getElementById("yearLevel").value === "6th Year"'), 'Six-year program accepts sixth year');
+    await select('academicUnit','amt');
+    check(await evaluate('document.getElementById("course").value === "" && document.getElementById("yearLevel").value === ""'), 'Unit change clears incompatible program and year');
+    await select('course','bsit');
+    check(await evaluate('[...document.getElementById("yearLevel").options].map(o=>o.value).join("|") === "|1st Year|2nd Year|3rd Year|4th Year"'), 'Four-year program offers only allowed years');
+    await select('yearLevel','2nd Year');
+    await select('course','bsa');
+    check(await evaluate('document.getElementById("yearLevel").value === "2nd Year" && document.getElementById("academicYear").value === "2026-2027"'), 'Compatible year survives program change; Academic Year is independent');
+    await select('academicUnit','ihtm'); await select('course','bsihm_hotel');
+    check(await evaluate('document.getElementById("academicSummary").textContent.includes(window.PRISM_ACADEMIC_CATALOG.programs.bsihm_hotel.label)'), 'Full 102-character program label remains visible');
+    const geometry = await evaluate(`(() => {
+      const host=document.getElementById('recordModal');
+      return {page:document.documentElement.scrollWidth, outside:[...host.querySelectorAll('input,select,button,p')].filter(e=>e.getClientRects().length && (e.getBoundingClientRect().left < -1 || e.getBoundingClientRect().right > innerWidth+1)).map(e=>e.id || e.tagName), ids:[...document.querySelectorAll('[id]')].map(e=>e.id), xss:!!window.__fixtureXss};
+    })()`);
+    check(geometry.page<=width+1 && !geometry.outside.length, `Academic form fits ${width}px ${dark?'dark':'light'}`, JSON.stringify(geometry.outside));
+    check(new Set(geometry.ids).size===geometry.ids.length && !geometry.xss, 'Academic IDs unique and hostile values inert');
+    await select('academicUnit','__graduate__'); await select('course','mba_thesis');
+    check(await evaluate('document.getElementById("yearLevel").disabled && document.getElementById("yearLevel").value === ""'), 'Graduate program has no invented year level');
+    await evaluate('document.getElementById("academicUnit").focus()');
+    await keyPress('Tab','Tab',9);
+    check(await evaluate('document.activeElement.id === "course"'), 'Native academic selects are keyboard reachable');
+    await keyPress('Escape','Escape',27);
+    check(await evaluate('document.getElementById("recordModal").style.display === "none" && document.activeElement.id === "addRecord"'), 'Escape closes form and returns focus');
+  }
+  const base={id:1,studentId:'S1',name:'Fixture Student',email:'fixture@example.test',research:'Research',group:'Group',stage:'Stage 1',status:'On Track'};
+  for (const empty of [null,'']) {
+    academicRecord={...base,course:attack,academicUnitKey:empty,programKey:empty,yearLevel:empty,academicYear:empty};
+    await navigate('admin_people.php',375,true,'populated');
+    await evaluate('document.querySelector("#recordRows button[title=Edit]").click()');
+    check(await evaluateFunction(attack=>document.getElementById('academicSummary').textContent.includes(attack) && !document.getElementById('studentAcademicFields').querySelector('img,script'),attack),'Legacy course displayed literally');
+    await evaluate('document.getElementById("recordForm").requestSubmit()');
+    await waitFor('document.getElementById("recordModal").style.display === "none"');
+    const payload=JSON.parse(requests.findLast(r=>r.file==='students_api.php'&&r.action==='save').body);
+    check(['course','academicUnitKey','programKey','yearLevel','academicYear'].every(key=>!Object.hasOwn(payload,key)), 'Unrelated legacy edit omits academic values for locked server preservation');
+  }
+  academicRecord={...base,course:'BS in Information Technology',academicUnitKey:'amt',programKey:'bsit',yearLevel:'2nd Year',academicYear:'2026-2027'};
+  await navigate('admin_people.php',768,false,'populated','adviser');
+  await evaluate('document.querySelector("#recordRows button[title=Edit]").click()');
+  check(await evaluate('["academicUnit","course","yearLevel","academicYear"].map(id=>document.getElementById(id).value).join("|") === "amt|bsit|2nd Year|2026-2027"'),'Edit preselects complete academic tuple');
+  await select('academicUnit','nursing');
+  check(await evaluate('!document.getElementById("recordForm").checkValidity()'), 'Changed incomplete tuple fails client validation');
+  await evaluate('document.querySelector("[data-academic=reset]").click()');
+  check(await evaluate('document.getElementById("course").value === "bsit" && document.activeElement.id === "academicUnit"'),'Keep existing restores academic controls and focus');
+  await select('course','bsa');
+  academicSaveError=true;
+  await evaluate('document.getElementById("recordForm").requestSubmit()');
+  await waitFor('document.querySelector(".prism-toast-wrap")?.textContent.includes("Academic validation error")');
+  check(await evaluateFunction(attack=>document.getElementById('recordModal').style.display==='flex' && document.getElementById('course').value==='bsa' && document.querySelector('.prism-toast-wrap').textContent.includes(attack) && !document.querySelector('.prism-toast-wrap img'),attack),'Server validation error preserves selections and renders literally');
+  academicSaveError=false; academicRecord=null;
+}
+
+
+async function checkAcademicIerb() {
+  const select = async (id,value) => evaluateFunction((id,value)=>{
+    const field=document.getElementById(id);field.value=value;field.dispatchEvent(new Event('change',{bubbles:true}));
+  },id,value);
+  for(const width of [375,768,1024,1280,1600]) for(const dark of [false,true]) {
+    await navigate('ierbprog.php',width,dark,'populated');
+    await evaluate('document.getElementById("addIerbEntry").focus();document.getElementById("addIerbEntry").click()');
+    check(await evaluate('document.activeElement.id === "entryStudentName"'),'IERB academic modal initially focuses name');
+    check(await evaluate('document.getElementById("entryAcademicYear").value === ""'),'IERB Academic Year has no automatic default');
+    await select('entryAcademicYear','2027-2028'); await select('entryAcademicUnit','pmt');
+    await select('entryCourse','bs_clinical_pharmacy'); await select('entryYearLevel','5th Year');
+    check(await evaluate('document.getElementById("entryYearLevel").value === "5th Year"'),'IERB five-year program offers fifth year');
+    await select('entryCourse','bs_pharmacy');
+    check(await evaluate('document.getElementById("entryYearLevel").value === "" && document.getElementById("entryAcademicYear").value === "2027-2028"'),'IERB program change clears incompatible fifth year without clearing Academic Year');
+    await select('entryAcademicUnit','ihtm'); await select('entryCourse','bsihm_hotel');
+    check(await evaluate('document.getElementById("entryAcademicSummary").textContent.includes(window.PRISM_ACADEMIC_CATALOG.programs.bsihm_hotel.label)'),'IERB exposes full long program label');
+    const geometry=await evaluate(`(() => {
+      const host=document.getElementById('ierbEntryModal');
+      return {page:document.documentElement.scrollWidth,outside:[...host.querySelectorAll('input,select,button,p')].filter(e=>e.getClientRects().length && (e.getBoundingClientRect().left < -1 || e.getBoundingClientRect().right > innerWidth+1)).map(e=>e.id||e.tagName),ids:[...document.querySelectorAll('[id]')].map(e=>e.id),xss:!!window.__fixtureXss};
+    })()`);
+    check(geometry.page<=width+1 && !geometry.outside.length,`IERB academic form fits ${width}px ${dark?'dark':'light'}`,JSON.stringify(geometry.outside));
+    check(new Set(geometry.ids).size===geometry.ids.length && !geometry.xss,'IERB academic IDs unique and hostile values inert');
+    await evaluate('document.getElementById("entryAcademicUnit").focus()'); await keyPress('Tab','Tab',9);
+    check(await evaluate('document.activeElement.id === "entryCourse"'),'IERB academic controls have native keyboard order');
+    await evaluate('document.querySelector("#ierbEntryForm [type=submit]").focus()');await keyPress('Tab','Tab',9);
+    check(await evaluate('document.activeElement.id === "closeIerbEntry"'),'IERB Tab stays inside modal');
+    await keyPress('Escape','Escape',27);
+    check(await evaluate('document.getElementById("ierbEntryModal").getAttribute("aria-hidden") === "true" && document.activeElement.id === "addIerbEntry"'),'IERB Escape restores trigger focus');
+  }
+  const base={id:1,studentId:'S1',name:'Fixture Student',email:'fixture@example.test',research:'Research',groupId:'Group',stage:'Stage 1',status:'On Track',progress:20};
+  for(const empty of [null,'']) {
+    academicRecord={...base,course:attack,academicUnitKey:empty,programKey:empty,yearLevel:empty,academicYear:empty};
+    await navigate('ierbprog.php',375,true,'populated');
+    await evaluateFunction(() => document.querySelector('#ierbTableBody button[title="Edit entry"]').click());
+    check(await evaluateFunction(attack=>document.getElementById('entryAcademicSummary').textContent.includes(attack) && !document.getElementById('entryAcademicFields').querySelector('img,script'),attack),'IERB legacy course is literal and preservable');
+    await evaluate('document.getElementById("ierbEntryForm").requestSubmit()');
+    await waitFor('document.getElementById("ierbEntryModal").getAttribute("aria-hidden") === "true"');
+    const payload=JSON.parse(requests.findLast(r=>r.file==='ierb_api.php'&&r.action==='save').body);
+    check(['course','academicUnitKey','programKey','yearLevel','academicYear'].every(key=>!Object.hasOwn(payload,key)),'IERB unrelated legacy edit omits academic tuple');
+  }
+  academicRecord={...base,course:'BS in Information Technology',academicUnitKey:'amt',programKey:'bsit',yearLevel:'2nd Year',academicYear:'2026-2027'};
+  await navigate('ierbprog.php',768,false,'populated');
+  await evaluateFunction(() => document.querySelector('#ierbTableBody button[title="Edit entry"]').click());
+  check(await evaluate('["entryAcademicUnit","entryCourse","entryYearLevel","entryAcademicYear"].map(id=>document.getElementById(id).value).join("|") === "amt|bsit|2nd Year|2026-2027"'),'IERB edit preselects complete tuple');
+  await select('entryAcademicUnit','__graduate__'); await select('entryCourse','mba_thesis');
+  check(await evaluate('document.getElementById("entryYearLevel").disabled && document.getElementById("entryYearLevel").value === ""'),'IERB graduate unit/year remain unresolved');
+  academicSaveError=true;
+  await evaluate('document.getElementById("ierbEntryForm").requestSubmit()');
+  await waitFor('document.querySelector(".prism-toast-wrap")?.textContent.includes("Academic validation error")');
+  check(await evaluateFunction(attack=>document.getElementById('ierbEntryModal').getAttribute('aria-hidden')==='false' && document.getElementById('entryCourse').value==='mba_thesis' && document.querySelector('.prism-toast-wrap').textContent.includes(attack) && !document.querySelector('.prism-toast-wrap img'),attack),'IERB server validation error retains selections and safe message');
+  const payload=JSON.parse(requests.findLast(r=>r.file==='ierb_api.php'&&r.action==='save').body);
+  check(payload.academicUnitKey===null && payload.yearLevel===null && payload.programKey==='mba_thesis' && payload.academicYear==='2026-2027' && payload.stage==='Stage 1','IERB graduate payload uses null unit/year and preserves stage');
+  academicSaveError=false; academicRecord=null;
+}
+
+
+async function checkAcademicDisplay() {
+  const course = 'BS in International Hospitality Management Specialization in Hotel, Restaurant and Culinary Operations';
+  const base={id:1,studentId:'S1',name:'Fixture Student',email:'fixture@example.test',research:'Research',group:'Group',groupId:'Group',stage:'Stage 1',status:'On Track',progress:20};
+  for(const file of ['admin_people.php','ierbprog.php']) for(const viewer of ['admin','adviser']) {
+    for(const width of [375,768,1024,1280,1600]) for(const dark of [false,true]) {
+      academicRecord={...base,course,academicUnitKey:'ihtm',programKey:'bsihm_hotel',yearLevel:'3rd Year',academicYear:'2027-2028'};
+      await navigate(file,width,dark,'populated',viewer);
+      await measure(file,width,dark,' academic readonly');
+      check(await evaluateFunction(course=>{
+        const summary=document.querySelector('.academic-record-summary');
+        return summary && summary.textContent.includes(course) && summary.textContent.includes('3rd Year') && summary.textContent.includes('2027-2028') && summary.textContent.includes(window.PRISM_ACADEMIC_CATALOG.units.ihtm.label) && !summary.querySelector('input,select,button,a');
+      },course),`${file} ${viewer} ${width}px: complete academic summary is read-only and untruncated`);
+      if(viewer==='adviser') check(await evaluateFunction(file=>file==='ierbprog.php'?!document.getElementById('addIerbEntry') && !document.querySelector('#ierbTableBody button[title="Edit entry"]'):!document.querySelector('#recordRows button[title="Delete"]'),file),`${file}: academic display grants no extra adviser action`);
+    }
+    academicRecord={...base,course:attack,academicUnitKey:attack,programKey:null,yearLevel:attack,academicYear:attack};
+    await navigate(file,375,true,'populated',viewer);
+    check(await evaluateFunction(attack=>{
+      const host=document.querySelector('.academic-record-summary');
+      return host.textContent.includes(attack) && !host.querySelector('img,script') && !window.__fixtureXss;
+    },attack),`${file}: all legacy academic display values render literally`);
+    for(const empty of [null,'']) {
+      academicRecord={...base,course:empty,academicUnitKey:empty,programKey:empty,yearLevel:empty,academicYear:empty};
+      await navigate(file,375,false,'populated',viewer);
+      check(await evaluate('!document.querySelector(".academic-record-summary")'),`${file}: wholly empty legacy academic values add no misleading summary`);
+    }
+  }
+  academicRecord=null;
 }
 
 async function run() {
@@ -754,12 +933,15 @@ async function run() {
   setupPendingFixture = true;
   await evaluateFunction(() => {
     document.getElementById('addIerbEntry').click();
-    const fields = { entryStudentName: 'Fixture Student', entryStudentId: 'F-001', entryEmail: 'fixture@example.test', entryGroupId: 'Fixture Group', entryCourse: 'Fixture Course', entryStage: 'Stage 1', entryResearchTitle: 'Fixture Research', entryRequirements: 'Fixture Requirements', entrySubmissionDate: '2026-09-25', entryStatus: 'Pending' };
+    const fields = { entryStudentName: 'Fixture Student', entryStudentId: 'F-001', entryEmail: 'fixture@example.test', entryGroupId: 'Fixture Group', entryStage: 'Stage 1', entryResearchTitle: 'Fixture Research', entryRequirements: 'Fixture Requirements', entrySubmissionDate: '2026-09-25', entryStatus: 'Pending' };
     for (const [id, value] of Object.entries(fields)) document.getElementById(id).value = value;
+    for (const [id,value] of Object.entries({entryAcademicUnit:'amt',entryCourse:'bsit',entryYearLevel:'2nd Year',entryAcademicYear:'2026-2027'})) {
+      const control=document.getElementById(id); control.value=value; control.dispatchEvent(new Event('change'));
+    }
     document.getElementById('ierbEntryForm').requestSubmit();
   });
   await waitFor('document.getElementById("ierbEntryModal").getAttribute("aria-hidden") === "true"');
-  checkPayload('ierb_api.php', 'save', { id: null, name: 'Fixture Student', studentId: 'F-001', email: 'fixture@example.test', groupId: 'Fixture Group', course: 'Fixture Course', stage: 'Stage 1', research: 'Fixture Research', requirements: 'Fixture Requirements', submissionDate: '2026-09-25', status: 'Pending' }, 'IERB entry preserves API parameter names and stage keys');
+  checkPayload('ierb_api.php', 'save', { id: null, name: 'Fixture Student', studentId: 'F-001', email: 'fixture@example.test', groupId: 'Fixture Group', stage: 'Stage 1', research: 'Fixture Research', requirements: 'Fixture Requirements', submissionDate: '2026-09-25', status: 'Pending', academicUnitKey:'amt', programKey:'bsit', course:'BS in Information Technology', yearLevel:'2nd Year', academicYear:'2026-2027' }, 'IERB entry preserves API parameter names and stage keys');
 
   await waitFor('document.querySelector(".prism-toast-wrap")?.textContent.includes("Setup pending")');
   check(await evaluateFunction(attack => {
@@ -794,6 +976,9 @@ async function run() {
   await checkNotificationComposer();
   await checkAdviserDashboard();
   await checkStudentPortal();
+  await checkAcademicManagement();
+  await checkAcademicIerb();
+  await checkAcademicDisplay();
   if (process.env.PRISM_TEST_SCREENSHOTS === '1') {
     const screenshots = fs.mkdtempSync(path.join(os.tmpdir(), 'prism-ui-audit-screenshots-'));
     for (const file of ['admin_notifications.php', 'ierbprog.php', 'account.php', 'dashboard.php', 'research_adviser.php', 'role_portal.php']) {
