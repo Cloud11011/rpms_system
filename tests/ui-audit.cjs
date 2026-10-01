@@ -80,6 +80,19 @@ function fixtureTemplate(file) {
     assert(!/\b(?:require|include)(?:_once)?\s*(?:\(|["'$])/i.test(academicSource), 'Unexpected nested academic include');
     isolated = isolated.replace(academicInclude, () => academicSource.replace(/^<\?php\s*/, ''));
   }
+  // Only these reviewed presentation paths may be expanded, on these exact pages.
+  for (const partial of [
+    { include: "require __DIR__ . '/includes/ceu_footer.php';", path: 'includes/ceu_footer.php', pages: ['dashboard.php', 'research_adviser.php', 'role_portal.php'] },
+    { include: "require __DIR__ . '/includes/research_resources.php';", path: 'includes/research_resources.php', pages: ['dashboard.php', 'research_adviser.php', 'role_portal.php'] },
+  ]) {
+    const allowed = partial.pages.includes(file);
+    assert.equal(isolated.split(partial.include).length - 1, allowed ? 1 : 0, file + ': exact ' + partial.path + ' include count');
+    if (allowed) {
+      const partialSource = fs.readFileSync(path.join(root, partial.path), 'utf8');
+      assert(!/\b(?:require|include)(?:_once)?\s*(?:\(|["'$])/i.test(partialSource), 'Unexpected nested include in ' + partial.path);
+      isolated = isolated.replace(partial.include, () => '?>' + partialSource + '<?php ');
+    }
+  }
   assert(!/\b(?:require|include)(?:_once)?\s*(?:\(|["'$])/i.test(isolated), `${file}: unexpected include in fixture`);
   const stub = `<?php
     const STAGE_SEQUENCE = ['Stage 1','Stage 2','Stage 3','Stage 4','Stage 5','Completed'];
@@ -156,7 +169,7 @@ async function serve(req, res) {
     } else if (/^assets\/(css|js|images)\/[A-Za-z0-9_.\/-]+$/.test(file)) {
       const absolute = path.resolve(root, file);
       assert(absolute.startsWith(path.join(root, 'assets') + path.sep));
-      const types = { '.css': 'text/css', '.js': 'application/javascript', '.png': 'image/png', '.svg': 'image/svg+xml', '.jpg': 'image/jpeg' };
+      const types = { '.css': 'text/css', '.js': 'application/javascript', '.png': 'image/png', '.svg': 'image/svg+xml', '.jpg': 'image/jpeg', '.webp': 'image/webp' };
       if (!fs.existsSync(absolute) || !fs.statSync(absolute).isFile()) { res.writeHead(404); res.end(); return; }
       res.writeHead(200, { 'Content-Type': types[path.extname(file)] || 'application/octet-stream' });
       res.end(fs.readFileSync(absolute));
@@ -740,6 +753,172 @@ async function checkAcademicDisplay() {
   academicRecord=null;
 }
 
+
+function checkInstitutionalPartialBoundary() {
+  for (const [partial, marker] of [
+    ['includes/ceu_footer.php', 'class="ceu-footer"'],
+    ['includes/research_resources.php', 'data-prism-resources'],
+  ]) {
+    const cases = [
+      ['direct request', 'realpath(' + JSON.stringify(partial) + ')', "$authUser=['role'=>'admin'];", false],
+      ['missing context', "realpath('dashboard.php')", '', false],
+      ['invalid context type', "realpath('dashboard.php')", "$authUser='admin';", false],
+      ['unknown role', "realpath('dashboard.php')", "$authUser=['role'=>'guest'];", false],
+      ...['admin', 'adviser', 'student'].map(role => [role + ' authenticated caller', "realpath('dashboard.php')", "$authUser=['role'=>'" + role + "'];", true]),
+    ];
+    for (const [name, script, context, allowed] of cases) {
+      const code = '$_SERVER["SCRIPT_FILENAME"]=' + script + ';' + context +
+        'register_shutdown_function(function(){echo "status=".http_response_code();}); require ' + JSON.stringify(partial) + ';';
+      const result = spawnSync(php, ['-r', code], {cwd:root, encoding:'utf8', windowsHide:true});
+      check(result.status === 0 && result.stderr === '' &&
+        (allowed ? result.stdout.includes(marker) && !result.stdout.includes('status=404') : result.stdout === 'status=404'),
+      partial + ': ' + name, result.stderr);
+    }
+  }
+}
+
+async function checkInstitutionalComponents() {
+  const viewers = [['dashboard.php','admin'], ['research_adviser.php','adviser'], ['role_portal.php','student']];
+  const screenshotDirectory = process.env.PRISM_TEST_SCREENSHOTS === '1'
+    ? fs.mkdtempSync(path.join(os.tmpdir(), 'prism-institutional-ui-')) : null;
+  for (const width of [375,768,1024,1280,1600]) for (const dark of [false,true]) for (const [file,viewer] of viewers) {
+    await navigate(file,width,dark,'populated',viewer);
+    const label = file + ' ' + width + 'px ' + (dark ? 'dark' : 'light') + ' institutional';
+    const initial = await evaluateFunction(() => {
+      const footer=document.querySelector('.ceu-footer'), resources=document.querySelector('[data-prism-resources]');
+      const ids=[...document.querySelectorAll('[id]')].map(e=>e.id);
+      return {
+        one:document.querySelectorAll('.ceu-footer').length===1 && document.querySelectorAll('[data-prism-resources]').length===1,
+        structure:footer?.parentElement===document.querySelector('main') && !footer.closest('.portal-page') &&
+          !!resources?.closest('main') && !resources.closest('form,dialog') && !footer.closest('form,dialog') &&
+          !!(resources.compareDocumentPosition(footer) & Node.DOCUMENT_POSITION_FOLLOWING),
+        static:!document.querySelector('.ceu-footer :is(form,input,button,script),[data-prism-resources] :is(form,input,button,script,[data-go],[data-page])'),
+        closed:[...resources.querySelectorAll('details.prism-resource')].length===2 && [...resources.querySelectorAll('details')].every(e=>!e.open),
+        unique:ids.length===new Set(ids).size,
+        contacts:footer.textContent.includes('Km. 44 McArthur Highway') && footer.textContent.includes('City of Malolos, Bulacan, Philippines') &&
+          footer.querySelector('a[href="tel:+63447916359"]')?.textContent==='(044) 791-6359' &&
+          footer.querySelector('a[href="tel:+63447919233"]')?.textContent==='(044) 791-9233',
+        website:footer.querySelector('.ceu-footer-brand')?.getAttribute('href')==='https://www.ceu.edu.ph/' &&
+          footer.querySelector('.ceu-footer-brand')?.getAttribute('aria-label')?.includes('opens in a new tab'),
+        links:[...document.querySelectorAll('.ceu-footer a[target="_blank"],[data-prism-resources] a')].every(a=>
+          a.target==='_blank' && a.relList.contains('noopener') && a.relList.contains('noreferrer')),
+        student:!document.body.classList.contains('student-dashboard-page') || resources.closest('.portal-page')?.dataset.section==='dashboard',
+      };
+    });
+    for (const [name,ok] of Object.entries(initial)) check(ok,label+': '+name);
+    const writesBefore=requests.filter(r=>r.method==='POST').length;
+    for (const [type,src,w,h,count] of [
+      ['sdg','assets/images/sdg.webp',2048,1448,17],
+      ['agenda','assets/images/research-matrix.webp',612,786,6],
+    ]) {
+      await evaluateFunction(type=>{
+        const summary=document.querySelector('[data-resource="'+type+'"] > summary');
+        summary.scrollIntoView({block:'center'}); summary.focus();
+      },type);
+      await keyPress('Enter','Enter',13);
+      await waitFor('document.querySelector(' + JSON.stringify('[data-resource="'+type+'"]') + ').open');
+      check(await evaluateFunction(type=>{
+        const summary=document.querySelector('[data-resource="'+type+'"] > summary');
+        const s=getComputedStyle(summary);
+        return document.activeElement===summary && summary.matches(':focus-visible') && s.outlineStyle!=='none' && parseFloat(s.outlineWidth)>=2;
+      },type),label+': '+type+' native keyboard expansion and visible focus');
+      await evaluateFunction(type=>document.querySelector('[data-resource="'+type+'"] img').scrollIntoView({block:'center'}),type);
+      await waitFor('(() => {const i=document.querySelector('+JSON.stringify('[data-resource="'+type+'"] img')+');return i.complete && i.naturalWidth>0;})()');
+      const data=await evaluateFunction(type=>{
+        const panel=document.querySelector('[data-resource="'+type+'"]'),img=panel.querySelector('img'),link=panel.querySelector('[data-resource-open]');
+        const box=img.getBoundingClientRect(), surface=img.parentElement.getBoundingClientRect();
+        const transcript=panel.querySelector('.prism-resource-transcript');
+        return {
+          src:img.getAttribute('src'), width:img.naturalWidth,height:img.naturalHeight,
+          declared:[Number(img.getAttribute('width')),Number(img.getAttribute('height'))],
+          alt:img.alt, ratio:box.width/box.height, fits:box.left>=surface.left-1 && box.right<=surface.right+1 && box.width>0,
+          listCount:transcript.querySelectorAll('li').length,text:transcript.textContent,
+          href:link.getAttribute('href'), tab:link.textContent.includes('new tab'),
+        };
+      },type);
+      check(data.src===src && data.width===w && data.height===h && data.declared[0]===w && data.declared[1]===h,label+': '+type+' approved full-resolution asset loaded');
+      check(data.alt.length>30 && data.listCount===count,label+': '+type+' meaningful alt and complete text alternative');
+      check(data.fits && Math.abs(data.ratio-w/h)<0.01,label+': '+type+' responsive uncropped aspect ratio');
+      check(data.href===src && data.tab,label+': '+type+' full-size image link and new-tab notice');
+      if (type==='agenda') check(['Health Science','Social Science and Humanities','Education','Business and Hospitality Management','Environmental Research','Institutional Research','SDGs 6, 7, 12, 13, 14 and 15'].every(t=>data.text.includes(t)),
+        label+': six agenda mappings match supplied reference');
+      else check(data.text.includes('No Poverty') && data.text.includes('Partnerships for the Goals'),label+': SDG text includes first and last supplied goal');
+      await evaluateFunction(type=>{
+        const panel=document.querySelector('[data-resource="'+type+'"]');
+        const link=panel.querySelector('[data-resource-open]');
+        window.__resourceActivation=null;
+        link.addEventListener('click',e=>{e.preventDefault();window.__resourceActivation={href:link.getAttribute('href'),trusted:e.isTrusted};},{once:true});
+        panel.querySelector('summary').focus();
+      },type);
+      await keyPress('Tab','Tab',9);
+      check(await evaluateFunction(type=>{
+        const link=document.querySelector('[data-resource="'+type+'"] [data-resource-open]'),s=getComputedStyle(link);
+        return document.activeElement===link && link.matches(':focus-visible') && s.outlineStyle!=='none' && parseFloat(s.outlineWidth)>=2;
+      },type),label+': '+type+' image link reachable by Tab with visible focus');
+      await keyPress('Enter','Enter',13);
+      check(await evaluateFunction(src=>window.__resourceActivation?.href===src && window.__resourceActivation.trusted,src),label+': '+type+' link activates from keyboard without external fixture navigation');
+      const fits=await evaluateFunction(()=>{
+        const nodes=[...document.querySelectorAll('[data-prism-resources] summary,[data-prism-resources] a,[data-prism-resources] img,[data-prism-resources] ol')];
+        return document.documentElement.scrollWidth<=innerWidth+1 && nodes.every(e=>{
+          const details=e.closest('details');
+          if(details && !details.open && e.tagName!=='SUMMARY') return true;
+          const r=e.getBoundingClientRect();
+          return r.left>=-1 && r.right<=innerWidth+1 && e.scrollWidth<=e.clientWidth+1;
+        });
+      });
+      check(fits,label+': '+type+' expanded content fits viewport without clipping');
+      await evaluateFunction(type=>document.querySelector('[data-resource="'+type+'"] > summary').focus(),type);
+      await keyPress('Enter','Enter',13);
+      check(await evaluateFunction(type=>!document.querySelector('[data-resource="'+type+'"]').open && document.activeElement===document.querySelector('[data-resource="'+type+'"] > summary'),type),
+        label+': '+type+' keyboard collapse retains focus');
+    }
+    await evaluateFunction(()=>document.querySelector('.ceu-footer').scrollIntoView({block:'center'}));
+    await waitFor('(() => {const i=document.querySelector(".ceu-footer img");return i.complete && i.naturalWidth>0;})()');
+    const footer=await evaluateFunction(()=>{
+      const node=document.querySelector('.ceu-footer'),img=node.querySelector('img'),r=node.getBoundingClientRect(),im=img.getBoundingClientRect();
+      return {
+        flow:getComputedStyle(node).position==='static' && r.top>=node.previousElementSibling.getBoundingClientRect().bottom-1,
+        fits:r.left>=-1 && r.right<=innerWidth+1 && node.scrollWidth<=node.clientWidth+1 &&
+          [...node.querySelectorAll('a,p,h2,img')].every(e=>{const b=e.getBoundingClientRect();return b.left>=r.left-1 && b.right<=r.right+1;}),
+        logo:img.getAttribute('src')==='assets/images/ceu-logo.webp' && img.naturalWidth===256 && img.naturalHeight===307 &&
+          img.alt==='Centro Escolar University logo' && Math.abs(im.width/im.height-256/307)<0.01,
+        contactReadable:getComputedStyle(node.querySelector('address')).color!==getComputedStyle(node).backgroundColor,
+      };
+    });
+    for (const [name,ok] of Object.entries(footer)) check(ok,label+': footer '+name);
+    await evaluateFunction(()=>document.querySelector('.ceu-footer-brand').focus());
+    await keyPress('Tab','Tab',9);
+    check(await evaluateFunction(()=>{
+      const a=document.activeElement,s=getComputedStyle(a);
+      return a.getAttribute('href')==='tel:+63447916359' && a.matches(':focus-visible') && s.outlineStyle!=='none' && parseFloat(s.outlineWidth)>=2;
+    }),label+': footer contact link keyboard focus');
+    check(requests.filter(r=>r.method==='POST').length===writesBefore,label+': informational controls make no API writes');
+    await measure(file,width,dark,' institutional resources');
+    if (screenshotDirectory && ((width===375 && dark) || (width===1280 && !dark))) {
+      await evaluateFunction(()=>document.querySelectorAll('details.prism-resource').forEach(d=>{d.open=true;}));
+      await evaluate('new Promise(resolve=>setTimeout(resolve,400))');
+      const clip=await evaluateFunction(()=>{
+        const a=document.querySelector('[data-prism-resources]').getBoundingClientRect(),b=document.querySelector('.ceu-footer').getBoundingClientRect();
+        return {x:a.x+scrollX,y:a.y+scrollY,width:a.width,height:b.bottom-a.top,scale:1};
+      });
+      const png=await command('Page.captureScreenshot',{format:'png',captureBeyondViewport:true,clip});
+      const destination=path.join(screenshotDirectory,file.replace('.php','')+'-'+width+'-'+(dark?'dark':'light')+'.png');
+      fs.writeFileSync(destination,Buffer.from(png.data,'base64'));
+      console.log('Institutional screenshot: '+destination);
+    }
+    if(file==='role_portal.php') {
+      for(const section of ['progress','submit','documents','notifications','calendar','profile']) {
+        await evaluateFunction(section=>document.querySelector('[data-go="'+section+'"],[data-page="'+section+'"]').click(),section);
+        check(await evaluateFunction(section=>{
+          const resources=document.querySelector('[data-prism-resources]'),footer=document.querySelector('.ceu-footer');
+          return document.querySelector('.portal-page.active')?.dataset.section===section && resources.getClientRects().length===0 &&
+            footer.getClientRects().length>0 && footer.parentElement===document.querySelector('main') && document.documentElement.scrollWidth<=innerWidth+1;
+        },section),label+': '+section+' preserves footer and keeps resources separate');
+      }
+    }
+  }
+}
+
 async function run() {
   checkPartialBoundary();
   assert(browser, 'Set PRISM_TEST_BROWSER to an installed Chrome/Edge executable.');
@@ -979,6 +1158,10 @@ async function run() {
   await checkAcademicManagement();
   await checkAcademicIerb();
   await checkAcademicDisplay();
+  const institutionalStart = checks;
+  checkInstitutionalPartialBoundary();
+  await checkInstitutionalComponents();
+  console.log((checks - institutionalStart) + ' focused institutional checks.');
   if (process.env.PRISM_TEST_SCREENSHOTS === '1') {
     const screenshots = fs.mkdtempSync(path.join(os.tmpdir(), 'prism-ui-audit-screenshots-'));
     for (const file of ['admin_notifications.php', 'ierbprog.php', 'account.php', 'dashboard.php', 'research_adviser.php', 'role_portal.php']) {

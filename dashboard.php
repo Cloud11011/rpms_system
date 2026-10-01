@@ -43,6 +43,8 @@ try {
 <link rel="stylesheet" href="assets/css/dashboard-sidebar.css">
 <script src="assets/js/dashboard-sidebar.js" defer></script>
 <link rel="stylesheet" href="assets/css/dashboard-overview.css">
+<link rel="stylesheet" href="assets/css/ceu-footer.css">
+<link rel="stylesheet" href="assets/css/research-resources.css">
 </head>
 <body class="dashboard-page" data-reminder-user="<?php echo htmlspecialchars(hash('sha256', $user_email), ENT_QUOTES, 'UTF-8'); ?>">
 
@@ -279,6 +281,8 @@ try {
 </div>
 </div>
 </section>
+<?php require __DIR__ . '/includes/research_resources.php'; ?>
+<?php require __DIR__ . '/includes/ceu_footer.php'; ?>
 </main>
 </div>
 

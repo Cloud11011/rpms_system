@@ -20,6 +20,8 @@ $authUser = require_login('adviser');
 <script src="assets/js/dashboard-sidebar.js" defer></script>
 <script src="assets/js/prism-ui.js" defer></script>
 <script src="assets/js/adviser-dashboard.js" defer></script>
+<link rel="stylesheet" href="assets/css/ceu-footer.css">
+<link rel="stylesheet" href="assets/css/research-resources.css">
 </head>
 <body class="adviser-dashboard-page" data-user-role="adviser">
 <div class="container">
@@ -52,6 +54,8 @@ $authUser = require_login('adviser');
 <section class="adviser-panel" aria-labelledby="adviserNotificationsTitle"><div class="adviser-panel-heading"><div><h2 id="adviserNotificationsTitle">Recent notifications</h2><p>Recent messages addressed to your account.</p></div><a href="admin_notifications.php">Notification Center</a></div><div id="adviserNotifications" aria-live="polite" aria-busy="true"><p class="adviser-panel-state">Loading recent notifications...</p></div></section>
 </div>
 </div>
+<?php require __DIR__ . '/includes/research_resources.php'; ?>
+<?php require __DIR__ . '/includes/ceu_footer.php'; ?>
 </main>
 </div>
 <dialog id="adviserReviewDialog" class="adviser-review-dialog" aria-labelledby="adviserReviewTitle" aria-describedby="adviserReviewHelp">
