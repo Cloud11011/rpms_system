@@ -13,29 +13,43 @@
   const STAGES = ['Stage 1', 'Stage 2', 'Stage 3', 'Stage 4', 'Stage 5', 'Completed'];
 
   // label -> [tone, icon]. One place that defines how every status looks across the system.
-  const BADGES = {
-    // Document workflow (what happens next)
-    'Pending Adviser Review':            ['warning', 'fa-hourglass-half'],
-    'Ready for Formal RPMS Submission':  ['info', 'fa-paper-plane'],
-    'Submitted to RPMS':                 ['success', 'fa-circle-check'],
-    'Needs Revision':                    ['danger', 'fa-rotate-left'],
-    'Superseded':                        ['neutral', 'fa-clock-rotate-left'],
-    // Adviser review statuses
-    'Submitted':                         ['neutral', 'fa-inbox'],
-    'Received':                          ['neutral', 'fa-inbox'],
-    'Under Review':                      ['warning', 'fa-magnifying-glass'],
-    'Verified':                          ['info', 'fa-clipboard-check'],
-    'Resubmission Requested':            ['danger', 'fa-rotate-left'],
-    'Approved':                          ['success', 'fa-check'],
-    'Denied':                            ['danger', 'fa-xmark'],
-    // Student progress status
-    'On Track':                          ['success', 'fa-circle-check'],
-    'Pending':                           ['warning', 'fa-clock'],
-    'Delayed':                           ['danger', 'fa-triangle-exclamation'],
-    // Other
-    'Completed':                         ['success', 'fa-flag-checkered'],
-    'Admin Override':                    ['override', 'fa-user-shield']
-  };
+ const BADGES = {
+    // Document workflow
+    'Pending Adviser Review':           ['warning', 'fa-hourglass-half'],
+    'Ready for Formal RPMS Submission': ['info', 'fa-paper-plane'],
+    'Submitted to RPMS':                ['success', 'fa-circle-check'],
+    'Needs Revision':                   ['danger', 'fa-rotate-left'],
+    'Superseded':                       ['neutral', 'fa-clock-rotate-left'],
+
+    // Document review
+    'Submitted':                        ['neutral', 'fa-inbox'],
+    'Received':                         ['neutral', 'fa-inbox'],
+    'Under Review':                     ['warning', 'fa-magnifying-glass'],
+    'Verified':                         ['info', 'fa-clipboard-check'],
+    'Resubmission Requested':           ['danger', 'fa-rotate-left'],
+    'Approved':                         ['success', 'fa-check'],
+    'Denied':                           ['danger', 'fa-xmark'],
+
+    // IERB progress
+    'On Track':                         ['success', 'fa-circle-check'],
+    'Pending':                          ['warning', 'fa-clock'],
+    'Delayed':                          ['danger', 'fa-triangle-exclamation'],
+    'Completed':                        ['success', 'fa-flag-checkered'],
+
+    // Accounts
+    'Active':                           ['success', 'fa-circle-check'],
+    'Inactive':                         ['neutral', 'fa-circle-minus'],
+    'Pending Activation':               ['warning', 'fa-clock'],
+
+    // Notifications / delivery
+    'Sent':                             ['success', 'fa-paper-plane'],
+    'Scheduled':                        ['warning', 'fa-calendar-clock'],
+    'Sending':                          ['info', 'fa-spinner'],
+    'Failed':                           ['danger', 'fa-circle-exclamation'],
+
+    // Administrative
+    'Admin Override':                   ['override', 'fa-user-shield']
+};
 
   const TIPS = {
     'Pending Adviser Review': 'Waiting for the research adviser to review this document.',
