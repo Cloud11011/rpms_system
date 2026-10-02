@@ -42,7 +42,7 @@ if (!$tokenValid) {
 
         <div class="logo-container">
 
-            <img src="assets/images/ceu_logo2.jpg" class="logo-main">
+            <img src="assets/images/ceu_logo2.jpg" class="logo-main reset-password-logo" alt="Centro Escolar University Malolos">
 
         </div>
 
