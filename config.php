@@ -178,11 +178,11 @@ function db(): PDO
 // Bump this whenever you add anything to migrate(). migrate() is skipped entirely on requests
 // where the stored version already matches, instead of running ~45 INFORMATION_SCHEMA/ALTER
 // checks on every single request.
-const SCHEMA_VERSION = 5;
+const SCHEMA_VERSION = 6;
 
 function migrate(PDO $pdo): void
 {
-    // Read before creating even schema_meta: an ordinary request must never apply v5 DDL.
+    // Read before creating even schema_meta: an ordinary request must never apply pending migration DDL.
     $hasMeta = (int)$pdo->query("SELECT COUNT(*) FROM INFORMATION_SCHEMA.TABLES
         WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'schema_meta'")->fetchColumn() > 0;
     $stored = $hasMeta
@@ -191,9 +191,9 @@ function migrate(PDO $pdo): void
     if ($stored !== false && (int)$stored >= SCHEMA_VERSION) {
         return;
     }
-    if (PHP_SAPI !== 'cli' || getenv('PRISM_ALLOW_SCHEMA_V5_MIGRATION') !== '1') {
+    if (PHP_SAPI !== 'cli' || getenv('PRISM_ALLOW_SCHEMA_V6_MIGRATION') !== '1') {
         throw new RuntimeException(
-            'PRISM schema v5 migration is pending. Back up the database and verify a disposable copy before running the explicitly enabled CLI migration.'
+            'PRISM schema v6 migration is pending. Back up the database and verify a disposable copy before running the explicitly enabled CLI migration.'
         );
     }
     // Two authorized migration processes must not both try to ALTER the same table.
@@ -208,7 +208,10 @@ function migrate(PDO $pdo): void
         $stored = $pdo->query("SELECT v FROM schema_meta WHERE k = 'schema_version'")->fetchColumn();
         if ($stored === false || (int)$stored < SCHEMA_VERSION) {
             // ALTER TABLE may commit implicitly. Every step must remain safe to retry.
-            migrate_schema($pdo);
+            if ($stored === false || (int)$stored < 5) {
+                migrate_schema($pdo); // Retain the v5 academic/reset-key upgrade for older databases.
+            }
+            migrate_schema_v6($pdo);
             $pdo->prepare("REPLACE INTO schema_meta (k, v) VALUES ('schema_version', :v)")
                 ->execute([':v' => (string)SCHEMA_VERSION]);
         }
@@ -243,6 +246,8 @@ function migrate_schema(PDO $pdo): void
         created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
         FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;");
+
+    repair_password_reset_id_if_needed($pdo);
 
     $pdo->exec("CREATE TABLE IF NOT EXISTS advisers (
         id INT AUTO_INCREMENT PRIMARY KEY,
@@ -450,6 +455,184 @@ function migrate_schema(PDO $pdo): void
     }
 }
 
+
+/** V6 only reconciles the confirmed legacy keys and the schema's intended relationships. */
+function migrate_schema_v6(PDO $pdo): void
+{
+    if ((int)$pdo->query('SELECT @@SESSION.foreign_key_checks')->fetchColumn() !== 1) {
+        throw new RuntimeException('Schema v6 requires foreign_key_checks=1; migration stopped.');
+    }
+    foreach (['password_resets', 'students', 'ierb_history', 'notifications'] as $table) {
+        repair_integer_id_if_needed($pdo, $table);
+    }
+    $missing = [];
+    // Preflight every relationship before adding any FK. Never remove or rewrite orphan data.
+    foreach (migration_required_foreign_keys() as $relationship) {
+        if (!migration_foreign_key_exists($pdo, $relationship)) {
+            $missing[] = $relationship;
+        }
+    }
+    foreach ($missing as $relationship) {
+        [$table, $column, $parent, $delete] = $relationship;
+        // All identifiers/rules come exclusively from the fixed reviewed map.
+        $pdo->exec("ALTER TABLE `$table` ADD FOREIGN KEY (`$column`) REFERENCES `$parent` (`id`) ON DELETE $delete");
+        if (!migration_foreign_key_exists($pdo, $relationship)) {
+            throw new RuntimeException("Foreign key $table.$column could not be verified; schema version was not advanced.");
+        }
+    }
+}
+
+function migration_required_foreign_keys(): array
+{
+    return [
+        ['password_resets', 'user_id', 'users', 'CASCADE'],
+        ['advisers', 'user_id', 'users', 'SET NULL'],
+        ['students', 'adviser_id', 'advisers', 'SET NULL'],
+        ['students', 'user_id', 'users', 'SET NULL'],
+        ['ierb_history', 'student_id', 'students', 'CASCADE'],
+        ['documents', 'student_id', 'students', 'SET NULL'],
+    ];
+}
+
+/** Validate semantics and prerequisites, not an installation-specific constraint name. */
+function migration_foreign_key_exists(PDO $pdo, array $relationship): bool
+{
+    if (!in_array($relationship, migration_required_foreign_keys(), true)) {
+        throw new RuntimeException('Unreviewed foreign-key repair target.');
+    }
+    [$table, $column, $parent, $delete] = $relationship;
+    $label = "$table.$column -> $parent.id";
+    $metadata = $pdo->prepare("SELECT c.DATA_TYPE, c.COLUMN_TYPE, c.IS_NULLABLE, c.EXTRA, t.ENGINE
+        FROM INFORMATION_SCHEMA.COLUMNS c JOIN INFORMATION_SCHEMA.TABLES t
+          ON t.TABLE_SCHEMA = c.TABLE_SCHEMA AND t.TABLE_NAME = c.TABLE_NAME
+        WHERE c.TABLE_SCHEMA = DATABASE() AND c.TABLE_NAME = :table AND c.COLUMN_NAME = :column");
+    $metadata->execute([':table' => $table, ':column' => $column]);
+    $child = $metadata->fetch(PDO::FETCH_ASSOC);
+    $metadata->execute([':table' => $parent, ':column' => 'id']);
+    $reference = $metadata->fetch(PDO::FETCH_ASSOC);
+    if (!$child || !$reference || strtoupper($child['ENGINE']) !== 'INNODB' || strtoupper($reference['ENGINE']) !== 'INNODB'
+        || !in_array(strtolower($child['DATA_TYPE']), ['tinyint', 'smallint', 'mediumint', 'int', 'bigint'], true)
+        || strtolower($child['DATA_TYPE']) !== strtolower($reference['DATA_TYPE'])
+        || str_contains(strtolower($child['COLUMN_TYPE']), 'unsigned') !== str_contains(strtolower($reference['COLUMN_TYPE']), 'unsigned')
+        || $child['EXTRA'] !== '' || !in_array(strtolower($reference['EXTRA']), ['', 'auto_increment'], true)
+        || ($delete === 'SET NULL' && $child['IS_NULLABLE'] !== 'YES')) {
+        throw new RuntimeException("Incompatible columns/engine for foreign key $label; manual review required.");
+    }
+    $indexes = $pdo->prepare("SELECT COLUMN_NAME, SEQ_IN_INDEX, INDEX_TYPE FROM INFORMATION_SCHEMA.STATISTICS
+        WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = :table AND INDEX_NAME = 'PRIMARY' ORDER BY SEQ_IN_INDEX");
+    $indexes->execute([':table' => $parent]);
+    $primary = $indexes->fetchAll(PDO::FETCH_ASSOC);
+    if (count($primary) !== 1 || $primary[0]['COLUMN_NAME'] !== 'id' || strtoupper($primary[0]['INDEX_TYPE']) !== 'BTREE') {
+        throw new RuntimeException("Missing compatible single-column parent primary key for $label; manual review required.");
+    }
+    $inspect = $pdo->prepare("SELECT k.CONSTRAINT_NAME, k.COLUMN_NAME, k.REFERENCED_TABLE_SCHEMA,
+            k.REFERENCED_TABLE_NAME, k.REFERENCED_COLUMN_NAME, r.DELETE_RULE, r.UPDATE_RULE,
+            DATABASE() AS CURRENT_SCHEMA
+        FROM INFORMATION_SCHEMA.KEY_COLUMN_USAGE k JOIN INFORMATION_SCHEMA.REFERENTIAL_CONSTRAINTS r
+          ON r.CONSTRAINT_SCHEMA = k.CONSTRAINT_SCHEMA AND r.CONSTRAINT_NAME = k.CONSTRAINT_NAME
+          AND r.TABLE_NAME = k.TABLE_NAME
+        WHERE k.TABLE_SCHEMA = DATABASE() AND k.TABLE_NAME = :table AND k.REFERENCED_TABLE_NAME IS NOT NULL
+        ORDER BY k.CONSTRAINT_NAME, k.ORDINAL_POSITION");
+    $inspect->execute([':table' => $table]);
+    $constraints = [];
+    foreach ($inspect->fetchAll(PDO::FETCH_ASSOC) as $row) {
+        $constraints[$row['CONSTRAINT_NAME']][] = $row;
+    }
+    $found = 0;
+    foreach ($constraints as $rows) {
+        if (!in_array($column, array_column($rows, 'COLUMN_NAME'), true)) continue;
+        $row = $rows[0];
+        if (count($rows) !== 1 || $row['REFERENCED_TABLE_SCHEMA'] !== $row['CURRENT_SCHEMA']
+            || $row['REFERENCED_TABLE_NAME'] !== $parent || $row['REFERENCED_COLUMN_NAME'] !== 'id'
+            || strtoupper($row['DELETE_RULE']) !== $delete
+            || !in_array(strtoupper($row['UPDATE_RULE']), ['RESTRICT', 'NO ACTION'], true) || ++$found > 1) {
+            throw new RuntimeException("Conflicting foreign key for $label; manual review required.");
+        }
+    }
+    // Check even existing relationships: legacy imports may have disabled FK checks.
+    if ($pdo->query("SELECT 1 FROM `$table` child LEFT JOIN `$parent` parent ON child.`$column` = parent.`id`
+        WHERE child.`$column` IS NOT NULL AND parent.`id` IS NULL LIMIT 1")->fetchColumn() !== false) {
+        throw new RuntimeException("Orphan rows prevent foreign key $label; repair data explicitly before retrying.");
+    }
+    $index = $pdo->prepare("SELECT COUNT(*) FROM INFORMATION_SCHEMA.STATISTICS
+        WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = :table AND COLUMN_NAME = :column
+          AND SEQ_IN_INDEX = 1 AND INDEX_TYPE = 'BTREE' AND SUB_PART IS NULL");
+    $index->execute([':table' => $table, ':column' => $column]);
+    if ($found && (int)$index->fetchColumn() < 1) {
+        throw new RuntimeException("Missing child index for existing foreign key $label; manual review required.");
+    }
+    // InnoDB creates a missing child index when ADD FOREIGN KEY runs; post-verification checks it.
+    return $found === 1;
+}
+
+/**
+ * Repair only reviewed integer keys, preserving rows and relationships.
+ * Called inside the explicitly enabled, advisory-locked migration.
+ */
+function repair_password_reset_id_if_needed(PDO $pdo): void
+{
+    repair_integer_id_if_needed($pdo, 'password_resets');
+}
+
+function repair_integer_id_if_needed(PDO $pdo, string $table): void
+{
+    if (!in_array($table, ['password_resets', 'students', 'ierb_history', 'notifications'], true)) {
+        throw new RuntimeException('Unreviewed integer-key repair target.');
+    }
+    $inspect = function () use ($pdo, $table): array {
+        $row = $pdo->query("SELECT COLUMN_NAME, COLUMN_TYPE, IS_NULLABLE, COLUMN_KEY, EXTRA, COLUMN_COMMENT
+            FROM INFORMATION_SCHEMA.COLUMNS
+            WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = '$table' AND COLUMN_NAME = 'id'")
+            ->fetch(PDO::FETCH_ASSOC);
+        if (!$row) {
+            throw new RuntimeException("Missing $table.id; migration requires manual review.");
+        }
+        return $row;
+    };
+    $column = $inspect();
+    $primaryColumns = (int)$pdo->query("SELECT COUNT(*) FROM INFORMATION_SCHEMA.STATISTICS
+        WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = '$table' AND INDEX_NAME = 'PRIMARY'")
+        ->fetchColumn();
+    // Preserve integer width/signedness rather than narrowing a compatible legacy key.
+    if (!preg_match('/^(?:tinyint|smallint|mediumint|int|bigint)(?:\(\d+\))?(?: unsigned)?(?: zerofill)?$/i', $column['COLUMN_TYPE'])
+        || $column['COLUMN_NAME'] !== 'id' || $column['COLUMN_KEY'] !== 'PRI'
+        || $column['IS_NULLABLE'] !== 'NO' || $primaryColumns !== 1
+        || !in_array(strtolower($column['EXTRA']), ['', 'auto_increment'], true)) {
+        throw new RuntimeException("Unsupported $table.id definition; migration requires manual review.");
+    }
+    if (strtolower($column['EXTRA']) === 'auto_increment') {
+        return;
+    }
+
+    $sqlMode = (string)$pdo->query('SELECT @@SESSION.sql_mode')->fetchColumn();
+    $modes = explode(',', strtoupper($sqlMode));
+    $preserveZero = !in_array('NO_AUTO_VALUE_ON_ZERO', $modes, true);
+    $setMode = $pdo->prepare('SET SESSION sql_mode = :mode');
+    try {
+        if ($preserveZero) {
+            // ALTER can otherwise renumber an existing zero key, breaking references.
+            $setMode->execute([':mode' => ltrim($sqlMode . ',NO_AUTO_VALUE_ON_ZERO', ',')]);
+        }
+        $comment = $pdo->quote($column['COLUMN_COMMENT']);
+        if ($comment === false) {
+            throw new RuntimeException("Could not preserve $table.id comment.");
+        }
+        $pdo->exec("ALTER TABLE `$table` MODIFY COLUMN `id` "
+            . $column['COLUMN_TYPE'] . ' NOT NULL AUTO_INCREMENT COMMENT ' . $comment);
+    } finally {
+        if ($preserveZero) {
+            $setMode->execute([':mode' => $sqlMode]);
+        }
+    }
+    $verified = $inspect();
+    if ($verified['COLUMN_NAME'] !== 'id' || $verified['COLUMN_KEY'] !== 'PRI'
+        || strtolower($verified['EXTRA']) !== 'auto_increment'
+        || $verified['IS_NULLABLE'] !== 'NO'
+        || $verified['COLUMN_TYPE'] !== $column['COLUMN_TYPE']
+        || $verified['COLUMN_COMMENT'] !== $column['COLUMN_COMMENT']) {
+        throw new RuntimeException("$table.id repair could not be verified; schema version was not advanced.");
+    }
+}
 
 /**
  * Read complete top-level declarations from SHOW CREATE TABLE. Keep quoted defaults,
