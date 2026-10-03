@@ -6,9 +6,5 @@ storage/reports/*
 !storage/documents/.gitkeep
 !storage/reports/.gitkeep
 storage/api_errors.log
-Add-Content .gitignore "`nvendor/"
 vendor/
-
-vendor/
-
 storage/auth_rate_limits/
