@@ -650,7 +650,8 @@ if ($action === 'submit_to_rpms') {
                     . ($isOverride ? '. ADMIN OVERRIDE - reason: ' . $reason : '') . '.',
                 date('Y-m-d'), $submittedBy);
 
-            if (STAGE_ADVANCE_TRIGGER === 'submission') {
+            if (STAGE_ADVANCE_TRIGGER === 'submission'
+                || ($isOverride && STAGE_ADVANCE_TRIGGER === 'approval')) {
                 $advancedTo = advance_stage_for_document($pdo, $doc, $user, date('Y-m-d'),
                     "after \"$docName\" was formally submitted to RPMS");
             }

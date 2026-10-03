@@ -36,6 +36,8 @@ const securityHeaders = Object.fromEntries(JSON.parse(policy.stdout).map(line =>
   const separator = line.indexOf(':');
   return [line.slice(0, separator), line.slice(separator + 1).trim()];
 }));
+let managementFixture = 'student';
+let managementFailure = '';
 let academicRecord = null;
 let academicSaveError = false;
 let setupPendingFixture = false;
@@ -95,6 +97,7 @@ function fixtureTemplate(file) {
   }
   assert(!/\b(?:require|include)(?:_once)?\s*(?:\(|["'$])/i.test(isolated), `${file}: unexpected include in fixture`);
   const stub = `<?php
+    $managementType = '${managementFixture}';
     const STAGE_SEQUENCE = ['Stage 1','Stage 2','Stage 3','Stage 4','Stage 5','Completed'];
     $_SESSION = ['account_type' => '${role}', 'user_role' => '${role === 'admin' ? 'RPMS Administrator' : 'Research Adviser'}'];
     function require_login($roles) { return ['id'=>1, 'email'=>'fixture@example.test', 'full_name'=>'UI Audit Fixture', 'role'=>'${role}', 'ref_id'=>'FIXTURE', 'username'=>'fixture']; }
@@ -129,6 +132,7 @@ function mockApi(file, action) {
   if(file==='ierb_api.php' && role==='student') return action==='history'?{ok:true,history:[{stage:'Stage 1',status:'On Track',note:attack,actor:attack,created_at:'2026-09-24'}]}:{ok:true,records:populated?[{id:1,name:attack,research:attack,groupId:'Fixture Group',stage:'Stage 1',status:'On Track',progress:20,requirements:attack}]:[]};
   if (file === 'notifications_api.php' && action === 'recipients_preview') return {ok:true, recipients:populated ? [{id:1,name:attack,email:'fixture@example.test'}, {id:2,name:'Second recipient',email:'second@example.test'}] : []};
   if (file === 'notifications_api.php') return { ok: true, notifications: populated ? [{ id: 1, subject: attack, type: 'Reminder', recipient_name: attack, recipient_email: 'fixture@example.test', status: 'Sent', created_at: '2026-09-24 08:00:00', message: attack, delivery_info: 'Fixture only' }] : [], total: 1, scheduled: false, sent: 1 };
+  if (file === 'advisers_api.php') return {ok:true,advisers:populated?[{id:1,name:attack,employeeId:'A-1',email:'fixture@example.test',status:'Active'}]:[]};
   if (file === 'students_api.php' && action === 'adviser_options') return {ok:true,advisers:[]};
   if (file === 'students_api.php' && action === 'save' && academicSaveError) return {ok:false,message:'Academic validation error '+attack};
   if (file === 'students_api.php' && academicRecord) return {ok:true,students:[academicRecord]};
@@ -154,11 +158,17 @@ async function serve(req, res) {
     if (pages.includes(file) || extraPages.includes(file)) {
       res.writeHead(200, { ...securityHeaders, 'Content-Type': 'text/html; charset=utf-8', 'Cache-Control': 'no-store' });
       res.end(fixtureTemplate(file));
-    } else if (/^(notifications|reports|stage_labels|ierb|audit|profile|documents|students)_api\.php$/.test(file) || file === 'send_followup.php') {
+    } else if (/^(notifications|reports|stage_labels|ierb|audit|profile|documents|students|advisers)_api\.php$/.test(file) || file === 'send_followup.php') {
       let body = '';
       for await (const chunk of req) body += chunk;
       requests.push({ file, action: url.searchParams.get('action'), query: Object.fromEntries(url.searchParams), method: req.method, body });
       if (apiDelay) await new Promise(resolve => setTimeout(resolve, apiDelay));
+      if (managementFailure && ['students_api.php','advisers_api.php'].includes(file) && url.searchParams.get('action') === 'list') {
+        if (managementFailure === 'network') { res.destroy(); return; }
+        res.writeHead(managementFailure === 'http' ? 503 : 200, {'Content-Type':'application/json'});
+        res.end(managementFailure === 'json' ? '{invalid' : JSON.stringify({ok:true, students:[], advisers:[]}));
+        return;
+      }
       if (file === 'reports_api.php' && url.searchParams.get('action') === 'file') {
         res.writeHead(200, { 'Content-Type': 'application/pdf', 'Content-Disposition': 'attachment; filename="fixture.pdf"' });
         res.end('%PDF-1.4\n% Isolated fixture only\n');
@@ -601,6 +611,85 @@ async function checkStudentPortal() {
   check(upload?.method==='POST' && ['name="document"','filename="fixture.txt"','name="documentType"','Research Protocol','name="stage"','Stage 1','name="notes"','Research title: Fixture title | Group: Fixture group | Fixture notes'].every(part=>upload.body.includes(part)),'Student upload keeps existing multipart names and notes composition');
 }
 
+
+async function checkRemediation() {
+  for (const kind of ['student','adviser']) {
+    managementFixture = kind;
+    for (const failure of ['api','http','json','network']) {
+      managementFailure = failure === 'api' ? '' : failure;
+      await navigate('admin_people.php',375,false,failure === 'api' ? 'error' : 'populated');
+      check(await evaluate('document.querySelector("#recordRows [role=alert]")?.textContent.includes("Could not load") && !document.getElementById("recordRows").textContent.includes("records found")'), kind+' '+failure+': persistent failure differs from empty');
+      check(await evaluate('document.getElementById("recordCount").textContent === "Records unavailable"'), kind+' '+failure+': no false zero count');
+      managementFailure = ''; scenario = 'populated';
+      await evaluate('document.querySelector("#recordRows button").click()');
+      await waitFor('!!document.querySelector("#recordRows .prism-badge")');
+      check(await evaluate('!document.querySelector("#recordRows [role=alert]")'),kind+' '+failure+': retry restores actual records');
+    }
+  }
+  managementFixture = 'student'; managementFailure = '';
+  for (const width of [375,768,1024,1280,1600]) for (const dark of [false,true]) {
+    for (const [file,viewer,selector] of [
+      ['admin_people.php','admin','#recordRows .prism-badge'],
+      ['ierbprog.php','admin','#ierbTableBody .prism-badge'],
+      ['admin_notifications.php','admin','#noticeHistory .prism-badge'],
+      ['account.php','admin','#activityList .prism-badge'],
+      ['research_adviser.php','adviser','#adviserQueue .prism-badge'],
+    ]) {
+      await navigate(file,width,dark,'populated',viewer);
+      check(await evaluateFunction(selector => {
+        const pill=document.querySelector(selector); if(!pill) return false;
+        const style=getComputedStyle(pill);
+        // Flex/grid items blockify inline-flex to flex in computed style.
+        return ['inline-flex','flex'].includes(style.display) && parseFloat(style.borderRadius)>=100 && !!pill.textContent.trim();
+      },selector),file+' '+width+' '+dark+': shared readable status pill');
+      await measure(file,width,dark,' status pills');
+    }
+    check(await evaluateFunction(value => {
+      const host=document.createElement('div');host.style.cssText='width:180px;overflow-x:auto';document.body.append(host);
+      for(const label of ['Active','Inactive','Pending Activation','Sent','Scheduled','Sending','Failed','Logged','Ready for Formal RPMS Submission',value]) host.append(PrismUI.badgeElement(label));
+      const safe=!host.querySelector('img') && host.textContent.includes(value);
+      const whole=[...host.children].every(p=>{
+        const range=document.createRange();range.selectNodeContents(p.querySelector('span'));
+        return range.getClientRects().length===1 && getComputedStyle(p).whiteSpace==='nowrap';
+      });
+      const fits=host.getBoundingClientRect().width<=181 && document.documentElement.scrollWidth<=innerWidth+1;
+      host.remove();return safe && fits && whole;
+    },attack),'Shared labels stay whole and escaped in a scroll container '+width+' '+dark);
+    await navigate('dashboard.php',width,dark,'populated');
+    check(await evaluateFunction(()=>{
+      const row=document.querySelector('#ierbMonitorBody tr[data-course]');
+      return row.cells[3].firstElementChild.classList.contains('stage-tag')
+        && !row.cells[3].firstElementChild.classList.contains('prism-badge')
+        && !!row.cells[6].querySelector('.prism-badge');
+    }),'Dashboard stage tag remains separate from status pill '+width+' '+dark);
+    const labelResults=await evaluateFunction(()=>{
+      const row=document.querySelector('#ierbMonitorBody tr[data-course]');
+      const stage=row.cells[3].querySelector('.stage-tag');stage.textContent='Protocol Submission';
+      const host=row.cells[6];host.replaceChildren();
+      const labels=[stage];
+      for(const value of ['On Track','Pending Activation','Ready for Formal RPMS Submission']) {
+        const pill=PrismUI.badgeElement(value);host.append(pill);labels.push(pill.querySelector('span'));
+      }
+      return labels.map(label=>{
+        const range=document.createRange();range.selectNodeContents(label);
+        return {text:label.textContent,lines:range.getClientRects().length,nowrap:getComputedStyle(label).whiteSpace==='nowrap'};
+      });
+    });
+    for(const label of labelResults) check(label.lines===1 && label.nowrap,
+      label.text+' has no internal wrapping '+width+' '+dark,JSON.stringify(label));
+    check(await evaluateFunction(()=>{
+      const scroller=document.querySelector('.dashboard-table-scroll'),table=scroller.querySelector('table');
+      const overflow=getComputedStyle(scroller).overflowX;
+      scroller.scrollLeft=scroller.scrollWidth;
+      const action=table.querySelector('[data-monitor-action="documents"]');
+      return ['auto','scroll'].includes(overflow) && getComputedStyle(table).display==='table'
+        && parseFloat(getComputedStyle(table).minWidth)>=1100
+        && (scroller.scrollWidth<=scroller.clientWidth || scroller.scrollLeft>0)
+        && action.getBoundingClientRect().right<=scroller.getBoundingClientRect().right+1;
+    }),'Progress table scrolls to accessible actions '+width+' '+dark);
+    await measure('dashboard.php',width,dark,' whole-label scrolling');
+  }
+}
 
 async function checkAcademicManagement() {
   const select = async (id, value) => evaluateFunction((id, value) => {
@@ -1158,6 +1247,7 @@ async function run() {
   await checkAcademicManagement();
   await checkAcademicIerb();
   await checkAcademicDisplay();
+  await checkRemediation();
   const institutionalStart = checks;
   checkInstitutionalPartialBoundary();
   await checkInstitutionalComponents();

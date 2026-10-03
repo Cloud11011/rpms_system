@@ -480,7 +480,7 @@ function renderIerbMonitor() {
             <td><strong>${escapeMonitorHtml(record.protocolCode || record.groupId || record.studentId)}</strong>${record.protocolCode ? `<small class="prism-sub">${escapeMonitorHtml(record.groupId || record.studentId)}</small>` : ''}</td>
             <td>${escapeMonitorHtml(record.course || 'Not set')}</td>
             <td><div class="title-cell"><span>${escapeMonitorHtml(record.research || 'Research title not set')}</span><small>Lead: ${escapeMonitorHtml(record.name)}</small></div></td>
-            <td>${PrismUI.badge(record.stage || 'Stage 1', { text: record.stageLabel || record.stage })}${PrismUI.docMini(record.docs)}</td>
+            <td><span class="stage-tag" title="${escapeMonitorHtml(record.stage || 'Stage 1')}">${escapeMonitorHtml(record.stageLabel || record.stage || 'Stage 1')}</span>${PrismUI.docMini(record.docs)}</td>
             <td>${escapeMonitorHtml(record.requirements || 'None')}</td>
             <td><span class="progress-value">${escapeMonitorHtml(record.progress || '0')}%</span></td>
             <td>${PrismUI.badge(record.status || 'Pending')}</td>

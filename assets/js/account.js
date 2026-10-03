@@ -117,9 +117,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     meta.appendChild(student);
                 }
                 if (x.override) {
-                    const override = document.createElement('span');
-                    override.className = 'activity-override-badge';
-                    override.textContent = 'Admin Override';
+                    const override = PrismUI.badgeElement('Admin Override');
                     meta.appendChild(override);
                 }
 

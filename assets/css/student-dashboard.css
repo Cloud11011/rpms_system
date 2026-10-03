@@ -85,14 +85,11 @@
 .student-dashboard-page .prism-wf-panel,
 .student-dashboard-page .prism-wf-item,
 .student-dashboard-page .prism-wf-item > div,
-.student-dashboard-page .prism-badges,
-.student-dashboard-page .prism-badge span { min-width: 0; max-width: 100%; }
+.student-dashboard-page .prism-badges { min-width: 0; max-width: 100%; }
 .student-dashboard-page .prism-wf-item > div:first-child { flex: 1 1 260px; }
 .student-dashboard-page .prism-wf-item strong,
 .student-dashboard-page .prism-wf-remarks,
 .student-dashboard-page .prism-sub { overflow-wrap: anywhere; }
-.student-dashboard-page .prism-badge { max-width: 100%; white-space: normal; }
-.student-dashboard-page .prism-badge span { white-space: normal; overflow-wrap: anywhere; }
 .student-dashboard-page .prism-wf-actions button { max-width: 100%; white-space: normal; overflow-wrap: anywhere; }
 .student-dashboard-page .dashboard-calendar-nav strong { font-size: 12px; }
 .student-dashboard-page .dashboard-calendar-weekdays span { font-size: 10px; }

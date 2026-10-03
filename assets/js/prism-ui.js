@@ -44,6 +44,7 @@
     // Notifications / delivery
     'Sent':                             ['success', 'fa-paper-plane'],
     'Scheduled':                        ['warning', 'fa-calendar-clock'],
+    'Logged':                           ['neutral', 'fa-file-lines'],
     'Sending':                          ['info', 'fa-spinner'],
     'Failed':                           ['danger', 'fa-circle-exclamation'],
 
@@ -113,6 +114,12 @@
     return '<span class="prism-badge tone-' + meta[0] + (opts.small ? ' is-small' : '') + '"' +
       (title ? ' title="' + esc(title) + '"' : '') + '>' +
       '<i class="fa-solid ' + meta[1] + '" aria-hidden="true"></i><span>' + esc(text) + '</span></span>';
+  }
+
+  function badgeElement(label, opts) {
+    const template = document.createElement('template');
+    template.innerHTML = badge(label, opts); // badge escapes every caller-supplied value.
+    return template.content.firstElementChild;
   }
 
   /** Small "2 awaiting review / 1 ready to submit" badges for a student's `docs` counts. */
@@ -458,6 +465,8 @@
   /** Card layout on small screens: copies each column heading onto its cells as data-label. */
   function enhanceTable(table) {
     if (!table || table.dataset.prismEnhanced) return;
+    // Existing scroll containers preserve whole stage/status labels on narrow screens.
+    if (table.closest('.dashboard-table-scroll, .documents-table-wrap, .document-table-wrap')) return;
     table.dataset.prismEnhanced = '1';
     table.classList.add('prism-cards');
     const labels = Array.prototype.map.call(table.querySelectorAll('thead th'), function (th) { return th.textContent.trim(); });
@@ -583,7 +592,7 @@
   }
 
   const api = {
-    badge: badge, docMini: docMini, emptyState: emptyState, tip: tip, toast: toast,
+    badge: badge, badgeElement: badgeElement, docMini: docMini, emptyState: emptyState, tip: tip, toast: toast,
     confirm: confirmDialog, request: request, postJson: postJson, esc: esc,
     submitToRpms: submitToRpms, overrideStudent: overrideStudent, overrideDocument: overrideDocument, showVersions: showVersions,
     enhanceTable: enhanceTable, tableFilter: tableFilter, hint: hint,

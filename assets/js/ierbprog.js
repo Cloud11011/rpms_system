@@ -162,14 +162,13 @@
 
         rows.forEach(record => {
             const tr = document.createElement('tr');
-            const statusClass = String(record.status || 'Pending').toLowerCase().replace(/\s+/g, '-');
             tr.innerHTML = `
                 <td><strong>${escapeHtml(record.name)}</strong><br><small>${escapeHtml(record.studentId)}</small></td>
                 <td><span class="stage-tag" title="${escapeHtml(record.stage)}">${escapeHtml(record.stageLabel || labelForStage(record.stage))}</span></td>
                 <td>${escapeHtml(record.progress)}%</td>
                 <td>${escapeHtml(record.requirements || 'None')}</td>
                 <td>${escapeHtml(record.lastSubmissionDate || 'N/A')}</td>
-                <td><span class="status-badge ${escapeHtml(statusClass)}">${escapeHtml(record.status)}</span></td>
+                <td>${PrismUI.badge(record.status)}</td>
                 <td class="row-actions"></td>`;
             PrismAcademicFields.appendSummary(tr.cells[0], record);
             const actions = tr.querySelector('.row-actions');

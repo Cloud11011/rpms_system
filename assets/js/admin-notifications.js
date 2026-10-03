@@ -166,11 +166,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 recipient.textContent = n.recipient_name || n.recipient_email || 'Recipient not recorded';
                 const kind = document.createElement('span');
                 kind.textContent = n.type || 'Notification';
-                const status = document.createElement('span');
-                status.className = 'status-badge';
-                const statusClass = String(n.status || '').toLowerCase();
-                if (['scheduled', 'sent', 'logged', 'failed', 'pending'].includes(statusClass)) status.classList.add(statusClass);
-                status.textContent = n.status || 'Status not recorded';
+                const status = PrismUI.badgeElement(n.status || 'Status not recorded');
                 const when = document.createElement('span');
                 when.textContent = n.status === 'Scheduled' && n.scheduled_at
                     ? `Scheduled for ${formatNoticeDate(n.scheduled_at)}`

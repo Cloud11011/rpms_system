@@ -39,8 +39,12 @@
   display: inline-flex; align-items: center; gap: .4em;
   padding: .22em .7em; border-radius: 999px; border: 1px solid transparent;
   font-size: .78rem; font-weight: 600; line-height: 1.45; white-space: nowrap; vertical-align: middle;
+  width: max-content; min-width: max-content; max-width: none; flex-shrink: 0;
+  word-break: normal; overflow-wrap: normal; box-sizing: border-box; justify-self: start;
 }
-.prism-badge i { font-size: .85em; }
+.prism-badge i { font-size: .85em; flex: 0 0 auto; }
+.prism-badge > span { white-space: nowrap; word-break: normal; overflow-wrap: normal; }
+.stage-tag { display: inline-block; width: max-content; white-space: nowrap; word-break: normal; overflow-wrap: normal; }
 .prism-badge.is-small { font-size: .72rem; padding: .12em .55em; }
 .prism-badge.tone-success  { background: var(--prism-success-bg);  color: var(--prism-success-fg);  border-color: var(--prism-success-bd); }
 .prism-badge.tone-info     { background: var(--prism-info-bg);     color: var(--prism-info-fg);     border-color: var(--prism-info-bd); }
@@ -48,7 +52,7 @@
 .prism-badge.tone-danger   { background: var(--prism-danger-bg);   color: var(--prism-danger-fg);   border-color: var(--prism-danger-bd); }
 .prism-badge.tone-neutral  { background: var(--prism-neutral-bg);  color: var(--prism-neutral-fg);  border-color: var(--prism-neutral-bd); }
 .prism-badge.tone-override { background: var(--prism-override-bg); color: var(--prism-override-fg); border-color: var(--prism-override-bd); }
-.prism-badges { display: flex; flex-wrap: wrap; gap: .3rem; margin-top: .3rem; }
+.prism-badges { display: flex; flex-wrap: wrap; gap: .3rem; margin-top: .3rem; max-width: 100%; overflow-x: auto; }
 .prism-sub { display: block; color: var(--prism-muted); font-size: .75rem; font-weight: 500; margin-top: .15rem; }
 
 /* ---------- Buttons ---------- */

@@ -76,7 +76,7 @@ document.addEventListener('DOMContentLoaded', () => {
         selected.forEach(doc => {
             const card = node('article', null, 'adviser-document');
             card.append(node('h3', doc.originalName || 'Untitled document'));
-            const badge = node('span', doc.workflowState || 'Status unavailable', 'adviser-workflow-badge');
+            const badge = PrismUI.badgeElement(doc.workflowState || 'Status unavailable');
             card.append(badge);
             const meta = node('dl', null, 'adviser-document-meta');
             field(meta, 'Student', doc.student);

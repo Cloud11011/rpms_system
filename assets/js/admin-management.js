@@ -72,14 +72,19 @@
     const academicFields = isAdviser ? null : PrismAcademicFields.mount(document.getElementById('studentAcademicFields'));
     let returnFocus = null;
     let records = [];
+    let loadError = false;
 
     async function loadRecords() {
+        loadError = false;
         try {
             const res = await fetch(`${apiUrl}?action=list`);
             const data = await res.json();
-            records = data.ok ? (isAdviser ? data.advisers : data.students) : [];
+            const items = isAdviser ? data.advisers : data.students;
+            if (!res.ok || !data.ok || !Array.isArray(items)) throw new Error('Could not load records.');
+            records = items;
         } catch (e) {
             records = [];
+            loadError = true;
             PrismUI.toast(e.message || 'Could not load records.', 'error');
         }
         if (!isAdviser) {
@@ -119,6 +124,28 @@
         countEl.textContent = `${filtered.length} record${filtered.length === 1 ? '' : 's'}`;
         rowsEl.replaceChildren();
 
+        if (loadError) {
+            countEl.textContent = 'Records unavailable';
+            const row = document.createElement('tr');
+            const cell = document.createElement('td');
+            cell.colSpan = isAdviser ? 6 : 7;
+            cell.className = 'empty-state';
+            const message = document.createElement('p');
+            message.setAttribute('role', 'alert');
+            message.textContent = 'Could not load records. Please try again.';
+            const retry = document.createElement('button');
+            retry.type = 'button';
+            retry.className = 'prism-btn';
+            retry.textContent = 'Retry loading records';
+            retry.addEventListener('click', async () => {
+                retry.disabled = true;
+                await loadRecords();
+            });
+            cell.append(message, retry);
+            row.append(cell);
+            rowsEl.append(row);
+            return;
+        }
         if (!filtered.length) {
             const tr = document.createElement('tr');
             tr.innerHTML = `<td colspan="${isAdviser ? 6 : 7}" class="empty-state">No ${isAdviser ? 'adviser' : 'student'} records found.</td>`;
@@ -134,7 +161,7 @@
                     <td>${escapeHtml(record.employeeId)}</td>
                     <td>${escapeHtml(record.department || 'N/A')}</td>
                     <td>${escapeHtml(record.groups || 'None')}</td>
-                    <td><span class="status-badge ${String(record.status).toLowerCase().replace(/\s+/g, '-')}">${escapeHtml(record.status)}</span></td>
+                    <td>${PrismUI.badge(record.status)}</td>
                     <td class="row-actions"></td>`;
             } else {
                 const protocolBadge = record.protocolCode
@@ -146,7 +173,7 @@
                     <td>${escapeHtml(record.studentId)}</td>
                     <td>${escapeHtml(record.research || 'Not set')}<br><small>${escapeHtml(record.group || 'No group')}</small></td>
                     <td>${escapeHtml(record.adviserName || 'Unassigned')}</td>
-                    <td><span class="stage-tag" title="${escapeHtml(record.stage)}">${escapeHtml(record.stageLabel || labelForStage(record.stage))}</span> <span class="status-badge ${String(record.status).toLowerCase().replace(/\s+/g, '-')}">${escapeHtml(record.status)}</span></td>
+                    <td><span class="stage-tag" title="${escapeHtml(record.stage)}">${escapeHtml(record.stageLabel || labelForStage(record.stage))}</span> ${PrismUI.badge(record.status)}</td>
                     <td>${protocolBadge}${piBadge}</td>
                     <td class="row-actions"></td>`;
             }
