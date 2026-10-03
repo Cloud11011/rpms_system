@@ -1,5 +1,6 @@
 <?php
 require __DIR__ . '/config.php';
+require_once __DIR__ . '/includes/research_groups.php';
 $user = api_require_login(['admin', 'adviser', 'student']);
 $pdo = db();
 $action = $_GET['action'] ?? 'list';
@@ -43,6 +44,9 @@ if ($action === 'mark_all_read') {
 
 // Sending is an RPMS (and, for follow-ups only, research adviser) responsibility.
 api_require_login(['admin', 'adviser']);
+if ($action === 'group_options') {
+    json_out(['ok' => true, 'groups' => research_group_options($pdo, $user)]);
+}
 $data = json_body();
 
 if ($action === 'recipients_preview') {
@@ -77,7 +81,7 @@ if ($action === 'send') {
         json_out(['ok' => false, 'message' => 'Notification messages must be 600 characters or fewer.'], 422);
     }
     if ($audience === 'Specific Research Group' && $group === '') {
-        json_out(['ok' => false, 'message' => 'Enter a research group for this audience.'], 422);
+        json_out(['ok' => false, 'message' => 'Choose a research group for this audience.'], 422);
     }
     if ($automated) {
         $scheduleTs = $scheduleAt !== '' ? strtotime($scheduleAt) : false;
@@ -138,6 +142,9 @@ if ($action === 'send') {
 
 function resolve_recipients(PDO $pdo, array $user, string $audience, string $group): array
 {
+    if ($audience === 'Specific Research Group' && !in_array($group, research_group_options($pdo, $user), true)) {
+        json_out(['ok' => false, 'message' => 'Choose an existing research group in your permitted scope.'], 422);
+    }
     $recipients = [];
 
     if ($user['role'] === 'adviser') {
@@ -151,7 +158,7 @@ function resolve_recipients(PDO $pdo, array $user, string $audience, string $gro
         $params = [':adv' => $user['email']];
         if ($audience === 'Specific Research Group') {
             if ($group === '') return [];
-            $sql .= ' AND s.research_group = :g';
+            $sql .= ' AND BINARY s.research_group = BINARY :g';
             $params[':g'] = $group;
         }
         $stmt = $pdo->prepare($sql);
@@ -167,7 +174,7 @@ function resolve_recipients(PDO $pdo, array $user, string $audience, string $gro
         $params = [];
         if ($audience === 'Specific Research Group') {
             if ($group === '') return [];
-            $sql .= ' WHERE research_group = :g';
+            $sql .= ' WHERE BINARY research_group = BINARY :g';
             $params[':g'] = $group;
         }
         $stmt = $pdo->prepare($sql);

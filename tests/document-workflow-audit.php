@@ -59,6 +59,7 @@ class FixtureStatement extends PDOStatement
                 $this->db->document['override_reason'] = $params[':reason'];
             }
         } elseif (str_starts_with($this->sql, 'UPDATE documents SET rpms_submitted_at')) {
+            if (!empty($GLOBALS['case']['failSubmit'])) throw new RuntimeException('Fixture submission failure.');
             $this->db->document['rpms_submitted_at'] = '2026-09-25 12:00:00';
         } elseif (str_starts_with($this->sql, 'INSERT INTO documents')) {
             if (!empty($GLOBALS['case']['failInsert'])) throw new RuntimeException('Fixture insert failure.');
@@ -83,6 +84,11 @@ class FixtureStatement extends PDOStatement
         if (str_starts_with($this->sql, 'SELECT email')) return $this->db->student['email'];
         if (str_starts_with($this->sql, 'SELECT full_name')) return $this->db->student['full_name'];
         return 4;
+    }
+    public function fetchAll(int $mode = PDO::FETCH_DEFAULT, mixed ...$args): array
+    {
+        if (!str_contains($this->sql, "role = 'admin' AND status = 'Active'")) throw new RuntimeException('Unexpected admin query.');
+        return [['id' => 1, 'email' => 'admin1@example.test'], ['id' => 2, 'email' => 'admin2@example.test']];
     }
     public function rowCount(): int { return 1; }
 }
@@ -113,6 +119,14 @@ function fixture_notice(array $args): void
 function notify_student(...$args): void { fixture_notice($args); }
 function notify_adviser_of_student(...$args): void { fixture_notice($args); }
 function notify_rpms_admins(...$args): void { fixture_notice($args); }
+function send_notification_email($to, $subject, $body): array
+{
+    if ($GLOBALS['fixtureDb']->transaction) throw new RuntimeException('Admin email before commit.');
+    $GLOBALS['fixtureDb']->events[] = 'ADMIN EMAIL';
+    $GLOBALS['emails'][] = compact('to', 'subject', 'body');
+    if (!empty($GLOBALS['case']['emailThrows'])) throw new RuntimeException('Fixture mail exception.');
+    return ['ok' => empty($GLOBALS['case']['emailFails']), 'message' => 'Fixture delivery'];
+}
 function log_api_error(...$args): void { $GLOBALS['errors'][] = $args; }
 function move_uploaded_file(string $from, string $to): bool { $GLOBALS['stored'] = true; return true; }
 function is_file(string $path): bool { return $GLOBALS['stored']; }
@@ -145,7 +159,7 @@ if (($argv[1] ?? '') === '--case') {
     $actor = ['id' => 1, 'role' => $case['role'] ?? 'admin', 'email' => 'student@example.test', 'full_name' => 'Fixture Actor'];
     $payload = ['id' => 'fixture-document', 'status' => $case['newStatus'] ?? 'Approved',
         'remarks' => 'Fixture review', 'reason' => array_key_exists('reason', $case) ? $case['reason'] : 'Verified fixture correction'];
-    $audit = $history = $notices = $errors = [];
+    $audit = $history = $notices = $errors = $emails = [];
     $stored = $case['action'] !== 'upload'; $response = null; $status = 200; $originChecks = 0;
     $fixtureDb = new FixtureDb();
     $_GET = ['action' => $case['action']];
@@ -161,11 +175,11 @@ if (($argv[1] ?? '') === '--case') {
         'WF_READY_FOR_RPMS' => 'Ready for Formal RPMS Submission', 'WF_SUBMITTED_RPMS' => 'Submitted to RPMS', 'WF_SUPERSEDED' => 'Superseded'] as $key => $value) define($key, $value);
     // Extract only real workflow functions; no workflow bootstrap or configuration is evaluated.
     $workflow = str_replace("\r\n", "\n", file_get_contents(__DIR__ . '/../workflow.php'));
-    foreach (['document_workflow_state', 'document_is_locked', 'override_reason_valid', 'override_reason_message', 'advance_stage_for_document'] as $name) {
+    foreach (['document_workflow_state', 'document_is_locked', 'override_reason_valid', 'override_reason_message', 'advance_stage_for_document', 'email_rpms_admins_formal_submission'] as $name) {
         $start = strpos($workflow, 'function ' . $name . '(');
         $end = strpos($workflow, "\n}\n", $start);
         if ($start === false || $end === false) throw new RuntimeException('Cannot isolate workflow function.');
-        eval('namespace ' . __NAMESPACE__ . '; use \PDO; ' . substr($workflow, $start, $end + 2 - $start));
+        eval('namespace ' . __NAMESPACE__ . '; use \PDO; use \Throwable; ' . substr($workflow, $start, $end + 2 - $start));
     }
     ob_start();
     register_shutdown_function(function () {
@@ -174,7 +188,7 @@ if (($argv[1] ?? '') === '--case') {
             'student' => $GLOBALS['fixtureDb']->student, 'document' => $GLOBALS['fixtureDb']->document,
             'events' => $GLOBALS['fixtureDb']->events, 'writes' => $GLOBALS['fixtureDb']->writes,
             'transaction' => $GLOBALS['fixtureDb']->transaction, 'audit' => $GLOBALS['audit'], 'history' => $GLOBALS['history'],
-            'notices' => $GLOBALS['notices'], 'errors' => $GLOBALS['errors'], 'stored' => $GLOBALS['stored'],
+            'notices' => $GLOBALS['notices'], 'emails' => $GLOBALS['emails'], 'errors' => $GLOBALS['errors'], 'stored' => $GLOBALS['stored'],
             'originChecks' => $GLOBALS['originChecks'], 'unexpected' => $unexpected]);
     });
     $source = file_get_contents(__DIR__ . '/../documents_api.php');
@@ -186,6 +200,10 @@ if (($argv[1] ?? '') === '--case') {
     exit;
 }
 $cases = [
+    ['name' => 'Retired document summary API rejects generation', 'action' => 'summarize', 'expectedStatus' => 410],
+    ['name' => 'Failed student formal transaction sends no admin email', 'action' => 'submit_to_rpms', 'mode' => 'submission', 'beforeStatus' => 'Approved', 'role' => 'student', 'failSubmit' => true, 'expectedStatus' => 500],
+    ['name' => 'Admin email failure cannot undo student submission', 'action' => 'submit_to_rpms', 'beforeStatus' => 'Approved', 'role' => 'student', 'emailFails' => true],
+    ['name' => 'Admin email exception cannot undo student submission', 'action' => 'submit_to_rpms', 'beforeStatus' => 'Approved', 'role' => 'student', 'emailThrows' => true],
     ['name' => 'Override approval advances in approval mode', 'action' => 'override_review', 'advanced' => true],
     ['name' => 'Override approval waits in submission mode', 'action' => 'override_review', 'mode' => 'submission', 'advanced' => false],
     ['name' => 'Normal adviser approval advances in approval mode', 'action' => 'review', 'role' => 'adviser', 'advanced' => true],
@@ -253,6 +271,18 @@ foreach ($cases as $case) {
         else $pass = $pass && $r['document'] !== null && !in_array('UNLINK', $r['events'], true);
     }
     if ($pass && !empty($case['cleanupLog'])) $pass = count(array_filter($r['errors'], fn($e) => $e[0] === 'document_file_cleanup')) === 1;
+    if ($pass && $case['action'] === 'submit_to_rpms') {
+        $studentSuccess = $expected === 200 && ($case['role'] ?? 'admin') === 'student';
+        $pass = count($r['emails']) === ($studentSuccess ? 2 : 0);
+        if ($studentSuccess) {
+            $pass = $pass && count($r['notices']) === 3 && $r['document']['rpms_submitted_at'] !== null
+                && array_search('COMMIT', $r['events'], true) < array_search('ADMIN EMAIL', $r['events'], true)
+                && $r['emails'][0]['subject'] === 'PRISM - New Formal RPMS Submission'
+                && str_contains($r['emails'][0]['body'], 'Fixture.txt') && str_contains($r['emails'][0]['body'], 'Protocol')
+                && str_contains($r['notices'][0][1], 'Formal RPMS Submission Confirmation');
+            if (!empty($case['emailFails']) || !empty($case['emailThrows'])) $pass = $pass && count($r['errors']) === 2;
+        }
+    }
     if (!$pass) { fwrite(STDERR, "FAIL: {$case['name']}\n$error$output\n"); exit(1); }
     echo "PASS: {$case['name']}\n";
 }

@@ -28,6 +28,8 @@
             const field = name => root.querySelector(`[data-academic="${name}"]`);
             const unit = field('unit'), program = field('program'), year = field('year'), ay = field('academic-year');
             const summary = field('summary'), legacy = field('legacy'), reset = field('reset');
+            const group = root.closest('form').querySelector('[data-research-group]');
+            let groupRequest = 0;
             let original = null, changed = false;
             const value = input => String(input ?? '');
             const options = (select, entries, placeholder, selected = '', preserve = false) => {
@@ -50,6 +52,52 @@
                 options(year, years(program.value).map(label => [label, label]), 'Choose a year level', selected, preserve);
                 year.disabled = selectedProgram()?.level === 'graduate';
             }
+            function originalGroupIsStandard() {
+                const p = catalog.programs[original?.programKey];
+                if (!p || !catalog.academicYears.includes(original?.academicYear)) return false;
+                if (p.level !== 'graduate' && (p.unit !== original.academicUnitKey || !years(original.programKey).includes(original.yearLevel))) return false;
+                const prefix = (p.level === 'graduate' ? 'GRAD' : p.unit.toUpperCase()) + '-'
+                    + original.programKey.toUpperCase().replaceAll('_', '-')
+                    + (p.level === 'graduate' ? '' : '-Y' + original.yearLevel[0]) + '-'
+                    + original.academicYear.slice(2, 4) + original.academicYear.slice(7, 9) + '-G';
+                const id = original.group ?? original.groupId ?? '';
+                const suffix = id.slice(prefix.length);
+                return id.startsWith(prefix) && /^[0-9]{2,9}$/.test(suffix) && Number(suffix) > 0 && String(Number(suffix)).padStart(2, '0') === suffix;
+            }
+            async function refreshGroups() {
+                if (!group) return;
+                const request = ++groupRequest;
+                group.removeAttribute('aria-busy');
+                const selected = group.value;
+                const old = original?.group ?? original?.groupId ?? '';
+                const preserve = old && !originalGroupIsStandard();
+                group.replaceChildren(new Option(preserve ? 'Keep existing research group' : 'No research group', ''));
+                if (preserve) group.add(new Option('Keep existing: ' + old, old));
+                else if (old && !changed) group.add(new Option(old, old));
+                group.value = [...group.options].some(o => o.value === selected) ? selected : '';
+                const p = selectedProgram();
+                if (!p || !catalog.academicYears.includes(ay.value) || (p.level !== 'graduate' && !years(program.value).includes(year.value))) return;
+                group.setAttribute('aria-busy', 'true');
+                try {
+                    const params = new URLSearchParams({action: 'group_options', academicUnitKey: p.unit || '',
+                        programKey: program.value, yearLevel: p.level === 'graduate' ? '' : year.value, academicYear: ay.value});
+                    const data = await PrismUI.request('students_api.php?' + params);
+                    if (request !== groupRequest) return;
+                    group.replaceChildren(new Option(preserve ? 'Keep existing research group' : (data.groups.length ? 'No research group' : 'No existing groups in this cohort'), ''));
+                    if (preserve) group.add(new Option('Keep existing: ' + old, old));
+                    data.groups.forEach(id => group.add(new Option(id, id)));
+                    group.add(new Option('+ Create New Group (ID assigned on save)', '__create__'));
+                    group.value = [...group.options].some(o => o.value === selected) ? selected : '';
+                    group.title = '';
+                } catch (e) {
+                    if (request === groupRequest) {
+                        group.title = 'Could not load groups. Re-select an academic field to retry.';
+                        PrismUI.toast(group.title, 'error');
+                    }
+                } finally {
+                    if (request === groupRequest) group.removeAttribute('aria-busy');
+                }
+            }
             function refresh() {
                 const validate = !original || changed;
                 const entry = selectedProgram();
@@ -65,9 +113,14 @@
                 legacy.hidden = !original;
                 legacy.textContent = original ? 'Stored academic values: ' + [original.course, original.academicUnitKey, original.programKey, original.yearLevel, original.academicYear].filter(v => v !== null && v !== undefined && v !== '').join(' | ') + (changed ? '. Saving will validate the new selection.' : '. These values are preserved unless you change the academic controls.') : '';
                 reset.hidden = !original || !changed;
+                refreshGroups();
             }
             function setRecord(record) {
                 original = record; changed = false;
+                if (group) {
+                    const storedGroup = record?.group ?? record?.groupId ?? '';
+                    group.replaceChildren(new Option(storedGroup || 'No research group', storedGroup));
+                }
                 const existingProgram = catalog.programs[record?.programKey];
                 options(unit, [...Object.entries(catalog.units).map(([key, data]) => [key, data.label]), ['__graduate__', 'Graduate programs (catalog grouping)']], 'Choose an academic unit', existingProgram?.level === 'graduate' ? '__graduate__' : value(record?.academicUnitKey), true);
                 programOptions(value(record?.programKey), true);

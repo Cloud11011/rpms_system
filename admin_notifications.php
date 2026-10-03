@@ -55,7 +55,7 @@ $user_email = $authUser['email'];
                             <option>Submission Confirmation</option>
                         </select>
                     </label>
-                    <label id="groupLabel" hidden>Research group<input id="noticeGroup" maxlength="80"></label>
+                    <label id="groupLabel" hidden>Research group<select id="noticeGroup" disabled><option value="">Loading research groups...</option></select></label>
                     <p id="noticeRecipientPreview" class="notification-recipient-preview" role="status" aria-live="polite">Checking recipients...</p>
                     <label class="notification-message-field">Message<textarea id="noticeMessage" rows="5" maxlength="600" aria-describedby="noticeMessageCount" required></textarea><span id="noticeMessageCount" class="notification-message-count">0 / 600 characters</span></label>
                     <div class="notification-schedule-row">

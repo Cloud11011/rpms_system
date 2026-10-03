@@ -2,6 +2,7 @@
 require __DIR__ . '/config.php';
 require_once __DIR__ . '/workflow.php';
 require_once __DIR__ . '/includes/academic_catalog.php';
+require_once __DIR__ . '/includes/research_groups.php';
 $user = api_require_login(['admin', 'adviser']);
 $pdo = db();
 $action = $_GET['action'] ?? 'list';
@@ -72,6 +73,15 @@ if ($action === 'list') {
 if ($action === 'adviser_options') {
     $rows = $pdo->query('SELECT id, full_name FROM advisers WHERE status = "Active" ORDER BY full_name')->fetchAll();
     json_out(['ok' => true, 'advisers' => $rows]);
+}
+
+if ($action === 'group_options') {
+    try {
+        $academic = academic_validate($_GET);
+        json_out(['ok' => true, 'groups' => research_group_options($pdo, $user, $academic)]);
+    } catch (\InvalidArgumentException $e) {
+        json_out(['ok' => false, 'message' => $e->getMessage()], 422);
+    }
 }
 
 $data = json_body();
@@ -179,6 +189,7 @@ if ($action === 'save') {
             $finalIsPrincipal = $isPrincipal !== null ? $isPrincipal : (int)$before['is_principal_investigator'];
             try {
                 $academic = academic_validate($data, $before);
+                $group = research_group_assignment($pdo, $user, $data, $academic, $before);
             } catch (\InvalidArgumentException $e) {
                 $pdo->rollBack();
                 json_out(['ok' => false, 'message' => $e->getMessage()], 422);
@@ -227,6 +238,7 @@ if ($action === 'save') {
         } else {
             try {
                 $academic = academic_validate($data, null);
+                $group = research_group_assignment($pdo, $user, $data, $academic, null);
             } catch (\InvalidArgumentException $e) {
                 $pdo->rollBack();
                 json_out(['ok' => false, 'message' => $e->getMessage()], 422);

@@ -3,6 +3,7 @@
 require __DIR__ . '/config.php';
 require_once __DIR__ . '/workflow.php';
 require_once __DIR__ . '/includes/academic_catalog.php';
+require_once __DIR__ . '/includes/research_groups.php';
 
 $user = api_require_login(['admin', 'adviser', 'student']);
 $pdo = db();
@@ -328,6 +329,7 @@ if ($action === 'save') {
             }
             try {
                 $academic = academic_validate($data, $oldRow);
+                $groupId = research_group_assignment($pdo, $user, $data, $academic, $oldRow);
             } catch (\InvalidArgumentException $e) {
                 $pdo->rollBack();
                 json_out(['ok' => false, 'message' => $e->getMessage()], 422);
@@ -355,6 +357,10 @@ if ($action === 'save') {
         } else {
             try {
                 $academic = academic_validate($data, null);
+                $groupId = research_group_assignment($pdo, $user, $data, $academic, null);
+                if ($groupId === '') {
+                    throw new \InvalidArgumentException('Choose an existing compatible research group or Create New Group for a new IERB record.');
+                }
             } catch (\InvalidArgumentException $e) {
                 $pdo->rollBack();
                 json_out(['ok' => false, 'message' => $e->getMessage()], 422);

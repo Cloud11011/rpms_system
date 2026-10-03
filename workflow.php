@@ -246,6 +246,29 @@ function notify_rpms_admins(PDO $pdo, string $subject, string $message, string $
     }
 }
 
+/** Called only after a student's formal submission has committed. */
+function email_rpms_admins_formal_submission(PDO $pdo, string $studentName, array $doc, string $reference, string $submittedAt): void
+{
+    try {
+        $admins = $pdo->query("SELECT id, email, full_name FROM users WHERE role = 'admin' AND status = 'Active'")->fetchAll();
+        $body = "Student: $studentName\nDocument: {$doc['original_name']}\nType: {$doc['document_type']}\n"
+            . 'IERB stage: ' . $doc['stage'] . ' - ' . stage_label($doc['stage']) . "\n"
+            . "Formal-submission reference: $reference\nSubmitted: $submittedAt\n";
+        foreach ($admins as $admin) {
+            try {
+                $result = send_notification_email($admin['email'], 'PRISM - New Formal RPMS Submission', $body);
+                if (empty($result['ok'])) {
+                    log_api_error('formal_submission_admin_email', 'admin_id=' . $admin['id'] . ': ' . ($result['message'] ?? 'Email delivery failed.'));
+                }
+            } catch (Throwable $e) {
+                log_api_error('formal_submission_admin_email', 'admin_id=' . $admin['id'] . ': ' . $e->getMessage());
+            }
+        }
+    } catch (Throwable $e) {
+        log_api_error('formal_submission_admin_email', $e->getMessage());
+    }
+}
+
 // ---------------------------------------------------------------------
 // IERB history + stage advancement
 // ---------------------------------------------------------------------

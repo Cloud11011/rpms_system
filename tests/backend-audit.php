@@ -159,7 +159,7 @@ expect_same(true, $pdo->inTransaction(), 'Unchanged document keeps transaction o
 $pdo->rollBack();
 
 $endpointStart = strpos($source, "if (\$action === 'review')");
-$endpointEnd = strpos($source, "if (\$action === 'summarize')");
+$endpointEnd = strpos($source, "// Document-level summarization has been retired.");
 if ($endpointStart === false || $endpointEnd === false) throw new RuntimeException('Cannot locate document actions');
 $endpointCode = substr($source, $endpointStart, $endpointEnd - $endpointStart);
 function run_race_fixture(string $action, array $doc, ?array $latest, string $code): array

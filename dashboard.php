@@ -95,11 +95,6 @@ try {
 <span class="quick-action-copy"><strong>Generate AI Report</strong><small>Create a consolidated RPMS PDF report</small></span>
 <i class="fa-solid fa-chevron-right action-arrow"></i>
 </button>
-<button type="button" class="quick-action" onclick="openSummaryModal('uploaded document')">
-<span class="quick-action-icon summary"><i class="fa-solid fa-file-lines"></i></span>
-<span class="quick-action-copy"><strong>Summarize Document</strong><small>Open the document summary workspace</small></span>
-<i class="fa-solid fa-chevron-right action-arrow"></i>
-</button>
 <div class="recent-ai-reports" id="recentAiReports">
 <div class="recent-reports-title"><strong>Recent AI Reports</strong><i class="fa-solid fa-clock-rotate-left"></i></div>
 <ul id="recentAiReportList"></ul>
@@ -119,11 +114,12 @@ try {
 <div><span>Status center</span><strong>Notifications &amp; Confirmations</strong></div>
 <i class="fa-solid fa-envelope-circle-check"></i>
 </div>
-<div class="notification-empty" id="notificationEmptyState">
+<div class="notification-empty" id="notificationEmptyState" role="status">
 <i class="fa-regular fa-bell-slash"></i>
 <p>No status updates, email confirmations, or automated notifications to display.</p>
 </div>
 <ul class="notification-list" id="notificationList" style="display:none;"></ul>
+<a class="notification-view-all" href="admin_notifications.php">View all notifications</a>
 </div>
 </div>
 </div>
@@ -312,20 +308,6 @@ try {
 </div>
 </div>
 
-<!-- MODAL: AI DOCUMENT SUMMARY -->
-<div class="modal-overlay" id="summaryModal">
-<div class="modal-card">
-<h3><i class="fa-solid fa-wand-magic-sparkles"></i> AI Key Takeaways Summary</h3>
-<p id="summaryModalText">No document summary is available.</p>
-<div class="ai-disclaimer">
-<i class="fa-solid fa-circle-info"></i> Note: AI summaries are generated for quick administrative reference and must be verified by authorized RPMS personnel.
-</div>
-<div class="modal-actions">
-<button class="btn-secondary-sm" onclick="closeSummaryModal()">Close</button>
-</div>
-</div>
-</div>
-
 <!-- MODAL: AI PDF REPORT OPTIONS -->
 <div class="modal-overlay" id="reportModal">
 <div class="modal-card">
@@ -371,6 +353,15 @@ document.addEventListener('keydown', event => {
 
 const notificationToggle = document.getElementById('notificationToggle');
 const notificationDropdown = document.getElementById('notificationDropdown');
+function positionNotificationDropdown() {
+    notificationDropdown.style.transform = '';
+    if (!notificationDropdown.classList.contains('show')) return;
+    const bounds = notificationDropdown.getBoundingClientRect();
+    const shift = bounds.left < 16 ? 16 - bounds.left
+        : (bounds.right > window.innerWidth - 16 ? window.innerWidth - 16 - bounds.right : 0);
+    notificationDropdown.style.transform = `translateX(${shift}px)`;
+}
+window.addEventListener('resize', positionNotificationDropdown);
 function closeNotificationStatus() {
     notificationDropdown.classList.remove('show');
     notificationToggle.setAttribute('aria-expanded', 'false');
@@ -380,6 +371,7 @@ notificationToggle.addEventListener('click', event => {
     closeQuickActions();
     const isOpen = notificationDropdown.classList.toggle('show');
     notificationToggle.setAttribute('aria-expanded', String(isOpen));
+    positionNotificationDropdown();
 });
 notificationDropdown.addEventListener('click', event => event.stopPropagation());
 document.addEventListener('click', closeNotificationStatus);
@@ -521,26 +513,6 @@ courseFilter.addEventListener('change', filterAndSortProgress);
 progressSort.addEventListener('change', filterAndSortProgress);
 
 // Modal Control Handlers
-async function openSummaryModal(targetName, documentId) {
-    closeQuickActions();
-    const textEl = document.getElementById('summaryModalText');
-    document.getElementById('summaryModal').style.display = 'flex';
-    if (!documentId) {
-        textEl.innerText = 'Open a document from the Documents page and choose "Summarize" to generate an AI summary.';
-        return;
-    }
-    textEl.innerText = `Generating AI summary for ${targetName}...`;
-    try {
-        const res = await fetch(`documents_api.php?action=summarize&id=${encodeURIComponent(documentId)}`, { method: 'POST' });
-        const data = await res.json();
-        textEl.innerText = data.ok ? data.summary : (data.message || 'No AI summary is available.');
-    } catch (_) {
-        textEl.innerText = 'The AI summary could not be generated right now.';
-    }
-}
-function closeSummaryModal() {
-    document.getElementById('summaryModal').style.display = 'none';
-}
 function openReportModal() {
     closeQuickActions();
     document.getElementById('reportModal').style.display = 'flex';
@@ -894,14 +866,14 @@ dashboardDayModal.addEventListener('click', event => {
     try {
         const res = await fetch('notifications_api.php?action=list');
         const data = await res.json();
-        const items = data.ok ? data.notifications.slice(0, 8) : [];
+        const items = data.ok ? data.notifications.slice(0, 5) : [];
         if (!items.length) return;
         document.getElementById('notificationEmptyState').style.display = 'none';
         const list = document.getElementById('notificationList');
         list.style.display = 'block';
         items.forEach(n => {
             const li = document.createElement('li');
-            li.innerHTML = `<strong>${escapeMonitorHtml(n.subject || n.type)}</strong><span>${escapeMonitorHtml(n.recipient_name || n.recipient_email)} &bull; ${escapeMonitorHtml(n.status)}</span>`;
+            li.innerHTML = `<strong>${escapeMonitorHtml(n.subject || n.type)}</strong><span>${escapeMonitorHtml(n.recipient_name || n.recipient_email)} &bull; ${escapeMonitorHtml(n.status)}</span><time>${escapeMonitorHtml(n.created_at ? new Date(String(n.created_at).replace(' ', 'T')).toLocaleString('en-PH') : '')}</time>`;
             list.appendChild(li);
         });
     } catch (_) { /* leave the default empty state */ }

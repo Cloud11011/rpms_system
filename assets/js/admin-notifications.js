@@ -54,7 +54,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const payload = { audience: audience.value, group: groupInput.value.trim() };
         recipientPreview.classList.remove('is-error');
         if (payload.audience === 'Specific Research Group' && !payload.group) {
-            recipientPreview.textContent = 'Enter a research group to preview its recipients.';
+            recipientPreview.textContent = 'Choose a research group to preview its recipients.';
             recipientPreview.setAttribute('aria-busy', 'false');
             return;
         }
@@ -80,7 +80,18 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     audience.addEventListener('change', () => refreshRecipientPreview());
-    groupInput.addEventListener('input', () => refreshRecipientPreview(220));
+    groupInput.addEventListener('change', () => refreshRecipientPreview());
+    (async function loadGroups() {
+        try {
+            const data = await PrismUI.request('notifications_api.php?action=group_options');
+            groupInput.replaceChildren(new Option(data.groups.length ? 'Choose a research group' : 'No standardized research groups available', ''));
+            data.groups.forEach(id => groupInput.add(new Option(id, id)));
+            groupInput.disabled = !data.groups.length;
+        } catch (_) {
+            groupInput.replaceChildren(new Option('Research groups could not be loaded. Reload to retry.', ''));
+            groupInput.disabled = true;
+        }
+    })();
     message.addEventListener('input', syncMessageCount);
     form.addEventListener('reset', () => {
         // Native reset applies field defaults after the reset event has finished.

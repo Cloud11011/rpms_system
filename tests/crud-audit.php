@@ -91,6 +91,10 @@ if (($argv[1] ?? '') === '--case') {
         $payload += ['academicUnitKey' => 'amt', 'programKey' => 'bsit', 'yearLevel' => '2nd Year', 'academicYear' => '2026-2027'];
     }
     $payload = array_replace($payload, $case['academicInput'] ?? []);
+    if ($case['file'] === 'ierb_api.php' && !empty($case['create']) && empty($case['omitGroup'])
+        && !array_key_exists('group', $payload) && !array_key_exists('groupId', $payload)) {
+        $payload['groupId'] = '__create__';
+    }
     if (!empty($case['reason'])) $payload['reason'] = 'Verified correction for fixture review.';
     $_GET = ['action' => $case['action'] ?? 'save'];
     $audit = $errors = $notifications = [];
@@ -117,6 +121,8 @@ if (($argv[1] ?? '') === '--case') {
     if ($configIncludes !== 1 || $workflowIncludes !== ($case['file'] === 'advisers_api.php' ? 0 : 1)) throw new RuntimeException('Unexpected bootstrap.');
     $source = str_replace("require_once __DIR__ . '/includes/academic_catalog.php';", '', $source, $academicIncludes);
     if ($academicIncludes !== ($case['file'] === 'advisers_api.php' ? 0 : 1)) throw new RuntimeException('Unexpected academic include.');
+    $source = str_replace("require_once __DIR__ . '/includes/research_groups.php';", '', $source);
+    require_once __DIR__ . '/../includes/research_groups.php';
     if (preg_match('/\b(?:require|include)(?:_once)?\b/', $source)) throw new RuntimeException('Unexpected endpoint include.');
     require_once __DIR__ . '/../includes/academic_catalog.php'; // Pure catalog, exact path only.
     eval('namespace ' . __NAMESPACE__ . '; use \PDO; use \PDOException; use \Throwable; use \RuntimeException; use \DateTime; ' . preg_replace('/^<\?php\s*/', '', $source));

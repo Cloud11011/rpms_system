@@ -16,7 +16,7 @@ const { once } = require('node:events');
 
 const root = path.resolve(__dirname, '..');
 const pages = ['admin_notifications.php', 'admin_ai.php', 'ierbprog.php', 'account.php'];
-const extraPages = ['dashboard.php', 'research_adviser.php', 'role_portal.php', 'admin_people.php'];
+const extraPages = ['dashboard.php', 'research_adviser.php', 'role_portal.php', 'admin_people.php', 'documents.php', 'reports.php'];
 const php = process.env.PRISM_TEST_PHP || (process.platform === 'win32' ? 'C:\\xampp\\php\\php.exe' : 'php');
 const browser = process.env.PRISM_TEST_BROWSER || [
   'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe',
@@ -37,6 +37,7 @@ const securityHeaders = Object.fromEntries(JSON.parse(policy.stdout).map(line =>
   return [line.slice(0, separator), line.slice(separator + 1).trim()];
 }));
 let managementFixture = 'student';
+let compactBellFixture = false;
 let managementFailure = '';
 let academicRecord = null;
 let academicSaveError = false;
@@ -130,6 +131,8 @@ function mockApi(file, action) {
     return {ok:true,message:'Document uploaded.',documents:populated?[{id:'fixture-doc',originalName:attack+'LongFileName'.repeat(15)+'.pdf',student:'Fixture Student',studentId:1,documentType:'Research Protocol',stage:'Stage 1',stageLabel:labels['Stage 1'],uploadedAt:'2026-09-24',workflowState:state,reviewStatus:state==='Needs Revision'?'Resubmission Requested':state==='Pending Adviser Review'?'Submitted':'Approved',reviewRemarks:attack,versionNo:1,isCurrent:true,actions:{submit:state==='Ready for Formal RPMS Submission'}}]:[]};
   }
   if(file==='ierb_api.php' && role==='student') return action==='history'?{ok:true,history:[{stage:'Stage 1',status:'On Track',note:attack,actor:attack,created_at:'2026-09-24'}]}:{ok:true,records:populated?[{id:1,name:attack,research:attack,groupId:'Fixture Group',stage:'Stage 1',status:'On Track',progress:20,requirements:attack}]:[]};
+  if (action === 'group_options' && ['students_api.php','notifications_api.php'].includes(file)) return {ok:true,groups:populated ? ['AMT-BSIT-Y2-2627-G01','AMT-BSIT-Y2-2627-G02'] : []};
+  if (compactBellFixture && file === 'notifications_api.php' && action === 'list') return {ok:true,notifications:Array.from({length:9},(_,i)=>({subject:'Notice '+i+' '+('Long title '.repeat(20)),recipient_name:'Student '+i,status:'Sent',created_at:'2026-10-03 09:00:00',message:'LONG BODY MUST NOT APPEAR'}))};
   if (file === 'notifications_api.php' && action === 'recipients_preview') return {ok:true, recipients:populated ? [{id:1,name:attack,email:'fixture@example.test'}, {id:2,name:'Second recipient',email:'second@example.test'}] : []};
   if (file === 'notifications_api.php') return { ok: true, notifications: populated ? [{ id: 1, subject: attack, type: 'Reminder', recipient_name: attack, recipient_email: 'fixture@example.test', status: 'Sent', created_at: '2026-09-24 08:00:00', message: attack, delivery_info: 'Fixture only' }] : [], total: 1, scheduled: false, sent: 1 };
   if (file === 'advisers_api.php') return {ok:true,advisers:populated?[{id:1,name:attack,employeeId:'A-1',email:'fixture@example.test',status:'Active'}]:[]};
@@ -234,7 +237,7 @@ async function navigate(file, width, dark, data = 'empty', viewer = 'admin') {
   if(file==='role_portal.php') studentSubmitted=false;
   await command('Emulation.setDeviceMetricsOverride', { width, height: 1000, deviceScaleFactor: 1, mobile: false });
   await command('Page.navigate', { url: `${origin}/${file}?fixture=${Date.now()}` });
-  const ready = { 'admin_notifications.php': '#noticeHistory > *', 'admin_ai.php': '#aiHistory > *', 'ierbprog.php': '#stageChart > *', 'account.php': '#activityList > *', 'dashboard.php':'#ierbMonitorBody > *', 'research_adviser.php':'#adviserQueue > *', 'role_portal.php':'#studentDashboardState', 'admin_people.php':'#recordRows > *' }[file];
+  const ready = { 'admin_notifications.php': '#noticeHistory > *', 'admin_ai.php': '#aiHistory > *', 'ierbprog.php': '#stageChart > *', 'account.php': '#activityList > *', 'dashboard.php':'#ierbMonitorBody > *', 'research_adviser.php':'#adviserQueue > *', 'role_portal.php':'#studentDashboardState', 'admin_people.php':'#recordRows > *', 'documents.php':'#documentsTableBody > *', 'reports.php':'#reportTableBody > *' }[file];
   await waitFor(`document.readyState === 'complete' && !!document.querySelector(${JSON.stringify(ready)})`);
   if (file === 'role_portal.php') await waitFor('document.getElementById("studentDashboardState").getAttribute("aria-busy")==="false"');
   if (file === 'research_adviser.php') await waitFor('document.getElementById("adviserQueue").getAttribute("aria-busy")==="false"');
@@ -332,9 +335,12 @@ async function checkListRequestRaces(file, endpoint) {
             for (const [id,value] of Object.entries({entryAcademicUnit:'amt',entryCourse:'bsit',entryYearLevel:'2nd Year',entryAcademicYear:'2026-2027'})) {
               const control=document.getElementById(id); control.value=value; control.dispatchEvent(new Event('change'));
             }
-            document.getElementById('ierbEntryForm').requestSubmit();
           }
         }, notification);
+        if (!notification) {
+          await waitFor('[...document.getElementById("entryGroupId").options].some(o=>o.value==="__create__")');
+          await evaluate("document.getElementById('entryGroupId').value='__create__'; document.getElementById('ierbEntryForm').requestSubmit()");
+        }
         await waitFor('window.__listRace.length === 2');
         const pendingState = await snapshot();
         check(pendingState.busy === 'true' && (notification || pendingState.chartBusy === 'true'), name + ': latest request stays busy');
@@ -444,6 +450,76 @@ async function checkDashboard() {
   check(await evaluate(`!!document.querySelector('#recentAiReportList a[rel*="noopener"]')`), 'Dashboard PDF history is a secure keyboard link');
 }
 
+async function checkTonightPolish() {
+  compactBellFixture = true;
+  for (const width of [375,1280]) {
+    for (const dark of [false,true]) {
+      await navigate('dashboard.php',width,dark,'populated');
+      await waitFor('document.querySelectorAll("#notificationList li").length === 5');
+      await evaluate('document.getElementById("notificationToggle").click()');
+      check(await evaluateFunction(()=>{
+        const menu=document.getElementById('notificationDropdown'), list=document.getElementById('notificationList');
+        const box=menu.getBoundingClientRect();
+        return menu.classList.contains('show') && box.left>=0 && box.right<=innerWidth
+          && list.scrollWidth<=list.clientWidth+1 && getComputedStyle(list).overflowY==='auto'
+          && list.querySelectorAll('time').length===5 && !list.textContent.includes('LONG BODY')
+          && getComputedStyle(list.querySelector('strong')).textOverflow==='ellipsis'
+          && document.querySelector('.notification-view-all').getAttribute('href')==='admin_notifications.php'
+          && !document.getElementById('summaryModal') && !document.body.textContent.includes('Summarize Document');
+      }), `Compact bell ${width}px ${dark?'dark':'light'}: five separated, truncated notices and View all`, JSON.stringify(await evaluateFunction(()=>{
+        const menu=document.getElementById('notificationDropdown'), list=document.getElementById('notificationList');
+        return {box:menu.getBoundingClientRect().toJSON(),viewport:innerWidth,scroll:list.scrollWidth,client:list.clientWidth,overflow:getComputedStyle(list).overflowY,ellipsis:getComputedStyle(list.querySelector('strong')).textOverflow};
+      })));
+    }
+  }
+  compactBellFixture = false;
+  await navigate('admin_notifications.php',375,true,'empty');
+  await waitFor('!document.getElementById("noticeGroup").textContent.includes("Loading")');
+  check(await evaluate('document.getElementById("noticeGroup").tagName==="SELECT" && document.getElementById("noticeGroup").disabled && document.getElementById("noticeGroup").textContent.includes("No standardized")'), 'Empty group selector has no free-text fallback');
+  academicRecord = {id:1,studentId:'S1',name:'Fixture Student',email:'fixture@example.test',group:'Legacy group',course:'Legacy course',stage:'Stage 1',status:'On Track'};
+  await navigate('admin_people.php',1280,false,'populated');
+  await evaluate('document.querySelector("#recordRows button[title=Edit]").click()');
+  check(await evaluate('document.getElementById("group").tagName==="SELECT" && document.getElementById("group").value==="Legacy group"'), 'Legacy group is preserved in a selector');
+  await evaluateFunction(()=>{
+    for(const [id,value] of Object.entries({academicUnit:'amt',course:'bsit',yearLevel:'2nd Year',academicYear:'2026-2027'})) {
+      const el=document.getElementById(id); el.value=value; el.dispatchEvent(new Event('change'));
+    }
+  });
+  await waitFor('[...document.getElementById("group").options].some(o=>o.value==="__create__")');
+  check(await evaluate('document.getElementById("group").value==="Legacy group" && [...document.getElementById("group").options].some(o=>o.value==="AMT-BSIT-Y2-2627-G01")'), 'Cohort options and no-text create preserve legacy selection');
+  check(await evaluate('!document.getElementById("group").required'), 'Student Management group remains optional');
+  academicRecord = {...academicRecord,group:'',groupId:''};
+  await navigate('ierbprog.php',1280,false,'populated');
+  await evaluate(`document.querySelector('#ierbTableBody button[title="Edit entry"]').click()`);
+  check(await evaluate('!document.getElementById("entryGroupId").required && document.getElementById("entryGroupId").checkValidity()'), 'Legacy IERB records may retain an empty group');
+  await evaluate('document.getElementById("cancelIerbEntry").click(); document.getElementById("addIerbEntry").click()');
+  check(await evaluate('document.getElementById("entryGroupId").required && document.getElementById("entryGroupId").validity.valueMissing'), 'New IERB records require a group after switching from edit to create');
+  await evaluateFunction(()=>{
+    for(const [id,value] of Object.entries({entryStudentName:'New Student',entryStudentId:'NEW-1',entryEmail:'new@example.test',entryResearchTitle:'Research',entryAcademicUnit:'amt',entryCourse:'bsit',entryYearLevel:'2nd Year',entryAcademicYear:'2026-2027'})) {
+      const el=document.getElementById(id); el.value=value; el.dispatchEvent(new Event('change'));
+    }
+  });
+  await waitFor('[...document.getElementById("entryGroupId").options].some(o=>o.value==="__create__")');
+  const savesBefore = requests.filter(r=>r.file==='ierb_api.php' && r.action==='save').length;
+  await evaluate('document.getElementById("ierbEntryForm").requestSubmit()');
+  check(requests.filter(r=>r.file==='ierb_api.php' && r.action==='save').length===savesBefore, 'Blank group blocks new IERB submission in the browser');
+  for (const selection of ['AMT-BSIT-Y2-2627-G01','__create__']) {
+    check(await evaluateFunction(selection=>{
+      document.getElementById('entryGroupId').value=selection;
+      return document.getElementById('ierbEntryForm').checkValidity();
+    }, selection), 'Existing compatible group or Create New Group satisfies IERB requiredness');
+  }
+  academicRecord = null;
+  for (const file of ['documents.php','reports.php']) {
+    await navigate(file,1280,false,'populated');
+    check(await evaluate('!document.querySelector("[data-summary],#summaryModal,#openDocumentReport,#documentModal")'), file + ': document-summary controls removed without runtime failure');
+  }
+  const reportCalls = requests.filter(r=>r.file==='reports_api.php' && r.action==='ai_report').length;
+  await evaluate('document.getElementById("generateSummarizedReport").click()');
+  await waitFor('!document.getElementById("generateSummarizedReport").disabled');
+  check(requests.filter(r=>r.file==='reports_api.php' && r.action==='ai_report').length===reportCalls+1, 'Reports aggregate summary still generates after document-summary removal');
+}
+
 async function checkNotificationComposer() {
   for (const dark of [false, true]) {
     for (const width of [375,768,1024,1280,1600]) {
@@ -469,10 +545,10 @@ async function checkNotificationComposer() {
   check(await evaluate('document.getElementById("noticeMessageCount").textContent.startsWith("2 / 600")'), 'Notification counter counts Unicode codepoints');
   await evaluateFunction(() => {
     document.getElementById('noticeAudience').value='Specific Research Group'; document.getElementById('noticeAudience').dispatchEvent(new Event('change'));
-    document.getElementById('noticeGroup').value='  Fixture Group  '; document.getElementById('noticeGroup').dispatchEvent(new Event('input'));
+    document.getElementById('noticeGroup').value='AMT-BSIT-Y2-2627-G01'; document.getElementById('noticeGroup').dispatchEvent(new Event('change'));
   });
   await waitFor('document.getElementById("noticeRecipientPreview").textContent.includes("2 matching")');
-  checkPayload('notifications_api.php','recipients_preview',{audience:'Specific Research Group',group:'Fixture Group'},'Recipient preview uses existing POST contract');
+  checkPayload('notifications_api.php','recipients_preview',{audience:'Specific Research Group',group:'AMT-BSIT-Y2-2627-G01'},'Recipient preview uses existing POST contract');
   await evaluate('document.getElementById("cancelNotification").click()');
   await waitFor('document.getElementById("noticeMessageCount").textContent.startsWith("0 / 600")');
   check(await evaluate('document.getElementById("noticeMessage").value==="" && document.getElementById("groupLabel").hidden && document.getElementById("scheduleLabel").hidden'), 'Composer cancel resets fields and conditional controls');
@@ -495,7 +571,7 @@ async function checkNotificationComposer() {
     await waitFor('window.__previewRace.length===1');
     await evaluateFunction(() => {
       const a=document.getElementById('noticeAudience'); a.value='Specific Research Group'; a.dispatchEvent(new Event('change'));
-      const g=document.getElementById('noticeGroup'); g.value='New group'; g.dispatchEvent(new Event('input'));
+      const g=document.getElementById('noticeGroup'); g.value='AMT-BSIT-Y2-2627-G02'; g.dispatchEvent(new Event('change'));
       window.__previewRace[0](new Response(JSON.stringify({ok:true,recipients:Array(99).fill({})}),{headers:{'Content-Type':'application/json'}}));
       return new Promise(resolve=>requestAnimationFrame(resolve));
     });
@@ -1049,6 +1125,15 @@ async function run() {
   await command('Log.enable');
   await command('Fetch.enable', { patterns: [{ urlPattern: '*' }] });
   await command('Browser.setDownloadBehavior', { behavior: 'deny' }, true);
+  if (process.argv.includes('--polish-only')) {
+    await checkTonightPolish();
+    check(errors.length===0, 'No focused browser runtime exceptions', errors.join(' | '));
+    console.log(`${checks} focused polish UI checks; ${failures.length} failures.`);
+    for (const failure of failures) console.error('FAIL '+failure);
+    if (failures.length) process.exitCode=1;
+    return;
+  }
+
 
   for (const file of pages) {
     const response = await fetch(origin + '/' + file);
@@ -1116,14 +1201,15 @@ async function run() {
     }
   }
 
-  await navigate('admin_notifications.php', 1280, false);
+  await navigate('admin_notifications.php', 1280, false, 'populated');
+  await waitFor('document.getElementById("noticeGroup").options.length > 1');
   for (const scheduled of [false, true]) {
     apiDelay = 150;
     await evaluateFunction(scheduled => {
       const set = (id, value) => { document.getElementById(id).value = value; };
       set('noticeAudience', 'Specific Research Group');
       document.getElementById('noticeAudience').dispatchEvent(new Event('change'));
-      set('noticeGroup', '  Fixture Group  ');
+      set('noticeGroup', 'AMT-BSIT-Y2-2627-G01');
       set('noticeType', 'Reminder');
       set('noticeMessage', '  Fixture notification  ');
       document.getElementById('automatedNotice').checked = scheduled;
@@ -1136,7 +1222,7 @@ async function run() {
     await waitFor('!document.querySelector("#notificationForm button[type=submit]").disabled');
     apiDelay = 0;
     checkPayload('notifications_api.php', 'send', {
-      audience: 'Specific Research Group', group: 'Fixture Group', type: 'Reminder', message: 'Fixture notification', automated: scheduled, scheduleAt: scheduled ? '2099-01-02T09:30' : '',
+      audience: 'Specific Research Group', group: 'AMT-BSIT-Y2-2627-G01', type: 'Reminder', message: 'Fixture notification', automated: scheduled, scheduleAt: scheduled ? '2099-01-02T09:30' : '',
     }, `Notification ${scheduled ? 'schedule' : 'send'} preserves API payload`);
     check(await evaluate('document.getElementById("noticeMessage").value === "" && document.getElementById("groupLabel").hidden && document.getElementById("scheduleLabel").hidden'), 'Notification success resets conditional controls');
   }
@@ -1206,10 +1292,11 @@ async function run() {
     for (const [id,value] of Object.entries({entryAcademicUnit:'amt',entryCourse:'bsit',entryYearLevel:'2nd Year',entryAcademicYear:'2026-2027'})) {
       const control=document.getElementById(id); control.value=value; control.dispatchEvent(new Event('change'));
     }
-    document.getElementById('ierbEntryForm').requestSubmit();
   });
+  await waitFor('[...document.getElementById("entryGroupId").options].some(o=>o.value==="__create__")');
+  await evaluate("document.getElementById('entryGroupId').value='__create__'; document.getElementById('ierbEntryForm').requestSubmit()");
   await waitFor('document.getElementById("ierbEntryModal").getAttribute("aria-hidden") === "true"');
-  checkPayload('ierb_api.php', 'save', { id: null, name: 'Fixture Student', studentId: 'F-001', email: 'fixture@example.test', groupId: 'Fixture Group', stage: 'Stage 1', research: 'Fixture Research', requirements: 'Fixture Requirements', submissionDate: '2026-09-25', status: 'Pending', academicUnitKey:'amt', programKey:'bsit', course:'BS in Information Technology', yearLevel:'2nd Year', academicYear:'2026-2027' }, 'IERB entry preserves API parameter names and stage keys');
+  checkPayload('ierb_api.php', 'save', { id: null, name: 'Fixture Student', studentId: 'F-001', email: 'fixture@example.test', groupId: '__create__', stage: 'Stage 1', research: 'Fixture Research', requirements: 'Fixture Requirements', submissionDate: '2026-09-25', status: 'Pending', academicUnitKey:'amt', programKey:'bsit', course:'BS in Information Technology', yearLevel:'2nd Year', academicYear:'2026-2027' }, 'IERB entry preserves API parameter names and stage keys');
 
   await waitFor('document.querySelector(".prism-toast-wrap")?.textContent.includes("Setup pending")');
   check(await evaluateFunction(attack => {
@@ -1242,6 +1329,7 @@ async function run() {
   }
   await checkDashboard();
   await checkNotificationComposer();
+  await checkTonightPolish();
   await checkAdviserDashboard();
   await checkStudentPortal();
   await checkAcademicManagement();

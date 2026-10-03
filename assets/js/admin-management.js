@@ -213,7 +213,6 @@
             } else {
                 document.getElementById('research').value = record.research || '';
                 document.getElementById('requirements').value = record.requirements || '';
-                document.getElementById('group').value = record.group || '';
                 document.getElementById('adviser').value = record.adviserId || '';
                 document.getElementById('stage').value = record.stage || 'Stage 1';
                 document.getElementById('recordStatus').value = record.status || 'On Track';

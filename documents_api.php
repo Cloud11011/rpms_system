@@ -10,6 +10,9 @@ $action = $_GET['action'] ?? $_POST['action'] ?? 'list';
 if (in_array($action, ['upload', 'review', 'submit_to_rpms', 'override_review', 'delete', 'summarize'], true)) {
     require_post_same_origin();
 }
+if ($action === 'summarize') {
+    json_out(['ok' => false, 'message' => 'Document summarization is no longer available.'], 410);
+}
 
 // The viewing adviser's row id in `advisers` (used to scope who may review what).
 $viewerAdviserId = null;
@@ -697,6 +700,7 @@ if ($action === 'submit_to_rpms') {
         if ($user['role'] === 'student') {
             notify_rpms_admins($pdo, 'New formal RPMS submission', "$who formally submitted \"$docName\" ("
                 . $doc['document_type'] . ', ' . stage_label($doc['stage']) . "). Reference $ref.", 'RPMS Submission', $who);
+            email_rpms_admins_formal_submission($pdo, $who, $doc, $ref, $whenText);
         }
         notify_adviser_of_student($pdo, (int)$doc['student_id'], 'Document submitted to RPMS',
             "$who formally submitted \"$docName\" to RPMS. Reference $ref.", 'RPMS Submission', $user['full_name']);
@@ -852,34 +856,5 @@ if ($action === 'delete') {
 }
 
 // ---------------------------------------------------------------------
-// summarize (unchanged): predefined AI prompt only, output is a draft for human review
-// ---------------------------------------------------------------------
-if ($action === 'summarize') {
-    $text = extract_document_text($path);
-    if ($text === '') {
-        json_out(['ok' => false, 'message' => 'Text could not be extracted from this file. Scanned PDFs and legacy Word files require an OCR or AI document service.'], 422);
-    }
-    $summary = openrouter_generate(
-        'You are an assistant for a university Research Planning and Monitoring Section. Summarize this document '
-        . 'concisely and factually in under 250 words, highlighting purpose, key points, and ethics-relevant items.',
-        $text
-    ) ?? local_extractive_summary($text, 4);
-
-    // Backfill approval-date detection here too, in case it wasn't captured at upload time.
-    $approvalUpdate = '';
-    $approvalParams = [':s' => $summary, ':id' => $id];
-    if (empty($doc['detected_approval_date'])) {
-        $detection = ai_detect_approval_date($text);
-        if ($detection['date']) {
-            $approvalUpdate = ', detected_approval_date = :adate, approval_date_source = :asrc';
-            $approvalParams[':adate'] = $detection['date'];
-            $approvalParams[':asrc'] = $detection['source'];
-        }
-    }
-    $pdo->prepare("UPDATE documents SET ai_summary = :s $approvalUpdate WHERE id = :id")->execute($approvalParams);
-
-    json_out(['ok' => true, 'summary' => $summary, 'wordCount' => str_word_count($text), 'aiConfigured' => openrouter_available(),
-        'detectedApprovalDate' => $approvalParams[':adate'] ?? $doc['detected_approval_date'] ?? null]);
-}
-
+// Document-level summarization has been retired.
 json_out(['ok' => false, 'message' => 'Unknown action.'], 400);

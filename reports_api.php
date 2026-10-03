@@ -400,35 +400,14 @@ function local_full_narrative(array $students, string $scopeLabel = 'the institu
 }
 
 if ($action === 'generate') {
-    $type = trim((string)($data['type'] ?? 'Progress Report')); // Progress Report | Student Report | Document Summary
-    if (!in_array($type, ['Progress Report', 'Student Report', 'Document Summary'], true)) {
+    $type = trim((string)($data['type'] ?? 'Progress Report')); // Progress Report | Student Report
+    if (!in_array($type, ['Progress Report', 'Student Report'], true)) {
         json_out(['ok' => false, 'message' => 'Invalid report type.'], 422);
     }
     $lines = [];
     $title = 'IERB Progress Report';
 
-    if ($type === 'Document Summary') {
-        $docId = trim((string)($data['documentId'] ?? ''));
-        if ($docId === '') {
-            json_out(['ok' => false, 'message' => 'Select a repository document first.'], 422);
-        }
-        $stmt = $pdo->prepare('SELECT * FROM documents WHERE id = :id');
-        $stmt->execute([':id' => $docId]);
-        $doc = $stmt->fetch();
-        if (!$doc) {
-            json_out(['ok' => false, 'message' => 'Document not found.'], 404);
-        }
-        if (!report_adviser_may_access_student($pdo, $user, $doc['student_id'] ? (int)$doc['student_id'] : null)) {
-            json_out(['ok' => false, 'message' => 'This document belongs to a student assigned to another adviser.'], 403);
-        }
-        $docName = $doc['original_name'];
-        $summary = $doc['ai_summary'];
-        if (!$summary) {
-            json_out(['ok' => false, 'message' => 'Generate an AI summary for this document first (Documents > Summarize).'], 422);
-        }
-        $title = 'Document Summary - ' . $docName;
-        $lines = array_merge(['DOCUMENT SUMMARY', 'Document: ' . $docName, ''], wrap_lines($summary));
-    } elseif ($type === 'Student Report') {
+    if ($type === 'Student Report') {
         $studentDbId = (int)($data['studentId'] ?? 0);
         if (!report_adviser_may_access_student($pdo, $user, $studentDbId)) {
             json_out(['ok' => false, 'message' => 'This student is assigned to another adviser.'], 403);

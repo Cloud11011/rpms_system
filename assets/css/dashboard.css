@@ -494,6 +494,27 @@ html.dark-theme .theme-toggle .dark-icon {
     display: block;
 }
 
+.notification-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    max-height: min(340px, 55vh);
+    overflow-y: auto;
+}
+.notification-list li {
+    padding: 10px 0;
+    border-bottom: 1px solid var(--border-color);
+}
+.notification-list strong, .notification-list span, .notification-list time {
+    display: block;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+.notification-list strong { color: var(--text-primary); font-size: 12px; }
+.notification-list span, .notification-list time { color: var(--text-secondary); font-size: 11px; margin-top: 4px; }
+.notification-view-all { display: block; padding: 12px 0 2px; color: var(--accent-pink); font-size: 12px; }
+
 .notification-dropdown-heading {
     display: flex;
     align-items: center;
@@ -1566,4 +1587,3 @@ html.dark-theme .theme-toggle .dark-icon {
             .year-grid { grid-template-columns: repeat(2, 1fr); }
             .pipeline-steps { flex-direction: column; }
         }
-

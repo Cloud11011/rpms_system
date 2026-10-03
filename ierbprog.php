@@ -73,7 +73,6 @@ $profile_img = 'assets/images/default-avatar.svg';
                 <div><label for="entryStudentName">Student name</label><input id="entryStudentName" maxlength="120" required></div>
                 <div><label for="entryStudentId">Student ID</label><input id="entryStudentId" maxlength="40" required></div>
                 <div><label for="entryEmail">Email address</label><input id="entryEmail" type="email" maxlength="150" required></div>
-                <div><label for="entryGroupId">Research group ID</label><input id="entryGroupId" maxlength="40" required></div>
                 <fieldset class="academic-fields" id="entryAcademicFields">
                     <legend>Academic information</legend>
                     <div class="academic-fields-grid">
@@ -86,6 +85,7 @@ $profile_img = 'assets/images/default-avatar.svg';
                     <p data-academic="legacy" hidden></p>
                     <button type="button" data-academic="reset" hidden>Keep existing academic values</button>
                 </fieldset>
+                <div><label for="entryGroupId">Research group</label><select id="entryGroupId" data-research-group required><option value="">Select academic information first</option></select></div>
                 <div><label for="entryStage">Current IERB stage</label><select id="entryStage"><option value="Stage 1">Stage 1</option><option value="Stage 2">Stage 2</option><option value="Stage 3">Stage 3</option><option value="Stage 4">Stage 4</option><option value="Stage 5">Stage 5</option><option value="Completed">Completed</option></select></div>
                 <div class="ierb-entry-wide"><label for="entryResearchTitle">Research title</label><input id="entryResearchTitle" maxlength="250" required></div>
                 <div><label for="entryRequirements">Pending requirements</label><input id="entryRequirements" maxlength="180" placeholder="e.g. Missing Ethics Consent Form"></div>

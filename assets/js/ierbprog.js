@@ -224,12 +224,12 @@
         entryForm.reset();
         academicFields.setRecord(record);
         editingId = record ? record.id : null;
+        document.getElementById('entryGroupId').required = !record;
         entryTitle.textContent = record ? 'Edit IERB Entry' : 'Add IERB Entry';
         if (record) {
             document.getElementById('entryStudentName').value = record.name || '';
             document.getElementById('entryStudentId').value = record.studentId || '';
             document.getElementById('entryEmail').value = record.email || '';
-            document.getElementById('entryGroupId').value = record.groupId || '';
             document.getElementById('entryStage').value = record.stage || 'Stage 1';
             document.getElementById('entryResearchTitle').value = record.research || '';
             document.getElementById('entryRequirements').value = record.requirements || '';

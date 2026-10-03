@@ -4,7 +4,7 @@ require __DIR__ . '/config.php';
 // Already logged in? Send them straight to their landing page instead of
 // showing the form again.
 if (current_user()) {
-    header('Location: loading.php');
+    header('Location: index.php');
     exit;
 }
 

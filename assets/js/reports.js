@@ -30,10 +30,9 @@ document.addEventListener('DOMContentLoaded', () => {
     document.querySelectorAll('.report-modal').forEach(m => m.addEventListener('click', e => { if (e.target === m) closeModal(m); }));
 
     const studentModal = document.getElementById('studentModal');
-    const documentModal = document.getElementById('documentModal');
 
     document.getElementById('openStudentReport').addEventListener('click', async () => { await loadStudentOptions(); openModal(studentModal); });
-    document.getElementById('openDocumentReport').addEventListener('click', async () => { await loadDocumentOptions(); openModal(documentModal); });
+
 
     async function generateAiReport(mode, button) {
         const originalHTML = button.innerHTML;
@@ -96,28 +95,6 @@ document.addEventListener('DOMContentLoaded', () => {
             opt.value = '';
             opt.textContent = 'Could not load students';
             select.appendChild(opt);
-            PrismUI.toast(e.message, 'error');
-        }
-    }
-
-    async function loadDocumentOptions() {
-        const select = document.getElementById('reportDocument');
-        select.replaceChildren();
-        const blank = document.createElement('option');
-        blank.value = '';
-        blank.textContent = '— Select an uploaded document —';
-        select.appendChild(blank);
-        try {
-            const data = await PrismUI.request('documents_api.php?action=list');
-            (data.documents || []).forEach(d => {
-                const opt = document.createElement('option');
-                opt.value = d.id;
-                opt.textContent = `${d.originalName} (${d.student || 'Unassigned'})`;
-                select.appendChild(opt);
-            });
-            if (select.options.length === 1) blank.textContent = '— No repository documents available —';
-        } catch (e) {
-            blank.textContent = '— Could not load repository documents —';
             PrismUI.toast(e.message, 'error');
         }
     }
@@ -212,27 +189,6 @@ document.addEventListener('DOMContentLoaded', () => {
         if (report) {
             closeModal(studentModal);
             downloadReport(report.id);
-        }
-    });
-
-    document.getElementById('documentReportForm').addEventListener('submit', async event => {
-        event.preventDefault();
-        const documentId = document.getElementById('reportDocument').value;
-        const submitBtn = event.target.querySelector('[type="submit"], .generate-report-button');
-        if (!documentId) { PrismUI.toast('Select a repository document.', 'error'); return; }
-        submitBtn.disabled = true;
-        try {
-            const summarizeData = await PrismUI.request(`documents_api.php?action=summarize&id=${encodeURIComponent(documentId)}`, { method: 'POST' });
-            if (!summarizeData.summary) throw new Error('The document summary could not be generated.');
-            const report = await generateReport({ type: 'Document Summary', documentId });
-            if (report) {
-                closeModal(documentModal);
-                downloadReport(report.id);
-            }
-        } catch (e) {
-            PrismUI.toast(e.message, 'error');
-        } finally {
-            submitBtn.disabled = false;
         }
     });
 
