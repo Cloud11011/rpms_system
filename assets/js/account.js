@@ -74,22 +74,24 @@ document.addEventListener('DOMContentLoaded', () => {
         } finally { btn.disabled = false; }
     });
 
-    async function loadActivity() {
+    async function loadActivity(page = 1) {
         const requestId = ++activityRequest;
-        const qs = new URLSearchParams({ action: 'list', limit: '100' });
+        const qs = new URLSearchParams({ action: 'list', page: String(page) });
         if ($('activitySearch').value.trim()) qs.set('q', $('activitySearch').value.trim());
         if ($('activityFrom').value) qs.set('from', $('activityFrom').value);
         if ($('activityTo').value) qs.set('to', $('activityTo').value);
         if ($('activityOverride').checked) qs.set('override', '1');
         const host = $('activityList');
         const count = $('activityCount');
+        const pager = $('activityPagination');
+        pager.querySelectorAll('button').forEach(button => { button.disabled = true; });
         count.textContent = 'Loading activity...';
         host.setAttribute('aria-busy', 'true');
         try {
             const data = await PrismUI.request('audit_api.php?' + qs.toString());
             if (requestId !== activityRequest) return;
             const entries = data.entries || [];
-            count.textContent = entries.length + (entries.length === 1 ? ' entry' : ' entries');
+            PrismUI.pagination(pager, count, { ...data, total: data.total ?? entries.length }, loadActivity);
             host.replaceChildren();
             if (!entries.length) {
                 renderActivityState(host, 'fa-clock-rotate-left', 'No matching activity', 'Try different filters or check back after PRISM actions are recorded.');
@@ -164,13 +166,24 @@ document.addEventListener('DOMContentLoaded', () => {
         } catch (e) {
             if (requestId !== activityRequest) return;
             count.textContent = 'Activity unavailable';
+            pager.replaceChildren();
             renderActivityState(host, 'fa-triangle-exclamation', 'Could not load activity', e.message);
         } finally {
             if (requestId === activityRequest) host.setAttribute('aria-busy', 'false');
         }
     }
 
-    $('activityFilterForm').addEventListener('submit', e => { e.preventDefault(); loadActivity(); });
+    let filterTimer;
+    function filtersChanged() {
+        clearTimeout(filterTimer);
+        // Invalidate the previous page immediately, including during the search debounce.
+        ++activityRequest;
+        $('activityPagination').querySelectorAll('button').forEach(button => { button.disabled = true; });
+        filterTimer = setTimeout(() => loadActivity(1), 200);
+    }
+    $('activitySearch').addEventListener('input', filtersChanged);
+    ['activityFrom', 'activityTo', 'activityOverride'].forEach(id => $(id).addEventListener('change', filtersChanged));
+    $('activityFilterForm').addEventListener('submit', e => { e.preventDefault(); clearTimeout(filterTimer); loadActivity(1); });
     loadProfile();
     loadActivity();
 });

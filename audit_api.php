@@ -2,7 +2,7 @@
 /**
  * PRISM - Audit trail (read-only).
  *
- *   audit_api.php?action=list[&studentId=][&action_code=][&override=1][&from=YYYY-MM-DD][&to=YYYY-MM-DD][&q=][&limit=][&offset=]
+ *   audit_api.php?action=list[&studentId=][&action_code=][&override=1][&from=YYYY-MM-DD][&to=YYYY-MM-DD][&q=][&page=]
  *
  * Admins see everything. Advisers only see entries about their own students.
  * Students have no access.
@@ -51,12 +51,18 @@ if ($action === 'list') {
         $params[':q'] = '%' . $q . '%';
     }
 
-    $limit = max(1, min(500, (int)($_GET['limit'] ?? 100)));
-    $offset = max(0, (int)($_GET['offset'] ?? 0));
+    $limit = 10;
+    $scope = ' FROM activity_logs l LEFT JOIN students s ON s.id = l.student_id'
+        . ($where ? ' WHERE ' . implode(' AND ', $where) : '');
+    $count = $pdo->prepare('SELECT COUNT(*)' . $scope);
+    $count->execute($params);
+    $total = (int)$count->fetchColumn();
+    $pages = max(1, (int)ceil($total / $limit));
+    $page = max(1, min($pages, (int)($_GET['page'] ?? 1)));
+    $offset = ($page - 1) * $limit;
 
     $sql = 'SELECT l.*, s.full_name AS student_name, s.protocol_code
-            FROM activity_logs l LEFT JOIN students s ON s.id = l.student_id'
-        . ($where ? ' WHERE ' . implode(' AND ', $where) : '')
+            ' . $scope
         . ' ORDER BY l.created_at DESC, l.id DESC LIMIT ' . $limit . ' OFFSET ' . $offset;
     $stmt = $pdo->prepare($sql);
     $stmt->execute($params);
@@ -81,7 +87,8 @@ if ($action === 'list') {
         'override' => !empty($r['is_override']),
     ], $stmt->fetchAll());
 
-    json_out(['ok' => true, 'entries' => $entries, 'limit' => $limit, 'offset' => $offset]);
+    json_out(['ok' => true, 'entries' => $entries, 'limit' => $limit, 'offset' => $offset,
+        'page' => $page, 'pages' => $pages, 'total' => $total]);
 }
 
 json_out(['ok' => false, 'message' => 'Unknown action.'], 400);

@@ -1,5 +1,6 @@
 <?php
 require __DIR__ . '/config.php';
+require_once __DIR__ . '/includes/research_groups.php';
 $user = api_require_login('admin');
 $pdo = db();
 $action = $_GET['action'] ?? 'list';
@@ -12,7 +13,7 @@ function adviser_default_password(string $employeeId): string
     return generate_temporary_password();
 }
 
-function row_to_adviser(array $r): array
+function row_to_adviser(array $r, array $groups = []): array
 {
     return [
         'id' => (int)$r['id'],
@@ -20,7 +21,7 @@ function row_to_adviser(array $r): array
         'name' => $r['full_name'],
         'email' => $r['email'],
         'department' => $r['department'],
-        'groups' => $r['assigned_groups'],
+        'groups' => $groups,
         'status' => $r['status'],
         'createdAt' => $r['created_at'],
     ];
@@ -28,7 +29,8 @@ function row_to_adviser(array $r): array
 
 if ($action === 'list') {
     $rows = $pdo->query('SELECT * FROM advisers ORDER BY full_name ASC')->fetchAll();
-    json_out(['ok' => true, 'advisers' => array_map('row_to_adviser', $rows)]);
+    $groups = research_groups_by_adviser($pdo);
+    json_out(['ok' => true, 'advisers' => array_map(fn($r) => row_to_adviser($r, $groups[(int)$r['id']] ?? []), $rows)]);
 }
 
 $data = json_body();
@@ -39,13 +41,12 @@ if ($action === 'save') {
     $name = trim((string)($data['name'] ?? ''));
     $email = strtolower(trim((string)($data['email'] ?? '')));
     $department = trim((string)($data['department'] ?? ''));
-    $groups = trim((string)($data['groups'] ?? ''));
     $status = trim((string)($data['status'] ?? 'Active'));
 
     if ($employeeId === '' || $name === '' || !filter_var($email, FILTER_VALIDATE_EMAIL)) {
         json_out(['ok' => false, 'message' => 'Employee ID, name, and a valid email are required.'], 422);
     }
-    if (mb_strlen($employeeId) > 100 || mb_strlen($name) > 190 || mb_strlen($department) > 190 || mb_strlen($groups) > 255) {
+    if (mb_strlen($employeeId) > 100 || mb_strlen($name) > 190 || mb_strlen($department) > 190) {
         json_out(['ok' => false, 'message' => 'One or more fields are too long. Please shorten the entry and try again.'], 422);
     }
     if (!is_allowed_email_domain($email)) {
@@ -77,9 +78,9 @@ if ($action === 'save') {
             }
             $oldEmail = (string)$before['email'];
             $pdo->prepare('UPDATE advisers SET employee_id=:eid, full_name=:name, email=:email,
-                department=:dept, assigned_groups=:grp, status=:status, updated_at=NOW() WHERE id=:id')
+                department=:dept, status=:status, updated_at=NOW() WHERE id=:id')
                 ->execute([':eid' => $employeeId, ':name' => $name, ':email' => $email, ':dept' => $department,
-                    ':grp' => $groups, ':status' => $status, ':id' => $id]);
+                    ':status' => $status, ':id' => $id]);
             if ($oldEmail !== '') {
                 $pdo->prepare("UPDATE users SET username=:u, full_name=:n, email=:new, ref_id=:ref, status=:status
                     WHERE email=:old AND role='adviser'")
@@ -87,10 +88,10 @@ if ($action === 'save') {
                         ':status' => $status, ':old' => $oldEmail]);
             }
         } else {
-            $stmt = $pdo->prepare('INSERT INTO advisers (employee_id, full_name, email, department, assigned_groups, status)
-                VALUES (:eid,:name,:email,:dept,:grp,:status)');
+            $stmt = $pdo->prepare('INSERT INTO advisers (employee_id, full_name, email, department, status)
+                VALUES (:eid,:name,:email,:dept,:status)');
             $stmt->execute([':eid' => $employeeId, ':name' => $name, ':email' => $email,
-                ':dept' => $department, ':grp' => $groups, ':status' => $status]);
+                ':dept' => $department, ':status' => $status]);
             $id = (int)$pdo->lastInsertId();
 
             $userStmt = $pdo->prepare('SELECT id, role, status FROM users WHERE email = :e OR username = :u LIMIT 1');

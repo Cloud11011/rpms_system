@@ -1,6 +1,6 @@
 <?php
 require __DIR__ . '/config.php';
-$authUser = require_login(['admin', 'adviser']);
+$authUser = require_login('admin');
 $user_email = $authUser['email'];
 ?>
 <!DOCTYPE html>
@@ -36,12 +36,12 @@ $user_email = $authUser['email'];
         <section class="report-tools ai-report-tools" aria-label="AI report types">
             <button class="report-tool" id="generateSummarizedReport">
                 <span class="report-tool-icon"><i class="fa-solid fa-file-lines"></i></span>
-                <span class="report-tool-copy"><span class="report-tool-kicker">Quick overview</span><strong>Generate Summarized Report</strong><small>A concise progress overview of <?php echo $authUser['role'] === 'adviser' ? 'your assigned students' : 'all students'; ?>.</small></span>
+                <span class="report-tool-copy"><span class="report-tool-kicker">Quick overview</span><strong>Generate Summarized Report</strong><small>A concise progress overview of all students.</small></span>
                 <i class="fa-solid fa-arrow-right"></i>
             </button>
             <button class="report-tool" id="generateFullReport">
                 <span class="report-tool-icon"><i class="fa-solid fa-file-contract"></i></span>
-                <span class="report-tool-copy"><span class="report-tool-kicker">Complete analysis</span><strong>Generate Full Report</strong><small>A detailed analysis with complete progress information for <?php echo $authUser['role'] === 'adviser' ? 'your assigned students' : 'all students'; ?>.</small></span>
+                <span class="report-tool-copy"><span class="report-tool-kicker">Complete analysis</span><strong>Generate Full Report</strong><small>A detailed analysis with complete progress information for all students.</small></span>
                 <i class="fa-solid fa-arrow-right"></i>
             </button>
         </section>

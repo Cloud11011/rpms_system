@@ -10,22 +10,29 @@ if (in_array($action, ['mark_read', 'mark_all_read', 'recipients_preview', 'send
 }
 
 if ($action === 'list') {
+    $scope = ' FROM notifications n';
+    $params = [];
     if ($user['role'] === 'student') {
-        $stmt = $pdo->prepare('SELECT * FROM notifications WHERE recipient_email = :e
-            ORDER BY created_at DESC LIMIT 100');
-        $stmt->execute([':e' => $user['email']]);
-    } elseif ($user['role'] === 'admin') {
-        $stmt = $pdo->query('SELECT * FROM notifications ORDER BY created_at DESC LIMIT 200');
-    } else {
-        $stmt = $pdo->prepare('SELECT n.* FROM notifications n
-            LEFT JOIN students s ON n.recipient_type = "student" AND n.recipient_id = s.id
+        $scope .= ' WHERE n.recipient_email = :e';
+        $params[':e'] = $user['email'];
+    } elseif ($user['role'] === 'adviser') {
+        $scope .= ' LEFT JOIN students s ON n.recipient_type = "student" AND n.recipient_id = s.id
             LEFT JOIN advisers a ON a.id = s.adviser_id
             WHERE (n.recipient_email = :self)
-               OR (n.recipient_type = "student" AND a.email = :self)
-            ORDER BY n.created_at DESC LIMIT 200');
-        $stmt->execute([':self' => $user['email']]);
+               OR (n.recipient_type = "student" AND a.email = :self)';
+        $params[':self'] = $user['email'];
     }
-    json_out(['ok' => true, 'notifications' => $stmt->fetchAll()]);
+    $count = $pdo->prepare('SELECT COUNT(*)' . $scope);
+    $count->execute($params);
+    $total = (int)$count->fetchColumn();
+    $limit = 10;
+    $pages = max(1, (int)ceil($total / $limit));
+    $page = max(1, min($pages, (int)($_GET['page'] ?? 1)));
+    $offset = ($page - 1) * $limit;
+    $stmt = $pdo->prepare('SELECT n.*' . $scope . ' ORDER BY n.created_at DESC, n.id DESC LIMIT ' . $limit . ' OFFSET ' . $offset);
+    $stmt->execute($params);
+    json_out(['ok' => true, 'notifications' => $stmt->fetchAll(), 'total' => $total,
+        'page' => $page, 'pages' => $pages, 'limit' => $limit, 'offset' => $offset]);
 }
 
 if ($action === 'mark_read') {

@@ -15,6 +15,8 @@ document.addEventListener('DOMContentLoaded', () => {
     let myDocuments = [];
     let myHistory = [];
     let myNotifications = [];
+    let notificationHistory = { records: [], error: false, total: 0, page: 1 };
+    let notificationSequence = 0;
     let loadErrors = { progress: false, history: false, documents: false, notifications: false };
     let refreshSequence = 0;
     const navigationMedia = window.matchMedia('(max-width: 1120px)');
@@ -106,9 +108,11 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    async function loadNotifications() {
+    async function loadNotifications(page = 1) {
         try {
-            return { records: await readList('notifications_api.php?action=list', 'notifications'), error: false };
+            const data = await PrismUI.request(`notifications_api.php?action=list&page=${page}`);
+            if (!Array.isArray(data.notifications)) throw new Error('Notifications unavailable');
+            return { records: data.notifications, error: false, total: data.total ?? data.notifications.length, page: data.page ?? 1 };
         } catch (_) {
             return { records: [], error: true };
         }
@@ -239,8 +243,25 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function renderNotifications() {
-        $('notificationList').innerHTML = loadErrors.notifications ? empty('Unable to load notifications. Please try again.') : myNotifications.map(n => noticeItem(n)).join('') || empty('You have no notifications.');
-        $('markAllRead').disabled = loadErrors.notifications || !myNotifications.some(n => !n.read_at);
+        $('notificationList').innerHTML = notificationHistory.error ? empty('Unable to load notifications. Please try again.') : notificationHistory.records.map(n => noticeItem(n)).join('') || empty('You have no notifications.');
+        $('markAllRead').disabled = notificationHistory.error || !notificationHistory.records.some(n => !n.read_at);
+        if (notificationHistory.error) {
+            $('studentNotificationCount').textContent = 'Notifications unavailable';
+            $('studentNotificationPagination').replaceChildren();
+        } else {
+            PrismUI.pagination($('studentNotificationPagination'), $('studentNotificationCount'), notificationHistory, changeNotificationPage, 'notifications');
+        }
+    }
+
+    async function changeNotificationPage(page) {
+        const sequence = ++notificationSequence;
+        $('studentNotificationPagination').querySelectorAll('button').forEach(button => { button.disabled = true; });
+        $('notificationList').setAttribute('aria-busy', 'true');
+        const data = await loadNotifications(page);
+        if (sequence !== notificationSequence) return;
+        notificationHistory = data;
+        renderNotifications();
+        $('notificationList').setAttribute('aria-busy', 'false');
     }
 
     async function fillProfile() {
@@ -256,6 +277,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     async function refreshAll() {
         const sequence = ++refreshSequence;
+        ++notificationSequence;
         $('studentDashboardState').setAttribute('aria-busy', 'true');
         $('studentDashboardState').textContent = 'Loading your workspace...';
         const [progress, documents, notifications] = await Promise.all([loadProgress(), loadDocuments(), loadNotifications()]);
@@ -264,6 +286,8 @@ document.addEventListener('DOMContentLoaded', () => {
         myHistory = progress.history;
         myDocuments = documents.records;
         myNotifications = notifications.records;
+        notificationHistory = notifications;
+        $('notificationList').setAttribute('aria-busy', 'false');
         loadErrors = { progress: progress.error, history: progress.historyError, documents: documents.error, notifications: notifications.error };
         render();
         const unavailable = Object.entries(loadErrors).filter(([, failed]) => failed).map(([area]) => area === 'history' ? 'progress history' : area);

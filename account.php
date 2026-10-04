@@ -57,6 +57,7 @@ $isAdmin = $authUser['role'] === 'admin';
 <div class="activity-submit-field"><span class="activity-control-label">Apply filters</span><button class="management-primary" type="submit"><i class="fa-solid fa-filter"></i> Apply</button></div>
 </form>
 <div id="activityList" class="activity-list"></div>
+<nav id="activityPagination" class="prism-pagination" aria-label="Activity log pages"></nav>
 </section>
 <?php require __DIR__ . '/includes/ceu_footer.php'; ?>
 </main></div>

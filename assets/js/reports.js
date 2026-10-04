@@ -14,7 +14,6 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     const esc = v => String(v ?? '').replace(/[&<>'"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' })[c]);
-    const isAdmin = document.body.dataset.userRole === 'admin';
     function downloadReport(id) {
         const link = document.createElement('a');
         link.href = `reports_api.php?action=file&download=1&id=${encodeURIComponent(id)}`;
@@ -141,27 +140,25 @@ document.addEventListener('DOMContentLoaded', () => {
             download.href = `reports_api.php?action=file&download=1&id=${encodeURIComponent(r.id)}`;
             download.innerHTML = '<i class="fa-solid fa-download"></i>';
             actions.append(view, download);
-            if (isAdmin) {
-                const del = document.createElement('button');
-                del.className = 'icon-btn';
-                del.title = 'Delete';
-                del.innerHTML = '<i class="fa-solid fa-trash"></i>';
-                del.addEventListener('click', async () => {
-                    const answer = await PrismUI.confirm({
-                        title:'Delete report', icon:'fa-trash', tone:'danger', confirmText:'Delete',
-                        message:`Delete “${r.title}”? This removes the generated PDF from PRISM.`
-                    });
-                    if (!answer) return;
-                    try {
-                        const data = await PrismUI.postJson('reports_api.php?action=delete', { id: r.id });
-                        PrismUI.toast(data.message || 'Report deleted.', 'success');
-                        await loadReports();
-                    } catch (e) {
-                        PrismUI.toast(e.message, 'error');
-                    }
+            const del = document.createElement('button');
+            del.className = 'icon-btn';
+            del.title = 'Delete';
+            del.innerHTML = '<i class="fa-solid fa-trash"></i>';
+            del.addEventListener('click', async () => {
+                const answer = await PrismUI.confirm({
+                    title:'Delete report', icon:'fa-trash', tone:'danger', confirmText:'Delete',
+                    message:`Delete “${r.title}”? This removes the generated PDF from PRISM.`
                 });
-                actions.append(del);
-            }
+                if (!answer) return;
+                try {
+                    const data = await PrismUI.postJson('reports_api.php?action=delete', { id: r.id });
+                    PrismUI.toast(data.message || 'Report deleted.', 'success');
+                    await loadReports();
+                } catch (e) {
+                    PrismUI.toast(e.message, 'error');
+                }
+            });
+            actions.append(del);
             body.appendChild(tr);
         });
     }

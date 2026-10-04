@@ -60,6 +60,25 @@ function research_group_options(PDO $pdo, array $user, ?array $academic = null):
     return $groups;
 }
 
+/** Current standardized groups keyed by adviser ID; legacy adviser free text is never consulted. */
+function research_groups_by_adviser(PDO $pdo): array
+{
+    $rows = $pdo->query('SELECT DISTINCT adviser_id, research_group, academic_unit_key, program_key, year_level, academic_year
+        FROM students WHERE adviser_id IS NOT NULL')->fetchAll();
+    $groups = [];
+    foreach ($rows as $row) {
+        if (research_group_is_standard($row)) {
+            $groups[(int)$row['adviser_id']][] = $row['research_group'];
+        }
+    }
+    foreach ($groups as &$assigned) {
+        $assigned = array_values(array_unique($assigned));
+        sort($assigned, SORT_NATURAL);
+    }
+    unset($assigned);
+    return $groups;
+}
+
 function research_group_assignment(PDO $pdo, array $user, array $data, array $academic, ?array $existing = null): string
 {
     $selection = $data['group'] ?? $data['groupId'] ?? ($existing['research_group'] ?? '');

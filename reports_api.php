@@ -1,35 +1,17 @@
 <?php
 require __DIR__ . '/config.php';
-$user = api_require_login(['admin', 'adviser']);
-
-/** Advisers may only build reports about their own students' documents/records; admins about anyone's. */
-function report_adviser_may_access_student(PDO $pdo, array $user, ?int $studentDbId): bool
-{
-    if ($user['role'] === 'admin') {
-        return true;
-    }
-    if (!$studentDbId) {
-        return false;
-    }
-    $q = db()->prepare('SELECT 1 FROM students s JOIN advisers a ON a.id = s.adviser_id WHERE s.id = :id AND a.email = :e');
-    $q->execute([':id' => $studentDbId, ':e' => $user['email']]);
-    return (bool)$q->fetchColumn();
-}
+$user = api_require_login('admin');
 $pdo = db();
 $action = $_GET['action'] ?? 'list';
 if (in_array($action, ['ai_report', 'generate', 'delete'], true)) {
     require_post_same_origin();
 }
 
-/** Returns only students this user is allowed to include in aggregate reports. */
-function report_students_for_user(PDO $pdo, array $user, string $stage = ''): array
+/** Institution-wide report records, optionally filtered by stage. The endpoint is admin-only. */
+function report_students(PDO $pdo, string $stage = ''): array
 {
     $where = [];
     $params = [];
-    if ($user['role'] === 'adviser') {
-        $where[] = 'a.email = :adv';
-        $params[':adv'] = $user['email'];
-    }
     if ($stage !== '') {
         $where[] = 's.stage = :stage';
         $params[':stage'] = $stage;
@@ -238,13 +220,7 @@ function make_pdf($title, $lines)
 }
 
 if ($action === 'list') {
-    if ($user['role'] === 'admin') {
-        $rows = $pdo->query('SELECT * FROM reports ORDER BY generated_at DESC')->fetchAll();
-    } else {
-        $stmt = $pdo->prepare('SELECT * FROM reports WHERE generated_by_user_id = :uid ORDER BY generated_at DESC');
-        $stmt->execute([':uid' => $user['id']]);
-        $rows = $stmt->fetchAll();
-    }
+    $rows = $pdo->query('SELECT * FROM reports ORDER BY generated_at DESC')->fetchAll();
     json_out(['ok' => true, 'reports' => $rows]);
 }
 
@@ -278,14 +254,12 @@ if ($action === 'ai_report') {
         json_out(['ok' => false, 'message' => 'Invalid report mode.'], 422);
     }
 
-    $students = report_students_for_user($pdo, $user);
+    $students = report_students($pdo);
     if (!$students) {
         json_out(['ok' => false, 'message' => 'There are no student records yet to report on.'], 422);
     }
 
-    $scopeText = $user['role'] === 'adviser'
-        ? "Scope: only students assigned to the signed-in research adviser. Do not describe this as an institution-wide report.\n"
-        : "Scope: all student records visible to RPMS administration.\n";
+    $scopeText = "Scope: all student records visible to RPMS administration.\n";
     $structured = $scopeText . build_structured_progress_text($students);
     $prompt = $mode === 'full' ? AI_FULL_PROMPT : AI_SUMMARY_PROMPT;
     $narrative = openrouter_generate($prompt, $structured);
@@ -296,11 +270,11 @@ if ($action === 'ai_report') {
     $aiUsed = $narrative !== null;
     if (!$aiUsed) {
         $narrative = $mode === 'full'
-            ? local_full_narrative($students, $user['role'] === 'adviser' ? 'your assigned students' : 'the institution')
+            ? local_full_narrative($students)
             : local_summary_narrative($students);
     }
 
-    $scopeTitle = $user['role'] === 'adviser' ? 'Assigned Students' : 'All Students';
+    $scopeTitle = 'All Students';
     $title = $mode === 'full' ? "AI Full Progress Report - $scopeTitle" : "AI Summarized Progress Report - $scopeTitle";
     $lines = [
         $aiUsed ? 'Narrative source: AI-assisted; verify against the factual tables.' : 'Narrative source: Local fallback (AI unavailable).',
@@ -409,9 +383,6 @@ if ($action === 'generate') {
 
     if ($type === 'Student Report') {
         $studentDbId = (int)($data['studentId'] ?? 0);
-        if (!report_adviser_may_access_student($pdo, $user, $studentDbId)) {
-            json_out(['ok' => false, 'message' => 'This student is assigned to another adviser.'], 403);
-        }
         $stmt = $pdo->prepare('SELECT s.*, f.full_name AS adviser_name FROM students s
             LEFT JOIN advisers f ON f.id = s.adviser_id WHERE s.id = :id');
         $stmt->execute([':id' => $studentDbId]);
@@ -441,9 +412,9 @@ if ($action === 'generate') {
         if ($stage !== '' && !in_array($stage, STAGE_SEQUENCE, true)) {
             json_out(['ok' => false, 'message' => 'Invalid IERB stage for this report.'], 422);
         }
-        $students = report_students_for_user($pdo, $user, $stage);
+        $students = report_students($pdo, $stage);
 
-        $scopeTitle = $user['role'] === 'adviser' ? 'Assigned Students' : 'All Students';
+        $scopeTitle = 'All Students';
         $title = $stage !== '' ? "IERB Progress Report - $stage" : "IERB Progress Report - $scopeTitle";
         $lines[] = 'REPORT OVERVIEW';
         $lines[] = 'Students included: ' . count($students);
@@ -479,9 +450,6 @@ $found = $stmt->fetch();
 if (!$found) {
     json_out(['ok' => false, 'message' => 'Report not found.'], 404);
 }
-if ($user['role'] === 'adviser' && (int)($found['generated_by_user_id'] ?? 0) !== (int)$user['id']) {
-    json_out(['ok' => false, 'message' => 'You are not authorized to access this report.'], 403);
-}
 $path = REPORTS_DIR . DIRECTORY_SEPARATOR . basename($found['filename']);
 
 if ($action === 'file') {
@@ -500,7 +468,6 @@ if ($action === 'file') {
 }
 
 if ($action === 'delete') {
-    api_require_login('admin');
     if (is_file($path)) {
         @unlink($path);
     }

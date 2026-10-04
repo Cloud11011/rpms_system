@@ -577,6 +577,48 @@
     });
   }
 
+  // Compact controls shared by server-paginated history views.
+  function pagination(host, count, data, onPage, noun = 'entries') {
+    const total = Math.max(0, Number(data.total) || 0);
+    const limit = 10;
+    const pages = Math.max(1, Math.ceil(total / limit));
+    const page = Math.max(1, Math.min(pages, Number(data.page) || 1));
+    const first = total ? (page - 1) * limit + 1 : 0;
+    count.textContent = `Showing ${first}\u2013${Math.min(page * limit, total)} of ${total} ${noun}`;
+    const restoreFocus = host.contains(document.activeElement);
+    host.replaceChildren();
+    const button = (label, target, disabled = false) => {
+      const el = document.createElement('button');
+      el.type = 'button';
+      el.textContent = label;
+      el.disabled = disabled;
+      if (typeof label === 'number') {
+        el.setAttribute('aria-label', `Page ${target}`);
+        if (target === page) el.setAttribute('aria-current', 'page');
+      }
+      el.addEventListener('click', () => { if (target !== page) onPage(target); });
+      host.append(el);
+    };
+    button('Previous', page - 1, page === 1);
+    const visible = new Set([1, pages]);
+    const start = Math.max(1, Math.min(page - 1, pages - 3));
+    const end = Math.min(pages, Math.max(page + 1, 4));
+    for (let n = start; n <= end; n++) visible.add(n);
+    let previous = 0;
+    [...visible].sort((a, b) => a - b).forEach(n => {
+      if (n - previous > 1) {
+        const gap = document.createElement('span');
+        gap.textContent = '\u2026';
+        gap.setAttribute('aria-hidden', 'true');
+        host.append(gap);
+      }
+      button(n, n);
+      previous = n;
+    });
+    button('Next', page + 1, page === pages);
+    if (restoreFocus) host.querySelector('[aria-current="page"]')?.focus();
+  }
+
   // ------------------------------------------------------------------ init
   function init() {
     document.querySelectorAll('[data-prism-tip]').forEach(function (n) {
@@ -593,7 +635,7 @@
 
   const api = {
     badge: badge, badgeElement: badgeElement, docMini: docMini, emptyState: emptyState, tip: tip, toast: toast,
-    confirm: confirmDialog, request: request, postJson: postJson, esc: esc,
+    confirm: confirmDialog, request: request, postJson: postJson, esc: esc, pagination: pagination,
     submitToRpms: submitToRpms, overrideStudent: overrideStudent, overrideDocument: overrideDocument, showVersions: showVersions,
     enhanceTable: enhanceTable, tableFilter: tableFilter, hint: hint,
     mountStudentWorkflow: mountStudentWorkflow, mountNeedsAttention: mountNeedsAttention, init: init,

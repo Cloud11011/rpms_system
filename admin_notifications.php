@@ -69,6 +69,7 @@ $user_email = $authUser['email'];
             <section class="management-card notification-history-card">
                 <div class="management-card-head"><div><h2>Notification History</h2><p id="noticeCount">0 notifications</p></div></div>
                 <div id="noticeHistory" class="admin-history"></div>
+                <nav id="noticePagination" class="prism-pagination" aria-label="Notification history pages"></nav>
             </section>
         </div>
     <?php require __DIR__ . '/includes/ceu_footer.php'; ?>

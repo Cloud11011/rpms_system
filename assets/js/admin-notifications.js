@@ -152,15 +152,17 @@ document.addEventListener('DOMContentLoaded', () => {
     automated.addEventListener('change', syncScheduleUi);
 
     let historyRequestSequence = 0;
-    async function loadHistory() {
+    async function loadHistory(page = 1) {
         const requestSequence = ++historyRequestSequence;
         historyCount.textContent = 'Loading notifications...';
         historyList.setAttribute('aria-busy', 'true');
+        const pager = document.getElementById('noticePagination');
+        pager.querySelectorAll('button').forEach(button => { button.disabled = true; });
         try {
-            const data = await PrismUI.request('notifications_api.php?action=list');
+            const data = await PrismUI.request(`notifications_api.php?action=list&page=${page}`);
             if (requestSequence !== historyRequestSequence) return;
             const items = data.notifications || [];
-            historyCount.textContent = `${items.length} notification${items.length === 1 ? '' : 's'}`;
+            PrismUI.pagination(pager, historyCount, { ...data, total: data.total ?? items.length }, loadHistory, 'notifications');
             historyList.replaceChildren();
             if (!items.length) {
                 showHistoryState('fa-bell', 'No notifications yet', 'Sent and scheduled notifications will appear here with their recipients and delivery status.');
@@ -204,6 +206,7 @@ document.addEventListener('DOMContentLoaded', () => {
         } catch (e) {
             if (requestSequence !== historyRequestSequence) return;
             historyCount.textContent = 'History unavailable';
+            pager.replaceChildren();
             showHistoryState('fa-triangle-exclamation', 'Could not load notification history', e.message);
         } finally {
             if (requestSequence === historyRequestSequence) historyList.setAttribute('aria-busy', 'false');

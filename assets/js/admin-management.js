@@ -160,7 +160,7 @@
                     <td><strong>${escapeHtml(record.name)}</strong><br><small>${escapeHtml(record.email)}</small></td>
                     <td>${escapeHtml(record.employeeId)}</td>
                     <td>${escapeHtml(record.department || 'N/A')}</td>
-                    <td>${escapeHtml(record.groups || 'None')}</td>
+                    <td class="adviser-groups"></td>
                     <td>${PrismUI.badge(record.status)}</td>
                     <td class="row-actions"></td>`;
             } else {
@@ -177,7 +177,17 @@
                     <td>${protocolBadge}${piBadge}</td>
                     <td class="row-actions"></td>`;
             }
-            if (!isAdviser) PrismAcademicFields.appendSummary(tr.cells[2], record);
+            if (isAdviser) {
+                const groups = Array.isArray(record.groups) ? record.groups : [];
+                const cell = tr.querySelector('.adviser-groups');
+                if (!groups.length) cell.textContent = 'No assigned research groups';
+                groups.forEach(group => {
+                    const chip = document.createElement('span');
+                    chip.className = 'prism-badge adviser-group-chip';
+                    chip.textContent = group;
+                    cell.append(chip);
+                });
+            } else PrismAcademicFields.appendSummary(tr.cells[2], record);
             const actions = tr.querySelector('.row-actions');
             const editBtn = document.createElement('button');
             editBtn.className = 'icon-btn';
@@ -208,7 +218,6 @@
             emailField.value = record.email || '';
             if (isAdviser) {
                 document.getElementById('department').value = record.department || '';
-                document.getElementById('groups').value = record.groups || '';
                 document.getElementById('accountStatus').value = record.status || 'Active';
             } else {
                 document.getElementById('research').value = record.research || '';
@@ -273,7 +282,6 @@
         if (isAdviser) {
             payload.employeeId = accountIdField.value.trim();
             payload.department = document.getElementById('department').value.trim();
-            payload.groups = document.getElementById('groups').value.trim();
             payload.status = document.getElementById('accountStatus').value;
         } else {
             payload.studentId = accountIdField.value.trim();
