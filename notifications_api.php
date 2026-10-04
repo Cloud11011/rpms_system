@@ -1,5 +1,6 @@
 <?php
 require __DIR__ . '/config.php';
+require_once __DIR__ . '/includes/notification_delivery.php';
 require_once __DIR__ . '/includes/research_groups.php';
 $user = api_require_login(['admin', 'adviser', 'student']);
 $pdo = db();
@@ -101,38 +102,13 @@ if ($action === 'send') {
     $loggedCount = 0;
 
     foreach ($recipients as $recipient) {
-        $status = $isScheduled ? 'Scheduled' : 'Sent';
-        $delivery = null;
-        $sentAt = null;
-
-        if (!$isScheduled) {
-            $body = "Hello {$recipient['name']},\n\n{$message}\n\n"
-                . "This is an automated notification from the CEU Malolos Research Planning and Monitoring Section (RPMS) via PRISM.\n";
-            $result = send_notification_email($recipient['email'], $subject, $body);
-            $delivery = $result['message'];
-            $sentAt = date('Y-m-d H:i:s');
-            if ($result['ok']) {
-                if (($result['channel'] ?? '') === 'log') {
-                    $status = 'Logged';
-                    $loggedCount++;
-                } else {
-                    $sentCount++;
-                }
-            } else {
-                $status = 'Failed';
-            }
-        }
-
-        $pdo->prepare('INSERT INTO notifications (recipient_type, recipient_id, recipient_email, recipient_name,
-            subject, message, type, status, delivery_info, scheduled_at, sent_at, created_by)
-            VALUES (:rt,:rid,:re,:rn,:subj,:msg,:type,:status,:delivery,:sched,:sent,:by)')
-            ->execute([
-                ':rt' => $recipient['type'], ':rid' => $recipient['id'], ':re' => $recipient['email'],
-                ':rn' => $recipient['name'], ':subj' => $subject, ':msg' => $message, ':type' => $type,
-                ':status' => $status, ':delivery' => $delivery,
-                ':sched' => $isScheduled ? date('Y-m-d H:i:s', strtotime($scheduleAt)) : null,
-                ':sent' => $sentAt, ':by' => $user['full_name'],
-            ]);
+        $body = "Hello {$recipient['name']},\n\n{$message}\n\n"
+            . "This is an automated notification from the CEU Malolos Research Planning and Monitoring Section (RPMS) via PRISM.\n";
+        $result = create_notification($pdo, $recipient['type'], (int)$recipient['id'],
+            (string)($recipient['email'] ?? ''), (string)$recipient['name'], $subject, $message, $type,
+            $user['full_name'], $body, $isScheduled ? date('Y-m-d H:i:s', strtotime($scheduleAt)) : null);
+        if ($result['status'] === 'Sent') $sentCount++;
+        if ($result['status'] === 'Logged') $loggedCount++;
     }
 
     log_activity($user['email'], 'notification_sent', "audience=$audience type=$type recipients=" . count($recipients));

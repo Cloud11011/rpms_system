@@ -23,6 +23,7 @@
 if (!function_exists('db')) {
     require __DIR__ . '/config.php';
 }
+require_once __DIR__ . '/includes/notification_delivery.php';
 
 // ---------------------------------------------------------------------
 // Tunables. Override any of these in config.local.php (loaded by config.php
@@ -181,26 +182,23 @@ function student_with_adviser(PDO $pdo, int $studentDbId): ?array
 }
 
 // ---------------------------------------------------------------------
-// Notifications (in-app rows in `notifications`, plus email for students)
+// Notifications (in-app rows plus best-effort email for every recipient)
 // ---------------------------------------------------------------------
 
+/** Legacy entry point: every in-app notification also attempts email delivery. */
 function notify_in_app(PDO $pdo, string $recipientType, ?int $recipientId, string $email, string $name,
-                       string $subject, string $message, string $type, string $createdBy): void
+                       string $subject, string $message, string $type, string $createdBy,
+                       ?string $emailBody = null, ?string $emailSubject = null): void
 {
     try {
-        $pdo->prepare('INSERT INTO notifications (recipient_type, recipient_id, recipient_email, recipient_name,
-                subject, message, type, status, delivery_info, sent_at, created_by)
-            VALUES (:rt,:rid,:email,:name,:subject,:msg,:type,"Sent","In-app notification",NOW(),:by)')
-            ->execute([
-                ':rt' => $recipientType, ':rid' => $recipientId, ':email' => $email, ':name' => $name,
-                ':subject' => $subject, ':msg' => $message, ':type' => $type, ':by' => $createdBy,
-            ]);
+        create_notification($pdo, $recipientType, $recipientId, $email, $name,
+            $subject, $message, $type, $createdBy, $emailBody, null, $emailSubject);
     } catch (Throwable $e) {
         log_api_error('notify_in_app', $e->getMessage());
     }
 }
 
-/** Emails the student and records the notification (Sent / Failed), like the original review flow did. */
+/** Keep the student's email body distinct from the shorter in-app message. */
 function notify_student(PDO $pdo, int $studentDbId, string $subject, string $emailBody, string $inAppMessage,
                         string $type, string $createdBy): void
 {
@@ -210,19 +208,8 @@ function notify_student(PDO $pdo, int $studentDbId, string $subject, string $ema
     if (!$student) {
         return;
     }
-    try {
-        $result = send_notification_email($student['email'], $subject, $emailBody);
-        $pdo->prepare('INSERT INTO notifications (recipient_type, recipient_id, recipient_email, recipient_name,
-                subject, message, type, status, delivery_info, sent_at, created_by)
-            VALUES ("student",:sid,:email,:name,:subject,:msg,:type,:status,:info,NOW(),:by)')
-            ->execute([
-                ':sid' => $studentDbId, ':email' => $student['email'], ':name' => $student['full_name'],
-                ':subject' => $subject, ':msg' => $inAppMessage, ':type' => $type,
-                ':status' => $result['ok'] ? (($result['channel'] ?? '') === 'log' ? 'Logged' : 'Sent') : 'Failed', ':info' => $result['message'], ':by' => $createdBy,
-            ]);
-    } catch (Throwable $e) {
-        log_api_error('notify_student', $e->getMessage());
-    }
+    notify_in_app($pdo, 'student', $studentDbId, (string)($student['email'] ?? ''), (string)$student['full_name'],
+        $subject, $inAppMessage, $type, $createdBy, $emailBody);
 }
 
 function notify_adviser_of_student(PDO $pdo, int $studentDbId, string $subject, string $message, string $type, string $createdBy): void
@@ -234,7 +221,8 @@ function notify_adviser_of_student(PDO $pdo, int $studentDbId, string $subject, 
     }
 }
 
-function notify_rpms_admins(PDO $pdo, string $subject, string $message, string $type, string $createdBy): void
+function notify_rpms_admins(PDO $pdo, string $subject, string $message, string $type, string $createdBy,
+                            ?string $emailBody = null, ?string $emailSubject = null): void
 {
     try {
         $admins = $pdo->query("SELECT id, email, full_name FROM users WHERE role = 'admin' AND status = 'Active'")->fetchAll();
@@ -242,30 +230,8 @@ function notify_rpms_admins(PDO $pdo, string $subject, string $message, string $
         return;
     }
     foreach ($admins as $a) {
-        notify_in_app($pdo, 'admin', (int)$a['id'], $a['email'], $a['full_name'], $subject, $message, $type, $createdBy);
-    }
-}
-
-/** Called only after a student's formal submission has committed. */
-function email_rpms_admins_formal_submission(PDO $pdo, string $studentName, array $doc, string $reference, string $submittedAt): void
-{
-    try {
-        $admins = $pdo->query("SELECT id, email, full_name FROM users WHERE role = 'admin' AND status = 'Active'")->fetchAll();
-        $body = "Student: $studentName\nDocument: {$doc['original_name']}\nType: {$doc['document_type']}\n"
-            . 'IERB stage: ' . $doc['stage'] . ' - ' . stage_label($doc['stage']) . "\n"
-            . "Formal-submission reference: $reference\nSubmitted: $submittedAt\n";
-        foreach ($admins as $admin) {
-            try {
-                $result = send_notification_email($admin['email'], 'PRISM - New Formal RPMS Submission', $body);
-                if (empty($result['ok'])) {
-                    log_api_error('formal_submission_admin_email', 'admin_id=' . $admin['id'] . ': ' . ($result['message'] ?? 'Email delivery failed.'));
-                }
-            } catch (Throwable $e) {
-                log_api_error('formal_submission_admin_email', 'admin_id=' . $admin['id'] . ': ' . $e->getMessage());
-            }
-        }
-    } catch (Throwable $e) {
-        log_api_error('formal_submission_admin_email', $e->getMessage());
+        notify_in_app($pdo, 'admin', (int)$a['id'], (string)($a['email'] ?? ''), (string)$a['full_name'],
+            $subject, $message, $type, $createdBy, $emailBody, $emailSubject);
     }
 }
 

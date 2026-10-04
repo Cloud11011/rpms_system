@@ -11,6 +11,7 @@ if (PHP_SAPI !== 'cli') {
 }
 
 require dirname(__DIR__) . '/config.php';
+require_once dirname(__DIR__) . '/includes/notification_delivery.php';
 
 $pdo = db();
 $processed = 0;
@@ -49,17 +50,8 @@ foreach ($ids as $id) {
         . $row['message'] . "\n\n"
         . "This is an automated notification from the CEU Malolos Research Planning and Monitoring Section (RPMS) via PRISM.\n";
 
-    $result = send_notification_email((string)$row['recipient_email'], (string)$row['subject'], $body);
-    $status = $result['ok'] ? (($result['channel'] ?? '') === 'log' ? 'Logged' : 'Sent') : 'Failed';
-    $upd = $pdo->prepare('UPDATE notifications
-        SET status = :status, delivery_info = :info, sent_at = :sent
-        WHERE id = :id AND status = "Sending"');
-    $upd->execute([
-        ':status' => $status,
-        ':info' => $result['message'] ?? '',
-        ':sent' => $result['ok'] ? date('Y-m-d H:i:s') : null,
-        ':id' => $id,
-    ]);
+    $result = deliver_notification_email($pdo, $id, (string)$row['recipient_email'],
+        (string)$row['subject'], $body, true);
 
     $processed++;
     if ($result['ok'] && ($result['channel'] ?? '') !== 'log') {

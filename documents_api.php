@@ -698,9 +698,12 @@ if ($action === 'submit_to_rpms') {
             'RPMS Submission', $user['full_name']);
         $who = $doc['student_name'] ?: 'A student';
         if ($user['role'] === 'student') {
+            $adminBody = "Student: $who\nDocument: $docName\nType: {$doc['document_type']}\n"
+                . 'IERB stage: ' . $doc['stage'] . ' - ' . stage_label($doc['stage']) . "\n"
+                . "Formal-submission reference: $ref\nSubmitted: $whenText\n";
             notify_rpms_admins($pdo, 'New formal RPMS submission', "$who formally submitted \"$docName\" ("
-                . $doc['document_type'] . ', ' . stage_label($doc['stage']) . "). Reference $ref.", 'RPMS Submission', $who);
-            email_rpms_admins_formal_submission($pdo, $who, $doc, $ref, $whenText);
+                . $doc['document_type'] . ', ' . stage_label($doc['stage']) . "). Reference $ref.", 'RPMS Submission', $who,
+                $adminBody, 'PRISM - New Formal RPMS Submission');
         }
         notify_adviser_of_student($pdo, (int)$doc['student_id'], 'Document submitted to RPMS',
             "$who formally submitted \"$docName\" to RPMS. Reference $ref.", 'RPMS Submission', $user['full_name']);
