@@ -98,6 +98,7 @@ function fixtureTemplate(file) {
   }
   assert(!/\b(?:require|include)(?:_once)?\s*(?:\(|["'$])/i.test(isolated), `${file}: unexpected include in fixture`);
   const stub = `<?php
+    require_once ${JSON.stringify(path.join(root, 'includes/assets.php'))};
     $managementType = '${managementFixture}';
     const STAGE_SEQUENCE = ['Stage 1','Stage 2','Stage 3','Stage 4','Stage 5','Completed'];
     $_SESSION = ['account_type' => '${role}', 'user_role' => '${role === 'admin' ? 'RPMS Administrator' : 'Research Adviser'}'];
@@ -159,7 +160,7 @@ async function serve(req, res) {
     const url = new URL(req.url, origin);
     const file = url.pathname.slice(1);
     if (pages.includes(file) || extraPages.includes(file)) {
-      res.writeHead(200, { ...securityHeaders, 'Content-Type': 'text/html; charset=utf-8', 'Cache-Control': 'no-store' });
+      res.writeHead(200, { ...securityHeaders, 'Content-Type': 'text/html; charset=utf-8' });
       res.end(fixtureTemplate(file));
     } else if (/^(notifications|reports|stage_labels|ierb|audit|profile|documents|students|advisers)_api\.php$/.test(file) || file === 'send_followup.php') {
       let body = '';

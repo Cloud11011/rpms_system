@@ -17,11 +17,11 @@ if ($authUser['role'] === 'student') {
 <script>try{if(localStorage.getItem('prismTheme')==='dark')document.documentElement.classList.add('dark-theme')}catch(_){}</script>
 <link rel="icon" type="image/png" href="assets/images/prismicon.png">
 <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="assets/css/dashboard.css"><link rel="stylesheet" href="assets/css/documents.css">
-<link rel="stylesheet" href="assets/css/prism-ui.css">
+<link rel="stylesheet" href="<?php echo htmlspecialchars(asset_url('assets/css/dashboard.css'), ENT_QUOTES, 'UTF-8'); ?>"><link rel="stylesheet" href="<?php echo htmlspecialchars(asset_url('assets/css/documents.css'), ENT_QUOTES, 'UTF-8'); ?>">
+<link rel="stylesheet" href="<?php echo htmlspecialchars(asset_url('assets/css/prism-ui.css'), ENT_QUOTES, 'UTF-8'); ?>">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.6.0/css/all.min.css">
-<link rel="stylesheet" href="assets/css/dashboard-sidebar.css">
-<script src="assets/js/dashboard-sidebar.js" defer></script>
+<link rel="stylesheet" href="<?php echo htmlspecialchars(asset_url('assets/css/dashboard-sidebar.css'), ENT_QUOTES, 'UTF-8'); ?>">
+<script src="<?php echo htmlspecialchars(asset_url('assets/js/dashboard-sidebar.js'), ENT_QUOTES, 'UTF-8'); ?>" defer></script>
 </head><body data-document-user="<?php echo htmlspecialchars(hash('sha256',$user_email),ENT_QUOTES,'UTF-8'); ?>" data-role="<?php echo htmlspecialchars($currentRole, ENT_QUOTES, 'UTF-8'); ?>">
 <div class="container"><aside class="sidebar prism-sidebar">
 <?php $prismCurrentPage = 'documents.php'; require __DIR__ . '/includes/prism-navigation.php'; ?>
@@ -37,5 +37,5 @@ if ($authUser['role'] === 'student') {
 </main></div>
 <div class="document-modal" id="uploadModal" aria-hidden="true"><div class="document-modal-dialog"><div class="document-modal-heading"><div><span>Repository upload</span><h2>Upload Document</h2></div><button data-close="uploadModal" aria-label="Close"><i class="fa-solid fa-xmark"></i></button></div><form id="uploadForm" enctype="multipart/form-data"><div class="file-drop"><input id="documentFile" name="document" type="file" accept=".pdf,.doc,.docx,.txt,.rtf,.odt,.png,.jpg,.jpeg" required><i class="fa-solid fa-cloud-arrow-up"></i><strong>Choose a research document</strong><span>PDF, Word, text, RTF, ODT, PNG, or JPG up to 20 MB</span></div><div class="document-form-grid"><div><label for="documentStudent">Student</label><select id="documentStudent" name="studentDbId" required><option value="">Select a student</option></select></div><div><label for="documentType">Document type</label><div class="document-type-control"><select id="documentType" name="documentType" required></select><button type="button" id="manageDocumentTypes" title="Manage document types" aria-label="Manage document types"><i class="fa-solid fa-pen"></i></button></div></div><div><label for="documentStage">IERB stage</label><select id="documentStage" name="stage" required><option>Stage 1</option><option>Stage 2</option><option>Stage 3</option><option>Stage 4</option><option>Stage 5</option><option>Completed</option></select></div></div><div class="document-modal-actions"><button type="button" class="doc-secondary" data-close="uploadModal">Cancel</button><button type="submit" class="doc-primary"><i class="fa-solid fa-upload"></i> Upload</button></div></form></div></div>
 <div class="document-modal" id="documentTypesModal" aria-hidden="true"><div class="document-modal-dialog type-manager-dialog"><div class="document-modal-heading"><div><span>Repository settings</span><h2>Document Types</h2></div><button data-close="documentTypesModal" aria-label="Close"><i class="fa-solid fa-xmark"></i></button></div><form id="documentTypeForm" class="add-type-form"><label for="newDocumentType">New document type</label><div><input id="newDocumentType" maxlength="60" placeholder="e.g. Data Privacy Form" required><button type="submit" class="doc-primary"><i class="fa-solid fa-plus"></i> Add</button></div></form><ul class="document-type-list" id="documentTypeList"></ul></div></div>
-<script src="assets/js/prism-ui.js"></script>
-<script src="assets/js/documents.js"></script></body></html>
+<script src="<?php echo htmlspecialchars(asset_url('assets/js/prism-ui.js'), ENT_QUOTES, 'UTF-8'); ?>"></script>
+<script src="<?php echo htmlspecialchars(asset_url('assets/js/documents.js'), ENT_QUOTES, 'UTF-8'); ?>"></script></body></html>

@@ -3,6 +3,7 @@ namespace PrismAuthAudit;
 
 /** Isolated authentication endpoint tests; all database, session, and mail operations are fixtures. */
 if (PHP_SAPI !== 'cli') { http_response_code(404); exit; }
+require_once __DIR__ . '/../includes/assets.php';
 
 class FixtureDb
 {

@@ -16,6 +16,7 @@
  */
 
 require_once __DIR__ . '/security.php';
+require_once __DIR__ . '/includes/assets.php';
 require_once __DIR__ . '/auth_rate_limit.php';
 install_application_security();
 

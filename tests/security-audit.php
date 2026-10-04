@@ -175,6 +175,8 @@ foreach ($cases as $case) {
             if (($case['sapi'] ?? '') === 'cli') $pass = $pass && !$r['headers'] && !$r['settings'];
             else {
                 $pass = $pass && $r['settings']['display_errors'] === '0' && $r['settings']['display_startup_errors'] === '0'
+                    && in_array('Cache-Control: private, no-store, max-age=0', $r['headers'], true)
+                    && in_array('Pragma: no-cache', $r['headers'], true)
                     && in_array('X-Frame-Options: SAMEORIGIN', $r['headers'], true)
                     && in_array('Referrer-Policy: strict-origin-when-cross-origin', $r['headers'], true)
                     && in_array("Content-Security-Policy: frame-ancestors 'self'; base-uri 'self'", $r['headers'], true);

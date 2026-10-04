@@ -17,15 +17,15 @@ $identityKey = hash('sha256', $portalRole . '|' . $userId);
 <script>try{if(localStorage.getItem('prismTheme')==='dark')document.documentElement.classList.add('dark-theme')}catch(_){}</script>
 <link rel="icon" type="image/png" href="assets/images/prismicon.png">
 <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="assets/css/dashboard.css">
-<link rel="stylesheet" href="assets/css/role-portal.css">
-<link rel="stylesheet" href="assets/css/calendar.css">
-<link rel="stylesheet" href="assets/css/role-topnav.css">
-<link rel="stylesheet" href="assets/css/prism-ui.css">
-<link rel="stylesheet" href="assets/css/student-dashboard.css">
+<link rel="stylesheet" href="<?php echo htmlspecialchars(asset_url('assets/css/dashboard.css'), ENT_QUOTES, 'UTF-8'); ?>">
+<link rel="stylesheet" href="<?php echo htmlspecialchars(asset_url('assets/css/role-portal.css'), ENT_QUOTES, 'UTF-8'); ?>">
+<link rel="stylesheet" href="<?php echo htmlspecialchars(asset_url('assets/css/calendar.css'), ENT_QUOTES, 'UTF-8'); ?>">
+<link rel="stylesheet" href="<?php echo htmlspecialchars(asset_url('assets/css/role-topnav.css'), ENT_QUOTES, 'UTF-8'); ?>">
+<link rel="stylesheet" href="<?php echo htmlspecialchars(asset_url('assets/css/prism-ui.css'), ENT_QUOTES, 'UTF-8'); ?>">
+<link rel="stylesheet" href="<?php echo htmlspecialchars(asset_url('assets/css/student-dashboard.css'), ENT_QUOTES, 'UTF-8'); ?>">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.6.0/css/all.min.css">
-<link rel="stylesheet" href="assets/css/ceu-footer.css">
-<link rel="stylesheet" href="assets/css/research-resources.css">
+<link rel="stylesheet" href="<?php echo htmlspecialchars(asset_url('assets/css/ceu-footer.css'), ENT_QUOTES, 'UTF-8'); ?>">
+<link rel="stylesheet" href="<?php echo htmlspecialchars(asset_url('assets/css/research-resources.css'), ENT_QUOTES, 'UTF-8'); ?>">
 </head>
 <body class="student-dashboard-page" data-portal-key="<?php echo htmlspecialchars($identityKey, ENT_QUOTES); ?>" data-role="<?php echo htmlspecialchars($portalRole, ENT_QUOTES); ?>" data-name="<?php echo htmlspecialchars($userName, ENT_QUOTES); ?>" data-email="<?php echo htmlspecialchars($userEmail, ENT_QUOTES); ?>">
 <script>window.PRISM_STAGE_LABELS = <?php echo json_encode(stage_labels_map(), JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT); ?>;</script>
@@ -104,14 +104,14 @@ $identityKey = hash('sha256', $portalRole . '|' . $userId);
 </div>
 <div class="support-modal" id="supportModal" hidden><div class="support-modal-card" role="dialog" aria-modal="true" aria-labelledby="supportModalTitle"><div class="support-modal-head"><div><span>Help &amp; Support</span><h2 id="supportModalTitle">Contact RPMS staff</h2></div><button id="closeSupportModal" type="button" aria-label="Close help form"><i class="fa-solid fa-xmark"></i></button></div><p>Prepare a message in your email app to report a problem or ask the RPMS team a question.</p><form id="supportForm"><label>How can we help?<select id="supportType" required><option value="Ask RPMS staff">Ask RPMS staff</option><option value="Report a problem">Report a problem</option></select></label><label>Subject<input id="supportSubject" maxlength="120" required placeholder="Briefly describe your concern"></label><label>Message<textarea id="supportMessage" rows="5" maxlength="1000" required placeholder="Add the details RPMS staff will need..."></textarea></label><div class="support-modal-actions"><button id="cancelSupport" type="button">Cancel</button><button class="primary-btn" type="submit"><i class="fa-solid fa-paper-plane"></i> Open email app</button></div></form></div></div>
 <div class="toast" id="toast" role="status"></div>
-<script src="assets/js/script.js"></script>
+<script src="<?php echo htmlspecialchars(asset_url('assets/js/script.js'), ENT_QUOTES, 'UTF-8'); ?>"></script>
 <script>
 togglePassword('currentPassword', 'togglePortalCurrentPassword');
 togglePassword('newPassword', 'togglePortalNewPassword');
 togglePassword('confirmPassword', 'togglePortalConfirmPassword');
 </script>
-<script src="assets/js/prism-ui.js"></script>
-<script src="assets/js/role-portal.js"></script>
-<script src="assets/js/role-calendar.js"></script>
+<script src="<?php echo htmlspecialchars(asset_url('assets/js/prism-ui.js'), ENT_QUOTES, 'UTF-8'); ?>"></script>
+<script src="<?php echo htmlspecialchars(asset_url('assets/js/role-portal.js'), ENT_QUOTES, 'UTF-8'); ?>"></script>
+<script src="<?php echo htmlspecialchars(asset_url('assets/js/role-calendar.js'), ENT_QUOTES, 'UTF-8'); ?>"></script>
 </body>
 </html>

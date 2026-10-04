@@ -63,6 +63,9 @@ function application_security_headers(): array
 {
     // No script/style restrictions are added here: existing inline code and external assets remain usable.
     return [
+        // Bootstrap defaults; streaming/export endpoints may replace these later.
+        'Cache-Control: private, no-store, max-age=0',
+        'Pragma: no-cache',
         'X-Content-Type-Options: nosniff',
         'X-Frame-Options: SAMEORIGIN',
         'Referrer-Policy: strict-origin-when-cross-origin',
