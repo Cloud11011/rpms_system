@@ -19,6 +19,7 @@ $user_email = $authUser['email'];
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.6.0/css/all.min.css">
 <link rel="stylesheet" href="<?php echo htmlspecialchars(asset_url('assets/css/dashboard-sidebar.css'), ENT_QUOTES, 'UTF-8'); ?>">
 <script src="<?php echo htmlspecialchars(asset_url('assets/js/dashboard-sidebar.js'), ENT_QUOTES, 'UTF-8'); ?>" defer></script>
+<link rel="stylesheet" href="<?php echo htmlspecialchars(asset_url('assets/css/ceu-footer.css'), ENT_QUOTES, 'UTF-8'); ?>">
 </head>
 <body class="notification-center-page" data-admin-user="<?php echo htmlspecialchars(hash('sha256', $user_email), ENT_QUOTES); ?>" data-user-role="<?php echo htmlspecialchars($authUser['role'], ENT_QUOTES, 'UTF-8'); ?>">
 <div class="container">
@@ -70,7 +71,8 @@ $user_email = $authUser['email'];
                 <div id="noticeHistory" class="admin-history"></div>
             </section>
         </div>
-    </main>
+    <?php require __DIR__ . '/includes/ceu_footer.php'; ?>
+</main>
 </div>
 <dialog id="notificationDetail" class="notification-detail" aria-labelledby="notificationDetailTitle">
     <div class="notification-detail-heading"><span>Notification details</span><h2 id="notificationDetailTitle"></h2></div>

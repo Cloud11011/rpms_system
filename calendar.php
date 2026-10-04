@@ -28,6 +28,7 @@ $profile_img = 'assets/images/default-avatar.svg';
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.6.0/css/all.min.css">
 <link rel="stylesheet" href="<?php echo htmlspecialchars(asset_url('assets/css/dashboard-sidebar.css'), ENT_QUOTES, 'UTF-8'); ?>">
 <script src="<?php echo htmlspecialchars(asset_url('assets/js/dashboard-sidebar.js'), ENT_QUOTES, 'UTF-8'); ?>" defer></script>
+<link rel="stylesheet" href="<?php echo htmlspecialchars(asset_url('assets/css/ceu-footer.css'), ENT_QUOTES, 'UTF-8'); ?>">
 </head>
 <body data-reminder-user="<?php echo htmlspecialchars(hash('sha256', $user_email), ENT_QUOTES, 'UTF-8'); ?>">
 <div class="container">
@@ -106,7 +107,8 @@ $profile_img = 'assets/images/default-avatar.svg';
                 <div class="task-list" id="taskList"></div>
             </aside>
         </section>
-    </main>
+    <?php require __DIR__ . '/includes/ceu_footer.php'; ?>
+</main>
 </div>
 <script src="<?php echo htmlspecialchars(asset_url('assets/js/prism-ui.js'), ENT_QUOTES, 'UTF-8'); ?>"></script>
 <script src="<?php echo htmlspecialchars(asset_url('assets/js/calendar.js'), ENT_QUOTES, 'UTF-8'); ?>"></script>
