@@ -8,3 +8,4 @@ storage/reports/*
 storage/api_errors.log
 vendor/
 storage/auth_rate_limits/
+tests/
