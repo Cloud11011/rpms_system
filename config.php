@@ -17,6 +17,7 @@
 
 require_once __DIR__ . '/security.php';
 require_once __DIR__ . '/includes/assets.php';
+require_once __DIR__ . '/includes/email_format.php';
 require_once __DIR__ . '/auth_rate_limit.php';
 install_application_security();
 
@@ -162,6 +163,7 @@ function db(): PDO
         PDO::ATTR_ERRMODE            => PDO::ERRMODE_EXCEPTION,
         PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
         PDO::ATTR_EMULATE_PREPARES   => true,
+        PDO::MYSQL_ATTR_INIT_COMMAND => "SET time_zone = '+08:00'",
     ]);
 
     migrate($connection); // idempotent: safe to run on every request, keeps schema current on upgrades
@@ -764,6 +766,14 @@ function current_user(): ?array
     if (empty($_SESSION['user_id'])) {
         return null;
     }
+    // Legacy authenticated sessions start their idle clock on their first request.
+    $now = time();
+    if ($now - (int)($_SESSION['last_activity_at'] ?? $now) > 1800) {
+        $_SESSION = [];
+        $GLOBALS['prism_session_expired'] = true;
+        return null;
+    }
+    $_SESSION['last_activity_at'] = $now;
     static $cached = null;
     if ($cached !== null) {
         return $cached;
@@ -792,7 +802,7 @@ function require_login($roles = null): array
 {
     $user = current_user();
     if (!$user) {
-        header('Location: login.php');
+        header('Location: login.php' . (!empty($GLOBALS['prism_session_expired']) ? '?expired=1' : ''));
         exit;
     }
 
@@ -820,7 +830,9 @@ function api_require_login($roles = null): array
     $user = current_user();
     if (!$user) {
         http_response_code(401);
-        echo json_encode(['ok' => false, 'message' => 'You must be logged in.']);
+        echo json_encode(!empty($GLOBALS['prism_session_expired'])
+            ? ['ok' => false, 'code' => 'session_expired', 'message' => 'Your session expired due to inactivity. Please sign in again.']
+            : ['ok' => false, 'message' => 'You must be logged in.']);
         exit;
     }
     // Same rule as require_login(): an account still on its temporary password can do nothing except change it.
@@ -1178,14 +1190,15 @@ function gmail_api_send(string $to, string $subject, string $body): bool
         return false;
     }
 
+    $mime = notification_email_mime($body);
     $headers = [
         'From: ' . MAIL_FROM_NAME . ' <' . GMAIL_SENDER_EMAIL . '>',
         'To: ' . $to,
         'Subject: ' . '=?UTF-8?B?' . base64_encode($subject) . '?=',
         'MIME-Version: 1.0',
-        'Content-Type: text/plain; charset=UTF-8',
+        'Content-Type: ' . $mime['contentType'],
     ];
-    $rawMessage = implode("\r\n", $headers) . "\r\n\r\n" . $body;
+    $rawMessage = implode("\r\n", $headers) . "\r\n\r\n" . $mime['body'];
     $encoded = rtrim(strtr(base64_encode($rawMessage), '+/', '-_'), '=');
 
     $ch = curl_init('https://gmail.googleapis.com/gmail/v1/users/me/messages/send');
@@ -1230,8 +1243,9 @@ function send_notification_email(string $to, string $subject, string $body): arr
         // fall through to the local fallbacks below so the attempt is not silently lost
     }
 
-    $headers = "From: " . MAIL_FROM_NAME . " <" . (GMAIL_SENDER_EMAIL ?: 'rpms@ceu.edu.ph') . ">\r\nContent-Type: text/plain; charset=UTF-8\r\n";
-    $delivered = @mail($to, $subject, $body, $headers);
+    $mime = notification_email_mime($body);
+    $headers = "From: " . MAIL_FROM_NAME . " <" . (GMAIL_SENDER_EMAIL ?: 'rpms@ceu.edu.ph') . ">\r\nMIME-Version: 1.0\r\nContent-Type: " . $mime['contentType'] . "\r\n";
+    $delivered = @mail($to, $subject, $mime['body'], $headers);
     if ($delivered) {
         return ['ok' => true, 'message' => 'Email delivered via server mail transport.', 'channel' => 'mail'];
     }

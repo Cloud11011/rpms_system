@@ -55,6 +55,7 @@ $accountType = $user['role'];
 
 session_regenerate_id(true);
 $_SESSION['user_id'] = $user['id'];
+$_SESSION['last_activity_at'] = time();
 $_SESSION['credential_fingerprint'] = hash('sha256', $user['password_hash']);
 $_SESSION['user_name'] = $user['full_name'];
 $_SESSION['user_email'] = $user['email'];

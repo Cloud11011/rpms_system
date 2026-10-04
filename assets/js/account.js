@@ -6,6 +6,8 @@ document.addEventListener('DOMContentLoaded', () => {
         return Number.isNaN(date.getTime()) ? String(value) : date.toLocaleString('en-PH');
     };
     let activityRequest = 0;
+    const profileDirty = PrismUI.dirtyForm($('accountProfileForm'));
+    const passwordDirty = PrismUI.dirtyForm($('accountPasswordForm'));
 
     function renderActivityState(host, iconClass, titleText, descriptionText) {
         host.replaceChildren();
@@ -35,6 +37,7 @@ document.addEventListener('DOMContentLoaded', () => {
             $('accountEmail').value = u.email || '';
             $('accountRole').value = u.role || '';
             $('accountRef').value = u.refId || '';
+            profileDirty.clean();
         } catch (e) {
             PrismUI.toast(e.message, 'error');
         }
@@ -44,14 +47,16 @@ document.addEventListener('DOMContentLoaded', () => {
         e.preventDefault();
         const name = $('accountName').value.trim();
         const btn = e.currentTarget.querySelector('[type="submit"]');
-        btn.disabled = true;
+        const release = PrismUI.busy(btn,'Saving...');
+        if(!release)return;
         try {
             await PrismUI.postJson('profile_api.php?action=update_profile', { name });
             $('sideAccountName').textContent = name;
+            profileDirty.clean();
             PrismUI.toast('Profile updated.', 'success');
         } catch (err) {
             PrismUI.toast(err.message, 'error');
-        } finally { btn.disabled = false; }
+        } finally { release(); }
     });
 
     $('accountPasswordForm').addEventListener('submit', async e => {
@@ -64,16 +69,18 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
         const btn = form.querySelector('[type="submit"]');
-        btn.disabled = true;
+        const release = PrismUI.busy(btn,'Saving...');
+        if(!release)return;
         try {
             await PrismUI.postJson('profile_api.php?action=change_password', { currentPassword, newPassword });
-            form.reset();
+            form.reset(); passwordDirty.clean();
             PrismUI.toast('Password changed successfully.', 'success');
         } catch (err) {
             PrismUI.toast(err.message, 'error');
-        } finally { btn.disabled = false; }
+        } finally { release(); }
     });
 
+    PrismUI.clearFilters([$('activitySearch'),$('activityFrom'),$('activityTo'),$('activityOverride')],loadActivity);
     async function loadActivity(page = 1) {
         const requestId = ++activityRequest;
         const qs = new URLSearchParams({ action: 'list', page: String(page) });

@@ -34,8 +34,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
 
     async function generateAiReport(mode, button) {
+        if (button.disabled) return;
         const originalHTML = button.innerHTML;
         button.disabled = true;
+        button.textContent = 'Generating...';
         button.classList.add('loading');
         const note = document.getElementById('reportAiNote');
         note.textContent = '';
@@ -76,8 +78,8 @@ document.addEventListener('DOMContentLoaded', () => {
         const select = document.getElementById('reportStudent');
         select.replaceChildren();
         try {
-            const data = await PrismUI.request('ierb_api.php?action=list');
-            (data.records || []).forEach(r => {
+            const data = await PrismUI.request('students_api.php?action=options');
+            (data.students || []).forEach(r => {
                 const opt = document.createElement('option');
                 opt.value = r.id;
                 opt.textContent = `${r.name} (${r.studentId})`;
@@ -98,14 +100,19 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    let reports = [];
+    let reports = [], listSequence = 0;
+    const pager = PrismUI.recordPager(document.getElementById('reportTableBody').closest('table').parentElement, document.getElementById('reportCount'), [], loadReports);
 
     async function loadReports() {
+        const sequence = ++listSequence; pager.loading();
         try {
-            const data = await PrismUI.request('reports_api.php?action=list');
+            const data = await PrismUI.request(`reports_api.php?action=list&page=${pager.page}`);
+            if (sequence !== listSequence) return;
             reports = data.reports || [];
+            pager.render({ ...data, total: data.total ?? reports.length });
         } catch (e) {
-            reports = [];
+            if (sequence !== listSequence) return;
+            reports = []; pager.error();
             PrismUI.toast(e.message, 'error');
         }
         renderReports();
@@ -113,7 +120,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function renderReports() {
         const body = document.getElementById('reportTableBody');
-        document.getElementById('reportCount').textContent = `${reports.length} report${reports.length === 1 ? '' : 's'}`;
+
         body.replaceChildren();
         if (!reports.length) {
             const tr = document.createElement('tr');
@@ -180,9 +187,10 @@ document.addEventListener('DOMContentLoaded', () => {
         const studentId = document.getElementById('reportStudent').value;
         if (!studentId) { PrismUI.toast('Select a student.', 'error'); return; }
         const btn = event.target.querySelector('[type="submit"], .generate-report-button');
-        btn.disabled = true;
+        const release = PrismUI.busy(btn, 'Generating...');
+        if (!release) return;
         const report = await generateReport({ type: 'Student Report', studentId: Number(studentId) });
-        btn.disabled = false;
+        release();
         if (report) {
             closeModal(studentModal);
             downloadReport(report.id);
@@ -190,23 +198,7 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     document.getElementById('exportExcel').addEventListener('click', () => {
-        if (!reports.length) { PrismUI.toast('There are no report-history rows to export yet.', 'error'); return; }
-        const rows = [['Report Name', 'Date Generated', 'Type']];
-        reports.forEach(r => rows.push([r.title, r.generated_at, r.type]));
-        // Prefix any cell that starts with =, +, -, @, tab, or CR with a leading
-        // apostrophe so spreadsheet apps treat it as text, not a formula
-        // (report titles can include admin-entered student names).
-        const csvSafe = value => {
-            const str = String(value ?? '');
-            return /^[=+\-@\t\r]/.test(str) ? `'${str}` : str;
-        };
-        const csv = rows.map(row => row.map(cell => `"${csvSafe(cell).replace(/"/g, '""')}"`).join(',')).join('\r\n');
-        const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-        const link = document.createElement('a');
-        link.href = URL.createObjectURL(blob);
-        link.download = `prism-report-history-${new Date().toISOString().slice(0, 10)}.csv`;
-        link.click();
-        URL.revokeObjectURL(link.href);
+        window.location.href = 'reports_api.php?action=export_csv';
     });
 
     loadReports();

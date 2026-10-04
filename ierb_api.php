@@ -1,6 +1,7 @@
 <?php
 
 require __DIR__ . '/config.php';
+require_once __DIR__ . '/includes/pagination.php';
 require_once __DIR__ . '/workflow.php';
 require_once __DIR__ . '/includes/academic_catalog.php';
 require_once __DIR__ . '/includes/research_groups.php';
@@ -120,9 +121,28 @@ function describe_progress_change(array $old, string $newStage, string $newStatu
 // list (search + filters: ?q=&stage=&status=)
 // ---------------------------------------------------------------------
 if ($action === 'list') {
-    $rows = apply_student_filters(load_student_rows($pdo, $user), $_GET);
-    $counts = student_document_counts($pdo);
-    json_out(['ok' => true, 'records' => array_map(fn($r) => ierb_row($r, $counts), $rows)]);
+    [$scope, $params] = prism_student_scope($user);
+    $summary = $pdo->prepare('SELECT s.stage, s.status, COUNT(*) AS c ' . $scope . ' GROUP BY s.stage, s.status');
+    $summary->execute($params);
+    $overview = $summary->fetchAll();
+    $courses = $pdo->prepare('SELECT DISTINCT s.course ' . $scope . ' ORDER BY s.course');
+    $courses->execute($params);
+    $courseOptions = $courses->fetchAll(PDO::FETCH_COLUMN);
+    $q = trim((string)($_GET['q'] ?? ''));
+    if ($q !== '') $scope .= ' AND ' . prism_search_clause(['s.protocol_code', 's.student_id', 's.full_name', 's.email', 's.research_title', 's.research_group', 's.course', 'f.full_name'], $q, $params);
+    foreach (['stage', 'status', 'course'] as $field) {
+        if (trim((string)($_GET[$field] ?? '')) !== '') {
+            $scope .= " AND s.$field = :$field"; $params[":$field"] = trim((string)$_GET[$field]);
+        }
+    }
+    // Stage sequence has Completed last, rather than alphabetically first.
+    $stageOrder = "CASE s.stage WHEN 'Stage 1' THEN 0 WHEN 'Stage 2' THEN 1 WHEN 'Stage 3' THEN 2 WHEN 'Stage 4' THEN 3 WHEN 'Stage 5' THEN 4 WHEN 'Completed' THEN 5 ELSE 0 END";
+    $sort = $_GET['sort'] ?? '';
+    $order = in_array($sort, ['high-to-low', 'low-to-high'], true) ? $stageOrder . ($sort === 'high-to-low' ? ' DESC' : ' ASC') . ', s.full_name ASC, s.id ASC' : 's.full_name ASC, s.id ASC';
+    $page = prism_page_query($pdo, 'SELECT s.*, f.full_name AS adviser_name', $scope, $params, $order, $_GET);
+    $rows = $page['rows']; unset($page['rows']);
+    $counts = student_document_counts($pdo, array_column($rows, 'id'));
+    json_out(['ok' => true, 'records' => array_map(fn($r) => ierb_row($r, $counts), $rows), 'overview' => $overview, 'courses' => $courseOptions] + $page);
 }
 
 if ($action === 'history') {
@@ -137,20 +157,19 @@ if ($action === 'history') {
     } elseif (!adviser_may_access_student($pdo, $user, $studentId)) {
         json_out(['ok' => false, 'message' => 'This student is assigned to another adviser.'], 403);
     }
-    $stmt = $pdo->prepare('SELECT * FROM ierb_history WHERE student_id = :id ORDER BY created_at DESC, id DESC');
-    $stmt->execute([':id' => $studentId]);
-    json_out(['ok' => true, 'history' => $stmt->fetchAll()]);
+    $page = prism_page_query($pdo, 'SELECT *', 'FROM ierb_history WHERE student_id = :id', [':id' => $studentId], 'created_at DESC, id DESC', $_GET);
+    $rows = $page['rows']; unset($page['rows']);
+    json_out(['ok' => true, 'history' => $rows] + $page);
 }
 
 if ($action === 'stage_distribution') {
-    $distribution = [];
-    foreach (load_student_rows($pdo, $user) as $row) {
-        $stage = (string)$row['stage'];
-        $distribution[$stage] = ($distribution[$stage] ?? 0) + 1;
-    }
+    [$scope, $params] = prism_student_scope($user);
+    $stmt = $pdo->prepare('SELECT s.stage, COUNT(*) AS c ' . $scope . ' GROUP BY s.stage');
+    $stmt->execute($params);
+    $distribution = array_column($stmt->fetchAll(), 'c', 'stage');
     $rows = [];
     foreach (STAGE_SEQUENCE as $stage) {
-        $rows[] = ['stage' => $stage, 'c' => $distribution[$stage] ?? 0];
+        $rows[] = ['stage' => $stage, 'c' => (int)($distribution[$stage] ?? 0)];
     }
     json_out(['ok' => true, 'distribution' => $rows]);
 }
@@ -498,6 +517,12 @@ if ($action === 'delete') {
         if (!$gone) {
             $pdo->rollBack();
             json_out(['ok' => false, 'message' => 'Student record not found.'], 404);
+        }
+        $documents = $pdo->prepare('SELECT id FROM documents WHERE student_id = :id LIMIT 1');
+        $documents->execute([':id' => $id]);
+        if ($documents->fetch()) {
+            $pdo->rollBack();
+            json_out(['ok' => false, 'message' => 'This student cannot be deleted because document records already exist. Retain the student record to preserve submission history.'], 409);
         }
         $pdo->prepare('DELETE FROM students WHERE id = :id')->execute([':id' => $id]);
         $pdo->prepare("UPDATE users SET status='Inactive' WHERE role='student' AND email=:email")

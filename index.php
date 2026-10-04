@@ -3,7 +3,7 @@ require __DIR__ . '/config.php';
 
 $user = current_user();
 if (!$user) {
-    header('Location: login.php');
+    header('Location: login.php' . (!empty($GLOBALS['prism_session_expired']) ? '?expired=1' : ''));
     exit;
 }
 

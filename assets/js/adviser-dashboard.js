@@ -21,6 +21,9 @@ document.addEventListener('DOMContentLoaded', () => {
     let reviewDocument = null;
     let reviewOpener = null;
     let saving = false;
+    const dirty = PrismUI.dirtyForm(form);
+    const count = node('p', 'Loading records...'); queue.insertAdjacentElement('beforebegin', count);
+    const pager = PrismUI.recordPager(queue, count, [search, filter], reload);
 
     function node(tag, text, className) {
         const item = document.createElement(tag);
@@ -48,7 +51,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     function setSaving(pending) {
         saving = pending;
-        [save, cancel, reviewStatus, remarks, refresh].forEach(control => { control.disabled = pending; });
+        save.disabled = pending;
         form.setAttribute('aria-busy', String(pending));
         save.textContent = pending ? 'Saving review...' : 'Save review';
     }
@@ -60,16 +63,16 @@ document.addEventListener('DOMContentLoaded', () => {
         remarks.value = doc.reviewRemarks || '';
         reviewError.textContent = '';
         reviewRequired();
+        dirty.clean();
         dialog.showModal();
         reviewStatus.focus();
     }
     function renderQueue() {
         if (queueState !== 'ready') return;
-        const term = search.value.trim().toLocaleLowerCase();
-        const selected = documents.filter(doc => (!filter.value || doc.workflowState === filter.value)
-            && (!term || [doc.student, doc.originalName, doc.documentType, doc.stage, doc.stageLabel, doc.protocolCode].some(value => String(value || '').toLocaleLowerCase().includes(term))));
+        const selected = documents;
         if (!selected.length) {
-            state(queue, documents.length ? 'No matching submissions' : 'No current submissions', documents.length ? 'Adjust your search or workflow status filter.' : 'Documents from your assigned students will appear here when they upload them.');
+            const filtered = !!(search.value.trim() || filter.value);
+            state(queue, filtered ? 'No matching submissions' : 'No current submissions', filtered ? 'Adjust your search or workflow status filter.' : 'Documents from your assigned students will appear here when they upload them.');
             return;
         }
         queue.replaceChildren();
@@ -136,23 +139,26 @@ document.addEventListener('DOMContentLoaded', () => {
         ['adviserStudentsCount', 'adviserPendingCount', 'adviserRevisionCount', 'adviserApprovedCount'].forEach(id => { byId(id).textContent = 'Loading...'; });
         const results = await Promise.allSettled([
             PrismUI.request('students_api.php?action=list'),
-            PrismUI.request('documents_api.php?action=list'),
+            PrismUI.request('documents_api.php?' + new URLSearchParams({action:'list',page:pager.page,q:search.value.trim(),state:filter.value})),
             PrismUI.request('profile_api.php?action=me'),
-            PrismUI.request('notifications_api.php?action=list')
+            PrismUI.request('notifications_api.php?action=list&preview=5&personal=1')
         ]);
         if (sequence !== loadSequence) return;
         const [studentsResult, documentsResult, profileResult, noticesResult] = results;
         const students = studentsResult.status === 'fulfilled' && Array.isArray(studentsResult.value.students) ? studentsResult.value.students : null;
-        byId('adviserStudentsCount').textContent = students ? String(students.length) : 'Unavailable';
+        byId('adviserStudentsCount').textContent = students ? String(studentsResult.value.total ?? students.length) : 'Unavailable';
         if (documentsResult.status === 'fulfilled' && Array.isArray(documentsResult.value.documents)) {
             documents = documentsResult.value.documents;
             queueState = 'ready';
-            byId('adviserPendingCount').textContent = String(documents.filter(doc => doc.workflowState === 'Pending Adviser Review').length);
-            byId('adviserRevisionCount').textContent = String(documents.filter(doc => doc.workflowState === 'Needs Revision').length);
-            byId('adviserApprovedCount').textContent = String(documents.filter(doc => ['Ready for Formal RPMS Submission', 'Submitted to RPMS'].includes(doc.workflowState)).length);
+            const data = documentsResult.value;
+            pager.render({...data,total:data.total??documents.length});
+            const counts = data.counts || {};
+            byId('adviserPendingCount').textContent = String(counts['Pending Adviser Review'] ?? documents.filter(doc => doc.workflowState === 'Pending Adviser Review').length);
+            byId('adviserRevisionCount').textContent = String(counts['Needs Revision'] ?? documents.filter(doc => doc.workflowState === 'Needs Revision').length);
+            byId('adviserApprovedCount').textContent = String(data.counts ? (Number(counts['Ready for Formal RPMS Submission']||0)+Number(counts['Submitted to RPMS']||0)) : documents.filter(doc => ['Ready for Formal RPMS Submission', 'Submitted to RPMS'].includes(doc.workflowState)).length);
             renderQueue();
         } else {
-            queueState = 'error';
+            queueState = 'error'; pager.error();
             ['adviserPendingCount', 'adviserRevisionCount', 'adviserApprovedCount'].forEach(id => { byId(id).textContent = 'Unavailable'; });
             state(queue, 'Could not load submissions', 'Use Refresh to try again. No document counts are available.');
         }
@@ -165,13 +171,13 @@ document.addEventListener('DOMContentLoaded', () => {
         [queue, notices, profile].forEach(panel => panel.setAttribute('aria-busy', 'false'));
         if (!students || queueState === 'error' || !user || noticesResult.status === 'rejected') status.textContent = 'Some dashboard information is unavailable. Refresh to try again.';
     }
-    search.addEventListener('input', renderQueue);
-    filter.addEventListener('change', renderQueue);
+    search.addEventListener('input', () => { pager.reset(); reload(); });
+    filter.addEventListener('change', () => { pager.reset(); reload(); });
     refresh.addEventListener('click', reload);
     reviewStatus.addEventListener('change', reviewRequired);
     cancel.addEventListener('click', () => { if (!saving) dialog.close(); });
     dialog.addEventListener('cancel', event => { if (saving) event.preventDefault(); });
-    dialog.addEventListener('close', () => { if (reviewOpener && reviewOpener.isConnected) reviewOpener.focus(); reviewDocument = null; });
+    dialog.addEventListener('close', () => { dirty.clean(); if (reviewOpener && reviewOpener.isConnected) reviewOpener.focus(); reviewDocument = null; });
     form.addEventListener('submit', async event => {
         event.preventDefault();
         if (saving || !reviewDocument) return;

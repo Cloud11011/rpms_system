@@ -1,5 +1,6 @@
 <?php
 require __DIR__ . '/config.php';
+require_once __DIR__ . '/includes/pagination.php';
 require_once __DIR__ . '/includes/research_groups.php';
 $user = api_require_login('admin');
 $pdo = db();
@@ -28,9 +29,22 @@ function row_to_adviser(array $r, array $groups = []): array
 }
 
 if ($action === 'list') {
-    $rows = $pdo->query('SELECT * FROM advisers ORDER BY full_name ASC')->fetchAll();
-    $groups = research_groups_by_adviser($pdo);
-    json_out(['ok' => true, 'advisers' => array_map(fn($r) => row_to_adviser($r, $groups[(int)$r['id']] ?? []), $rows)]);
+    $scope = 'FROM advisers a WHERE 1=1'; $params = [];
+    $q = trim((string)($_GET['q'] ?? ''));
+    if ($q !== '') {
+        $search = prism_search_clause(['a.full_name', 'a.employee_id', 'a.email', 'a.department'], $q, $params);
+        $matchingGroups = array_values(array_filter(research_group_options($pdo, $user), fn($group) => mb_strpos(mb_strtolower($group), mb_strtolower($q)) !== false));
+        if ($matchingGroups) {
+            $keys = [];
+            foreach ($matchingGroups as $i => $group) { $key = ':group' . $i; $keys[] = $key; $params[$key] = $group; }
+            $search .= ' OR EXISTS (SELECT 1 FROM students s WHERE s.adviser_id = a.id AND s.research_group IN (' . implode(',', $keys) . '))';
+        }
+        $scope .= ' AND (' . $search . ')';
+    }
+    $page = prism_page_query($pdo, 'SELECT a.*', $scope, $params, 'a.full_name ASC, a.id ASC', $_GET);
+    $rows = $page['rows']; unset($page['rows']);
+    $groups = research_groups_by_adviser($pdo, array_column($rows, 'id'));
+    json_out(['ok' => true, 'advisers' => array_map(fn($r) => row_to_adviser($r, $groups[(int)$r['id']] ?? []), $rows)] + $page);
 }
 
 $data = json_body();

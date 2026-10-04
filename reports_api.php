@@ -1,5 +1,6 @@
 <?php
 require __DIR__ . '/config.php';
+require_once __DIR__ . '/includes/pagination.php';
 $user = api_require_login('admin');
 $pdo = db();
 $action = $_GET['action'] ?? 'list';
@@ -219,9 +220,26 @@ function make_pdf($title, $lines)
     return $pdf . "trailer\n<< /Size " . ($max+1) . " /Root 1 0 R >>\nstartxref\n$xref\n%%EOF";
 }
 
+if ($action === 'export_csv') {
+    header('Content-Type: text/csv; charset=UTF-8');
+    header('Content-Disposition: attachment; filename="prism-report-history.csv"');
+    $out = fopen('php://output', 'w');
+    fwrite($out, "\xEF\xBB\xBF");
+    fputcsv($out, ['Report Name', 'Date Generated', 'Type'], ',', '"', '');
+    $stmt = $pdo->query('SELECT title, generated_at, type FROM reports ORDER BY generated_at DESC, id DESC');
+    while ($row = $stmt->fetch()) {
+        $cells = array_map(fn($value) => preg_match('/^[=+@\-\t\r]/', (string)$value) ? "'" . $value : $value, array_values($row));
+        fputcsv($out, $cells, ',', '"', '');
+    }
+    fclose($out);
+    exit;
+}
+
 if ($action === 'list') {
-    $rows = $pdo->query('SELECT * FROM reports ORDER BY generated_at DESC')->fetchAll();
-    json_out(['ok' => true, 'reports' => $rows]);
+    $scope = 'FROM reports' . (!empty($_GET['aiOnly']) ? " WHERE type IN ('AI Summarized Report','AI Full Report')" : '');
+    $page = prism_page_query($pdo, 'SELECT *', $scope, [], 'generated_at DESC, id DESC', $_GET);
+    $rows = $page['rows']; unset($page['rows']);
+    json_out(['ok' => true, 'reports' => $rows] + $page);
 }
 
 $data = json_body();

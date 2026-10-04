@@ -1,7 +1,7 @@
 document.addEventListener('DOMContentLoaded',()=>{
 const currentRole=document.body.dataset.role||'admin';const isStaff=currentRole==='admin'||currentRole==='adviser';
 if(!isStaff){const studentField=document.getElementById('documentStudent');if(studentField){studentField.closest('div').style.display='none';studentField.required=false}}
-let documents=[],view='table';const defaultTypes=['Thesis','IMRAD','IERB Form','Consent','Ethics Application','Revision','Other'],customTypeKey=`prismDocumentTypes:${document.body.dataset.documentUser||'default'}`;let customTypes=[];try{const saved=JSON.parse(localStorage.getItem(customTypeKey));customTypes=Array.isArray(saved)?saved:[]}catch(_){}const body=document.getElementById('documentsTableBody'),search=document.getElementById('documentSearch'),typeFilter=document.getElementById('documentTypeFilter'),courseFilter=document.getElementById('documentCourseFilter'),yearFilter=document.getElementById('documentYearFilter'),sortSelect=document.getElementById('documentSort'),tableView=document.getElementById('documentsTableView'),folderView=document.getElementById('documentsFolderView'),courseView=document.getElementById('documentsCourseView'),uploadModal=document.getElementById('uploadModal'),uploadForm=document.getElementById('uploadForm');
+let documents=[],listData={},loadSequence=0,loadError=false,view='table';const defaultTypes=['Thesis','IMRAD','IERB Form','Consent','Ethics Application','Revision','Other'],customTypeKey=`prismDocumentTypes:${document.body.dataset.documentUser||'default'}`;let customTypes=[];try{const saved=JSON.parse(localStorage.getItem(customTypeKey));customTypes=Array.isArray(saved)?saved:[]}catch(_){}const body=document.getElementById('documentsTableBody'),search=document.getElementById('documentSearch'),typeFilter=document.getElementById('documentTypeFilter'),courseFilter=document.getElementById('documentCourseFilter'),yearFilter=document.getElementById('documentYearFilter'),sortSelect=document.getElementById('documentSort'),tableView=document.getElementById('documentsTableView'),folderView=document.getElementById('documentsFolderView'),courseView=document.getElementById('documentsCourseView'),uploadModal=document.getElementById('uploadModal'),uploadForm=document.getElementById('uploadForm');
 const esc=v=>String(v??'').replace(/[&<>'"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'})[c]);
 const size=v=>v<1024?`${v} B`:v<1048576?`${(v/1024).toFixed(1)} KB`:`${(v/1048576).toFixed(1)} MB`;const date=v=>new Date(v).toLocaleString('en-PH',{month:'short',day:'numeric',year:'numeric',hour:'numeric',minute:'2-digit'});
 async function api(action,options={}){return PrismUI.request(`documents_api.php?action=${encodeURIComponent(action)}`,options)}
@@ -11,7 +11,7 @@ async function loadUploadStudents(){
     const select=document.getElementById('documentStudent');
     if(!select)return;
     try{
-        const data=await PrismUI.request('students_api.php?action=list');
+        const data=await PrismUI.request('students_api.php?action=options');
         uploadStudents=data.students||[];
         const selected=select.value;
         select.replaceChildren();
@@ -31,16 +31,16 @@ async function loadUploadStudents(){
         toast(e.message,'error');
     }
 }
-function filtered(){const q=search.value.trim().toLowerCase();let rows=documents.filter(d=>(!q||`${d.originalName} ${d.student} ${d.documentType}`.toLowerCase().includes(q))&&(!typeFilter.value||d.documentType===typeFilter.value)&&(!courseFilter.value||d.course===courseFilter.value)&&(!yearFilter.value||String(d.year)===yearFilter.value));const sort=sortSelect?sortSelect.value:'newest';rows=rows.slice().sort((a,b)=>{if(sort==='oldest')return new Date(a.uploadedAt)-new Date(b.uploadedAt);if(sort==='name-asc')return a.originalName.localeCompare(b.originalName);if(sort==='name-desc')return b.originalName.localeCompare(a.originalName);if(sort==='student-asc')return String(a.student).localeCompare(String(b.student));return new Date(b.uploadedAt)-new Date(a.uploadedAt)});return rows}
+function filtered(){return documents}
 function fileIcon(name){const ext=name.split('.').pop().toLowerCase();return ext==='pdf'?'fa-file-pdf':['doc','docx','odt','rtf'].includes(ext)?'fa-file-word':'fa-file-lines'}
-function allDocumentTypes(){return [...new Set([...defaultTypes,...customTypes,...documents.map(d=>d.documentType)])].filter(Boolean).sort()}function renderTypeManager(){const select=document.getElementById('documentType'),selected=select.value;select.replaceChildren();allDocumentTypes().forEach(t=>{const o=document.createElement('option');o.value=o.textContent=t;select.appendChild(o)});select.value=allDocumentTypes().includes(selected)?selected:allDocumentTypes()[0]||'';const list=document.getElementById('documentTypeList');list.replaceChildren();allDocumentTypes().forEach(t=>{const li=document.createElement('li'),label=document.createElement('span');label.textContent=t;li.appendChild(label);if(defaultTypes.includes(t)){const fixed=document.createElement('span');fixed.className='default-type';fixed.textContent='Default';li.appendChild(fixed)}else{const remove=document.createElement('button');remove.type='button';remove.title='Remove type';remove.innerHTML='<i class="fa-solid fa-trash"></i>';remove.addEventListener('click',()=>{customTypes=customTypes.filter(x=>x!==t);localStorage.setItem(customTypeKey,JSON.stringify(customTypes));renderTypeManager();renderFilters()});li.appendChild(remove)}list.appendChild(li)})}function renderFilters(){const selected=typeFilter.value;typeFilter.querySelectorAll('option:not(:first-child)').forEach(o=>o.remove());allDocumentTypes().forEach(t=>{const o=document.createElement('option');o.value=o.textContent=t;typeFilter.appendChild(o)});typeFilter.value=[...typeFilter.options].some(o=>o.value===selected)?selected:'';const courseSelected=courseFilter.value;courseFilter.querySelectorAll('option:not(:first-child)').forEach(o=>o.remove());[...new Set(documents.map(d=>d.course).filter(Boolean))].sort().forEach(c=>{const o=document.createElement('option');o.value=o.textContent=c;courseFilter.appendChild(o)});courseFilter.value=[...courseFilter.options].some(o=>o.value===courseSelected)?courseSelected:'';const yearSelected=yearFilter.value;yearFilter.querySelectorAll('option:not(:first-child)').forEach(o=>o.remove());[...new Set(documents.map(d=>d.year).filter(Boolean))].sort((a,b)=>b-a).forEach(y=>{const o=document.createElement('option');o.value=o.textContent=y;yearFilter.appendChild(o)});yearFilter.value=[...yearFilter.options].some(o=>o.value===yearSelected)?yearSelected:''}
+function allDocumentTypes(){return [...new Set([...defaultTypes,...customTypes,...(listData.filterOptions?.types||documents.map(d=>d.documentType))])].filter(Boolean).sort()}function renderTypeManager(){const select=document.getElementById('documentType'),selected=select.value;select.replaceChildren();allDocumentTypes().forEach(t=>{const o=document.createElement('option');o.value=o.textContent=t;select.appendChild(o)});select.value=allDocumentTypes().includes(selected)?selected:allDocumentTypes()[0]||'';const list=document.getElementById('documentTypeList');list.replaceChildren();allDocumentTypes().forEach(t=>{const li=document.createElement('li'),label=document.createElement('span');label.textContent=t;li.appendChild(label);if(defaultTypes.includes(t)){const fixed=document.createElement('span');fixed.className='default-type';fixed.textContent='Default';li.appendChild(fixed)}else{const remove=document.createElement('button');remove.type='button';remove.title='Remove type';remove.innerHTML='<i class="fa-solid fa-trash"></i>';remove.addEventListener('click',()=>{customTypes=customTypes.filter(x=>x!==t);localStorage.setItem(customTypeKey,JSON.stringify(customTypes));renderTypeManager();renderFilters()});li.appendChild(remove)}list.appendChild(li)})}function renderFilters(){const selected=typeFilter.value;typeFilter.querySelectorAll('option:not(:first-child)').forEach(o=>o.remove());allDocumentTypes().forEach(t=>{const o=document.createElement('option');o.value=o.textContent=t;typeFilter.appendChild(o)});typeFilter.value=[...typeFilter.options].some(o=>o.value===selected)?selected:'';const courseSelected=courseFilter.value;courseFilter.querySelectorAll('option:not(:first-child)').forEach(o=>o.remove());[...new Set((listData.filterOptions?.courses||documents.map(d=>d.course)).filter(Boolean))].sort().forEach(c=>{const o=document.createElement('option');o.value=o.textContent=c;courseFilter.appendChild(o)});courseFilter.value=[...courseFilter.options].some(o=>o.value===courseSelected)?courseSelected:'';const yearSelected=yearFilter.value;yearFilter.querySelectorAll('option:not(:first-child)').forEach(o=>o.remove());[...new Set((listData.filterOptions?.years||documents.map(d=>d.year)).filter(Boolean))].sort((a,b)=>b-a).forEach(y=>{const o=document.createElement('option');o.value=o.textContent=y;yearFilter.appendChild(o)});yearFilter.value=[...yearFilter.options].some(o=>o.value===yearSelected)?yearSelected:''}
 function renderTable(){
     const rows=filtered();
-    document.getElementById('documentCount').textContent=`${rows.length} ${rows.length===1?'document':'documents'}`;
+
     body.replaceChildren();
     if(!rows.length){
         const tr=document.createElement('tr');
-        tr.innerHTML=`<td colspan="6">${PrismUI.emptyState({icon:'fa-folder-open',title:documents.length?'No matching documents':'No documents yet',text:documents.length?'Try a different search or filter.':'Uploads will appear here once a document is submitted.'})}</td>`;
+        tr.innerHTML=`<td colspan="6">${PrismUI.emptyState({icon:'fa-folder-open',title:loadError?'Could not load records':(search.value||typeFilter.value||courseFilter.value||yearFilter.value)?'No matching documents':'No documents yet',text:loadError?'Please try again.':documents.length?'Try a different search or filter.':'Uploads will appear here once a document is submitted.'})}</td>`;
         body.appendChild(tr);
         return;
     }
@@ -63,13 +63,13 @@ function renderTable(){
             </div></td>`;
         tr.querySelector('[data-versions]').addEventListener('click',()=>PrismUI.showVersions(d.id));
         if(a.review){
-            tr.querySelector('[data-approve]').addEventListener('click',()=>reviewStatus(d,'Approved'));
-            tr.querySelector('[data-deny]').addEventListener('click',()=>reviewStatus(d,'Denied'));
-            tr.querySelector('[data-comment]').addEventListener('click',()=>comment(d));
-            tr.querySelector('[data-review]').addEventListener('click',()=>review(d));
+            tr.querySelector('[data-approve]').addEventListener('click',e=>PrismUI.runAction(e.currentTarget,'Processing...',()=>reviewStatus(d,'Approved')));
+            tr.querySelector('[data-deny]').addEventListener('click',e=>PrismUI.runAction(e.currentTarget,'Processing...',()=>reviewStatus(d,'Denied')));
+            tr.querySelector('[data-comment]').addEventListener('click',e=>PrismUI.runAction(e.currentTarget,'Processing...',()=>comment(d)));
+            tr.querySelector('[data-review]').addEventListener('click',e=>PrismUI.runAction(e.currentTarget,'Processing...',()=>review(d)));
         }
-        if(a.override) tr.querySelector('[data-override]').addEventListener('click',async()=>{if(await PrismUI.overrideDocument(d)) await load()});
-        if(a.delete) tr.querySelector('[data-delete]').addEventListener('click',()=>remove(d));
+        if(a.override) tr.querySelector('[data-override]').addEventListener('click',e=>PrismUI.runAction(e.currentTarget,'Processing...',async()=>{if(await PrismUI.overrideDocument(d)) await load()}));
+        if(a.delete) tr.querySelector('[data-delete]').addEventListener('click',e=>PrismUI.runAction(e.currentTarget,'Processing...',()=>remove(d)));
 
         body.appendChild(tr);
     });
@@ -79,7 +79,14 @@ function renderCourseView(){courseView.replaceChildren();const groups=new Map();
 function render(){renderFilters();renderTypeManager();renderTable();renderFolders();renderCourseView()}
 function openModal(m){m.classList.add('show');m.setAttribute('aria-hidden','false')}function closeModal(m){m.classList.remove('show');m.setAttribute('aria-hidden','true')}
 function toast(message,type='success'){PrismUI.toast(message,type)}
-async function load(){try{documents=(await api('list')).documents;render()}catch(e){documents=[];render();toast(e.message,'error')}}
+const pager=PrismUI.recordPager(document.getElementById('documentsCourseView'),document.getElementById('documentCount'),[search,typeFilter,courseFilter,yearFilter,sortSelect].filter(Boolean),load);
+async function load(){
+    const sequence=++loadSequence;pager.loading();body.setAttribute('aria-busy','true');
+    const qs=new URLSearchParams({action:'list',page:pager.page,q:search.value.trim(),type:typeFilter.value,course:courseFilter.value,year:yearFilter.value,sort:sortSelect?.value||'newest'});
+    try{const data=await PrismUI.request('documents_api.php?'+qs);if(sequence!==loadSequence)return;listData=data;documents=data.documents;loadError=false;render();pager.render({...data,total:data.total??documents.length})}
+    catch(e){if(sequence!==loadSequence)return;documents=[];loadError=true;render();pager.error();toast(e.message,'error')}
+    finally{if(sequence===loadSequence)body.setAttribute('aria-busy','false')}
+}
 uploadForm.addEventListener('submit',async e=>{
     e.preventDefault();
     const file=document.getElementById('documentFile').files[0];
@@ -89,6 +96,7 @@ uploadForm.addEventListener('submit',async e=>{
     const allowed=['pdf','doc','docx','txt','rtf','odt','png','jpg','jpeg'];
     if(!allowed.includes(ext)){toast('Use PDF, Word, text, RTF, ODT, PNG or JPG.','error');return}
     const button=uploadForm.querySelector('[type="submit"]');
+    if(button.disabled)return;
     const original=button.innerHTML;
     button.disabled=true;
     button.innerHTML='<i class="fa-solid fa-spinner fa-spin"></i> Uploading...';
@@ -150,7 +158,7 @@ document.getElementById('uploadDocumentButton').addEventListener('click',async()
     const s=uploadStudents.find(x=>String(x.id)===e.target.value);
     if(s&&s.stage)document.getElementById('documentStage').value=s.stage;
 });
-document.getElementById('manageDocumentTypes').addEventListener('click',()=>openModal(document.getElementById('documentTypesModal')));document.getElementById('documentTypeForm').addEventListener('submit',e=>{e.preventDefault();const input=document.getElementById('newDocumentType'),value=input.value.trim();if(!value)return;if(allDocumentTypes().some(t=>t.toLowerCase()===value.toLowerCase())){toast('That document type already exists.','error');return}customTypes.push(value);localStorage.setItem(customTypeKey,JSON.stringify(customTypes));input.value='';renderTypeManager();renderFilters()});document.querySelectorAll('[data-close]').forEach(b=>b.addEventListener('click',()=>closeModal(document.getElementById(b.dataset.close))));[uploadModal,document.getElementById('documentTypesModal')].forEach(m=>m.addEventListener('click',e=>{if(e.target===m)closeModal(m)}));search.addEventListener('input',render);typeFilter.addEventListener('change',render);courseFilter.addEventListener('change',render);yearFilter.addEventListener('change',render);if(sortSelect)sortSelect.addEventListener('change',render);
+document.getElementById('manageDocumentTypes').addEventListener('click',()=>openModal(document.getElementById('documentTypesModal')));document.getElementById('documentTypeForm').addEventListener('submit',e=>{e.preventDefault();const input=document.getElementById('newDocumentType'),value=input.value.trim();if(!value)return;if(allDocumentTypes().some(t=>t.toLowerCase()===value.toLowerCase())){toast('That document type already exists.','error');return}customTypes.push(value);localStorage.setItem(customTypeKey,JSON.stringify(customTypes));input.value='';renderTypeManager();renderFilters()});document.querySelectorAll('[data-close]').forEach(b=>b.addEventListener('click',()=>closeModal(document.getElementById(b.dataset.close))));[uploadModal,document.getElementById('documentTypesModal')].forEach(m=>m.addEventListener('click',e=>{if(e.target===m)closeModal(m)}));search.addEventListener('input',()=>{pager.reset();load()});typeFilter.addEventListener('change',()=>{pager.reset();load()});courseFilter.addEventListener('change',()=>{pager.reset();load()});yearFilter.addEventListener('change',()=>{pager.reset();load()});if(sortSelect)sortSelect.addEventListener('change',()=>{pager.reset();load()});
 function setView(next){view=next;tableView.style.display=next==='table'?'block':'none';folderView.classList.toggle('show',next==='folder');courseView.classList.toggle('show',next==='course');document.getElementById('tableViewButton').classList.toggle('active',next==='table');document.getElementById('folderViewButton').classList.toggle('active',next==='folder');document.getElementById('courseViewButton').classList.toggle('active',next==='course')}
 document.getElementById('tableViewButton').addEventListener('click',()=>setView('table'));document.getElementById('folderViewButton').addEventListener('click',()=>setView('folder'));document.getElementById('courseViewButton').addEventListener('click',()=>setView('course'));
 const theme=document.getElementById('themeToggle');theme.addEventListener('click',()=>{const dark=document.documentElement.classList.toggle('dark-theme');try{localStorage.setItem('prismTheme',dark?'dark':'light')}catch(_){}});const profile=document.getElementById('profileToggle'),menu=document.getElementById('profileMenu');profile.addEventListener('click',e=>{e.stopPropagation();menu.classList.toggle('show')});document.addEventListener('click',()=>menu.classList.remove('show'));document.addEventListener('keydown',e=>{if(e.key==='Escape'){closeModal(uploadModal);closeModal(document.getElementById('documentTypesModal'))}});load();

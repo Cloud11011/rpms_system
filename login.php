@@ -8,7 +8,9 @@ if (current_user()) {
     exit;
 }
 
-$loginError = $_SESSION['error'] ?? null;
+$loginError = isset($_GET['expired']) || !empty($GLOBALS['prism_session_expired'])
+    ? 'Your session expired due to inactivity. Please sign in again.'
+    : ($_SESSION['error'] ?? null);
 $loginSuccess = $_SESSION['success'] ?? null;
 unset($_SESSION['error'], $_SESSION['success']);
 ?>

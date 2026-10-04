@@ -9,8 +9,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
     let historyRequest = 0;
     let generating = false;
-    const reportButtons = [document.getElementById('generateSummarizedReport'), document.getElementById('generateFullReport')];
 
+    const pager = PrismUI.recordPager(document.getElementById('aiHistory'), document.getElementById('aiHistoryCount'), [], loadHistory);
     async function loadHistory() {
         const requestId = ++historyRequest;
         const list = document.getElementById('aiHistory');
@@ -18,10 +18,10 @@ document.addEventListener('DOMContentLoaded', () => {
         count.textContent = 'Loading reports...';
         list.setAttribute('aria-busy', 'true');
         try {
-            const data = await PrismUI.request('reports_api.php?action=list');
+            const data = await PrismUI.request(`reports_api.php?action=list&aiOnly=1&page=${pager.page}`);
             if (requestId !== historyRequest) return;
             const items = (data.reports || []).filter(r => r.type === 'AI Summarized Report' || r.type === 'AI Full Report');
-            document.getElementById('aiHistoryCount').textContent = `${items.length} report${items.length === 1 ? '' : 's'}`;
+            pager.render({...data,total:data.total??items.length});
             list.replaceChildren();
             if (!items.length) {
                 const state = document.createElement('div');
@@ -59,6 +59,7 @@ document.addEventListener('DOMContentLoaded', () => {
             });
         } catch (e) {
             if (requestId !== historyRequest) return;
+            pager.error();
             count.textContent = 'History unavailable';
             list.replaceChildren();
             const state = document.createElement('div');
@@ -80,7 +81,8 @@ document.addEventListener('DOMContentLoaded', () => {
     async function generateAiReport(mode, button) {
         if (generating) return;
         generating = true;
-        reportButtons.forEach(control => { control.disabled = true; });
+        const release = PrismUI.busy(button, 'Generating...');
+        if (!release) { generating = false; return; }
         button.setAttribute('aria-busy', 'true');
         button.classList.add('loading');
         const note = document.getElementById('reportAiNote');
@@ -106,7 +108,7 @@ document.addEventListener('DOMContentLoaded', () => {
             note.classList.add('warn');
         } finally {
             generating = false;
-            reportButtons.forEach(control => { control.disabled = false; });
+            release();
             button.classList.remove('loading');
             button.setAttribute('aria-busy', 'false');
         }

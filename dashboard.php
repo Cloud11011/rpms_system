@@ -202,6 +202,7 @@ try {
 <div class="table-header">
 <h3><i class="fa-solid fa-list-check"></i> IERB Progress Monitor</h3>
 <div class="header-actions">
+<a href="ierbprog.php" class="prism-btn">View All Progress</a>
 <select class="table-filter" id="courseFilter" aria-label="Filter by course">
 <option value="">All courses</option>
 </select>
@@ -315,8 +316,8 @@ try {
 <p>Choose one of the two predefined report formats used by PRISM. The generated report must still be reviewed by RPMS before distribution.</p>
 <div class="modal-actions">
 <button class="btn-secondary-sm" onclick="closeReportModal()">Cancel</button>
-<button class="btn-secondary-sm" onclick="generateAIReport('summary')"><i class="fa-solid fa-file-lines"></i> Summarized Report</button>
-<button class="small-btn" onclick="generateAIReport('full')"><i class="fa-solid fa-file-contract"></i> Full Report</button>
+<button class="btn-secondary-sm" onclick="generateAIReport('summary',this)"><i class="fa-solid fa-file-lines"></i> Summarized Report</button>
+<button class="small-btn" onclick="generateAIReport('full',this)"><i class="fa-solid fa-file-contract"></i> Full Report</button>
 </div>
 </div>
 </div>
@@ -392,7 +393,7 @@ themeToggle.addEventListener('click', () => {
 const courseFilter = document.getElementById('courseFilter');
 const progressSort = document.getElementById('progressSort');
 const progressTableBody = document.getElementById('ierbMonitorBody');
-let monitorRecords = [];
+let monitorRecords = [], monitorOverview = [], monitorCourses = [];
 let monitorError = '';
 let monitorRequest = 0;
 const escapeMonitorHtml = value => String(value ?? '').replace(/[&<>'"]/g, char => ({
@@ -405,9 +406,11 @@ async function loadMonitorStudents() {
     const requestId = ++monitorRequest;
     progressTableBody.setAttribute('aria-busy', 'true');
     try {
-        const data = await PrismUI.request('ierb_api.php?action=list');
+        const data = await PrismUI.request('ierb_api.php?' + new URLSearchParams({action:'list',preview:10,q:document.getElementById('dashboardSearch').value.trim(),course:courseFilter.value,sort:progressSort.value}));
         if (requestId !== monitorRequest) return;
         monitorRecords = data.records || [];
+        monitorOverview = data.overview || monitorRecords.map(r => ({stage:r.stage,status:r.status,c:1}));
+        monitorCourses = data.courses || [...new Set(monitorRecords.map(r => r.course).filter(Boolean))];
         monitorError = '';
     } catch (error) {
         if (requestId !== monitorRequest) return;
@@ -418,22 +421,23 @@ async function loadMonitorStudents() {
     }
 }
 
-function updateMonitorMetrics(records) {
-    document.getElementById('totalResearchersMetric').textContent = records.length;
-    document.getElementById('pendingIerbMetric').textContent = records.filter(r => r.status === 'Pending').length;
-    document.getElementById('approvedEthicsMetric').textContent = records.filter(r => r.stage === 'Completed').length;
-    document.getElementById('delayedSubmissionsMetric').textContent = records.filter(r => r.status === 'Delayed').length;
-    const setCount = (id, value, noun = 'Groups') => document.getElementById(id).textContent = `${value} ${noun}`;
-    setCount('initialStageCount', records.filter(r => r.stage === 'Stage 1').length);
-    setCount('reviewStageCount', records.filter(r => r.stage === 'Stage 2').length);
-    setCount('revisionStageCount', records.filter(r => ['Stage 3', 'Stage 4'].includes(r.stage)).length, 'Delayed');
-    setCount('approvedStageCount', records.filter(r => r.stage === 'Completed').length);
+function updateMonitorMetrics() {
+    const count = predicate => monitorOverview.filter(predicate).reduce((sum,r) => sum + Number(r.c),0);
+    document.getElementById('totalResearchersMetric').textContent = count(() => true);
+    document.getElementById('pendingIerbMetric').textContent = count(r => r.status === 'Pending');
+    document.getElementById('approvedEthicsMetric').textContent = count(r => r.stage === 'Completed');
+    document.getElementById('delayedSubmissionsMetric').textContent = count(r => r.status === 'Delayed');
+    const setCount = (id,value,noun='Groups') => document.getElementById(id).textContent = `${value} ${noun}`;
+    setCount('initialStageCount',count(r => r.stage === 'Stage 1'));
+    setCount('reviewStageCount',count(r => r.stage === 'Stage 2'));
+    setCount('revisionStageCount',count(r => ['Stage 3','Stage 4'].includes(r.stage)),'Delayed');
+    setCount('approvedStageCount',count(r => r.stage === 'Completed'));
 }
 
 function populateCourseFilter(records) {
     const selected = courseFilter.value;
     courseFilter.querySelectorAll('option:not(:first-child)').forEach(option => option.remove());
-    [...new Set(records.map(r => r.course).filter(Boolean))].sort().forEach(course => {
+    monitorCourses.slice().sort().forEach(course => {
         const option = document.createElement('option');
         option.value = course;
         option.textContent = course;
@@ -477,21 +481,14 @@ function renderIerbMonitor() {
             <td><span class="progress-value">${escapeMonitorHtml(record.progress || '0')}%</span></td>
             <td>${PrismUI.badge(record.status || 'Pending')}</td>
             <td><button class="icon-btn" data-monitor-action="remind" title="Send follow-up email"><i class="fa-solid fa-paper-plane"></i></button><a class="icon-btn" data-monitor-action="documents" href="documents.php" title="Open Documents" aria-label="Open Documents">Open Documents</a><button class="icon-btn prism-override-icon" data-monitor-action="override" title="Admin Override (always logged)" aria-label="Admin Override for ${escapeMonitorHtml(record.name)}"><i class="fa-solid fa-user-shield"></i></button></td>`;
-        row.querySelector('[data-monitor-action="remind"]').addEventListener('click', () => sendMonitorFollowup(record));
-        row.querySelector('[data-monitor-action="override"]').addEventListener('click', async () => { if (await PrismUI.overrideStudent(record)) { await loadMonitorStudents(); renderIerbMonitor(); } });
+        row.querySelector('[data-monitor-action="remind"]').addEventListener('click', e => PrismUI.runAction(e.currentTarget,'Sending...',() => sendMonitorFollowup(record)));
+        row.querySelector('[data-monitor-action="override"]').addEventListener('click', e => PrismUI.runAction(e.currentTarget,'Processing...',async () => { if (await PrismUI.overrideStudent(record)) { await loadMonitorStudents(); renderIerbMonitor(); } }));
         progressTableBody.appendChild(row);
     });
-    filterAndSortProgress();
 }
 
 function filterAndSortProgress() {
-    const rows = progressRows();
-    const query = document.getElementById('dashboardSearch').value.trim().toLowerCase();
-    rows.forEach(row => row.style.display = (!courseFilter.value || row.dataset.course === courseFilter.value) && (!query || row.textContent.toLowerCase().includes(query)) ? '' : 'none');
-    if (progressSort.value !== 'default') {
-        const direction = progressSort.value === 'high-to-low' ? -1 : 1;
-        rows.sort((a, b) => direction * (progressNumber(a.dataset.progress) - progressNumber(b.dataset.progress))).forEach(row => progressTableBody.appendChild(row));
-    }
+    loadMonitorStudents().then(renderIerbMonitor);
 }
 
 async function sendMonitorFollowup(record) {
@@ -524,7 +521,7 @@ function closeReportModal() {
 let reportHistory = [];
 async function loadReportHistory() {
     try {
-        const res = await fetch('reports_api.php?action=list');
+        const res = await fetch('reports_api.php?action=list&preview=3');
         const data = await res.json();
         reportHistory = data.ok ? data.reports : [];
     } catch (_) {
@@ -562,7 +559,11 @@ function renderReportHistory() {
         list.appendChild(item);
     });
 }
-async function generateAIReport(mode = 'summary') {
+let dashboardGenerating = false;
+async function generateAIReport(mode = 'summary', button) {
+    if(dashboardGenerating)return;
+    dashboardGenerating = true;
+    const release = button ? PrismUI.busy(button,'Generating...') : () => {};
     closeReportModal();
     try {
         const data = await PrismUI.postJson('reports_api.php?action=ai_report', { mode });
@@ -574,7 +575,7 @@ async function generateAIReport(mode = 'summary') {
         window.open(`reports_api.php?action=file&id=${encodeURIComponent(data.report.id)}&download=1`, '_blank', 'noopener');
     } catch (e) {
         PrismUI.toast(e.message || 'The report could not be generated right now.', 'error');
-    }
+    } finally { dashboardGenerating=false; release?.(); }
 }
 
 /* CALENDAR ENGINE */
@@ -864,7 +865,7 @@ dashboardDayModal.addEventListener('click', event => {
 
 (async function loadNotificationBell() {
     try {
-        const res = await fetch('notifications_api.php?action=list');
+        const res = await fetch('notifications_api.php?action=list&preview=5');
         const data = await res.json();
         const items = data.ok ? data.notifications.slice(0, 5) : [];
         if (!items.length) return;
@@ -881,7 +882,7 @@ dashboardDayModal.addEventListener('click', event => {
 
 (async function loadRepositoryPreview() {
     try {
-        const res = await fetch('documents_api.php?action=list');
+        const res = await fetch('documents_api.php?action=list&preview=5');
         const data = await res.json();
         const docs = data.ok ? data.documents.slice(0, 5) : [];
         const container = document.querySelector('.repo-list');

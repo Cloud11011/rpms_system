@@ -31,7 +31,8 @@
 
     if (!isAdmin && addBtn) addBtn.style.display = 'none';
 
-    let records = [];
+    let records = [], overview = [];
+    const pager = PrismUI.recordPager(tableBody.closest('table').parentElement, recordCount, [ierbSearch, stageFilter, statusFilter], loadRecords);
     let recordRequestSequence = 0;
     let loadError = '';
     const STAGES = ['Stage 1', 'Stage 2', 'Stage 3', 'Stage 4', 'Stage 5', 'Completed'];
@@ -48,16 +49,20 @@
     async function loadRecords() {
         const requestSequence = ++recordRequestSequence;
         loadError = '';
+        pager.loading();
         stageChart.setAttribute('aria-busy', 'true');
         tableBody.setAttribute('aria-busy', 'true');
         try {
-            const data = await PrismUI.request('ierb_api.php?action=list');
+            const data = await PrismUI.request('ierb_api.php?' + new URLSearchParams({ action: 'list', page: pager.page, q: ierbSearch.value.trim(), stage: stageFilter.value, status: statusFilter.value }));
             if (requestSequence !== recordRequestSequence) return;
             if (!Array.isArray(data.records)) throw new Error('The server returned an invalid record list.');
             records = data.records;
+            overview = data.overview || records.map(r => ({ stage: r.stage, status: r.status, c: 1 }));
+            pager.render({ ...data, total: data.total ?? records.length });
         } catch (e) {
             if (requestSequence !== recordRequestSequence) return;
-            records = [];
+            records = []; overview = [];
+            pager.error();
             loadError = e.message || 'Could not load IERB records.';
             PrismUI.toast(loadError, 'error');
         } finally {
@@ -71,11 +76,13 @@
     }
 
     function renderOverview() {
-        overviewTotal.textContent = loadError ? 'Unavailable' : `${records.length} student${records.length === 1 ? '' : 's'}`;
+        const total = overview.reduce((sum, r) => sum + Number(r.c), 0);
+        const stageCount = stage => overview.filter(r => r.stage === stage).reduce((sum, r) => sum + Number(r.c), 0);
+        overviewTotal.textContent = loadError ? 'Unavailable' : `${total} student${total === 1 ? '' : 's'}`;
         stageChart.replaceChildren();
-        stageChart.classList.toggle('is-empty', records.length === 0);
-        stageChart.setAttribute('role', records.length ? 'img' : 'status');
-        if (!records.length) {
+        stageChart.classList.toggle('is-empty', total === 0);
+        stageChart.setAttribute('role', total ? 'img' : 'status');
+        if (!total) {
             stageChart.removeAttribute('aria-label');
             const state = document.createElement('div');
             state.className = 'ierb-overview-empty';
@@ -94,10 +101,10 @@
             stageChart.appendChild(state);
             return;
         }
-        const max = Math.max(1, ...STAGES.map(s => records.filter(r => r.stage === s).length));
-        stageChart.setAttribute('aria-label', STAGES.map(stage => `${labelForStage(stage)}: ${records.filter(r => r.stage === stage).length}`).join('; '));
+        const max = Math.max(1, ...STAGES.map(s => stageCount(s)));
+        stageChart.setAttribute('aria-label', STAGES.map(stage => `${labelForStage(stage)}: ${stageCount(stage)}`).join('; '));
         STAGES.forEach(stage => {
-            const count = records.filter(r => r.stage === stage).length;
+            const count = stageCount(stage);
             const col = document.createElement('div');
             col.className = 'stage-bar-col';
             const area = document.createElement('div');
@@ -117,21 +124,11 @@
         });
     }
 
-    function filteredRecords() {
-        const term = (ierbSearch.value || '').trim().toLowerCase();
-        const stage = stageFilter.value;
-        const status = statusFilter.value;
-        return records.filter(r => {
-            if (stage && r.stage !== stage) return false;
-            if (status && r.status !== status) return false;
-            if (!term) return true;
-            return [r.name, r.studentId, r.groupId, r.research].some(v => String(v ?? '').toLowerCase().includes(term));
-        });
-    }
+    function filteredRecords() { return records; }
 
     function renderTable() {
         const rows = filteredRecords();
-        recordCount.textContent = loadError ? 'Unavailable' : `${rows.length} record${rows.length === 1 ? '' : 's'}`;
+        if (loadError) recordCount.textContent = 'Unavailable';
         tableBody.replaceChildren();
         tableBody.closest('table').classList.toggle('is-empty', rows.length === 0);
 
@@ -143,12 +140,13 @@
             const state = document.createElement('div');
             state.className = 'ierb-table-empty';
             const icon = document.createElement('i');
-            icon.className = records.length ? 'fa-solid fa-filter-circle-xmark' : 'fa-solid fa-folder-open';
+            const hasFilters = !!(ierbSearch.value.trim() || stageFilter.value || statusFilter.value);
+            icon.className = hasFilters ? 'fa-solid fa-filter-circle-xmark' : 'fa-solid fa-folder-open';
             icon.setAttribute('aria-hidden', 'true');
             const title = document.createElement('h3');
-            title.textContent = loadError ? 'Could not load IERB records' : (records.length ? 'No matching IERB records' : 'No IERB records yet');
+            title.textContent = loadError ? 'Could not load IERB records' : (hasFilters ? 'No matching IERB records' : 'No IERB records yet');
             const description = document.createElement('p');
-            description.textContent = loadError || (records.length
+            description.textContent = loadError || (hasFilters
                 ? 'Try clearing the search or choosing different stage and status filters.'
                 : (isAdmin
                     ? 'Add an IERB entry to begin tracking student stages, requirements, and submissions.'
@@ -184,7 +182,7 @@
             remindBtn.className = 'icon-btn';
             remindBtn.title = 'Send follow-up email';
             remindBtn.innerHTML = '<i class="fa-solid fa-paper-plane"></i>';
-            remindBtn.addEventListener('click', () => sendFollowup(record));
+            remindBtn.addEventListener('click', () => PrismUI.runAction(remindBtn, 'Sending...', () => sendFollowup(record)));
             actions.appendChild(remindBtn);
 
             if (isAdmin) {
@@ -199,7 +197,7 @@
                 delBtn.className = 'icon-btn';
                 delBtn.title = 'Delete entry';
                 delBtn.innerHTML = '<i class="fa-solid fa-trash"></i>';
-                delBtn.addEventListener('click', () => deleteEntry(record));
+                delBtn.addEventListener('click', e => PrismUI.runAction(e.currentTarget,'Processing...',() => deleteEntry(record)));
                 actions.appendChild(delBtn);
             }
 
@@ -207,13 +205,14 @@
         });
     }
 
-    ierbSearch.addEventListener('input', renderTable);
-    stageFilter.addEventListener('change', renderTable);
-    statusFilter.addEventListener('change', renderTable);
+    ierbSearch.addEventListener('input', () => { pager.reset(); loadRecords(); });
+    stageFilter.addEventListener('change', () => { pager.reset(); loadRecords(); });
+    statusFilter.addEventListener('change', () => { pager.reset(); loadRecords(); });
 
     // --- Entry add/edit modal ---
     const entryModal = document.getElementById('ierbEntryModal');
     const entryForm = document.getElementById('ierbEntryForm');
+    const entryDirty = PrismUI.dirtyForm(entryForm);
     const entryTitle = document.getElementById('ierbEntryTitle');
     const academicFields = PrismAcademicFields.mount(document.getElementById('entryAcademicFields'));
     let entryReturnFocus = null;
@@ -236,11 +235,13 @@
             document.getElementById('entrySubmissionDate').value = record.lastSubmissionDate || '';
             document.getElementById('entryStatus').value = record.status || 'On Track';
         }
+        entryDirty.clean();
         entryModal.setAttribute('aria-hidden', 'false');
         entryModal.style.display = 'flex';
         document.getElementById('entryStudentName').focus();
     }
     function closeEntryModal() {
+        entryDirty.clean();
         entryModal.style.display = 'none';
         entryReturnFocus?.focus();
         entryModal.setAttribute('aria-hidden', 'true');
@@ -275,8 +276,8 @@
         };
         Object.assign(payload, academicFields.payload());
         const saveBtn = entryForm.querySelector('[type="submit"]');
-        if (saveBtn.disabled) return;
-        saveBtn.disabled = true;
+        const release = PrismUI.busy(saveBtn, 'Saving...');
+        if (!release) return;
         try {
             const original = editingId ? records.find(r => r.id === editingId) : null;
             if (original && (original.stage !== payload.stage || original.status !== payload.status)) {
@@ -307,7 +308,7 @@
         } catch (e) {
             PrismUI.toast(e.message, 'error');
         } finally {
-            saveBtn.disabled = false;
+            release();
         }
     });
 
@@ -329,18 +330,21 @@
     // --- Note modal ---
     const actionModal = document.getElementById('ierbActionModal');
     const actionForm = document.getElementById('ierbActionForm');
+    const noteDirty = PrismUI.dirtyForm(actionForm);
     const actionText = document.getElementById('ierbActionText');
     let noteTargetId = null;
 
     function openNoteModal(record) {
         noteTargetId = record.id;
         actionText.value = '';
+        noteDirty.clean();
         document.getElementById('ierbActionTitle').textContent = `Add Note - ${record.name}`;
         actionModal.setAttribute('aria-hidden', 'false');
         actionModal.style.display = 'flex';
         actionText.focus();
     }
     function closeActionModal() {
+        noteDirty.clean();
         actionModal.setAttribute('aria-hidden', 'true');
         actionModal.style.display = 'none';
     }
@@ -353,7 +357,8 @@
         const note = actionText.value.trim();
         if (!note) { PrismUI.toast('Write a note before saving.', 'error'); actionText.focus(); return; }
         const btn = actionForm.querySelector('[type="submit"]');
-        btn.disabled = true;
+        const release = PrismUI.busy(btn, 'Saving...');
+        if (!release) return;
         try {
             const data = await PrismUI.postJson('ierb_api.php?action=note', { studentId: noteTargetId, note });
             closeActionModal();
@@ -361,7 +366,7 @@
         } catch (e) {
             PrismUI.toast(e.message, 'error');
         } finally {
-            btn.disabled = false;
+            release();
         }
     });
 

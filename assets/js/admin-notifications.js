@@ -23,6 +23,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     const form = document.getElementById('notificationForm');
+    const dirty = PrismUI.dirtyForm(form);
     const audience = document.getElementById('noticeAudience');
     const groupLabel = document.getElementById('groupLabel');
     const groupInput = document.getElementById('noticeGroup');
@@ -99,6 +100,7 @@ document.addEventListener('DOMContentLoaded', () => {
             syncScheduleUi();
             syncMessageCount();
             refreshRecipientPreview();
+            dirty.clean();
         });
     });
 
@@ -140,7 +142,7 @@ document.addEventListener('DOMContentLoaded', () => {
     function syncScheduleUi() {
         scheduleLabel.hidden = !automated.checked;
         scheduleInput.required = automated.checked;
-        document.getElementById('noticeSubmitLabel').textContent = automated.checked ? 'Schedule notification' : 'Send notification';
+        if (!sending) document.getElementById('noticeSubmitLabel').textContent = automated.checked ? 'Schedule notification' : 'Send notification';
         if (automated.checked) {
             const now = new Date(Date.now() + 60 * 1000);
             now.setSeconds(0, 0);
@@ -241,8 +243,8 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         const submitBtn = form.querySelector('[type="submit"]');
         sending = true;
-        submitBtn.disabled = true;
-        cancelButton.disabled = true;
+        const release = PrismUI.busy(submitBtn,payload.automated?'Scheduling...':'Sending...',document.getElementById('noticeSubmitLabel'));
+        if(!release){sending=false;return;}
         try {
             const data = await PrismUI.postJson('notifications_api.php?action=send', payload);
             const deliveryText = data.scheduled
@@ -251,14 +253,14 @@ document.addEventListener('DOMContentLoaded', () => {
                     ? `Delivered to ${data.sent}; logged locally for ${data.logged} recipient(s) because live email is not configured.`
                     : `Sent to ${data.sent} of ${data.total} recipient(s).`);
             PrismUI.toast(deliveryText, data.logged ? 'info' : 'success');
-            form.reset();
+            form.reset(); dirty.clean();
             await loadHistory();
         } catch (e) {
             PrismUI.toast(e.message, 'error');
         } finally {
             sending = false;
-            submitBtn.disabled = false;
-            cancelButton.disabled = false;
+            release();
+            syncScheduleUi();
         }
     });
 

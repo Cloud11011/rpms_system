@@ -220,7 +220,10 @@
       m.dialog.setAttribute('aria-labelledby', 'prismDlgTitle');
       const err = m.dialog.querySelector('.prism-field-error');
       const reasonBox = m.dialog.querySelector('#prismReason');
-      m.onCancel = function () { resolve(null); };
+      const dirty = dirtyForm(m.dialog);
+      const close = m.close;
+      m.close = () => { dirty.clean(); dirty.dispose(); close(); };
+      m.onCancel = function () { dirty.clean(); dirty.dispose(); resolve(null); };
       m.dialog.querySelector('[data-act="cancel"]').addEventListener('click', function () { m.close(); resolve(null); });
       m.dialog.querySelector('[data-act="ok"]').addEventListener('click', function () {
         const reason = reasonBox ? reasonBox.value.trim() : '';
@@ -367,16 +370,16 @@
     host.classList.add('prism-wf-panel');
 
     async function render() {
-      let docs;
-      try { docs = (await request('documents_api.php?action=list')).documents; }
+      let docs, data;
+      try { data = await request('documents_api.php?action=list'); docs = data.documents; }
       catch (e) {
         host.innerHTML = compact ? '' : emptyState({ icon: 'fa-triangle-exclamation', title: 'Couldn\u2019t load your documents', text: e.message });
         return;
       }
       const ready = docs.filter(function (d) { return d.workflowState === 'Ready for Formal RPMS Submission'; });
       const revise = docs.filter(function (d) { return d.workflowState === 'Needs Revision'; });
-      const counts = {};
-      docs.forEach(function (d) { counts[d.workflowState] = (counts[d.workflowState] || 0) + 1; });
+      const counts = data.counts || {};
+      if(!data.counts) docs.forEach(function (d) { counts[d.workflowState] = (counts[d.workflowState] || 0) + 1; });
 
       let html = '';
       if (!docs.length) {
@@ -413,14 +416,16 @@
           html += '<p class="prism-sub">Nothing needs your action right now.</p>';
         }
       }
+      if (data.total > docs.length) html += '<p class="prism-sub"><a href="student.php#documents">View all documents and submission actions</a></p>';
       host.innerHTML = html;
 
       host.querySelectorAll('[data-submit]').forEach(function (b) {
         b.addEventListener('click', async function () {
           const doc = docs.find(function (d) { return d.id === b.getAttribute('data-submit'); });
-          b.disabled = true;
+          const release = busy(b,'Submitting...');
+          if(!release)return;
           const done = await submitToRpms(doc); // on success it fires prism:documents-changed, which re-renders this panel
-          if (!done) b.disabled = false;
+          if (!done) release();
         });
       });
       host.querySelectorAll('[data-versions]').forEach(function (b) {
@@ -619,6 +624,64 @@
     if (restoreFocus) host.querySelector('[aria-current="page"]')?.focus();
   }
 
+  // Small helpers shared by the touched record pages.
+  function busy(control, label, labelElement = control) {
+    if (!control || control.disabled) return null;
+    const original = labelElement.innerHTML;
+    control.disabled = true;
+    labelElement.textContent = label;
+    return () => { labelElement.innerHTML = original; control.disabled = false; };
+  }
+
+  async function runAction(control, label, action) {
+    const release = busy(control, label);
+    if (!release) return;
+    try { return await action(); } finally { release(); }
+  }
+
+  function dirtyForm(form) {
+    const fields = () => [...form.querySelectorAll('input,select,textarea')].filter(field => !field.disabled && !field.readOnly && field.type !== 'hidden');
+    const value = field => field.type === 'checkbox' || field.type === 'radio' ? field.checked : field.value;
+    let changed = false, baseline;
+    const clean = () => { changed = false; baseline = new Map(fields().map(field => [field,value(field)])); };
+    const mark = () => { changed = fields().some(field => baseline.has(field) && baseline.get(field) !== value(field)); };
+    clean();
+    form.addEventListener('input', mark);
+    form.addEventListener('change', mark);
+    const warn = event => { if (changed) { event.preventDefault(); event.returnValue = ''; } };
+    root.addEventListener('beforeunload', warn);
+    return { clean: clean, dispose: () => { root.removeEventListener('beforeunload', warn); form.removeEventListener('input',mark); form.removeEventListener('change',mark); } };
+  }
+
+  function clearFilters(controls, reload) {
+    if (controls.length) {
+      const reset = document.createElement('button');
+      reset.type = 'button'; reset.className = 'prism-btn'; reset.textContent = 'Clear Filters';
+      const last = controls[controls.length - 1];
+      (last.closest('.management-search') || last.closest('label') || last).insertAdjacentElement('afterend', reset);
+      reset.addEventListener('click', () => {
+        controls.forEach(control => { if (control.type === 'checkbox') control.checked = false; else if (control.tagName === 'SELECT') control.selectedIndex = 0; else control.value = ''; });
+        reload();
+      });
+    }
+  }
+
+  function recordPager(anchor, count, controls, load) {
+    const pager = document.createElement('nav');
+    pager.className = 'prism-pagination';
+    pager.setAttribute('aria-label', 'Record pages');
+    anchor.insertAdjacentElement('afterend', pager);
+    let page = 1;
+    clearFilters(controls, () => { page = 1; load(); });
+    return {
+      get page() { return page; },
+      reset: () => { page = 1; },
+      loading: () => { count.textContent = 'Loading records...'; pager.querySelectorAll('button').forEach(b => { b.disabled = true; }); },
+      error: () => { pager.replaceChildren(); count.textContent = 'Could not load records.'; },
+      render: data => { page = Number(data.page) || 1; pagination(pager, count, data, next => { page = next; load(); }, 'records'); }
+    };
+  }
+
   // ------------------------------------------------------------------ init
   function init() {
     document.querySelectorAll('[data-prism-tip]').forEach(function (n) {
@@ -635,7 +698,7 @@
 
   const api = {
     badge: badge, badgeElement: badgeElement, docMini: docMini, emptyState: emptyState, tip: tip, toast: toast,
-    confirm: confirmDialog, request: request, postJson: postJson, esc: esc, pagination: pagination,
+    confirm: confirmDialog, request: request, postJson: postJson, esc: esc, pagination: pagination, busy: busy, runAction: runAction, dirtyForm: dirtyForm, recordPager: recordPager, clearFilters: clearFilters,
     submitToRpms: submitToRpms, overrideStudent: overrideStudent, overrideDocument: overrideDocument, showVersions: showVersions,
     enhanceTable: enhanceTable, tableFilter: tableFilter, hint: hint,
     mountStudentWorkflow: mountStudentWorkflow, mountNeedsAttention: mountNeedsAttention, init: init,

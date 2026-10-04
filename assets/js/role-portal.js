@@ -12,8 +12,14 @@ document.addEventListener('DOMContentLoaded', () => {
     };
 
     let myRecord = null;   // this student's IERB record (or null if none yet)
-    let myDocuments = [];
-    let myHistory = [];
+    let myDocuments = [], dashboardDocumentTotal = 0, documentHistory = {records:[],total:0,page:1};
+    const documentCount = document.createElement('p'); $('documentRows').closest('table').parentElement.insertAdjacentElement('beforebegin',documentCount);
+    const docPager = PrismUI.recordPager($('documentRows').closest('table').parentElement,documentCount,[$('documentFilter')],refreshDocuments);
+    const profileDirty = PrismUI.dirtyForm($('profileForm'));
+    const passwordDirty = PrismUI.dirtyForm($('passwordForm'));
+    let myHistory = [], historyState = {total:0,page:1}, historySequence = 0;
+    const historyCount = document.createElement('p'); $('progressHistory').insertAdjacentElement('beforebegin',historyCount);
+    const historyPager = PrismUI.recordPager($('progressHistory'),historyCount,[],refreshHistory);
     let myNotifications = [];
     let notificationHistory = { records: [], error: false, total: 0, page: 1 };
     let notificationSequence = 0;
@@ -93,8 +99,8 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         if (!record) return { record, history: [], error: false, historyError: false };
         try {
-            const history = await readList(`ierb_api.php?action=history&studentId=${encodeURIComponent(record.id)}`, 'history');
-            return { record, history, error: false, historyError: false };
+            const data = await PrismUI.request(`ierb_api.php?action=history&studentId=${encodeURIComponent(record.id)}`);
+            return { record, history:data.history,total:data.total??data.history.length,page:data.page??1,error:false,historyError:false };
         } catch (_) {
             return { record, history: [], error: false, historyError: true };
         }
@@ -102,7 +108,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
     async function loadDocuments() {
         try {
-            return { records: await readList('documents_api.php?action=list', 'documents'), error: false };
+            const data = await PrismUI.request('documents_api.php?action=list');
+            return {records:data.documents,error:false,total:data.total??data.documents.length,page:data.page??1};
         } catch (_) {
             return { records: [], error: true };
         }
@@ -155,7 +162,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         $('dashboardStatusValue').textContent = status;
         $('dashboardPendingValue').textContent = loadErrors.progress ? 'Unavailable' : pendingCount;
-        $('dashboardSubmissionValue').textContent = loadErrors.documents ? 'Unavailable' : `${myDocuments.length} ${myDocuments.length === 1 ? 'document' : 'documents'}`;
+        $('dashboardSubmissionValue').textContent = loadErrors.documents ? 'Unavailable' : `${dashboardDocumentTotal} ${dashboardDocumentTotal === 1 ? 'document' : 'documents'}`;
         $('dashboardSubmissionStatus').textContent = loadErrors.documents ? 'Document status could not be loaded.' : latestDoc ? `Latest: ${latestDoc.workflowState || latestDoc.reviewStatus}` : 'Upload a requirement when you are ready.';
         $('studentCurrentDocument').textContent = loadErrors.documents ? 'Unable to load your latest submission.' : latestDoc?.originalName || 'No submissions yet.';
         $('studentReviewState').textContent = loadErrors.documents ? 'Unavailable' : latestDoc?.reviewStatus || 'No review yet';
@@ -185,9 +192,7 @@ document.addEventListener('DOMContentLoaded', () => {
             ? `<div class="list-item"><i class="fa-regular fa-clock"></i><div><strong>${esc(myRecord.requirements)}</strong><span>Pending</span></div></div>`
             : empty('No pending requirements.');
 
-        $('progressHistory').innerHTML = loadErrors.progress || loadErrors.history ? empty('Unable to load progress history. Please try again.') : myHistory.length
-            ? myHistory.map(h => `<div class="list-item"><i class="fa-solid fa-clock-rotate-left"></i><div><strong>${esc(h.stage)} - ${esc(h.status)}</strong><span>${esc(h.note || 'Updated by RPMS')} &bull; ${esc(fmt(h.created_at))} &bull; ${esc(h.actor || 'System')}</span></div></div>`).join('')
-            : empty('No progress history yet.');
+        renderHistory();
 
         $('recentSubmissions').innerHTML = loadErrors.documents ? empty('Unable to load recent submissions. Please try again.') : myDocuments.slice(0, 4).map(docItem).join('') || empty('No submissions yet.');
         $('studentRecentNotifications').innerHTML = loadErrors.notifications ? empty('Unable to load notifications. Please try again.') : myNotifications.slice(0, 3).map(n => noticeItem(n, false)).join('') || empty('You have no notifications.');
@@ -223,9 +228,17 @@ document.addEventListener('DOMContentLoaded', () => {
         return `<div class="list-item"><i class="fa-solid fa-file-lines"></i><div><strong>${esc(d.documentType)}</strong><span>${esc(d.originalName)}${version} &middot; ${fmt(d.uploadedAt)} &middot; ${esc(state)}</span></div></div>`;
     }
 
+    function renderHistory() {
+        if(loadErrors.progress||loadErrors.history)historyPager.error();else historyPager.render(historyState);
+        $('progressHistory').innerHTML = loadErrors.progress || loadErrors.history ? empty('Unable to load progress history. Please try again.') : myHistory.length
+            ? myHistory.map(h => `<div class="list-item"><i class="fa-solid fa-clock-rotate-left"></i><div><strong>${esc(h.stage)} - ${esc(h.status)}</strong><span>${esc(h.note || 'Updated by RPMS')} &bull; ${esc(fmt(h.created_at))} &bull; ${esc(h.actor || 'System')}</span></div></div>`).join('')
+            : empty('No progress history yet.');
+    }
+
     function renderDocs() {
         const filter = $('documentFilter').value;
-        const docs = myDocuments.filter(d => !filter || d.reviewStatus === filter || d.workflowState === filter);
+        const docs = documentHistory.records;
+        if (!loadErrors.documents) docPager.render(documentHistory);
         $('documentRows').innerHTML = loadErrors.documents ? `<tr><td colspan="6">${empty('Unable to load your documents. Please try again.')}</td></tr>` : docs.map(d => `<tr>
             <td><strong>${esc(d.originalName)}</strong>${Number(d.versionNo || 1) > 1 ? `<small> v${Number(d.versionNo)}</small>` : ''}</td>
             <td>${esc(d.documentType)}</td>
@@ -233,7 +246,7 @@ document.addEventListener('DOMContentLoaded', () => {
             <td>${PrismUI.badge(d.workflowState || d.reviewStatus, { small: true })}</td>
             <td>${esc(d.reviewRemarks || (d.workflowState === 'Submitted to RPMS' ? 'Formally submitted to RPMS' : 'No reviewer remarks yet'))}</td>
             <td><a class="action-btn" href="documents_api.php?action=file&id=${encodeURIComponent(d.id)}" target="_blank" rel="noopener">Preview</a>
-                <a class="action-btn" href="documents_api.php?action=file&download=1&id=${encodeURIComponent(d.id)}">Download</a></td>
+                <a class="action-btn" href="documents_api.php?action=file&download=1&id=${encodeURIComponent(d.id)}">Download</a>${d.actions?.submitToRpms ? `<button type="button" class="action-btn" data-formal-submit="${esc(d.id)}">Submit to RPMS</button>` : ''}</td>
         </tr>`).join('') || `<tr><td colspan="6">${empty('No documents match this view.')}</td></tr>`;
     }
 
@@ -271,6 +284,7 @@ document.addEventListener('DOMContentLoaded', () => {
         $('profileEmail').value = profile.email || '';
         $('profileRole').value = profile.role || '';
         $('profileId').value = profile.refId || '';
+        profileDirty.clean();
         $('submissionResearchTitle').value = myRecord?.research || '';
         $('submissionResearchGroup').value = myRecord?.groupId || '';
     }
@@ -278,13 +292,19 @@ document.addEventListener('DOMContentLoaded', () => {
     async function refreshAll() {
         const sequence = ++refreshSequence;
         ++notificationSequence;
+        ++documentSequence; ++historySequence;
         $('studentDashboardState').setAttribute('aria-busy', 'true');
         $('studentDashboardState').textContent = 'Loading your workspace...';
         const [progress, documents, notifications] = await Promise.all([loadProgress(), loadDocuments(), loadNotifications()]);
         if (sequence !== refreshSequence) return;
         myRecord = progress.record;
         myHistory = progress.history;
+        historyState = {total:progress.total??myHistory.length,page:progress.page??1};
+        historyPager.reset();
         myDocuments = documents.records;
+        documentHistory = documents;
+        dashboardDocumentTotal = documents.total ?? documents.records.length;
+        docPager.reset();
         myNotifications = notifications.records;
         notificationHistory = notifications;
         $('notificationList').setAttribute('aria-busy', 'false');
@@ -352,7 +372,8 @@ document.addEventListener('DOMContentLoaded', () => {
         formData.append('notes', notesParts.join(' | '));
 
         const submitBtn = event.target.querySelector('[type="submit"]');
-        submitBtn.disabled = true;
+        const release = PrismUI.busy(submitBtn,'Uploading...');
+        if(!release)return;
         try {
             const data = await PrismUI.request('documents_api.php?action=upload', { method: 'POST', body: formData });
             event.target.reset();
@@ -362,11 +383,40 @@ document.addEventListener('DOMContentLoaded', () => {
         } catch (e) {
             toast(e.message || 'Could not reach the server to submit this document.');
         } finally {
-            submitBtn.disabled = false;
+            release();
         }
     });
 
-    $('documentFilter').addEventListener('change', renderDocs);
+    async function refreshHistory() {
+        if(!myRecord)return;
+        const sequence = ++historySequence; historyPager.loading();
+        try {
+            const data = await PrismUI.request(`ierb_api.php?action=history&studentId=${encodeURIComponent(myRecord.id)}&page=${historyPager.page}`);
+            if(sequence!==historySequence)return;
+            myHistory=data.history;historyState={total:data.total??myHistory.length,page:data.page??1};loadErrors.history=false;renderHistory();
+        } catch(e){if(sequence!==historySequence)return;loadErrors.history=true;renderHistory();}
+    }
+    let documentSequence = 0;
+    async function refreshDocuments() {
+        const sequence = ++documentSequence; docPager.loading();
+        const filter = $('documentFilter').value;
+        const qs = new URLSearchParams({action:'list',page:docPager.page});
+        if (['Submitted','Under Review','Received','Verified','Approved','Denied','Resubmission Requested'].includes(filter)) qs.set('review',filter);
+        else if(filter) qs.set('state',filter);
+        try {
+            const data = await PrismUI.request('documents_api.php?'+qs);
+            if(sequence!==documentSequence)return;
+            documentHistory = {records:data.documents,total:data.total??data.documents.length,page:data.page??1};
+            loadErrors.documents = false; renderDocs();
+        } catch(e) { if(sequence!==documentSequence)return; loadErrors.documents = true; renderDocs(); docPager.error(); }
+    }
+    $('documentFilter').addEventListener('change', () => {docPager.reset();refreshDocuments();});
+    $('documentRows').addEventListener('click', e => {
+        const button = e.target.closest('[data-formal-submit]');
+        if(!button)return;
+        const doc = documentHistory.records.find(d=>String(d.id)===button.dataset.formalSubmit);
+        if(doc)PrismUI.runAction(button,'Submitting...',()=>PrismUI.submitToRpms(doc));
+    });
 
     $('notificationList').addEventListener('click', async e => {
         const btn = e.target.closest('[data-read]');
@@ -399,6 +449,8 @@ document.addEventListener('DOMContentLoaded', () => {
     // ------------------------------------------------------------------
     $('profileForm').addEventListener('submit', async event => {
         event.preventDefault();
+        const release = PrismUI.busy(event.currentTarget.querySelector('[type="submit"]'),'Saving...');
+        if(!release)return;
         try {
             const res = await fetch('profile_api.php?action=update_profile', {
                 method: 'POST', headers: { 'Content-Type': 'application/json' },
@@ -408,15 +460,18 @@ document.addEventListener('DOMContentLoaded', () => {
             if (!data.ok) { toast(data.message || 'Profile could not be updated.'); return; }
             $('sideName').textContent = $('profileName').value.trim();
             $('welcomeName').textContent = $('profileName').value.trim();
+            profileDirty.clean();
             toast('Profile updated.');
         } catch (_) {
             toast('Could not reach the server to update your profile.');
-        }
+        } finally {release();}
     });
 
     $('passwordForm').addEventListener('submit', async event => {
         event.preventDefault();
         if ($('newPassword').value !== $('confirmPassword').value) { toast('New passwords do not match.'); return; }
+        const release = PrismUI.busy(event.currentTarget.querySelector('[type="submit"]'),'Saving...');
+        if(!release)return;
         try {
             const res = await fetch('profile_api.php?action=change_password', {
                 method: 'POST', headers: { 'Content-Type': 'application/json' },
@@ -425,10 +480,11 @@ document.addEventListener('DOMContentLoaded', () => {
             const data = await res.json();
             if (!data.ok) { toast(data.message || 'Password could not be changed.'); return; }
             event.target.reset();
+            passwordDirty.clean();
             toast('Password changed successfully.');
         } catch (_) {
             toast('Could not reach the server to change your password.');
-        }
+        } finally {release();}
     });
 
     // Profile photo is a local-only preview in this build (not persisted server-side).

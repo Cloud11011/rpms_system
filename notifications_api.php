@@ -22,10 +22,14 @@ if ($action === 'list') {
                OR (n.recipient_type = "student" AND a.email = :self)';
         $params[':self'] = $user['email'];
     }
+    if (isset($_GET['preview']) && !empty($_GET['personal'])) {
+        $scope = ' FROM notifications n WHERE n.recipient_email = :personal';
+        $params = [':personal' => $user['email']];
+    }
     $count = $pdo->prepare('SELECT COUNT(*)' . $scope);
     $count->execute($params);
     $total = (int)$count->fetchColumn();
-    $limit = 10;
+    $limit = isset($_GET['preview']) ? max(1, min(5, (int)$_GET['preview'])) : 10;
     $pages = max(1, (int)ceil($total / $limit));
     $page = max(1, min($pages, (int)($_GET['page'] ?? 1)));
     $offset = ($page - 1) * $limit;

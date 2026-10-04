@@ -1,5 +1,5 @@
 <?php
-/** Best-effort plain-text extraction used before sending content to OpenRouter (or the local fallback). */
+/** Best-effort local plain-text extraction for approval-date detection. */
 if (!function_exists('extract_document_text')) {
     function extract_document_text(string $path): string
     {
@@ -48,10 +48,8 @@ if (!function_exists('extract_document_text')) {
  * March 2026...") rather than relying on when the student happened to
  * upload the file, which can lag behind by days or weeks.
  *
- * Tries the AI first (OpenRouter, same predefined-query approach as
- * summarization); falls back to a handful of regex date patterns if AI
- * is unavailable or returns nothing usable. Returns ['date' => 'YYYY-MM-DD'
- * or null, 'source' => 'ai'|'regex'|null].
+ * Uses local patterns only; uploads never send document text to an AI service.
+ * Returns ['date' => 'YYYY-MM-DD' or null, 'source' => 'regex' or null].
  */
 if (!function_exists('ai_detect_approval_date')) {
     function ai_detect_approval_date(string $text): array
@@ -60,32 +58,12 @@ if (!function_exists('ai_detect_approval_date')) {
             return ['date' => null, 'source' => null];
         }
 
-        if (openrouter_available()) {
-            $raw = openrouter_generate(
-                'You extract dates from university ethics-review documents for a Research Planning '
-                . 'and Monitoring Section. Find the actual approval/issuance date printed in the '
-                . 'document text (e.g. near words like "approved", "date approved", "issued on"). '
-                . 'Respond with ONLY the date in YYYY-MM-DD format, and nothing else. If no such '
-                . 'date is clearly present in the text, respond with exactly: NONE',
-                substr($text, 0, 6000)
-            );
-            if ($raw !== null) {
-                $raw = trim($raw);
-                if (preg_match('/^(\d{4})-(\d{2})-(\d{2})$/', $raw, $parts)
-                    && checkdate((int)$parts[2], (int)$parts[3], (int)$parts[1])) {
-                    return ['date' => $raw, 'source' => 'ai'];
-                }
-                // AI said NONE or returned something unparseable -- fall through to regex,
-                // rather than treating an unusable reply as "no date found" outright.
-            }
-        }
-
         $date = regex_detect_approval_date($text);
         return ['date' => $date, 'source' => $date !== null ? 'regex' : null];
     }
 }
 
-/** Local fallback: looks for common date phrasing near "approv*"/"issued" keywords. */
+/** Local detection: looks for common date phrasing near "approv*"/"issued" keywords. */
 if (!function_exists('regex_detect_approval_date')) {
     function regex_detect_approval_date(string $text): ?string
     {

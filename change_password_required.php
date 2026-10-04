@@ -2,7 +2,7 @@
 require __DIR__ . '/config.php';
 $user = current_user();
 if (!$user) {
-    header('Location: login.php');
+    header('Location: login.php' . (!empty($GLOBALS['prism_session_expired']) ? '?expired=1' : ''));
     exit;
 }
 // If they've already changed it (e.g. in another tab), send them on their way.
@@ -126,8 +126,15 @@ togglePassword('currentPassword', 'toggleCurrentPassword');
 togglePassword('newPassword', 'toggleNewPassword');
 togglePassword('confirmPassword', 'toggleConfirmNewPassword');
 
-document.getElementById('forcedPasswordForm').addEventListener('submit', async (event) => {
+const forcedForm = document.getElementById('forcedPasswordForm');
+let forcedDirty = false;
+const forcedBaseline = [...forcedForm.querySelectorAll('input')].map(input => [input, input.value]);
+forcedForm.addEventListener('input', () => { forcedDirty = forcedBaseline.some(([input, value]) => input.value !== value); });
+window.addEventListener('beforeunload', event => { if (forcedDirty) { event.preventDefault(); event.returnValue = ''; } });
+forcedForm.addEventListener('submit', async (event) => {
     event.preventDefault();
+    const submitButton = forcedForm.querySelector('[type="submit"]');
+    if (submitButton.disabled) return;
     const messageBox = document.getElementById('formMessage');
     messageBox.replaceChildren();
     const showError = message => {
@@ -142,6 +149,9 @@ document.getElementById('forcedPasswordForm').addEventListener('submit', async (
         showError('New passwords do not match.');
         return;
     }
+    const originalLabel = submitButton.textContent;
+    submitButton.disabled = true;
+    submitButton.textContent = 'Saving...';
     try {
         const res = await fetch('profile_api.php?action=change_password', {
             method: 'POST',
@@ -156,9 +166,13 @@ document.getElementById('forcedPasswordForm').addEventListener('submit', async (
             showError(data.message || 'Password could not be changed.');
             return;
         }
+        forcedDirty = false;
         window.location.href = <?php echo json_encode($landing); ?>;
     } catch (_) {
         showError('Could not reach the server. Please try again.');
+    } finally {
+        submitButton.disabled = false;
+        submitButton.textContent = originalLabel;
     }
 });
 </script>

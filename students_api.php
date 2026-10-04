@@ -1,5 +1,6 @@
 <?php
 require __DIR__ . '/config.php';
+require_once __DIR__ . '/includes/pagination.php';
 require_once __DIR__ . '/workflow.php';
 require_once __DIR__ . '/includes/academic_catalog.php';
 require_once __DIR__ . '/includes/research_groups.php';
@@ -56,18 +57,19 @@ function row_to_student(array $r): array
 // config.php (stage_progress_percent, STAGE_SEQUENCE, next_stage) so
 // every API agrees on the same numbers/order.
 
-if ($action === 'list') {
-    if ($user['role'] === 'adviser') {
-        $rows = $pdo->prepare('SELECT s.*, f.full_name AS adviser_name FROM students s
-            LEFT JOIN advisers f ON f.id = s.adviser_id WHERE f.email = :e ORDER BY s.full_name ASC');
-        $rows->execute([':e' => $user['email']]);
-        $rows = $rows->fetchAll();
-    } else {
-        // Admin sees every student, regardless of adviser (feature request: full admin access).
-        $rows = $pdo->query('SELECT s.*, f.full_name AS adviser_name FROM students s
-            LEFT JOIN advisers f ON f.id = s.adviser_id ORDER BY s.full_name ASC')->fetchAll();
+if ($action === 'list' || $action === 'options') {
+    [$scope, $params] = prism_student_scope($user);
+    if ($action === 'options') {
+        $stmt = $pdo->prepare('SELECT s.id, s.student_id, s.full_name, s.protocol_code, s.stage ' . $scope . ' ORDER BY s.full_name, s.id');
+        $stmt->execute($params);
+        json_out(['ok' => true, 'students' => array_map(fn($r) => ['id' => (int)$r['id'], 'studentId' => $r['student_id'],
+            'name' => $r['full_name'], 'protocolCode' => $r['protocol_code'], 'stage' => $r['stage']], $stmt->fetchAll())]);
     }
-    json_out(['ok' => true, 'students' => array_map('row_to_student', $rows)]);
+    $q = trim((string)($_GET['q'] ?? ''));
+    if ($q !== '') $scope .= ' AND ' . prism_search_clause(['s.full_name', 's.student_id', 's.email', 's.research_title', 's.research_group', 'f.full_name'], $q, $params);
+    $page = prism_page_query($pdo, 'SELECT s.*, f.full_name AS adviser_name', $scope, $params, 's.full_name ASC, s.id ASC', $_GET);
+    $rows = $page['rows']; unset($page['rows']);
+    json_out(['ok' => true, 'students' => array_map('row_to_student', $rows)] + $page);
 }
 
 if ($action === 'adviser_options') {
@@ -119,20 +121,23 @@ if ($action === 'save') {
         // something an adviser can self-assign while editing a record.
         $protocolCode = null;
         $isPrincipal = null;
+        $stage = 'Stage 1';
+        $status = 'On Track';
     }
 
     $validStages = STAGE_SEQUENCE;
     $validStatuses = ['On Track', 'Pending', 'Delayed'];
 
-    if ($studentId === '' || $name === '' || !filter_var($email, FILTER_VALIDATE_EMAIL)) {
+    $adviserEdit = $user['role'] === 'adviser' && $id > 0;
+    if (!$adviserEdit && ($studentId === '' || $name === '' || !filter_var($email, FILTER_VALIDATE_EMAIL))) {
         json_out(['ok' => false, 'message' => 'Student ID, name, and a valid email are required.'], 422);
     }
-    if (mb_strlen($studentId) > 100 || mb_strlen($name) > 190 || mb_strlen($research) > 255
+    if ((!$adviserEdit && (mb_strlen($studentId) > 100 || mb_strlen($name) > 190)) || mb_strlen($research) > 255
         || mb_strlen($group) > 190
         || ($protocolCode !== null && mb_strlen((string)$protocolCode) > 100)) {
         json_out(['ok' => false, 'message' => 'One or more fields are too long. Please shorten the entry and try again.'], 422);
     }
-    if (!is_allowed_email_domain($email)) {
+    if (!$adviserEdit && !is_allowed_email_domain($email)) {
         json_out(['ok' => false, 'message' => 'Only ' . allowed_email_domains_hint() . ' email addresses are allowed.'], 422);
     }
     if ($requirements !== null && mb_strlen($requirements) > 255) {
@@ -183,6 +188,14 @@ if ($action === 'save') {
                 $pdo->rollBack();
                 json_out(['ok' => false, 'message' => 'You can only manage students assigned to you.'], 403);
             }
+            if ($adviserEdit) {
+                $studentId = (string)$before['student_id'];
+                $name = (string)$before['full_name'];
+                $email = (string)$before['email'];
+                $adviserId = (int)$before['adviser_id'];
+                $stage = (string)$before['stage'];
+                $status = (string)$before['status'];
+            }
             // Advisers can't touch protocol code / PI status (set to null
             // above) -- keep whatever was already on the record.
             $finalProtocolCode = $protocolCode !== null ? ($protocolCode !== '' ? $protocolCode : null) : $before['protocol_code'];
@@ -209,7 +222,9 @@ if ($action === 'save') {
                 ':status' => $status, ':req' => $finalRequirements, ':pcode' => $finalProtocolCode,
                 ':pi' => $finalIsPrincipal, ':id' => $id]);
 
-            sync_student_login_identity($pdo, (string)$before['email'], $studentId, $name, $email);
+            if (!$adviserEdit) {
+                sync_student_login_identity($pdo, (string)$before['email'], $studentId, $name, $email);
+            }
 
             if ($before['stage'] !== $stage || $before['status'] !== $status) {
                 if (!override_reason_valid($reason)) {
@@ -335,6 +350,12 @@ if ($action === 'delete') {
         if (!$before) {
             $pdo->rollBack();
             json_out(['ok' => false, 'message' => 'Student record not found.'], 404);
+        }
+        $documents = $pdo->prepare('SELECT id FROM documents WHERE student_id = :id LIMIT 1');
+        $documents->execute([':id' => $id]);
+        if ($documents->fetch()) {
+            $pdo->rollBack();
+            json_out(['ok' => false, 'message' => 'This student cannot be deleted because document records already exist. Retain the student record to preserve submission history.'], 409);
         }
         $studentEmail = (string)$before['email'];
         $pdo->prepare('DELETE FROM students WHERE id = :id')->execute([':id' => $id]);

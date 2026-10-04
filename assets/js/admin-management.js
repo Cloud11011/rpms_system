@@ -74,17 +74,26 @@
     let records = [];
     let loadError = false;
 
+    const pager = PrismUI.recordPager(rowsEl.closest('table').parentElement, countEl, [searchInput], loadRecords);
+    const dirty = PrismUI.dirtyForm(form);
+    let requestSequence = 0;
     async function loadRecords() {
+        const request = ++requestSequence;
+        pager.loading();
         loadError = false;
         try {
-            const res = await fetch(`${apiUrl}?action=list`);
+            const res = await fetch(`${apiUrl}?action=list&page=${pager.page}&q=${encodeURIComponent(searchInput.value.trim())}`);
             const data = await res.json();
             const items = isAdviser ? data.advisers : data.students;
             if (!res.ok || !data.ok || !Array.isArray(items)) throw new Error('Could not load records.');
+            if (request !== requestSequence) return;
             records = items;
+            pager.render({ ...data, total: data.total ?? records.length });
         } catch (e) {
+            if (request !== requestSequence) return;
             records = [];
             loadError = true;
+            pager.error();
             PrismUI.toast(e.message || 'Could not load records.', 'error');
         }
         if (!isAdviser) {
@@ -120,8 +129,7 @@
 
     function render() {
         const term = (searchInput.value || '').trim().toLowerCase();
-        const filtered = records.filter(r => matchesSearch(r, term));
-        countEl.textContent = `${filtered.length} record${filtered.length === 1 ? '' : 's'}`;
+        const filtered = records;
         rowsEl.replaceChildren();
 
         if (loadError) {
@@ -198,7 +206,7 @@
             delBtn.className = 'icon-btn';
             delBtn.title = 'Delete';
             delBtn.innerHTML = '<i class="fa-solid fa-trash"></i>';
-            delBtn.addEventListener('click', () => deleteRecord(record));
+            delBtn.addEventListener('click', e => PrismUI.runAction(e.currentTarget,'Processing...',() => deleteRecord(record)));
             actions.append(editBtn);
             if (loggedInRole === 'admin') actions.append(delBtn);
             rowsEl.appendChild(tr);
@@ -231,11 +239,23 @@
                 if (piField) piField.checked = !!record.isPrincipalInvestigator;
             }
         }
+        if (!isAdviser && loggedInRole === 'adviser') {
+            [nameField, accountIdField, emailField].forEach(field => { field.readOnly = !!record; });
+            ['stage', 'recordStatus'].forEach(id => { const field = document.getElementById(id); field.disabled = true; field.closest('label').style.display = record ? '' : 'none'; });
+            document.getElementById('adviser').disabled = true;
+            adviserFieldLabel.style.display = record ? '' : 'none';
+            protocolCodeField.style.display = record ? '' : 'none';
+            principalField.style.display = record ? '' : 'none';
+            document.getElementById('protocolCode').readOnly = true;
+            document.getElementById('isPrincipal').disabled = true;
+        }
+        dirty.clean();
         modal.style.display = 'flex';
-        nameField.focus();
+        (nameField.readOnly ? document.getElementById('research') : nameField).focus();
     }
 
     function closeModal() {
+        dirty.clean();
         modal.style.display = 'none';
         returnFocus?.focus();
     }
@@ -270,49 +290,50 @@
         if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last.focus(); }
         else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first.focus(); }
     });
-    searchInput.addEventListener('input', render);
+    searchInput.addEventListener('input', () => { pager.reset(); loadRecords(); });
 
     form.addEventListener('submit', async event => {
         event.preventDefault();
-        const payload = {
-            id: idField.value ? Number(idField.value) : 0,
-            name: nameField.value.trim(),
-            email: emailField.value.trim(),
-        };
-        if (isAdviser) {
-            payload.employeeId = accountIdField.value.trim();
-            payload.department = document.getElementById('department').value.trim();
-            payload.status = document.getElementById('accountStatus').value;
-        } else {
-            payload.studentId = accountIdField.value.trim();
-            payload.research = document.getElementById('research').value.trim();
-            payload.group = document.getElementById('group').value.trim();
-            Object.assign(payload, academicFields.payload());
-            payload.requirements = document.getElementById('requirements').value.trim();
-            payload.adviserId = document.getElementById('adviser').value || null;
-            payload.stage = document.getElementById('stage').value;
-            payload.status = document.getElementById('recordStatus').value;
-            const pcField = document.getElementById('protocolCode');
-            const piField = document.getElementById('isPrincipal');
-            if (pcField) payload.protocolCode = pcField.value.trim();
-            if (piField) payload.isPrincipalInvestigator = piField.checked;
-        }
-
-        if (!isAdviser && payload.id) {
-            const original = records.find(r => r.id === payload.id);
-            if (original && (original.stage !== payload.stage || original.status !== payload.status)) {
-                const answer = await PrismUI.confirm({
-                    title:'Confirm progress change', icon:'fa-clipboard-check', confirmText:'Save changes',
-                    message:`Changing ${recordNameForMessage(original)}'s stage or status will be added to the official progress history and the student will be notified.`,
-                    reasonLabel:'Reason for this progress change', reasonRequired:true
-                });
-                if (!answer) return;
-                payload.reason = answer.reason;
-            }
-        }
         const submitBtn = form.querySelector('[type="submit"]');
-        submitBtn.disabled = true;
+        const release = PrismUI.busy(submitBtn,'Saving...');
+        if(!release)return;
         try {
+            const payload = {
+                id: idField.value ? Number(idField.value) : 0,
+                name: nameField.value.trim(),
+                email: emailField.value.trim(),
+            };
+            if (isAdviser) {
+                payload.employeeId = accountIdField.value.trim();
+                payload.department = document.getElementById('department').value.trim();
+                payload.status = document.getElementById('accountStatus').value;
+            } else {
+                payload.studentId = accountIdField.value.trim();
+                payload.research = document.getElementById('research').value.trim();
+                payload.group = document.getElementById('group').value.trim();
+                Object.assign(payload, academicFields.payload());
+                payload.requirements = document.getElementById('requirements').value.trim();
+                payload.adviserId = document.getElementById('adviser').value || null;
+                payload.stage = document.getElementById('stage').value;
+                payload.status = document.getElementById('recordStatus').value;
+                const pcField = document.getElementById('protocolCode');
+                const piField = document.getElementById('isPrincipal');
+                if (pcField) payload.protocolCode = pcField.value.trim();
+                if (piField) payload.isPrincipalInvestigator = piField.checked;
+            }
+
+            if (!isAdviser && loggedInRole === 'admin' && payload.id) {
+                const original = records.find(r => r.id === payload.id);
+                if (original && (original.stage !== payload.stage || original.status !== payload.status)) {
+                    const answer = await PrismUI.confirm({
+                        title:'Confirm progress change', icon:'fa-clipboard-check', confirmText:'Save changes',
+                        message:`Changing ${recordNameForMessage(original)}'s stage or status will be added to the official progress history and the student will be notified.`,
+                        reasonLabel:'Reason for this progress change', reasonRequired:true
+                    });
+                    if (!answer) return;
+                    payload.reason = answer.reason;
+                }
+            }
             const data = await PrismUI.postJson(`${apiUrl}?action=save`, payload);
             closeModal();
             await loadRecords();
@@ -332,7 +353,7 @@
         } catch (e) {
             PrismUI.toast(e.message, 'error');
         } finally {
-            submitBtn.disabled = false;
+            release();
         }
     });
 

@@ -1,6 +1,7 @@
 <?php
 
 require __DIR__ . '/config.php';
+require_once __DIR__ . '/includes/pagination.php';
 require_once __DIR__ . '/ai_helpers.php';
 require_once __DIR__ . '/workflow.php';
 
@@ -146,54 +147,44 @@ function doc_row(array $d, array $user, ?int $viewerAdviserId): array
 // list
 // ---------------------------------------------------------------------
 if ($action === 'list') {
-    $includeOld = ($_GET['includeOld'] ?? '') === '1';
-    $sql = 'SELECT d.*, s.course, s.protocol_code, s.adviser_id
-            FROM documents d LEFT JOIN students s ON s.id = d.student_id';
-    $where = [];
+    $scope = 'FROM documents d LEFT JOIN students s ON s.id = d.student_id WHERE 1=1';
     $params = [];
     if ($user['role'] === 'student') {
-        $where[] = 's.email = :e';
-        $params[':e'] = $user['email'];
+        $scope .= ' AND s.email = :e'; $params[':e'] = $user['email'];
     } elseif ($user['role'] === 'adviser') {
-        // Advisers only ever see documents of the students assigned to them.
-        $where[] = $viewerAdviserId !== null ? 's.adviser_id = :vad' : '1 = 0';
-        if ($viewerAdviserId !== null) {
-            $params[':vad'] = $viewerAdviserId;
-        }
+        $scope .= $viewerAdviserId !== null ? ' AND s.adviser_id = :vad' : ' AND 1=0';
+        if ($viewerAdviserId !== null) $params[':vad'] = $viewerAdviserId;
     }
-    if (!$includeOld) {
-        $where[] = 'd.is_current = 1';
-    }
-    if ($where) {
-        $sql .= ' WHERE ' . implode(' AND ', $where);
-    }
-    $stmt = $pdo->prepare($sql . ' ORDER BY d.uploaded_at DESC');
+    if (($_GET['includeOld'] ?? '') !== '1') $scope .= ' AND d.is_current = 1';
+    $stateSql = "CASE WHEN d.is_current = 0 THEN 'Superseded' WHEN d.review_status = 'Approved' THEN CASE WHEN d.rpms_submitted_at IS NOT NULL AND CAST(d.rpms_submitted_at AS CHAR) <> '' THEN 'Submitted to RPMS' ELSE 'Ready for Formal RPMS Submission' END WHEN d.review_status IN ('Denied', 'Resubmission Requested') THEN 'Needs Revision' ELSE 'Pending Adviser Review' END";
+    $stmt = $pdo->prepare('SELECT ' . $stateSql . ' AS state, COUNT(*) AS c ' . $scope . ' GROUP BY ' . $stateSql);
     $stmt->execute($params);
-    $rows = array_map(fn($d) => doc_row($d, $user, $viewerAdviserId), $stmt->fetchAll());
-
-    // Counts per workflow state (before optional filters) so the UI can show tabs/badges.
-    $counts = [];
-    foreach ($rows as $r) {
-        $counts[$r['workflowState']] = ($counts[$r['workflowState']] ?? 0) + 1;
+    $counts = array_map('intval', array_column($stmt->fetchAll(), 'c', 'state'));
+    $filterOptions = [];
+    foreach (['types' => 'd.document_type', 'courses' => 's.course', 'years' => 'SUBSTR(d.uploaded_at,1,4)'] as $key => $column) {
+        $stmt = $pdo->prepare('SELECT DISTINCT ' . $column . ' AS value ' . $scope . ' ORDER BY value');
+        $stmt->execute($params);
+        $filterOptions[$key] = array_values(array_filter(array_column($stmt->fetchAll(), 'value'), fn($v) => $v !== null && $v !== ''));
     }
-
-    // Optional server-side filters: q (text), state, stage, type.
-    $qText = mb_strtolower(trim((string)($_GET['q'] ?? '')));
-    $fState = trim((string)($_GET['state'] ?? ''));
-    $fStage = trim((string)($_GET['stage'] ?? ''));
-    $fType = trim((string)($_GET['type'] ?? ''));
-    $rows = array_values(array_filter($rows, function ($r) use ($qText, $fState, $fStage, $fType) {
-        if ($fState !== '' && $r['workflowState'] !== $fState) return false;
-        if ($fStage !== '' && $r['stage'] !== $fStage) return false;
-        if ($fType !== '' && $r['documentType'] !== $fType) return false;
-        if ($qText !== '') {
-            $hay = mb_strtolower(implode(' ', [$r['originalName'], $r['student'], $r['protocolCode'], $r['documentType'], $r['uploadedBy']]));
-            if (mb_strpos($hay, $qText) === false) return false;
+    $q = trim((string)($_GET['q'] ?? ''));
+    if ($q !== '') {
+        $search = prism_search_clause(['d.original_name', 'd.student_name', 's.protocol_code', 'd.document_type', 'd.uploaded_by', 'd.stage'], $q, $params);
+        foreach (STAGE_SEQUENCE as $i => $stage) {
+            if (mb_strpos(mb_strtolower(stage_label($stage)), mb_strtolower($q)) !== false) {
+                $search .= ' OR d.stage = :labelStage' . $i; $params[':labelStage' . $i] = $stage;
+            }
         }
-        return true;
-    }));
-
-    json_out(['ok' => true, 'documents' => $rows, 'counts' => $counts]);
+        $scope .= ' AND (' . $search . ')';
+    }
+    foreach (['review' => 'd.review_status', 'stage' => 'd.stage', 'type' => 'd.document_type', 'course' => 's.course', 'year' => 'SUBSTR(d.uploaded_at,1,4)', 'state' => $stateSql] as $key => $column) {
+        if (trim((string)($_GET[$key] ?? '')) !== '') {
+            $scope .= " AND ($column) = :$key"; $params[":$key"] = trim((string)$_GET[$key]);
+        }
+    }
+    $orders = ['oldest' => 'd.uploaded_at ASC, d.id ASC', 'name-asc' => 'd.original_name ASC, d.id ASC', 'name-desc' => 'd.original_name DESC, d.id ASC', 'student-asc' => 'd.student_name ASC, d.id ASC'];
+    $page = prism_page_query($pdo, 'SELECT d.*, s.course, s.protocol_code, s.adviser_id', $scope, $params, $orders[$_GET['sort'] ?? ''] ?? 'd.uploaded_at DESC, d.id DESC', $_GET);
+    $rows = array_map(fn($d) => doc_row($d, $user, $viewerAdviserId), $page['rows']); unset($page['rows']);
+    json_out(['ok' => true, 'documents' => $rows, 'counts' => $counts, 'filterOptions' => $filterOptions] + $page);
 }
 
 // ---------------------------------------------------------------------

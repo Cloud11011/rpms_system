@@ -294,10 +294,12 @@ function empty_doc_counts(): array
 }
 
 /** [student db id => counts] over CURRENT document versions only. */
-function student_document_counts(PDO $pdo): array
+function student_document_counts(PDO $pdo, ?array $studentIds = null): array
 {
+    if ($studentIds === []) return [];
+    $scope = $studentIds === null ? '' : ' AND student_id IN (' . implode(',', array_map('intval', $studentIds)) . ')';
     $rows = $pdo->query('SELECT student_id, review_status, rpms_submitted_at, is_current
-        FROM documents WHERE is_current = 1 AND student_id IS NOT NULL')->fetchAll();
+        FROM documents WHERE is_current = 1 AND student_id IS NOT NULL' . $scope)->fetchAll();
     $out = [];
     foreach ($rows as $r) {
         $sid = (int)$r['student_id'];
