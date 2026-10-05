@@ -1068,9 +1068,15 @@ button:disabled,
     border-right:2px solid var(--prism-info-bd);
   }
 }
-.prism-pagination { display:flex; flex-wrap:wrap; align-items:center; gap:6px; margin-top:16px; }
-.prism-pagination button { min-width:34px; min-height:36px; padding:6px 10px; border:1px solid var(--prism-border,#ccd3df); border-radius:6px; background:transparent; color:inherit; font:inherit; font-size:13px; cursor:pointer; }
+.prism-pagination { display:flex; flex-wrap:wrap; align-items:center; gap:8px; margin-top:16px; }
+.prism-pagination button {
+  box-sizing:border-box; display:inline-flex; align-items:center; justify-content:center;
+  min-width:40px; height:40px; margin:0; padding:0 12px;
+  border:1px solid var(--prism-border,#ccd3df); border-radius:6px;
+  background:transparent; color:inherit; font:inherit; font-size:13px; line-height:1; cursor:pointer;
+}
 .prism-pagination button[aria-current="page"] { background:#234f83; border-color:#234f83; color:#fff; font-weight:700; }
+.prism-pagination > span { display:inline-flex; align-items:center; justify-content:center; min-width:18px; height:40px; line-height:1; }
 .prism-pagination button:disabled { opacity:.45; cursor:default; }
 .prism-pagination button:focus-visible { outline:2px solid #508ee0; outline-offset:2px; }
 .adviser-group-chip { margin:2px 4px 2px 0; white-space:normal; overflow-wrap:anywhere; }
