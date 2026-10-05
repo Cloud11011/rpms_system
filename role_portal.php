@@ -53,7 +53,7 @@ $identityKey = hash('sha256', $portalRole . '|' . $userId);
 </nav>
 <div class="container">
 <main class="main-content portal-main">
-<header class="topbar"><div><h1 id="pageTitle">Dashboard</h1><p id="pageSubtitle">Your research and IERB progress at a glance.</p></div><button class="theme-toggle" id="themeToggle" title="Toggle theme"><i class="fa-solid fa-sun light-icon"></i><i class="fa-solid fa-moon dark-icon"></i></button></header>
+<header class="topbar"><div><h1 id="pageTitle">Dashboard</h1><p id="pageSubtitle">Your research and IERB progress at a glance.</p></div><div class="top-controls"><button type="button" class="theme-toggle" id="themeToggle" title="Toggle light or dark theme" aria-label="Toggle light or dark theme"><i class="fa-solid fa-sun light-icon" aria-hidden="true"></i><i class="fa-solid fa-moon dark-icon" aria-hidden="true"></i></button></div></header>
 <p id="studentDashboardState" class="student-dashboard-state" role="status" aria-live="polite" aria-busy="true">Loading your workspace...</p>
 <section class="portal-page active" data-section="dashboard">
 <div class="welcome-card"><div><span><?php echo htmlspecialchars($portalRole); ?> workspace</span><h2>Welcome back, <b id="welcomeName"><?php echo htmlspecialchars($userName); ?></b>!</h2><p class="dashboard-greeting-date"><i class="fa-regular fa-calendar"></i> <b id="dashboardCurrentDate"></b></p><p id="researchTitle">No research details yet.</p></div><button class="primary-btn" data-go="submit"><i class="fa-solid fa-upload"></i> Submit document</button></div>
@@ -76,7 +76,7 @@ $identityKey = hash('sha256', $portalRole . '|' . $userId);
 </section>
 <section class="portal-page" data-section="submit">
 <div data-prism-hint="student-submit"></div>
-<article class="panel form-panel"><h2>Submit a document</h2><p>Add the research details and upload a requirement for review. PDF, Word, text, RTF, ODT, PNG, or JPG up to 20 MB.</p><form id="submissionForm"><div class="form-grid"><label class="wide">Research title<input id="submissionResearchTitle" maxlength="250" required placeholder="Enter the complete research title"></label><label class="wide">Research group / members<input id="submissionResearchGroup" maxlength="250" required placeholder="Enter names or a group ID"></label><label>Document type<select id="documentType" required><option value="">Select a document type</option><option>Research Protocol</option><option>Informed Consent Form</option><option>Data Collection Instrument</option><option>Revision Letter</option><option>Ethics Training Certificate</option><option>Other Supporting Document</option></select></label><label>File<input id="documentFile" type="file" accept=".pdf,.doc,.docx,.txt,.rtf,.odt,.png,.jpg,.jpeg" required></label><label class="wide">Notes for reviewer<textarea id="documentNotes" rows="4" maxlength="500" placeholder="Optional context about this submission"></textarea></label></div><button class="primary-btn" type="submit"><i class="fa-solid fa-paper-plane"></i> Submit for review</button></form></article>
+<article class="panel form-panel"><h2>Submit a document</h2><p>Research and identity information comes from your student record. Upload a requirement for review. PDF, Word, text, RTF, ODT, PNG, or JPG up to 20 MB.</p><form id="submissionForm"><div class="form-grid"><label class="wide">Research title<input id="submissionResearchTitle" readonly placeholder="Not recorded"></label><label class="wide">Research group<input id="submissionResearchGroup" readonly placeholder="Not recorded"></label><label>Student ID<input id="submissionStudentId" readonly></label><label>Current stage<input id="submissionStage" readonly></label><label>Assigned adviser<input id="submissionAdviser" readonly></label><label>Protocol Code<input id="submissionProtocol" readonly></label><label>Document type<select id="documentType" required><option value="">Select a document type</option><option>Research Protocol</option><option>Informed Consent Form</option><option>Data Collection Instrument</option><option>Revision Letter</option><option>Ethics Training Certificate</option><option>Other Supporting Document</option></select></label><label>File<input id="documentFile" type="file" accept=".pdf,.doc,.docx,.txt,.rtf,.odt,.png,.jpg,.jpeg" required></label><label class="wide">Notes for reviewer<textarea id="documentNotes" rows="4" maxlength="500" placeholder="Optional context about this submission"></textarea></label></div><button class="primary-btn" type="submit"><i class="fa-solid fa-paper-plane"></i> Submit for review</button></form></article>
 </section>
 <section class="portal-page" data-section="documents">
 <div id="protocolCodeCard" class="protocol-code-card" hidden><i class="fa-solid fa-shield-halved"></i><div><span>Approved Protocol Code</span><strong id="protocolCodeValue"></strong></div></div>
@@ -89,11 +89,12 @@ $identityKey = hash('sha256', $portalRole . '|' . $userId);
 </section>
 <section class="portal-page" data-section="calendar">
 <div class="calendar-page portal-calendar">
-<div class="calendar-page-actions"><div><h2>Research Calendar</h2><p>Manage personal reminders for your research work. These reminders are stored only in this browser.</p></div><button class="today-button" id="todayButton">Today</button></div>
+<div class="calendar-page-actions"><div><h2>Research Calendar</h2><p>View official deadlines and manage personal reminders. Personal reminders are stored only in this browser.</p></div><button class="today-button" id="todayButton">Today</button></div>
 <div class="calendar-layout">
 <div class="full-calendar-card"><div class="calendar-toolbar"><button class="calendar-nav" id="previousMonth" aria-label="Previous month"><i class="fa-solid fa-chevron-left"></i></button><h2 id="monthLabel"></h2><button class="calendar-nav" id="nextMonth" aria-label="Next month"><i class="fa-solid fa-chevron-right"></i></button></div><div class="weekday-row" aria-hidden="true"><span>Sun</span><span>Mon</span><span>Tue</span><span>Wed</span><span>Thu</span><span>Fri</span><span>Sat</span></div><div class="month-grid" id="monthGrid"></div></div>
 <aside class="reminder-panel"><div class="panel-title"><div><span class="eyebrow">Selected date</span><h2 id="selectedDateLabel"></h2></div><span class="task-count" id="taskCount">0 events</span></div><form id="reminderForm" autocomplete="off"><input type="hidden" id="editingId"><label for="taskTitle">Personal reminder</label><input id="taskTitle" maxlength="120" placeholder="What needs to be done?" required><label for="taskTime">Time <span>(optional)</span></label><input id="taskTime" type="time"><label for="taskNotes">Notes <span>(optional)</span></label><textarea id="taskNotes" rows="3" maxlength="500" placeholder="Add helpful details..."></textarea><div class="form-actions"><button type="button" class="cancel-edit" id="cancelEdit" hidden>Cancel</button><button type="submit" class="save-task"><i class="fa-solid fa-plus"></i><span id="saveLabel">Add reminder</span></button></div></form><div class="task-list" id="taskList"></div></aside>
 </div>
+<section id="officialDeadlinePanel" class="reminder-panel official-deadline-panel" data-role="student"></section>
 </div>
 </section>
 <section class="portal-page" data-section="profile">
@@ -112,6 +113,7 @@ togglePassword('confirmPassword', 'togglePortalConfirmPassword');
 </script>
 <script src="<?php echo htmlspecialchars(asset_url('assets/js/prism-ui.js'), ENT_QUOTES, 'UTF-8'); ?>"></script>
 <script src="<?php echo htmlspecialchars(asset_url('assets/js/role-portal.js'), ENT_QUOTES, 'UTF-8'); ?>"></script>
+<script src="<?php echo htmlspecialchars(asset_url('assets/js/calendar-deadlines.js'), ENT_QUOTES, 'UTF-8'); ?>"></script>
 <script src="<?php echo htmlspecialchars(asset_url('assets/js/role-calendar.js'), ENT_QUOTES, 'UTF-8'); ?>"></script>
 </body>
 </html>

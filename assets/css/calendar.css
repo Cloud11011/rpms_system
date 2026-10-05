@@ -87,3 +87,25 @@
         .calendar-day { min-height: 58px; padding: 4px; }
         .day-tasks { display: none; }
     }
+
+/* Official records reuse the calendar's cards; personal reminder controls stay independent. */
+.official-deadline-panel { margin-top: 22px; min-width: 0; }
+.official-deadline-panel .panel-title { align-items: start; }
+.official-deadline-panel .panel-title p, .deadline-form small { color: var(--text-secondary); font-size: 12px; margin-top: 8px; }
+.deadline-create { margin: 18px 0; }
+.deadline-create summary { cursor: pointer; font-weight: 600; }
+.deadline-form { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 14px; margin: 16px 0; }
+.deadline-form label { display: grid; gap: 6px; min-width: 0; font-size: 12px; }
+.deadline-form input, .deadline-form select, .deadline-form textarea { width: 100%; min-width: 0; box-sizing: border-box; font: inherit; padding: 10px; border: 1px solid var(--border-color); border-radius: 8px; background: var(--bg-color); color: var(--text-primary); }
+.deadline-form select[multiple] { white-space: normal; }
+.deadline-form [hidden] { display: none; }
+.deadline-form .save-task { justify-self: start; }
+.deadline-manage { display: flex; align-items: center; gap: 8px; font-size: 12px; margin: 16px 0; }
+.deadline-manage input[type="checkbox"] { width: 18px; height: 18px; min-height: 18px; padding: 0; flex: 0 0 18px; }
+.official-deadline-panel h3 { margin-top: 12px; }
+.official-deadline { overflow-wrap: anywhere; }
+.official-marker { border-left: 2px solid var(--text-primary); }
+@media (max-width:600px) { .deadline-form { grid-template-columns: minmax(0,1fr); } .official-deadline-panel { padding: 14px; } .official-marker { padding: 3px 1px; font-size: 8px; } }
+
+/* Keep official dates discoverable when mobile hides personal text previews. */
+@media (max-width:600px) { .calendar-day.has-official-deadline::after { content: ""; position: absolute; top: 4px; right: 4px; width: 6px; height: 6px; border-radius: 50%; background: var(--accent-pink); } }

@@ -6,12 +6,6 @@ document.addEventListener('DOMContentLoaded', () => {
             try { localStorage.setItem('prismTheme', isDark ? 'dark' : 'light'); } catch (_) {}
         });
     }
-    const profileToggle = document.getElementById('profileToggle');
-    const profileMenu = document.getElementById('profileMenu');
-    if (profileToggle && profileMenu) {
-        profileToggle.addEventListener('click', e => { e.stopPropagation(); profileMenu.classList.toggle('show'); });
-        document.addEventListener('click', () => profileMenu.classList.remove('show'));
-    }
 
     const esc = v => String(v ?? '').replace(/[&<>'"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' })[c]);
     function downloadReport(id) {
@@ -32,47 +26,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
     document.getElementById('openStudentReport').addEventListener('click', async () => { await loadStudentOptions(); openModal(studentModal); });
 
-
-    async function generateAiReport(mode, button) {
-        if (button.disabled) return;
-        const originalHTML = button.innerHTML;
-        button.disabled = true;
-        button.textContent = 'Generating...';
-        button.classList.add('loading');
-        const note = document.getElementById('reportAiNote');
-        note.textContent = '';
-        note.className = 'report-ai-note';
-        try {
-            const res = await fetch('reports_api.php?action=ai_report', {
-                method: 'POST', headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ mode }),
-            });
-            const data = await res.json();
-            if (!data.ok) {
-                note.textContent = data.message || 'The report could not be generated.';
-                note.classList.add('warn');
-                return;
-            }
-            if (!data.aiUsed) {
-                note.textContent = 'AI service was unavailable, so this report was generated using the built-in local summarizer instead. It is ready to review and download.';
-                note.classList.add('warn');
-            } else {
-                note.textContent = 'Report generated using AI. Review it before sharing officially.';
-            }
-            await loadReports();
-            downloadReport(data.report.id);
-        } catch (_) {
-            note.textContent = 'Could not reach the server to generate this report.';
-            note.classList.add('warn');
-        } finally {
-            button.disabled = false;
-            button.classList.remove('loading');
-            button.innerHTML = originalHTML;
-        }
-    }
-
-    document.getElementById('generateSummarizedReport').addEventListener('click', e => generateAiReport('summary', e.currentTarget));
-    document.getElementById('generateFullReport').addEventListener('click', e => generateAiReport('full', e.currentTarget));
 
     async function loadStudentOptions() {
         const select = document.getElementById('reportStudent');
@@ -146,10 +99,13 @@ document.addEventListener('DOMContentLoaded', () => {
             download.title = 'Download';
             download.href = `reports_api.php?action=file&download=1&id=${encodeURIComponent(r.id)}`;
             download.innerHTML = '<i class="fa-solid fa-download"></i>';
-            actions.append(view, download);
+            if (r.requiresRegeneration) {
+                const warning = document.createElement('span');warning.textContent='Regenerate with Student IDs';actions.append(warning);
+            } else actions.append(view, download);
             const del = document.createElement('button');
-            del.className = 'icon-btn';
-            del.title = 'Delete';
+            del.className = 'icon-btn delete';
+            del.title = 'Delete report';
+            del.setAttribute('aria-label', 'Delete report');
             del.innerHTML = '<i class="fa-solid fa-trash"></i>';
             del.addEventListener('click', async () => {
                 const answer = await PrismUI.confirm({

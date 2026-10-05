@@ -27,10 +27,9 @@ $isAdmin = $authUser['role'] === 'admin';
 <div class="container">
 <aside class="sidebar prism-sidebar">
 <?php $prismCurrentPage = 'account.php'; require __DIR__ . '/includes/prism-navigation.php'; ?>
-<div class="sidebar-bottom"><div class="sidebar-profile"><img src="assets/images/default-avatar.svg" alt="Profile"><div class="profile-info"><h4 id="sideAccountName"><?php echo htmlspecialchars($user_name,ENT_QUOTES,'UTF-8'); ?></h4><p><?php echo htmlspecialchars($user_role,ENT_QUOTES,'UTF-8'); ?></p></div></div><a href="logout.php" class="logout-btn"><i class="fa-solid fa-right-from-bracket"></i> Log Out</a></div>
 </aside>
 <main class="main-content management-page">
-<header class="topbar"><div><h1>Account & Activity</h1><p>Manage your PRISM account and review the audit activity available to your role.</p></div><div class="theme-toggle" id="themeToggle" title="Toggle light or dark theme"><i class="fa-solid fa-sun light-icon"></i><i class="fa-solid fa-moon dark-icon"></i></div></header>
+<header class="topbar"><div><h1>Account & Activity</h1><p>Manage your PRISM account and review the audit activity available to your role.</p></div><div class="top-controls"><button type="button" class="theme-toggle" id="themeToggle" title="Toggle light or dark theme" aria-label="Toggle light or dark theme"><i class="fa-solid fa-sun light-icon" aria-hidden="true"></i><i class="fa-solid fa-moon dark-icon" aria-hidden="true"></i></button></div></header>
 <div class="account-grid">
 <section class="management-card account-card" id="profile"><div class="management-card-head"><div><h2>Profile</h2><p>Your account identity in PRISM.</p></div></div>
 <form id="accountProfileForm" class="account-form">

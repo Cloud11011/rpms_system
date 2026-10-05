@@ -40,7 +40,7 @@ document.addEventListener('DOMContentLoaded', () => {
             items.forEach(item => {
                 const card = document.createElement('a');
                 card.className = 'history-item report-history-link';
-                card.href = 'reports_api.php?action=file&id=' + encodeURIComponent(item.id);
+                card.href = item.requiresRegeneration ? 'reports.php' : 'reports_api.php?action=file&id=' + encodeURIComponent(item.id);
                 card.target = '_blank';
                 card.rel = 'noopener noreferrer';
                 card.title = 'Open PDF report in a new tab';
@@ -53,7 +53,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 reportMeta.textContent = when + ' \u2022 by ' + (item.generated_by || 'Unknown author');
                 const openLabel = document.createElement('span');
                 openLabel.className = 'report-history-action';
-                openLabel.textContent = 'Open PDF in a new tab';
+                openLabel.textContent = item.requiresRegeneration ? 'Regenerate with Student IDs' : 'Open PDF in a new tab';
                 card.append(reportType, reportMeta, openLabel);
                 list.appendChild(card);
             });

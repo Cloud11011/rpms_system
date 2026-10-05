@@ -8,7 +8,7 @@ $user_email = $authUser['email'];
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width,initial-scale=1">
-    <title>Notifications | PRISM Admin</title>
+    <title>Notifications | PRISM</title>
     <script>try{if(localStorage.getItem('prismTheme')==='dark')document.documentElement.classList.add('dark-theme')}catch(_){}</script>
     <link rel="icon" href="assets/images/prismicon.png">
     <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600;700&display=swap" rel="stylesheet">
@@ -28,8 +28,8 @@ $user_email = $authUser['email'];
 </aside>
     <main class="main-content management-page">
         <header class="topbar">
-            <div><h1>Notification Center</h1><p>Send updates, schedule automated reminders, and review notification history.</p></div>
-            <div class="theme-toggle" id="themeToggle"><i class="fa-solid fa-sun light-icon"></i><i class="fa-solid fa-moon dark-icon"></i></div>
+            <div><h1>Notifications</h1><p>Send updates, schedule automated reminders, and review notification history.</p></div>
+            <div class="top-controls"><button type="button" class="theme-toggle" id="themeToggle" title="Toggle light or dark theme" aria-label="Toggle light or dark theme"><i class="fa-solid fa-sun light-icon" aria-hidden="true"></i><i class="fa-solid fa-moon dark-icon" aria-hidden="true"></i></button></div>
         </header>
 
         <div class="admin-tool-grid">

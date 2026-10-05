@@ -121,6 +121,7 @@ $landing = $user['role'] === 'admin' ? 'dashboard.php' : ($user['role'] === 'adv
 </div>
 
 <script src="<?php echo htmlspecialchars(asset_url('assets/js/script.js'), ENT_QUOTES, 'UTF-8'); ?>"></script>
+<script src="<?php echo htmlspecialchars(asset_url('assets/js/prism-ui.js'), ENT_QUOTES, 'UTF-8'); ?>"></script>
 <script>
 togglePassword('currentPassword', 'toggleCurrentPassword');
 togglePassword('newPassword', 'toggleNewPassword');
@@ -153,7 +154,7 @@ forcedForm.addEventListener('submit', async (event) => {
     submitButton.disabled = true;
     submitButton.textContent = 'Saving...';
     try {
-        const res = await fetch('profile_api.php?action=change_password', {
+        const data = await PrismUI.request('profile_api.php?action=change_password', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
@@ -161,15 +162,14 @@ forcedForm.addEventListener('submit', async (event) => {
                 newPassword,
             }),
         });
-        const data = await res.json();
         if (!data.ok) {
             showError(data.message || 'Password could not be changed.');
             return;
         }
         forcedDirty = false;
         window.location.href = <?php echo json_encode($landing); ?>;
-    } catch (_) {
-        showError('Could not reach the server. Please try again.');
+    } catch (error) {
+        showError(error.message || 'Could not reach the server. Please try again.');
     } finally {
         submitButton.disabled = false;
         submitButton.textContent = originalLabel;

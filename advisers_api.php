@@ -1,7 +1,9 @@
 <?php
 require __DIR__ . '/config.php';
 require_once __DIR__ . '/includes/pagination.php';
+require_once __DIR__ . '/includes/record_filters.php';
 require_once __DIR__ . '/includes/research_groups.php';
+require_once __DIR__ . '/includes/academic_catalog.php';
 $user = api_require_login('admin');
 $pdo = db();
 $action = $_GET['action'] ?? 'list';
@@ -30,7 +32,27 @@ function row_to_adviser(array $r, array $groups = []): array
 
 if ($action === 'list') {
     $scope = 'FROM advisers a WHERE 1=1'; $params = [];
-    $q = trim((string)($_GET['q'] ?? ''));
+    $departments = $pdo->query('SELECT DISTINCT department FROM advisers ORDER BY department')->fetchAll(PDO::FETCH_COLUMN);
+    $filterOptions = ['department'=>array_map(fn($v)=>['value'=>trim((string)$v) === '' ? '__blank__' : $v,'label'=>trim((string)$v) === '' ? 'Not recorded' : $v], $departments),
+        'status'=>[['value'=>'Active','label'=>'Active'],['value'=>'Inactive','label'=>'Inactive']],
+        'group'=>array_map(fn($v)=>['value'=>$v,'label'=>$v],research_group_options($pdo,$user))];
+    foreach (['department','status','group'] as $key) {
+        $value = $_GET[$key] ?? '';
+        if (!is_string($value) || ($value !== '' && !in_array($value,array_column($filterOptions[$key],'value'),true))) json_out(['ok'=>false,'message'=>'Invalid adviser filter.'],422);
+        if ($value === '') continue;
+        if ($key === 'group') {
+            $matchingIds = [];
+            foreach (research_groups_by_adviser($pdo) as $adviserId => $groups) {
+                if (in_array($value, $groups, true)) $matchingIds[] = (int)$adviserId;
+            }
+            $scope .= ' AND a.id IN (' . ($matchingIds ? implode(',', $matchingIds) : '0') . ')';
+            continue;
+        }
+        elseif ($value === '__blank__') { $scope .= " AND (a.$key IS NULL OR TRIM(a.$key)='')"; continue; }
+        else $scope .= " AND a.$key=:filter_$key";
+        $params[':filter_'.$key]=$value;
+    }
+    $q = prism_record_search($_GET);
     if ($q !== '') {
         $search = prism_search_clause(['a.full_name', 'a.employee_id', 'a.email', 'a.department'], $q, $params);
         $matchingGroups = array_values(array_filter(research_group_options($pdo, $user), fn($group) => mb_strpos(mb_strtolower($group), mb_strtolower($q)) !== false));
@@ -41,16 +63,16 @@ if ($action === 'list') {
         }
         $scope .= ' AND (' . $search . ')';
     }
-    $page = prism_page_query($pdo, 'SELECT a.*', $scope, $params, 'a.full_name ASC, a.id ASC', $_GET);
+    $page = prism_page_query($pdo, 'SELECT a.*', $scope, $params, prism_record_order($_GET,['name'=>'a.full_name','employeeId'=>'a.employee_id','email'=>'a.email','department'=>'a.department','status'=>'a.status'],'name','a.id ASC'), $_GET);
     $rows = $page['rows']; unset($page['rows']);
     $groups = research_groups_by_adviser($pdo, array_column($rows, 'id'));
-    json_out(['ok' => true, 'advisers' => array_map(fn($r) => row_to_adviser($r, $groups[(int)$r['id']] ?? []), $rows)] + $page);
+    json_out(['ok' => true, 'advisers' => array_map(fn($r) => row_to_adviser($r, $groups[(int)$r['id']] ?? []), $rows), 'filterOptions'=>$filterOptions] + $page);
 }
 
 $data = json_body();
 
 if ($action === 'save') {
-    $id = (int)($data['id'] ?? 0);
+    $id = max(0, (int)($data['id'] ?? 0));
     $employeeId = trim((string)($data['employeeId'] ?? ''));
     $name = trim((string)($data['name'] ?? ''));
     $email = strtolower(trim((string)($data['email'] ?? '')));
@@ -69,6 +91,7 @@ if ($action === 'save') {
     if (!in_array($status, ['Active', 'Inactive'], true)) {
         json_out(['ok' => false, 'message' => 'Invalid adviser account status.'], 422);
     }
+    if ($id === 0 && !in_array($department, array_column(academic_catalog()['units'], 'label'), true)) json_out(['ok'=>false,'message'=>'Choose an academic unit from the catalog.'],422);
     if ($id === 0) {
         $collision = $pdo->prepare('SELECT role FROM users WHERE (email = :e OR username = :u) AND role != "adviser"');
         $collision->execute([':e' => $email, ':u' => $employeeId]);
@@ -83,12 +106,18 @@ if ($action === 'save') {
     try {
         $pdo->beginTransaction();
         if ($id > 0) {
-            $beforeStmt = $pdo->prepare('SELECT email FROM advisers WHERE id = :id FOR UPDATE');
+            $beforeStmt = $pdo->prepare('SELECT email, department FROM advisers WHERE id = :id FOR UPDATE');
             $beforeStmt->execute([':id' => $id]);
             $before = $beforeStmt->fetch();
             if (!$before) {
                 $pdo->rollBack();
                 json_out(['ok' => false, 'message' => 'Adviser record not found.'], 404);
+            }
+            if (!in_array($department, array_column(academic_catalog()['units'], 'label'), true)) {
+                if ($department !== trim((string)$before['department'])) {
+                    $pdo->rollBack(); json_out(['ok'=>false,'message'=>'Choose an academic unit from the catalog.'],422);
+                }
+                $department = (string)$before['department'];
             }
             $oldEmail = (string)$before['email'];
             $pdo->prepare('UPDATE advisers SET employee_id=:eid, full_name=:name, email=:email,
@@ -167,7 +196,7 @@ if ($action === 'delete') {
         $assigned = $pdo->prepare('SELECT id FROM students WHERE adviser_id = :id ORDER BY id FOR UPDATE');
         $assigned->execute([':id' => $id]);
         $assigned->fetchAll();
-        $row = $pdo->prepare('SELECT email FROM advisers WHERE id = :id FOR UPDATE');
+        $row = $pdo->prepare('SELECT email, department FROM advisers WHERE id = :id FOR UPDATE');
         $row->execute([':id' => $id]);
         $before = $row->fetch();
         if (!$before) {

@@ -8,12 +8,6 @@
             try { localStorage.setItem('prismTheme', isDark ? 'dark' : 'light'); } catch (_) {}
         });
     }
-    const profileToggle = document.getElementById('profileToggle');
-    const profileMenu = document.getElementById('profileMenu');
-    if (profileToggle && profileMenu) {
-        profileToggle.addEventListener('click', e => { e.stopPropagation(); profileMenu.classList.toggle('show'); });
-        document.addEventListener('click', () => profileMenu.classList.remove('show'));
-    }
 
     const isAdmin = document.body.dataset.role === 'admin';
     const escapeHtml = value => String(value ?? '').replace(/[&<>'"]/g, char => ({
@@ -32,7 +26,14 @@
     if (!isAdmin && addBtn) addBtn.style.display = 'none';
 
     let records = [], overview = [];
-    const pager = PrismUI.recordPager(tableBody.closest('table').parentElement, recordCount, [ierbSearch, stageFilter, statusFilter], loadRecords);
+    const definitions = [['academicUnitKey','Academic units'],['programKey','Programs'],['academicYear','Academic years'],['yearLevel','Year levels'],['group','Research groups'],['protocol','Protocol status'],['stage','Stages',stageFilter],['status','Statuses',statusFilter]];
+    if (isAdmin) definitions.push(['adviserId','Research advisers']);
+    const filters = PrismUI.recordFilters(document.getElementById('ierbMoreFilters'), definitions);
+    const sort = PrismUI.recordFilters(document.getElementById('ierbMoreFilters'), [['sortBy','Sort by'],['direction','Direction']]);
+    sort.update({sortBy:[['name','Name'],['studentId','Student ID'],['stage','IERB stage'],['status','Status'],['academicYear','Academic year'],['group','Research group']].map(([value,label])=>({value,label})),direction:[{value:'ASC',label:'Ascending'},{value:'DESC',label:'Descending'}]});
+    sort.controls[0].options[0].textContent='Name (default)';sort.controls[1].options[0].textContent='Ascending (default)';
+    const filterControls = [...filters.controls,...sort.controls];
+    const pager = PrismUI.recordPager(tableBody.closest('table').parentElement, recordCount, [ierbSearch,...filterControls], loadRecords);
     let recordRequestSequence = 0;
     let loadError = '';
     const STAGES = ['Stage 1', 'Stage 2', 'Stage 3', 'Stage 4', 'Stage 5', 'Completed'];
@@ -47,16 +48,18 @@
     });
 
     async function loadRecords() {
+        searchReload.cancel();
         const requestSequence = ++recordRequestSequence;
         loadError = '';
         pager.loading();
         stageChart.setAttribute('aria-busy', 'true');
         tableBody.setAttribute('aria-busy', 'true');
         try {
-            const data = await PrismUI.request('ierb_api.php?' + new URLSearchParams({ action: 'list', page: pager.page, q: ierbSearch.value.trim(), stage: stageFilter.value, status: statusFilter.value }));
+            const data = await PrismUI.request('ierb_api.php?' + new URLSearchParams({ action: 'list', page: pager.page, q: ierbSearch.value.trim(), ...filters.query(), ...sort.query() }));
             if (requestSequence !== recordRequestSequence) return;
             if (!Array.isArray(data.records)) throw new Error('The server returned an invalid record list.');
             records = data.records;
+            filters.update(data.filterOptions);
             overview = data.overview || records.map(r => ({ stage: r.stage, status: r.status, c: 1 }));
             pager.render({ ...data, total: data.total ?? records.length });
         } catch (e) {
@@ -205,9 +208,9 @@
         });
     }
 
-    ierbSearch.addEventListener('input', () => { pager.reset(); loadRecords(); });
-    stageFilter.addEventListener('change', () => { pager.reset(); loadRecords(); });
-    statusFilter.addEventListener('change', () => { pager.reset(); loadRecords(); });
+    const searchReload = PrismUI.debounce(() => { pager.reset(); loadRecords(); });
+    ierbSearch.addEventListener('input', () => { ++recordRequestSequence; pager.reset(); searchReload(); });
+    filterControls.forEach(control=>control.addEventListener('change',()=>{pager.reset();loadRecords();}));
 
     // --- Entry add/edit modal ---
     const entryModal = document.getElementById('ierbEntryModal');

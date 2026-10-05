@@ -1,6 +1,7 @@
 <?php
 require __DIR__ . '/config.php';
 require_once __DIR__ . '/includes/pagination.php';
+require_once __DIR__ . '/includes/record_filters.php';
 require_once __DIR__ . '/workflow.php';
 require_once __DIR__ . '/includes/academic_catalog.php';
 require_once __DIR__ . '/includes/research_groups.php';
@@ -65,11 +66,14 @@ if ($action === 'list' || $action === 'options') {
         json_out(['ok' => true, 'students' => array_map(fn($r) => ['id' => (int)$r['id'], 'studentId' => $r['student_id'],
             'name' => $r['full_name'], 'protocolCode' => $r['protocol_code'], 'stage' => $r['stage']], $stmt->fetchAll())]);
     }
-    $q = trim((string)($_GET['q'] ?? ''));
+    $filterOptions = prism_student_filter_options($pdo, $scope, $params);
+    prism_apply_student_filters($scope, $params, $_GET, $filterOptions);
+    $q = prism_record_search($_GET);
     if ($q !== '') $scope .= ' AND ' . prism_search_clause(['s.full_name', 's.student_id', 's.email', 's.research_title', 's.research_group', 'f.full_name'], $q, $params);
-    $page = prism_page_query($pdo, 'SELECT s.*, f.full_name AS adviser_name', $scope, $params, 's.full_name ASC, s.id ASC', $_GET);
+    $order = prism_record_order($_GET, ['name'=>'s.full_name','studentId'=>'s.student_id','email'=>'s.email','group'=>'s.research_group','adviser'=>'f.full_name','stage'=>'s.stage','status'=>'s.status','academicYear'=>'s.academic_year'], 'name', 's.id ASC');
+    $page = prism_page_query($pdo, 'SELECT s.*, f.full_name AS adviser_name', $scope, $params, $order, $_GET);
     $rows = $page['rows']; unset($page['rows']);
-    json_out(['ok' => true, 'students' => array_map('row_to_student', $rows)] + $page);
+    json_out(['ok' => true, 'students' => array_map('row_to_student', $rows), 'filterOptions'=>$filterOptions] + $page);
 }
 
 if ($action === 'adviser_options') {

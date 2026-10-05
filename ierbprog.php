@@ -30,16 +30,12 @@ $profile_img = 'assets/images/default-avatar.svg';
 <div class="container">
     <aside class="sidebar prism-sidebar">
 <?php $prismCurrentPage = 'ierbprog.php'; require __DIR__ . '/includes/prism-navigation.php'; ?>
-<div class="sidebar-bottom"><div class="profile-dropdown-wrapper">
-            <div class="sidebar-profile" id="profileToggle"><img src="<?php echo htmlspecialchars($profile_img, ENT_QUOTES, 'UTF-8'); ?>" alt="Profile picture"><div class="profile-info"><h4><?php echo htmlspecialchars($user_name, ENT_QUOTES, 'UTF-8'); ?></h4><p><?php echo htmlspecialchars($user_role, ENT_QUOTES, 'UTF-8'); ?></p></div><i class="fa-solid fa-chevron-down dropdown-arrow"></i></div>
-            <div class="profile-menu" id="profileMenu"><a href="account.php#profile"><i class="fa-solid fa-user-gear"></i> Profile</a><a href="account.php#security"><i class="fa-solid fa-gear"></i> Settings</a><a href="account.php#activity"><i class="fa-solid fa-sliders"></i> Activity Logs</a><hr><a href="logout.php" class="logout-btn"><i class="fa-solid fa-right-from-bracket"></i> Log Out</a></div>
-        </div></div>
-    </aside>
+</aside>
 
     <main class="main-content ierb-page">
         <header class="topbar">
             <div class="ierb-heading"><h1>IERB Progress</h1><p>Monitor research submissions, requirements, stages, and follow-ups.</p></div>
-            <div class="top-controls"><div class="theme-toggle" id="themeToggle" title="Toggle light or dark theme"><i class="fa-solid fa-sun light-icon"></i><i class="fa-solid fa-moon dark-icon"></i></div></div>
+            <div class="top-controls"><button type="button" class="theme-toggle" id="themeToggle" title="Toggle light or dark theme" aria-label="Toggle light or dark theme"><i class="fa-solid fa-sun light-icon" aria-hidden="true"></i><i class="fa-solid fa-moon dark-icon" aria-hidden="true"></i></button></div>
         </header>
 
         <section class="progress-overview" aria-labelledby="progressOverviewTitle">
@@ -56,6 +52,7 @@ $profile_img = 'assets/images/default-avatar.svg';
             <?php if ($authUser['role'] === 'admin'): ?><div class="ierb-add-field"><span>New record</span><button type="button" class="ierb-add-link" id="addIerbEntry"><i class="fa-solid fa-plus"></i> Add IERB Entry</button></div><?php endif; ?>
         </section>
 
+        <div id="ierbMoreFilters" class="prism-record-filters" aria-label="Academic and research filters"></div>
         <section class="ierb-directory" aria-labelledby="ierbTableTitle">
             <div class="ierb-table-heading"><div><h2 id="ierbTableTitle">Detailed Progress</h2><p id="ierbRecordCount">0 records</p></div></div>
             <div class="ierb-table-wrap"><table class="ierb-table">

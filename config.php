@@ -181,7 +181,7 @@ function db(): PDO
 // Bump this whenever you add anything to migrate(). migrate() is skipped entirely on requests
 // where the stored version already matches, instead of running ~45 INFORMATION_SCHEMA/ALTER
 // checks on every single request.
-const SCHEMA_VERSION = 6;
+const SCHEMA_VERSION = 7;
 
 function migrate(PDO $pdo): void
 {
@@ -194,11 +194,15 @@ function migrate(PDO $pdo): void
     if ($stored !== false && (int)$stored >= SCHEMA_VERSION) {
         return;
     }
-    if (PHP_SAPI !== 'cli' || getenv('PRISM_ALLOW_SCHEMA_V6_MIGRATION') !== '1') {
+    // Keep the existing explicitly authorized v6 command compatible; v7 needs its own opt-in.
+    $targetVersion = getenv('PRISM_ALLOW_SCHEMA_V7_MIGRATION') === '1' ? 7 : 6;
+    if (PHP_SAPI !== 'cli' || (getenv('PRISM_ALLOW_SCHEMA_V7_MIGRATION') !== '1'
+        && getenv('PRISM_ALLOW_SCHEMA_V6_MIGRATION') !== '1')) {
         throw new RuntimeException(
-            'PRISM schema v6 migration is pending. Back up the database and verify a disposable copy before running the explicitly enabled CLI migration.'
+            'PRISM schema migration is pending. Back up the database and verify a disposable copy before running the explicitly enabled CLI migration.'
         );
     }
+    if ($stored !== false && (int)$stored >= $targetVersion) return;
     // Two authorized migration processes must not both try to ALTER the same table.
     $locked = (int)$pdo->query("SELECT GET_LOCK('prism_migrate', 30)")->fetchColumn() === 1;
     if (!$locked) {
@@ -209,19 +213,66 @@ function migrate(PDO $pdo): void
             k VARCHAR(40) PRIMARY KEY, v VARCHAR(40) NOT NULL
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;");
         $stored = $pdo->query("SELECT v FROM schema_meta WHERE k = 'schema_version'")->fetchColumn();
-        if ($stored === false || (int)$stored < SCHEMA_VERSION) {
+        if ($stored === false || (int)$stored < $targetVersion) {
             // ALTER TABLE may commit implicitly. Every step must remain safe to retry.
             if ($stored === false || (int)$stored < 5) {
                 migrate_schema($pdo); // Retain the v5 academic/reset-key upgrade for older databases.
             }
-            migrate_schema_v6($pdo);
+            if ($stored === false || (int)$stored < 6) migrate_schema_v6($pdo);
+            if ($targetVersion >= 7) migrate_schema_v7($pdo);
             $pdo->prepare("REPLACE INTO schema_meta (k, v) VALUES ('schema_version', :v)")
-                ->execute([':v' => (string)SCHEMA_VERSION]);
+                ->execute([':v' => (string)$targetVersion]);
         }
     } finally {
         if ($locked) {
             $pdo->query("SELECT RELEASE_LOCK('prism_migrate')");
         }
+    }
+}
+
+/** Add official deadlines without changing any existing table or record. */
+function migrate_schema_v7(PDO $pdo): void
+{
+    $pdo->exec("CREATE TABLE IF NOT EXISTS calendar_deadlines (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        creator_user_id INT NULL,
+        title VARCHAR(190) NOT NULL,
+        description TEXT NULL,
+        deadline_date DATE NOT NULL,
+        target_scope ENUM('all','groups') NOT NULL,
+        status ENUM('Active','Cancelled') NOT NULL DEFAULT 'Active',
+        created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        INDEX deadline_date_status (deadline_date, status),
+        INDEX deadline_creator (creator_user_id),
+        FOREIGN KEY (creator_user_id) REFERENCES users(id) ON DELETE SET NULL
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;");
+    $pdo->exec("CREATE TABLE IF NOT EXISTS calendar_deadline_groups (
+        deadline_id INT NOT NULL,
+        research_group VARCHAR(190) COLLATE utf8mb4_bin NOT NULL,
+        PRIMARY KEY (deadline_id, research_group),
+        INDEX deadline_group_lookup (research_group, deadline_id),
+        FOREIGN KEY (deadline_id) REFERENCES calendar_deadlines(id) ON DELETE CASCADE
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;");
+    // A pre-existing incompatible table must fail before the version stamp.
+    $pdo->query('SELECT id, creator_user_id, title, description, deadline_date, target_scope,
+        status, created_at, updated_at FROM calendar_deadlines LIMIT 0');
+    $pdo->query('SELECT deadline_id, research_group FROM calendar_deadline_groups LIMIT 0');
+    foreach (['calendar_deadlines' => 'id', 'calendar_deadline_groups' => 'deadline_id,research_group'] as $table => $primary) {
+        $stmt = $pdo->prepare("SELECT GROUP_CONCAT(COLUMN_NAME ORDER BY ORDINAL_POSITION) FROM INFORMATION_SCHEMA.KEY_COLUMN_USAGE
+            WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = :table AND CONSTRAINT_NAME = 'PRIMARY'");
+        $stmt->execute([':table' => $table]);
+        if ($stmt->fetchColumn() !== $primary) throw new RuntimeException('Incompatible official deadline primary key: ' . $table);
+    }
+    foreach ([['calendar_deadlines', 'creator_user_id', 'users', 'SET NULL'],
+              ['calendar_deadline_groups', 'deadline_id', 'calendar_deadlines', 'CASCADE']] as [$table, $column, $parent, $rule]) {
+        $stmt = $pdo->prepare('SELECT COUNT(*) FROM INFORMATION_SCHEMA.KEY_COLUMN_USAGE k
+            JOIN INFORMATION_SCHEMA.REFERENTIAL_CONSTRAINTS r ON r.CONSTRAINT_SCHEMA = k.CONSTRAINT_SCHEMA
+                AND r.TABLE_NAME = k.TABLE_NAME AND r.CONSTRAINT_NAME = k.CONSTRAINT_NAME
+            WHERE k.TABLE_SCHEMA = DATABASE() AND k.TABLE_NAME = :table AND k.COLUMN_NAME = :column
+                AND k.REFERENCED_TABLE_NAME = :parent AND k.REFERENCED_COLUMN_NAME = :id AND r.DELETE_RULE = :rule');
+        $stmt->execute([':table' => $table, ':column' => $column, ':parent' => $parent, ':id' => 'id', ':rule' => $rule]);
+        if ((int)$stmt->fetchColumn() !== 1) throw new RuntimeException('Incompatible official deadline foreign key: ' . $table);
     }
 }
 

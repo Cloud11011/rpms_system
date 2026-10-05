@@ -74,20 +74,33 @@
     let records = [];
     let loadError = false;
 
-    const pager = PrismUI.recordPager(rowsEl.closest('table').parentElement, countEl, [searchInput], loadRecords);
+    const definitions = isAdviser ? [['department','Departments'],['status','Account statuses'],['group','Research groups']]
+      : [['academicUnitKey','Academic units'],['programKey','Programs'],['academicYear','Academic years'],['yearLevel','Year levels'],['group','Research groups'],['stage','Stages'],['status','Statuses'],['protocol','Protocol status']];
+    if (!isAdviser && loggedInRole === 'admin') definitions.push(['adviserId','Research advisers']);
+    const filters = PrismUI.recordFilters(document.getElementById('recordFilters'), definitions);
+    const sort = PrismUI.recordFilters(document.getElementById('recordFilters'), [['sortBy','Sort by'],['direction','Direction']]);
+    const sortOptions = isAdviser
+      ? [['name','Name'],['employeeId','Employee ID'],['email','Email'],['department','Academic unit / Department'],['status','Account status']]
+      : [['name','Name'],['studentId','Student ID'],['email','Email'],['group','Research group'],['adviser','Research adviser'],['stage','IERB stage'],['status','Status'],['academicYear','Academic year']];
+    sort.update({sortBy:sortOptions.map(([value,label])=>({value,label})),direction:[{value:'ASC',label:'Ascending'},{value:'DESC',label:'Descending'}]});
+    sort.controls[0].options[0].textContent = 'Name (default)';
+    sort.controls[1].options[0].textContent = 'Ascending (default)';
+    const filterControls = [...filters.controls,...sort.controls];
+    const pager = PrismUI.recordPager(rowsEl.closest('table').parentElement, countEl, [searchInput,...filterControls], loadRecords);
     const dirty = PrismUI.dirtyForm(form);
     let requestSequence = 0;
     async function loadRecords() {
+        searchReload.cancel();
         const request = ++requestSequence;
         pager.loading();
         loadError = false;
         try {
-            const res = await fetch(`${apiUrl}?action=list&page=${pager.page}&q=${encodeURIComponent(searchInput.value.trim())}`);
-            const data = await res.json();
+            const data = await PrismUI.request(apiUrl + '?' + new URLSearchParams({action:'list',page:pager.page,q:searchInput.value.trim(),...filters.query(),...sort.query()}));
             const items = isAdviser ? data.advisers : data.students;
-            if (!res.ok || !data.ok || !Array.isArray(items)) throw new Error('Could not load records.');
+            if (!Array.isArray(items)) throw new Error('Could not load records.');
             if (request !== requestSequence) return;
             records = items;
+            filters.update(data.filterOptions);
             pager.render({ ...data, total: data.total ?? records.length });
         } catch (e) {
             if (request !== requestSequence) return;
@@ -106,8 +119,7 @@
         const select = document.getElementById('adviser');
         if (!select) return;
         try {
-            const res = await fetch('students_api.php?action=adviser_options');
-            const data = await res.json();
+            const data = await PrismUI.request('students_api.php?action=adviser_options');
             const options = data.ok ? data.advisers : [];
             select.querySelectorAll('option:not(:first-child)').forEach(o => o.remove());
             options.forEach(f => {
@@ -249,6 +261,15 @@
             document.getElementById('protocolCode').readOnly = true;
             document.getElementById('isPrincipal').disabled = true;
         }
+        if (isAdviser) {
+            const department = document.getElementById('department');
+            department.querySelector('[data-legacy]')?.remove();
+            const value = record?.department || '';
+            if (value && ![...department.options].some(option=>option.value===value)) {
+                const option = new Option(value + ' (existing legacy value)',value);option.dataset.legacy='1';department.add(option);
+            }
+            department.value=value;department.required=!record;
+        }
         dirty.clean();
         modal.style.display = 'flex';
         (nameField.readOnly ? document.getElementById('research') : nameField).focus();
@@ -290,7 +311,9 @@
         if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last.focus(); }
         else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first.focus(); }
     });
-    searchInput.addEventListener('input', () => { pager.reset(); loadRecords(); });
+    const searchReload = PrismUI.debounce(() => { pager.reset(); loadRecords(); });
+    searchInput.addEventListener('input', () => { ++requestSequence; pager.reset(); searchReload(); });
+    filterControls.forEach(control=>control.addEventListener('change',()=>{pager.reset();loadRecords();}));
 
     form.addEventListener('submit', async event => {
         event.preventDefault();

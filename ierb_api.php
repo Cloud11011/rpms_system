@@ -2,6 +2,7 @@
 
 require __DIR__ . '/config.php';
 require_once __DIR__ . '/includes/pagination.php';
+require_once __DIR__ . '/includes/record_filters.php';
 require_once __DIR__ . '/workflow.php';
 require_once __DIR__ . '/includes/academic_catalog.php';
 require_once __DIR__ . '/includes/research_groups.php';
@@ -128,21 +129,18 @@ if ($action === 'list') {
     $courses = $pdo->prepare('SELECT DISTINCT s.course ' . $scope . ' ORDER BY s.course');
     $courses->execute($params);
     $courseOptions = $courses->fetchAll(PDO::FETCH_COLUMN);
-    $q = trim((string)($_GET['q'] ?? ''));
+    $filterOptions = prism_student_filter_options($pdo, $scope, $params);
+    prism_apply_student_filters($scope, $params, $_GET, $filterOptions);
+    $q = prism_record_search($_GET);
     if ($q !== '') $scope .= ' AND ' . prism_search_clause(['s.protocol_code', 's.student_id', 's.full_name', 's.email', 's.research_title', 's.research_group', 's.course', 'f.full_name'], $q, $params);
-    foreach (['stage', 'status', 'course'] as $field) {
-        if (trim((string)($_GET[$field] ?? '')) !== '') {
-            $scope .= " AND s.$field = :$field"; $params[":$field"] = trim((string)$_GET[$field]);
-        }
-    }
     // Stage sequence has Completed last, rather than alphabetically first.
     $stageOrder = "CASE s.stage WHEN 'Stage 1' THEN 0 WHEN 'Stage 2' THEN 1 WHEN 'Stage 3' THEN 2 WHEN 'Stage 4' THEN 3 WHEN 'Stage 5' THEN 4 WHEN 'Completed' THEN 5 ELSE 0 END";
     $sort = $_GET['sort'] ?? '';
-    $order = in_array($sort, ['high-to-low', 'low-to-high'], true) ? $stageOrder . ($sort === 'high-to-low' ? ' DESC' : ' ASC') . ', s.full_name ASC, s.id ASC' : 's.full_name ASC, s.id ASC';
+    $order = in_array($sort, ['high-to-low', 'low-to-high'], true) ? $stageOrder . ($sort === 'high-to-low' ? ' DESC' : ' ASC') . ', s.full_name ASC, s.id ASC' : prism_record_order($_GET, ['name'=>'s.full_name','studentId'=>'s.student_id','stage'=>$stageOrder,'status'=>'s.status','academicYear'=>'s.academic_year','group'=>'s.research_group'], 'name', 's.id ASC');
     $page = prism_page_query($pdo, 'SELECT s.*, f.full_name AS adviser_name', $scope, $params, $order, $_GET);
     $rows = $page['rows']; unset($page['rows']);
     $counts = student_document_counts($pdo, array_column($rows, 'id'));
-    json_out(['ok' => true, 'records' => array_map(fn($r) => ierb_row($r, $counts), $rows), 'overview' => $overview, 'courses' => $courseOptions] + $page);
+    json_out(['ok' => true, 'records' => array_map(fn($r) => ierb_row($r, $counts), $rows), 'overview' => $overview, 'courses' => $courseOptions, 'filterOptions'=>$filterOptions] + $page);
 }
 
 if ($action === 'history') {

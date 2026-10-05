@@ -138,7 +138,7 @@ document.addEventListener('DOMContentLoaded', () => {
         state(profile, 'Loading account...', 'Checking your current account information.');
         ['adviserStudentsCount', 'adviserPendingCount', 'adviserRevisionCount', 'adviserApprovedCount'].forEach(id => { byId(id).textContent = 'Loading...'; });
         const results = await Promise.allSettled([
-            PrismUI.request('students_api.php?action=list'),
+            PrismUI.request('students_api.php?action=list&preview=1'),
             PrismUI.request('documents_api.php?' + new URLSearchParams({action:'list',page:pager.page,q:search.value.trim(),state:filter.value})),
             PrismUI.request('profile_api.php?action=me'),
             PrismUI.request('notifications_api.php?action=list&preview=5&personal=1')

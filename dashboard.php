@@ -52,25 +52,6 @@ try {
 <!-- SIDEBAR WITH EASY-TO-UNDERSTAND LABELS -->
 <aside class="sidebar prism-sidebar">
 <?php $prismCurrentPage = 'dashboard.php'; require __DIR__ . '/includes/prism-navigation.php'; ?>
-<div class="sidebar-bottom">
-<div class="profile-dropdown-wrapper">
-<div class="sidebar-profile" id="profileToggle">
-<img src="<?php echo htmlspecialchars($profile_img); ?>" alt="Profile Picture">
-<div class="profile-info">
-<h4><?php echo htmlspecialchars($user_name); ?></h4>
-<p><?php echo htmlspecialchars($user_role); ?></p>
-</div>
-<i class="fa-solid fa-chevron-down dropdown-arrow"></i>
-</div>
-<div class="profile-menu" id="profileMenu">
-<a href="account.php#profile"><i class="fa-solid fa-user-gear"></i> Profile</a>
-<a href="account.php#security"><i class="fa-solid fa-gear"></i> Settings</a>
-<a href="account.php#activity"><i class="fa-solid fa-sliders"></i> Activity Logs</a>
-<hr>
-<a href="logout.php" class="logout-btn"><i class="fa-solid fa-right-from-bracket"></i> Log Out</a>
-</div>
-</div>
-</div>
 </aside>
 
 <!-- MAIN CONTENT -->
@@ -101,10 +82,7 @@ try {
 </div>
 </div>
 </div>
-<div class="theme-toggle" id="themeToggle" title="Toggle Light/Dark Theme">
-<i class="fa-solid fa-sun light-icon"></i>
-<i class="fa-solid fa-moon dark-icon"></i>
-</div>
+<button type="button" class="theme-toggle" id="themeToggle" title="Toggle light or dark theme" aria-label="Toggle light or dark theme"><i class="fa-solid fa-sun light-icon" aria-hidden="true"></i><i class="fa-solid fa-moon dark-icon" aria-hidden="true"></i></button>
 <div class="notification-menu-wrap">
 <button type="button" class="notification-icon" id="notificationToggle" title="Notifications and confirmations" aria-label="Notifications and confirmations" aria-expanded="false">
 <i class="fa-solid fa-bell"></i>
@@ -323,17 +301,6 @@ try {
 </div>
 
 <script>
-// Profile Dropdown Toggle
-const profileToggle = document.getElementById('profileToggle');
-const profileMenu = document.getElementById('profileMenu');
-profileToggle.addEventListener('click', (e) => {
-    e.stopPropagation();
-    profileMenu.classList.toggle('show');
-});
-document.addEventListener('click', () => {
-    profileMenu.classList.remove('show');
-});
-
 const quickActionsToggle = document.getElementById('quickActionsToggle');
 const quickActionsDropdown = document.getElementById('quickActionsDropdown');
 function closeQuickActions() {
@@ -521,8 +488,7 @@ function closeReportModal() {
 let reportHistory = [];
 async function loadReportHistory() {
     try {
-        const res = await fetch('reports_api.php?action=list&preview=3');
-        const data = await res.json();
+        const data = await PrismUI.request('reports_api.php?action=list&preview=3&aiOnly=1');
         reportHistory = data.ok ? data.reports : [];
     } catch (_) {
         reportHistory = [];
@@ -542,14 +508,14 @@ function renderReportHistory() {
     history.forEach(report => {
         const item = document.createElement('li');
         const link = document.createElement('a');
-        link.href = `reports_api.php?action=file&id=${encodeURIComponent(report.id)}`;
+        link.href = report.requiresRegeneration ? 'reports.php' : `reports_api.php?action=file&id=${encodeURIComponent(report.id)}`;
         link.target = '_blank'; link.rel = 'noopener noreferrer';
         link.title = 'Open PDF report';
         const icon = document.createElement('i');
         icon.className = 'fa-regular fa-file-pdf';
         const copy = document.createElement('span');
         const title = document.createElement('strong');
-        title.textContent = report.title;
+        title.textContent = report.title + (report.requiresRegeneration ? ' - Regenerate with Student IDs' : '');
         const date = document.createElement('small');
         date.textContent = new Date(report.generated_at).toLocaleString('en-PH', {
             month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit'
@@ -865,8 +831,7 @@ dashboardDayModal.addEventListener('click', event => {
 
 (async function loadNotificationBell() {
     try {
-        const res = await fetch('notifications_api.php?action=list&preview=5');
-        const data = await res.json();
+        const data = await PrismUI.request('notifications_api.php?action=list&preview=5');
         const items = data.ok ? data.notifications.slice(0, 5) : [];
         if (!items.length) return;
         document.getElementById('notificationEmptyState').style.display = 'none';
@@ -882,8 +847,7 @@ dashboardDayModal.addEventListener('click', event => {
 
 (async function loadRepositoryPreview() {
     try {
-        const res = await fetch('documents_api.php?action=list&preview=5');
-        const data = await res.json();
+        const data = await PrismUI.request('documents_api.php?action=list&preview=5');
         const docs = data.ok ? data.documents.slice(0, 5) : [];
         const container = document.querySelector('.repo-list');
         if (!container || !docs.length) return;

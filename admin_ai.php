@@ -8,7 +8,7 @@ $user_email = $authUser['email'];
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width,initial-scale=1">
-    <title>AI Workspace | PRISM</title>
+    <title>AI Progress Reports | PRISM</title>
     <script>try{if(localStorage.getItem('prismTheme')==='dark')document.documentElement.classList.add('dark-theme')}catch(_){}</script>
     <link rel="icon" href="assets/images/prismicon.png">
     <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600;700&display=swap" rel="stylesheet">
@@ -30,7 +30,7 @@ $user_email = $authUser['email'];
     <main class="main-content management-page">
         <header class="topbar">
             <div><h1>AI Progress Reports</h1><p>Generate a focused summary or a full progress report. If the AI service is unavailable, PRISM uses its built-in local summarizer.</p></div>
-            <div class="theme-toggle" id="themeToggle"><i class="fa-solid fa-sun light-icon"></i><i class="fa-solid fa-moon dark-icon"></i></div>
+            <div class="top-controls"><button type="button" class="theme-toggle" id="themeToggle" title="Toggle light or dark theme" aria-label="Toggle light or dark theme"><i class="fa-solid fa-sun light-icon" aria-hidden="true"></i><i class="fa-solid fa-moon dark-icon" aria-hidden="true"></i></button></div>
         </header>
 
         <section class="report-tools ai-report-tools" aria-label="AI report types">
@@ -58,7 +58,7 @@ $user_email = $authUser['email'];
             <div id="stageLabelEditor" class="stage-label-list"></div>
         </section>
         <script>
-        (function () {
+        document.addEventListener('DOMContentLoaded', function () {
             const STAGE_ORDER = <?php echo json_encode(STAGE_SEQUENCE); ?>;
             const container = document.getElementById('stageLabelEditor');
 
@@ -108,9 +108,7 @@ $user_email = $authUser['email'];
 
             async function load() {
                 try {
-                    const res = await fetch('stage_labels_api.php?action=list', { credentials: 'same-origin' });
-                    const data = await res.json();
-                    if (!res.ok || !data.ok) throw new Error(data.message || 'Could not load stage labels.');
+                    const data = await PrismUI.request('stage_labels_api.php?action=list');
                     renderLabels(data.labels || {});
                 } catch (error) {
                     renderMessage(error.message || 'Could not load stage labels.');
@@ -148,7 +146,7 @@ $user_email = $authUser['email'];
             });
 
             load();
-        })();
+        });
         </script>
         <?php endif; ?>
     <?php require __DIR__ . '/includes/ceu_footer.php'; ?>

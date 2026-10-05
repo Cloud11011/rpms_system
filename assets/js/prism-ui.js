@@ -243,6 +243,16 @@
   }
 
   // ------------------------------------------------------------------ network
+  let expiryRedirecting = false;
+  function handleSessionExpiry(response, data) {
+    if (response.status !== 401 || data?.code !== 'session_expired') return false;
+    if (!expiryRedirecting && !/\/login\.php$/.test(root.location.pathname)) {
+      expiryRedirecting = true;
+      root.location.replace('login.php?expired=1');
+    }
+    return true;
+  }
+
   async function request(url, opts) {
     let res, data = null;
     try {
@@ -251,8 +261,9 @@
       throw new Error('Could not reach the server. Check your connection and try again.');
     }
     try { data = await res.json(); } catch (_) { /* handled below */ }
+    handleSessionExpiry(res, data);
     if (!data) throw new Error('The server sent an unexpected response. Refresh the page and try again.');
-    if (!data.ok) {
+    if (!res.ok || !data.ok) {
       const e = new Error(data.message || 'Something went wrong. Please try again.');
       e.data = data;
       throw e;
@@ -371,7 +382,7 @@
 
     async function render() {
       let docs, data;
-      try { data = await request('documents_api.php?action=list'); docs = data.documents; }
+      try { data = await request('documents_api.php?action=list&actionable=1'); docs = data.documents; }
       catch (e) {
         host.innerHTML = compact ? '' : emptyState({ icon: 'fa-triangle-exclamation', title: 'Couldn\u2019t load your documents', text: e.message });
         return;
@@ -384,8 +395,8 @@
       let html = '';
       if (!docs.length) {
         html = compact ? '' : emptyState({
-          icon: 'fa-file-circle-plus', title: 'You haven\u2019t submitted any documents yet',
-          text: 'Start by uploading your first requirement. Your adviser will review it, and you will be notified.',
+          icon: 'fa-file-circle-plus', title: 'No document action needed',
+          text: 'There are no approved documents awaiting submission or revisions requiring your attention.',
           actionLabel: 'Submit a document', actionId: 'go-submit'
         });
       } else {
@@ -416,7 +427,7 @@
           html += '<p class="prism-sub">Nothing needs your action right now.</p>';
         }
       }
-      if (data.total > docs.length) html += '<p class="prism-sub"><a href="student.php#documents">View all documents and submission actions</a></p>';
+      if (data.total > docs.length) html += '<p class="prism-sub"><a href="student.php#documents">View all documents</a></p>';
       host.innerHTML = html;
 
       host.querySelectorAll('[data-submit]').forEach(function (b) {
@@ -624,6 +635,38 @@
     if (restoreFocus) host.querySelector('[aria-current="page"]')?.focus();
   }
 
+  function debounce(action, delay = 250) {
+    let timer;
+    const run = (...args) => { clearTimeout(timer); timer = setTimeout(() => action(...args), delay); };
+    run.cancel = () => clearTimeout(timer);
+    return run;
+  }
+
+  function recordFilters(host, definitions) {
+    const fields = definitions.map(([key, label, existing]) => {
+      const select = existing || document.createElement('select');
+      if (!existing) {
+        const wrapper = document.createElement('label');
+        wrapper.textContent = label;
+        select.id = host.id + '_' + key;
+        select.append(new Option('All ' + label, ''));
+        wrapper.append(select); host.append(wrapper);
+      }
+      return {key, select};
+    });
+    return {
+      controls: fields.map(field => field.select),
+      query: () => Object.fromEntries(fields.map(({key,select}) => [key,select.value])),
+      update: options => fields.forEach(({key,select}) => {
+        if (!options?.[key]) return;
+        const selected = select.value, first = select.options[0].textContent;
+        select.replaceChildren(new Option(first,''));
+        options[key].forEach(option => select.add(new Option(option.label,option.value)));
+        select.value = selected;
+      })
+    };
+  }
+
   // Small helpers shared by the touched record pages.
   function busy(control, label, labelElement = control) {
     if (!control || control.disabled) return null;
@@ -698,7 +741,7 @@
 
   const api = {
     badge: badge, badgeElement: badgeElement, docMini: docMini, emptyState: emptyState, tip: tip, toast: toast,
-    confirm: confirmDialog, request: request, postJson: postJson, esc: esc, pagination: pagination, busy: busy, runAction: runAction, dirtyForm: dirtyForm, recordPager: recordPager, clearFilters: clearFilters,
+    confirm: confirmDialog, request: request, handleSessionExpiry: handleSessionExpiry, debounce: debounce, recordFilters: recordFilters, postJson: postJson, esc: esc, pagination: pagination, busy: busy, runAction: runAction, dirtyForm: dirtyForm, recordPager: recordPager, clearFilters: clearFilters,
     submitToRpms: submitToRpms, overrideStudent: overrideStudent, overrideDocument: overrideDocument, showVersions: showVersions,
     enhanceTable: enhanceTable, tableFilter: tableFilter, hint: hint,
     mountStudentWorkflow: mountStudentWorkflow, mountNeedsAttention: mountNeedsAttention, init: init,

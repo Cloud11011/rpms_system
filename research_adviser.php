@@ -31,7 +31,7 @@ $authUser = require_login('adviser');
 <main class="main-content">
 <header class="adviser-page-heading">
 <div><p class="adviser-eyebrow">RESEARCH ADVISER / OVERVIEW</p><h1>Adviser Dashboard</h1><p>Review current submissions and follow up with your assigned students.</p></div>
-<div class="adviser-heading-actions"><button id="adviserRefresh" type="button" class="adviser-button">Refresh</button><button id="themeToggle" type="button" class="adviser-button" aria-label="Toggle dark theme" aria-pressed="false">Theme</button></div>
+<div class="adviser-heading-actions top-controls"><button id="adviserRefresh" type="button" class="icon-btn" aria-label="Refresh dashboard" title="Refresh dashboard"><i class="fa-solid fa-rotate-right" aria-hidden="true"></i></button><button id="themeToggle" type="button" class="theme-toggle" aria-label="Toggle light or dark theme" title="Toggle light or dark theme" aria-pressed="false"><i class="fa-solid fa-sun light-icon" aria-hidden="true"></i><i class="fa-solid fa-moon dark-icon" aria-hidden="true"></i></button></div>
 </header>
 <p id="adviserStatus" class="adviser-feedback" role="status" aria-live="polite"></p>
 <section class="adviser-summary-grid" aria-label="Assigned research overview">

@@ -12,7 +12,7 @@ $profile_img = 'assets/images/default-avatar.svg';
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Calendar | CEU RPMS Workload Assistant</title>
+    <title>Personal Calendar | PRISM</title>
     <script>
         try {
             if (localStorage.getItem('prismTheme') === 'dark') {
@@ -34,39 +34,17 @@ $profile_img = 'assets/images/default-avatar.svg';
 <div class="container">
     <aside class="sidebar prism-sidebar">
 <?php $prismCurrentPage = 'calendar.php'; require __DIR__ . '/includes/prism-navigation.php'; ?>
-<div class="sidebar-bottom">
-            <div class="profile-dropdown-wrapper">
-                <div class="sidebar-profile" id="profileToggle">
-                    <img src="<?php echo htmlspecialchars($profile_img, ENT_QUOTES, 'UTF-8'); ?>" alt="Profile Picture">
-                    <div class="profile-info">
-                        <h4><?php echo htmlspecialchars($user_name, ENT_QUOTES, 'UTF-8'); ?></h4>
-                        <p><?php echo htmlspecialchars($user_role, ENT_QUOTES, 'UTF-8'); ?></p>
-                    </div>
-                    <i class="fa-solid fa-chevron-down dropdown-arrow"></i>
-                </div>
-                <div class="profile-menu" id="profileMenu">
-                    <a href="account.php#profile"><i class="fa-solid fa-user-gear"></i> Profile</a>
-                    <a href="account.php#security"><i class="fa-solid fa-gear"></i> Settings</a>
-                    <a href="account.php#activity"><i class="fa-solid fa-sliders"></i> Activity Logs</a>
-                    <hr>
-                    <a href="logout.php" class="logout-btn"><i class="fa-solid fa-right-from-bracket"></i> Log Out</a>
-                </div>
-            </div>
-        </div>
-    </aside>
+</aside>
 
     <main class="main-content calendar-page">
         <header class="topbar">
             <div class="calendar-heading">
-                <h1>Calendar</h1>
-                <p>Click a date to add and manage personal reminders. These reminders are stored only in this browser.</p>
+                <h1>Personal Calendar</h1>
+                <p>Click a date to add and manage personal reminders. Personal reminders are stored only in this browser. Official deadlines appear below.</p>
             </div>
             <div class="top-controls">
                 <button class="today-button" id="todayButton">Today</button>
-                <div class="theme-toggle" id="themeToggle" title="Toggle Light/Dark Theme">
-                    <i class="fa-solid fa-sun light-icon"></i>
-                    <i class="fa-solid fa-moon dark-icon"></i>
-                </div>
+                <button type="button" class="theme-toggle" id="themeToggle" title="Toggle light or dark theme" aria-label="Toggle light or dark theme"><i class="fa-solid fa-sun light-icon" aria-hidden="true"></i><i class="fa-solid fa-moon dark-icon" aria-hidden="true"></i></button>
             </div>
         </header>
 
@@ -93,7 +71,7 @@ $profile_img = 'assets/images/default-avatar.svg';
                 </div>
                 <form id="reminderForm" autocomplete="off">
                     <input type="hidden" id="editingId">
-                    <label for="taskTitle">Task reminder</label>
+                    <label for="taskTitle">Personal Reminder</label>
                     <input id="taskTitle" type="text" maxlength="120" placeholder="What needs to be done?" required>
                     <label for="taskTime">Time <span>(optional)</span></label>
                     <input id="taskTime" type="time">
@@ -107,10 +85,12 @@ $profile_img = 'assets/images/default-avatar.svg';
                 <div class="task-list" id="taskList"></div>
             </aside>
         </section>
+        <section id="officialDeadlinePanel" class="reminder-panel official-deadline-panel" data-role="<?php echo htmlspecialchars($authUser['role'], ENT_QUOTES, 'UTF-8'); ?>"></section>
     <?php require __DIR__ . '/includes/ceu_footer.php'; ?>
 </main>
 </div>
 <script src="<?php echo htmlspecialchars(asset_url('assets/js/prism-ui.js'), ENT_QUOTES, 'UTF-8'); ?>"></script>
+<script src="<?php echo htmlspecialchars(asset_url('assets/js/calendar-deadlines.js'), ENT_QUOTES, 'UTF-8'); ?>"></script>
 <script src="<?php echo htmlspecialchars(asset_url('assets/js/calendar.js'), ENT_QUOTES, 'UTF-8'); ?>"></script>
 </body>
 </html>

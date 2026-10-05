@@ -64,6 +64,15 @@ document.addEventListener('DOMContentLoaded', () => {
         saveLabel.textContent = 'Add reminder';
     }
 
+    const official = PrismDeadlines.mount(renderCalendar);
+
+    function refreshOfficial() {
+        const first = new Date(visibleMonth.getFullYear(), visibleMonth.getMonth(), 1);
+        const start = new Date(first); start.setDate(1 - first.getDay());
+        const end = new Date(start); end.setDate(start.getDate() + 41);
+        official.refresh(selectedDate, toDateKey(start), toDateKey(end));
+    }
+
     function renderCalendar() {
         monthLabel.textContent = visibleMonth.toLocaleDateString('en-PH', { month: 'long', year: 'numeric' });
         monthGrid.replaceChildren();
@@ -104,6 +113,14 @@ document.addEventListener('DOMContentLoaded', () => {
                 more.textContent = `+${dayTasks.length - 2} more`;
                 previews.appendChild(more);
             }
+            const officialCount = official.count(key);
+            if (officialCount) {
+                button.classList.add('has-official-deadline');
+                const marker = document.createElement('div'); marker.className = 'day-task official-marker';
+                marker.textContent = `Official: ${officialCount}`; marker.title = `${officialCount} Official Deadline(s)`;
+                previews.appendChild(marker);
+                button.setAttribute('aria-label', button.getAttribute('aria-label') + `, ${officialCount} official deadlines`);
+            }
             button.appendChild(previews);
             button.addEventListener('click', () => {
                 selectedDate = key;
@@ -140,6 +157,8 @@ document.addEventListener('DOMContentLoaded', () => {
             const content = document.createElement('div');
             const heading = document.createElement('h3');
             heading.textContent = task.title;
+            const kind = document.createElement('small'); kind.className = 'eyebrow'; kind.textContent = 'Personal Reminder';
+            content.appendChild(kind);
             content.appendChild(heading);
             if (task.time) {
                 const time = document.createElement('div');
@@ -255,6 +274,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function renderAll() {
+        refreshOfficial();
         renderCalendar();
         renderTasks();
         renderDashboardCalendar();
@@ -288,10 +308,12 @@ document.addEventListener('DOMContentLoaded', () => {
     cancelEdit.addEventListener('click', resetForm);
     document.getElementById('previousMonth').addEventListener('click', () => {
         visibleMonth.setMonth(visibleMonth.getMonth() - 1);
+        refreshOfficial();
         renderCalendar();
     });
     document.getElementById('nextMonth').addEventListener('click', () => {
         visibleMonth.setMonth(visibleMonth.getMonth() + 1);
+        refreshOfficial();
         renderCalendar();
     });
     document.getElementById('todayButton').addEventListener('click', () => {

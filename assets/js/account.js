@@ -51,7 +51,6 @@ document.addEventListener('DOMContentLoaded', () => {
         if(!release)return;
         try {
             await PrismUI.postJson('profile_api.php?action=update_profile', { name });
-            $('sideAccountName').textContent = name;
             profileDirty.clean();
             PrismUI.toast('Profile updated.', 'success');
         } catch (err) {

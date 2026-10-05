@@ -157,6 +157,9 @@ if ($action === 'list') {
     }
     if (($_GET['includeOld'] ?? '') !== '1') $scope .= ' AND d.is_current = 1';
     $stateSql = "CASE WHEN d.is_current = 0 THEN 'Superseded' WHEN d.review_status = 'Approved' THEN CASE WHEN d.rpms_submitted_at IS NOT NULL AND CAST(d.rpms_submitted_at AS CHAR) <> '' THEN 'Submitted to RPMS' ELSE 'Ready for Formal RPMS Submission' END WHEN d.review_status IN ('Denied', 'Resubmission Requested') THEN 'Needs Revision' ELSE 'Pending Adviser Review' END";
+    if (($_GET['actionable'] ?? '') === '1') {
+        $scope .= " AND d.is_current = 1 AND ($stateSql) IN ('Needs Revision','Ready for Formal RPMS Submission')";
+    }
     $stmt = $pdo->prepare('SELECT ' . $stateSql . ' AS state, COUNT(*) AS c ' . $scope . ' GROUP BY ' . $stateSql);
     $stmt->execute($params);
     $counts = array_map('intval', array_column($stmt->fetchAll(), 'c', 'state'));
@@ -310,7 +313,7 @@ if ($action === 'upload') {
     try {
         $pdo->beginTransaction();
         // Lock the student before selecting a version. Two first uploads must also serialize.
-        $studentLock = $pdo->prepare('SELECT id, full_name, stage, adviser_id, email FROM students WHERE id = :id FOR UPDATE');
+        $studentLock = $pdo->prepare('SELECT id, full_name, stage, adviser_id, email, research_title, research_group FROM students WHERE id = :id FOR UPDATE');
         $studentLock->execute([':id' => $studentDbId]);
         $currentStudent = $studentLock->fetch();
         if (!$currentStudent
@@ -319,6 +322,12 @@ if ($action === 'upload') {
             throw new DocumentWriteConflict('The student record changed while the file was uploading. Refresh and select the student again.');
         }
         $studentName = $currentStudent['full_name'];
+        if ($user['role'] === 'student') {
+            // Metadata is taken from the locked record, never from form controls.
+            $notes = 'Research title: ' . (string)($currentStudent['research_title'] ?? '')
+                . ' | Group: ' . (string)($currentStudent['research_group'] ?? '')
+                . ($notes !== '' ? ' | Reviewer note: ' . $notes : '');
+        }
         if ($user['role'] === 'student' && (string)$currentStudent['stage'] !== (string)$studentStage) {
             throw new DocumentWriteConflict('Your IERB stage changed while the file was uploading. Refresh and upload the document for your current stage.');
         }

@@ -37,19 +37,4 @@ document.addEventListener('DOMContentLoaded', () => {
         event.preventDefault();
     });
     media.addEventListener('change', () => setCollapsed(media.matches));
-    // Preserve existing profile click handlers; add keyboard access and synchronized ARIA.
-    const profile = document.getElementById('profileToggle');
-    const menu = document.getElementById('profileMenu');
-    if (profile && menu) {
-        profile.setAttribute('role', 'button'); profile.tabIndex = 0;
-        profile.setAttribute('aria-controls', 'profileMenu');
-        const sync = () => { const open = menu.classList.contains('show'); profile.setAttribute('aria-expanded', String(open)); menu.inert = !open; };
-        sync(); new MutationObserver(sync).observe(menu, { attributes:true, attributeFilter:['class'] });
-        profile.addEventListener('keydown', event => {
-            if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); profile.click(); }
-        });
-        menu.addEventListener('keydown', event => {
-            if (event.key === 'Escape') { menu.classList.remove('show'); profile.focus(); event.preventDefault(); event.stopPropagation(); }
-        });
-    }
 });

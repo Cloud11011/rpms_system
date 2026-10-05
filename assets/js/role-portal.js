@@ -83,9 +83,8 @@ document.addEventListener('DOMContentLoaded', () => {
     // Data loading
     // ------------------------------------------------------------------
     async function readList(url, key) {
-        const response = await fetch(url);
-        const data = await response.json();
-        if (!response.ok || !data.ok || !Array.isArray(data[key])) throw new Error('Unable to load workspace data.');
+        const data = await PrismUI.request(url);
+        if (!Array.isArray(data[key])) throw new Error('Unable to load workspace data.');
         return data[key];
     }
 
@@ -127,8 +126,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     async function loadProfile() {
         try {
-            const res = await fetch('profile_api.php?action=me');
-            const data = await res.json();
+            const data = await PrismUI.request('profile_api.php?action=me');
             return data.ok ? data.user : null;
         } catch (_) {
             return null;
@@ -240,10 +238,10 @@ document.addEventListener('DOMContentLoaded', () => {
         const docs = documentHistory.records;
         if (!loadErrors.documents) docPager.render(documentHistory);
         $('documentRows').innerHTML = loadErrors.documents ? `<tr><td colspan="6">${empty('Unable to load your documents. Please try again.')}</td></tr>` : docs.map(d => `<tr>
-            <td><strong>${esc(d.originalName)}</strong>${Number(d.versionNo || 1) > 1 ? `<small> v${Number(d.versionNo)}</small>` : ''}</td>
+            <td><strong>${esc(d.originalName)}</strong>${Number(d.versionNo || 1) > 1 ? `<small> v${Number(d.versionNo)}</small>` : ''}<small>Document ID: ${esc(d.id)} &bull; ${esc(d.stageLabel || d.stage)}</small></td>
             <td>${esc(d.documentType)}</td>
             <td>${fmt(d.uploadedAt)}</td>
-            <td>${PrismUI.badge(d.workflowState || d.reviewStatus, { small: true })}</td>
+            <td>${PrismUI.badge(d.workflowState || d.reviewStatus, { small: true })}${d.rpmsSubmittedAt ? `<small>Submitted: ${esc(fmt(d.rpmsSubmittedAt))}</small>` : ''}</td>
             <td>${esc(d.reviewRemarks || (d.workflowState === 'Submitted to RPMS' ? 'Formally submitted to RPMS' : 'No reviewer remarks yet'))}</td>
             <td><a class="action-btn" href="documents_api.php?action=file&id=${encodeURIComponent(d.id)}" target="_blank" rel="noopener">Preview</a>
                 <a class="action-btn" href="documents_api.php?action=file&download=1&id=${encodeURIComponent(d.id)}">Download</a>${d.actions?.submitToRpms ? `<button type="button" class="action-btn" data-formal-submit="${esc(d.id)}">Submit to RPMS</button>` : ''}</td>
@@ -285,8 +283,16 @@ document.addEventListener('DOMContentLoaded', () => {
         $('profileRole').value = profile.role || '';
         $('profileId').value = profile.refId || '';
         profileDirty.clean();
+        fillSubmissionRecord();
+    }
+
+    function fillSubmissionRecord() {
         $('submissionResearchTitle').value = myRecord?.research || '';
         $('submissionResearchGroup').value = myRecord?.groupId || '';
+        $('submissionStudentId').value = myRecord?.studentId || 'Not recorded';
+        $('submissionStage').value = myRecord?.stageLabel || myRecord?.stage || 'Not recorded';
+        $('submissionAdviser').value = myRecord?.adviser || 'Unassigned';
+        $('submissionProtocol').value = myRecord?.protocolCode || 'Not assigned';
     }
 
     async function refreshAll() {
@@ -310,6 +316,7 @@ document.addEventListener('DOMContentLoaded', () => {
         $('notificationList').setAttribute('aria-busy', 'false');
         loadErrors = { progress: progress.error, history: progress.historyError, documents: documents.error, notifications: notifications.error };
         render();
+        fillSubmissionRecord();
         const unavailable = Object.entries(loadErrors).filter(([, failed]) => failed).map(([area]) => area === 'history' ? 'progress history' : area);
         $('studentDashboardState').textContent = unavailable.length ? `Unable to load ${unavailable.join(', ')}. Please refresh to try again.` : '';
         $('studentDashboardState').setAttribute('aria-busy', 'false');
@@ -365,11 +372,7 @@ document.addEventListener('DOMContentLoaded', () => {
         formData.append('document', file);
         formData.append('documentType', $('documentType').value);
         formData.append('stage', myRecord?.stage || 'Stage 1');
-        const notesParts = [];
-        if ($('submissionResearchTitle').value.trim()) notesParts.push(`Research title: ${$('submissionResearchTitle').value.trim()}`);
-        if ($('submissionResearchGroup').value.trim()) notesParts.push(`Group: ${$('submissionResearchGroup').value.trim()}`);
-        if ($('documentNotes').value.trim()) notesParts.push($('documentNotes').value.trim());
-        formData.append('notes', notesParts.join(' | '));
+        formData.append('notes', $('documentNotes').value.trim());
 
         const submitBtn = event.target.querySelector('[type="submit"]');
         const release = PrismUI.busy(submitBtn,'Uploading...');
@@ -422,21 +425,19 @@ document.addEventListener('DOMContentLoaded', () => {
         const btn = e.target.closest('[data-read]');
         if (!btn) return;
         try {
-            const response = await fetch('notifications_api.php?action=mark_read', {
+            const data = await PrismUI.request('notifications_api.php?action=mark_read', {
                 method: 'POST', headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ id: Number(btn.dataset.read) }),
             });
-            const data = await response.json();
-            if (!response.ok || !data.ok) throw new Error('Unable to mark this notification as read.');
+            if (!data.ok) throw new Error('Unable to mark this notification as read.');
             await refreshAll();
         } catch (_) { toast('Unable to mark this notification as read.'); }
     });
 
     $('markAllRead').addEventListener('click', async () => {
         try {
-            const response = await fetch('notifications_api.php?action=mark_all_read', { method: 'POST' });
-            const data = await response.json();
-            if (!response.ok || !data.ok) throw new Error('Unable to mark notifications as read.');
+            const data = await PrismUI.request('notifications_api.php?action=mark_all_read', { method: 'POST' });
+            if (!data.ok) throw new Error('Unable to mark notifications as read.');
             await refreshAll();
             toast('All notifications marked as read.');
         } catch (_) {
@@ -452,18 +453,17 @@ document.addEventListener('DOMContentLoaded', () => {
         const release = PrismUI.busy(event.currentTarget.querySelector('[type="submit"]'),'Saving...');
         if(!release)return;
         try {
-            const res = await fetch('profile_api.php?action=update_profile', {
+            const data = await PrismUI.request('profile_api.php?action=update_profile', {
                 method: 'POST', headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ name: $('profileName').value.trim() }),
             });
-            const data = await res.json();
             if (!data.ok) { toast(data.message || 'Profile could not be updated.'); return; }
             $('sideName').textContent = $('profileName').value.trim();
             $('welcomeName').textContent = $('profileName').value.trim();
             profileDirty.clean();
             toast('Profile updated.');
-        } catch (_) {
-            toast('Could not reach the server to update your profile.');
+        } catch (error) {
+            toast(error.message || 'Could not reach the server to update your profile.');
         } finally {release();}
     });
 
@@ -473,17 +473,16 @@ document.addEventListener('DOMContentLoaded', () => {
         const release = PrismUI.busy(event.currentTarget.querySelector('[type="submit"]'),'Saving...');
         if(!release)return;
         try {
-            const res = await fetch('profile_api.php?action=change_password', {
+            const data = await PrismUI.request('profile_api.php?action=change_password', {
                 method: 'POST', headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ currentPassword: $('currentPassword').value, newPassword: $('newPassword').value }),
             });
-            const data = await res.json();
             if (!data.ok) { toast(data.message || 'Password could not be changed.'); return; }
             event.target.reset();
             passwordDirty.clean();
             toast('Password changed successfully.');
-        } catch (_) {
-            toast('Could not reach the server to change your password.');
+        } catch (error) {
+            toast(error.message || 'Could not reach the server to change your password.');
         } finally {release();}
     });
 
