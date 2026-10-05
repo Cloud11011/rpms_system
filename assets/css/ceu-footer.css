@@ -1,6 +1,12 @@
 /* Institutional presentation adapted from the approved reference; scoped to this footer. */
-.ceu-footer { min-width:0; margin-top:32px; border:1px solid #30365d; border-radius:14px; background:#0c0e3f; color:#fff; }
-.ceu-footer .ceu-footer-details { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); align-items:start; gap:24px; padding:24px; }
+.ceu-footer { min-width:0; margin-top:32px; overflow:hidden; border:1px solid #30365d; border-radius:14px; background:#0c0e3f; color:#fff; }
+/* Exact reference artwork crop removes the original image's white margins. */
+.ceu-footer-accreditations { padding:12px 24px; background:#fff; border-bottom:3px solid #ed80b2; }
+.ceu-footer-accreditation-art { position:relative; width:100%; max-width:640px; margin:0 auto; aspect-ratio:36 / 11; overflow:hidden; }
+.ceu-footer-accreditation-art img { position:absolute; width:138.8889%; max-width:none; height:auto; left:-22.2222%; top:-93.9394%; }
+.ceu-footer .ceu-footer-details { display:grid; grid-template-columns:minmax(0,1.1fr) minmax(0,1fr) minmax(0,.75fr); align-items:start; gap:24px; padding:24px; }
+.ceu-footer-socials { display:flex; flex-wrap:wrap; gap:8px 14px; font-size:11px; }
+.ceu-footer-socials a { display:inline-flex; gap:6px; align-items:center; min-height:32px; }
 .ceu-footer :is(a,p,strong,small,span,h2) { overflow-wrap:anywhere; }
 .ceu-footer a { color:inherit; text-decoration:underline; text-underline-offset:3px; }
 .ceu-footer a:hover { text-decoration-thickness:2px; }
@@ -22,3 +28,4 @@
     .ceu-footer .ceu-footer-details { grid-template-columns:minmax(0,1fr); gap:20px; padding:20px 16px; }
     .ceu-footer .ceu-footer-bottom { padding:14px 16px; }
 }
+@media (max-width:600px) { .ceu-footer-accreditations { padding:10px 12px; } }

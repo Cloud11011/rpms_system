@@ -29,6 +29,8 @@
     'Resubmission Requested':           ['danger', 'fa-rotate-left'],
     'Approved':                         ['success', 'fa-check'],
     'Denied':                           ['danger', 'fa-xmark'],
+    'Revision Required':                ['danger', 'fa-rotate-left'],
+    'Cancelled':                        ['neutral', 'fa-ban'],
 
     // IERB progress
     'On Track':                         ['success', 'fa-circle-check'],

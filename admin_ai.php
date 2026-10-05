@@ -21,12 +21,14 @@ $user_email = $authUser['email'];
 <link rel="stylesheet" href="<?php echo htmlspecialchars(asset_url('assets/css/dashboard-sidebar.css'), ENT_QUOTES, 'UTF-8'); ?>">
 <script src="<?php echo htmlspecialchars(asset_url('assets/js/dashboard-sidebar.js'), ENT_QUOTES, 'UTF-8'); ?>" defer></script>
 <link rel="stylesheet" href="<?php echo htmlspecialchars(asset_url('assets/css/ceu-footer.css'), ENT_QUOTES, 'UTF-8'); ?>">
+<link rel="stylesheet" href="<?php echo htmlspecialchars(asset_url('assets/css/prism-workspace.css'), ENT_QUOTES, 'UTF-8'); ?>">
+<script src="<?php echo htmlspecialchars(asset_url('assets/js/prism-workspace.js'), ENT_QUOTES, 'UTF-8'); ?>" defer></script>
 </head>
-<body class="ai-report-page" data-admin-user="<?php echo htmlspecialchars(hash('sha256', $user_email), ENT_QUOTES); ?>">
+<body class="prism-workspace <?= $authUser['role'] === 'admin' ? 'admin-shell' : 'portal-shell adviser-page' ?> ai-report-page" data-admin-user="<?php echo htmlspecialchars(hash('sha256', $user_email), ENT_QUOTES); ?>">
 <div class="container">
-    <aside class="sidebar prism-sidebar">
+    <?php if ($authUser['role'] === 'admin'): ?><aside class="sidebar prism-sidebar"><?php else: ?><header class="portal-navbar"><?php endif; ?>
 <?php $prismCurrentPage = 'admin_ai.php'; require __DIR__ . '/includes/prism-navigation.php'; ?>
-</aside>
+<?php if ($authUser['role'] === 'admin'): ?></aside><?php else: ?></header><?php endif; ?>
     <main class="main-content management-page">
         <header class="topbar">
             <div><h1>AI Progress Reports</h1><p>Generate a focused summary or a full progress report. If the AI service is unavailable, PRISM uses its built-in local summarizer.</p></div>

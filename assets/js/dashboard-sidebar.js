@@ -7,6 +7,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const submenu = button => document.getElementById(button.getAttribute('aria-controls'));
     function setGroup(button, open) {
         const list = submenu(button);
+        if (!list) return;
         if (!open && list.contains(document.activeElement)) button.focus();
         button.setAttribute('aria-expanded', String(open));
         list.hidden = !open;
@@ -21,7 +22,10 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     let collapsed = media.matches;
     if (!media.matches) { try { collapsed = sessionStorage.getItem('prismNavigationMinimized') === 'true'; } catch (_) {} }
+    // Apply the saved/mobile state before enabling layout animation on first paint.
+    sidebar.classList.add('is-initializing');
     setCollapsed(collapsed);
+    requestAnimationFrame(() => requestAnimationFrame(() => sidebar.classList.remove('is-initializing')));
     toggle.addEventListener('click', () => setCollapsed(toggle.getAttribute('aria-expanded') === 'true', true));
     groups.forEach(button => button.addEventListener('click', () => {
         const open = button.getAttribute('aria-expanded') !== 'true';
@@ -30,7 +34,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }));
     sidebar.addEventListener('keydown', event => {
         if (event.key !== 'Escape') return;
-        const group = groups.find(button => button === event.target || submenu(button).contains(event.target));
+        const group = groups.find(button => button === event.target || submenu(button)?.contains(event.target));
         if (group && group.getAttribute('aria-expanded') === 'true') {
             setGroup(group, false); group.focus();
         } else { setCollapsed(true, true); toggle.focus(); }

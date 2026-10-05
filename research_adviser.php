@@ -22,17 +22,23 @@ $authUser = require_login('adviser');
 <script src="<?php echo htmlspecialchars(asset_url('assets/js/adviser-dashboard.js'), ENT_QUOTES, 'UTF-8'); ?>" defer></script>
 <link rel="stylesheet" href="<?php echo htmlspecialchars(asset_url('assets/css/ceu-footer.css'), ENT_QUOTES, 'UTF-8'); ?>">
 <link rel="stylesheet" href="<?php echo htmlspecialchars(asset_url('assets/css/research-resources.css'), ENT_QUOTES, 'UTF-8'); ?>">
+<link rel="stylesheet" href="<?php echo htmlspecialchars(asset_url('assets/css/prism-workspace.css'), ENT_QUOTES, 'UTF-8'); ?>">
+<script src="<?php echo htmlspecialchars(asset_url('assets/js/prism-workspace.js'), ENT_QUOTES, 'UTF-8'); ?>" defer></script>
 </head>
-<body class="adviser-dashboard-page" data-user-role="adviser">
+<body class="prism-workspace <?= $authUser['role'] === 'admin' ? 'admin-shell' : 'portal-shell adviser-page' ?> adviser-dashboard-page" data-user-role="adviser">
 <div class="container">
-<aside class="sidebar prism-sidebar">
+<?php if ($authUser['role'] === 'admin'): ?><aside class="sidebar prism-sidebar"><?php else: ?><header class="portal-navbar"><?php endif; ?>
 <?php $prismCurrentPage = 'research_adviser.php'; require __DIR__ . '/includes/prism-navigation.php'; ?>
-</aside>
+<?php if ($authUser['role'] === 'admin'): ?></aside><?php else: ?></header><?php endif; ?>
 <main class="main-content">
 <header class="adviser-page-heading">
-<div><p class="adviser-eyebrow">RESEARCH ADVISER / OVERVIEW</p><h1>Adviser Dashboard</h1><p>Review current submissions and follow up with your assigned students.</p></div>
+<div><p class="adviser-eyebrow">RESEARCH ADVISER / OVERVIEW</p><h1>Adviser Dashboard</h1><p>Manage reviews for your assigned students.</p></div>
 <div class="adviser-heading-actions top-controls"><button id="adviserRefresh" type="button" class="icon-btn" aria-label="Refresh dashboard" title="Refresh dashboard"><i class="fa-solid fa-rotate-right" aria-hidden="true"></i></button><button id="themeToggle" type="button" class="theme-toggle" aria-label="Toggle light or dark theme" title="Toggle light or dark theme" aria-pressed="false"><i class="fa-solid fa-sun light-icon" aria-hidden="true"></i><i class="fa-solid fa-moon dark-icon" aria-hidden="true"></i></button></div>
 </header>
+<section class="prism-workspace-hero" aria-labelledby="adviserWelcomeTitle">
+<div><p class="prism-hero-eyebrow">RESEARCH ADVISER WORKSPACE</p><h2 id="adviserWelcomeTitle">Welcome back, <?= htmlspecialchars($authUser['full_name'], ENT_QUOTES, 'UTF-8') ?>!</h2><p class="prism-hero-date"><?= htmlspecialchars(date('l, F j, Y'), ENT_QUOTES, 'UTF-8') ?></p><p>Support your students through feedback, revisions,<br>and preparation for RPMS submission.</p></div>
+<a class="prism-hero-action" href="documents.php">Review Documents <i class="fa-solid fa-arrow-right" aria-hidden="true"></i></a>
+</section>
 <p id="adviserStatus" class="adviser-feedback" role="status" aria-live="polite"></p>
 <section class="adviser-summary-grid" aria-label="Assigned research overview">
 <article class="adviser-summary-card"><p>Assigned students</p><strong id="adviserStudentsCount">Loading...</strong><span>Student records assigned to you</span></article>
@@ -42,7 +48,7 @@ $authUser = require_login('adviser');
 </section>
 <div class="adviser-content-grid">
 <section class="adviser-panel" aria-labelledby="adviserQueueTitle">
-<div class="adviser-panel-heading"><div><h2 id="adviserQueueTitle">Submission review queue</h2><p>Current document versions for your assigned students.</p></div><a href="documents.php">All document tools</a></div>
+<div class="adviser-panel-heading"><div><h2 id="adviserQueueTitle">Documents to Review</h2><p>Current document versions for your assigned students.</p></div><a href="documents.php">All document tools</a></div>
 <div class="adviser-queue-filters">
 <label for="adviserQueueSearch">Search submissions<input id="adviserQueueSearch" type="search" placeholder="Student, document or stage"></label>
 <label for="adviserQueueFilter">Workflow status<select id="adviserQueueFilter"><option value="">All statuses</option><option>Pending Adviser Review</option><option>Needs Revision</option><option>Ready for Formal RPMS Submission</option><option>Submitted to RPMS</option></select></label>
@@ -54,6 +60,7 @@ $authUser = require_login('adviser');
 <section class="adviser-panel" aria-labelledby="adviserNotificationsTitle"><div class="adviser-panel-heading"><div><h2 id="adviserNotificationsTitle">Recent notifications</h2><p>Recent messages addressed to your account.</p></div><a href="admin_notifications.php">Notification Center</a></div><div id="adviserNotifications" aria-live="polite" aria-busy="true"><p class="adviser-panel-state">Loading recent notifications...</p></div></section>
 </div>
 </div>
+<section class="adviser-panel prism-resubmission-note" aria-labelledby="adviserResubmissionsTitle"><div class="adviser-panel-heading"><h2 id="adviserResubmissionsTitle">Recent Resubmissions</h2></div><p>A separate recent resubmission history is not available here. Current version numbers and upload dates appear in the review queue; open Document Reviews for version history.</p><a href="documents.php">Open Document Reviews</a></section>
 <?php require __DIR__ . '/includes/research_resources.php'; ?>
 <?php require __DIR__ . '/includes/ceu_footer.php'; ?>
 </main>

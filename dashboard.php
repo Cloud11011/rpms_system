@@ -45,14 +45,16 @@ try {
 <link rel="stylesheet" href="<?php echo htmlspecialchars(asset_url('assets/css/dashboard-overview.css'), ENT_QUOTES, 'UTF-8'); ?>">
 <link rel="stylesheet" href="<?php echo htmlspecialchars(asset_url('assets/css/ceu-footer.css'), ENT_QUOTES, 'UTF-8'); ?>">
 <link rel="stylesheet" href="<?php echo htmlspecialchars(asset_url('assets/css/research-resources.css'), ENT_QUOTES, 'UTF-8'); ?>">
+<link rel="stylesheet" href="<?php echo htmlspecialchars(asset_url('assets/css/prism-workspace.css'), ENT_QUOTES, 'UTF-8'); ?>">
+<script src="<?php echo htmlspecialchars(asset_url('assets/js/prism-workspace.js'), ENT_QUOTES, 'UTF-8'); ?>" defer></script>
 </head>
-<body class="dashboard-page" data-reminder-user="<?php echo htmlspecialchars(hash('sha256', $user_email), ENT_QUOTES, 'UTF-8'); ?>">
+<body class="prism-workspace <?= $authUser['role'] === 'admin' ? 'admin-shell' : 'portal-shell adviser-page' ?> dashboard-page" data-reminder-user="<?php echo htmlspecialchars(hash('sha256', $user_email), ENT_QUOTES, 'UTF-8'); ?>">
 
 <div class="container">
 <!-- SIDEBAR WITH EASY-TO-UNDERSTAND LABELS -->
-<aside class="sidebar prism-sidebar">
+<?php if ($authUser['role'] === 'admin'): ?><aside class="sidebar prism-sidebar"><?php else: ?><header class="portal-navbar"><?php endif; ?>
 <?php $prismCurrentPage = 'dashboard.php'; require __DIR__ . '/includes/prism-navigation.php'; ?>
-</aside>
+<?php if ($authUser['role'] === 'admin'): ?></aside><?php else: ?></header><?php endif; ?>
 
 <!-- MAIN CONTENT -->
 <main class="main-content">
@@ -111,10 +113,10 @@ try {
 <section class="ai-summary-banner">
 <div class="ai-summary-content">
 <div class="ai-badge">
-<i class="fa-solid fa-wand-magic-sparkles"></i> AI Workload Insights
+<i class="fa-solid fa-wand-magic-sparkles"></i> AI PROGRESS INSIGHTS
 </div>
 <h2>No workload insights available</h2>
-<p>Insights will appear here after research data has been added.</p>
+<p>Generate a report to review the research progress currently available to RPMS.</p>
 </div>
 <button class="ai-action-btn" onclick="openReportModal()"><i class="fa-solid fa-file-pdf"></i> Generate AI PDF Report</button>
 </section>

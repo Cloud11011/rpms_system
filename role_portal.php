@@ -26,18 +26,20 @@ $identityKey = hash('sha256', $portalRole . '|' . $userId);
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.6.0/css/all.min.css">
 <link rel="stylesheet" href="<?php echo htmlspecialchars(asset_url('assets/css/ceu-footer.css'), ENT_QUOTES, 'UTF-8'); ?>">
 <link rel="stylesheet" href="<?php echo htmlspecialchars(asset_url('assets/css/research-resources.css'), ENT_QUOTES, 'UTF-8'); ?>">
+<link rel="stylesheet" href="<?php echo htmlspecialchars(asset_url('assets/css/prism-workspace.css'), ENT_QUOTES, 'UTF-8'); ?>">
+<script src="<?php echo htmlspecialchars(asset_url('assets/js/prism-workspace.js'), ENT_QUOTES, 'UTF-8'); ?>" defer></script>
 </head>
-<body class="student-dashboard-page" data-portal-key="<?php echo htmlspecialchars($identityKey, ENT_QUOTES); ?>" data-role="<?php echo htmlspecialchars($portalRole, ENT_QUOTES); ?>" data-name="<?php echo htmlspecialchars($userName, ENT_QUOTES); ?>" data-email="<?php echo htmlspecialchars($userEmail, ENT_QUOTES); ?>">
+<body class="prism-workspace portal-shell student-page student-dashboard-page" data-portal-key="<?php echo htmlspecialchars($identityKey, ENT_QUOTES); ?>" data-role="<?php echo htmlspecialchars($portalRole, ENT_QUOTES); ?>" data-name="<?php echo htmlspecialchars($userName, ENT_QUOTES); ?>" data-email="<?php echo htmlspecialchars($userEmail, ENT_QUOTES); ?>">
 <script>window.PRISM_STAGE_LABELS = <?php echo json_encode(stage_labels_map(), JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT); ?>;</script>
 <nav class="portal-navbar" aria-label="Portal navigation">
 <button class="portal-brand" type="button" data-go="dashboard" aria-label="PRISM dashboard"><img src="assets/images/prismlogo1.png?v=2" alt="PRISM Logo"></button>
 <button id="portalNavigationToggle" class="portal-navigation-toggle" type="button" aria-expanded="false" aria-controls="portalNav">Menu</button>
 <ul class="portal-nav-links" id="portalNav">
 <li class="active"><button data-page="dashboard" aria-current="page">Dashboard</button></li>
-<li><button data-page="calendar">Calendar</button></li>
 <li><button data-page="progress">IERB Progress</button></li>
-<li><button data-page="submit">Document Submission</button></li>
 <li><button data-page="documents">My Documents</button></li>
+<li><button data-page="calendar">Calendar</button></li>
+<li><a href="#prismResourcesTitle" data-prism-resources-link>Research Resources</a></li>
 </ul>
 <div class="portal-nav-right">
 <button class="portal-help" id="helpButton" type="button" title="Help and support" aria-label="Help and support"><i class="fa-regular fa-circle-question"></i></button>

@@ -40,7 +40,6 @@
 .adviser-document-meta dd, .adviser-profile-details dd { margin:0; font-size:12px; line-height:1.6; white-space:pre-wrap; }
 .adviser-document-meta { grid-template-columns:repeat(2,minmax(0,1fr)); }
 .adviser-document-remarks { white-space:pre-wrap; font-size:12px; line-height:1.6; color:var(--text-secondary); }
-.adviser-workflow-badge { justify-self:start; max-width:100%; padding:6px 10px; border:1px solid var(--border-color); border-radius:8px; color:var(--text-primary); background:var(--card-bg); font-size:11px; font-weight:600; line-height:1.6; white-space:normal; }
 .adviser-document-actions { display:flex; gap:8px; flex-wrap:wrap; }
 .adviser-notice { min-width:0; padding:14px 0; border-top:1px solid var(--border-color); }
 .adviser-notice h3 { font-size:12px; line-height:1.6; }

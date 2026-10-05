@@ -15,6 +15,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const cancel = byId('adviserReviewCancel');
     const reviewError = byId('adviserReviewError');
     const status = byId('adviserStatus');
+    // This controller only initializes on the complete Adviser dashboard.
+    if (![queue, search, filter, refresh, notices, profile, dialog, form, reviewStatus, remarks, save, cancel, reviewError, status].every(Boolean)) return;
     let documents = [];
     let queueState = 'loading';
     let loadSequence = 0;
@@ -72,21 +74,35 @@ document.addEventListener('DOMContentLoaded', () => {
         const selected = documents;
         if (!selected.length) {
             const filtered = !!(search.value.trim() || filter.value);
-            state(queue, filtered ? 'No matching submissions' : 'No current submissions', filtered ? 'Adjust your search or workflow status filter.' : 'Documents from your assigned students will appear here when they upload them.');
+            state(queue, filtered ? 'No matching submissions' : 'No documents currently waiting for review.', filtered ? 'Adjust your search or workflow status filter.' : 'Documents from your assigned students will appear here when they upload them.');
             return;
         }
         queue.replaceChildren();
+        const scroll = node('div', null, 'adviser-table-scroll');
+        scroll.tabIndex = 0;
+        scroll.setAttribute('role', 'region');
+        scroll.setAttribute('aria-label', 'Current document reviews');
+        const table = node('table', null, 'adviser-review-table');
+        const caption = node('caption', 'Current submissions for your assigned students');
+        const head = node('thead');
+        const heading = node('tr');
+        ['Student', 'Document', 'Submission Date', 'Status', 'Action'].forEach(label => {
+            const cell = node('th', label); cell.scope = 'col'; heading.append(cell);
+        });
+        head.append(heading);
+        const rows = node('tbody');
+        table.append(caption, head, rows); scroll.append(table); queue.append(scroll);
         selected.forEach(doc => {
-            const card = node('article', null, 'adviser-document');
+            const row = node('tr');
+            const student = node('td', doc.student || 'Not recorded');
+            const card = node('td', null, 'adviser-document');
             card.append(node('h3', doc.originalName || 'Untitled document'));
             const badge = PrismUI.badgeElement(doc.workflowState || 'Status unavailable');
-            card.append(badge);
+            const statusCell = node('td'); statusCell.append(badge);
             const meta = node('dl', null, 'adviser-document-meta');
-            field(meta, 'Student', doc.student);
             field(meta, 'Document type', doc.documentType);
             field(meta, 'Stage', doc.stageLabel || doc.stage);
             field(meta, 'Version', doc.versionNo);
-            field(meta, 'Uploaded', dateText(doc.uploadedAt));
             field(meta, 'Review status', doc.reviewStatus);
             card.append(meta);
             if (doc.reviewRemarks) card.append(node('p', 'Reviewer remarks: ' + doc.reviewRemarks, 'adviser-document-remarks'));
@@ -103,8 +119,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 review.addEventListener('click', () => openReview(doc, review));
                 actions.append(review);
             }
-            card.append(actions);
-            queue.append(card);
+            const actionCell = node('td'); actionCell.append(actions);
+            row.append(student, card, node('td', dateText(doc.uploadedAt)), statusCell, actionCell);
+            rows.append(row);
         });
     }
     function renderProfile(user) {
@@ -203,11 +220,13 @@ document.addEventListener('DOMContentLoaded', () => {
         } finally { setSaving(false); }
     });
     const theme = byId('themeToggle');
+    if (theme) {
     theme.setAttribute('aria-pressed', String(document.documentElement.classList.contains('dark-theme')));
     theme.addEventListener('click', () => {
         const dark = document.documentElement.classList.toggle('dark-theme');
         theme.setAttribute('aria-pressed', String(dark));
         try { localStorage.setItem('prismTheme', dark ? 'dark' : 'light'); } catch (_) {}
     });
+    }
     reload();
 });
