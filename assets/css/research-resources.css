@@ -29,3 +29,8 @@
     .prism-research-resources .prism-resource > summary { padding:16px; }
     .prism-research-resources .prism-resource-content { padding:12px; }
 }
+@media (max-width:400px) {
+    .prism-research-resources { padding:12px; }
+    .prism-research-resources .prism-resource > summary { padding:12px; }
+    .prism-research-resources .prism-resource-content { padding:8px; }
+}

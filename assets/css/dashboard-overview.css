@@ -19,9 +19,17 @@
 .dashboard-page .header-actions { display:flex; flex-wrap:wrap; gap:8px; min-width:0; }
 .dashboard-page .header-actions :is(select,a) { max-width:100%; min-width:0; }
 .dashboard-page .dashboard-table-scroll { overflow-x:auto; max-width:100%; min-width:0; }
-.dashboard-page .dashboard-table-scroll .data-table { min-width:1100px; table-layout:auto; }
+.dashboard-page .dashboard-table-scroll .data-table { min-width:1300px; table-layout:auto; }
+.dashboard-page .dashboard-table-scroll :is(th,td):nth-child(1) { min-width:130px; }
+.dashboard-page .dashboard-table-scroll :is(th,td):nth-child(2) { min-width:170px; }
+.dashboard-page .dashboard-table-scroll :is(th,td):nth-child(3) { min-width:150px; }
+.dashboard-page .dashboard-table-scroll :is(th,td):nth-child(4) { min-width:200px; }
+.dashboard-page .dashboard-table-scroll :is(th,td):nth-child(5) { min-width:160px; }
+.dashboard-page .dashboard-table-scroll :is(th,td):nth-child(6) { min-width:120px; }
+.dashboard-page .dashboard-table-scroll :is(th,td):nth-child(7) { min-width:120px; }
 .dashboard-page .dashboard-table-scroll :is(th,td):is(:nth-child(4),:nth-child(7),:nth-child(8)) { white-space:nowrap; word-break:normal; overflow-wrap:normal; }
-.dashboard-page .data-table td { overflow-wrap:anywhere; }
+.dashboard-page .data-table td { overflow-wrap:normal; word-break:normal; }
+.dashboard-page .data-table td:first-child { overflow-wrap:anywhere; }
 .dashboard-page .pipeline-steps { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:10px; }
 .dashboard-page .step-item { min-width:0; }
 .dashboard-page .step-item strong { overflow-wrap:anywhere; }
@@ -45,4 +53,5 @@
 /* Keep weekday labels within the compact dashboard calendar on narrow phones. */
 @media(max-width:400px) {
  .dashboard-page .calendar-grid { gap:4px; }
+ .dashboard-page .pipeline-steps { grid-template-columns:minmax(0,1fr); }
 }

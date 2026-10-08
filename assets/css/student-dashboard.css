@@ -33,6 +33,9 @@
 .student-dashboard-page .dashboard-progress-copy h2,
 .student-dashboard-page .dashboard-progress-copy p { overflow-wrap: anywhere; }
 .student-dashboard-page .welcome-card .primary-btn { flex-shrink: 0; }
+.student-dashboard-page .welcome-card .dashboard-protocol { width:fit-content; max-width:100%; margin-top:8px; padding:4px 8px; border:1px solid #ffffff40; border-radius:7px; background:#ffffff12; font-size:var(--prism-font-meta); font-weight:500; line-height:1.6; overflow-wrap:normal; word-break:normal; }
+.student-dashboard-page .welcome-card .dashboard-protocol b { white-space:nowrap; }
+.student-dashboard-page .welcome-card .dashboard-protocol span { font:inherit; text-transform:none; overflow-wrap:anywhere; }
 .student-dashboard-page .dashboard-priority { margin: 18px 0; }
 .student-dashboard-page .dashboard-progress-copy h2 { font-size:var(--prism-font-subheading); }
 .student-dashboard-page .dashboard-progress-copy p,
@@ -78,8 +81,12 @@
 .student-dashboard-page #reminderForm textarea { min-width: 0; max-width: 100%; }
 .student-dashboard-page .document-table-wrap { max-width: 100%; }
 .student-dashboard-page .document-table-wrap table:has(.empty-state) { min-width: 0; }
-.student-dashboard-page .document-table-wrap td { overflow-wrap: anywhere; }
-.student-dashboard-page .document-table-wrap td:first-child { max-width: 300px; }
+.student-dashboard-page .document-table-wrap td { overflow-wrap: normal; word-break: normal; }
+.student-dashboard-page .document-table-wrap td:first-child { overflow-wrap: anywhere; }
+.student-dashboard-page .document-table-wrap td:nth-child(2) { min-width:130px; }
+.student-dashboard-page .document-table-wrap td:last-child { min-width:120px; }
+.student-dashboard-page .document-table-wrap td:first-child { min-width:200px; max-width: 300px; }
+.student-dashboard-page .document-table-wrap td:first-child small { overflow-wrap:normal; word-break:normal; }
 .student-dashboard-page .empty-state { padding: 20px 12px; line-height: 1.6; }
 .student-dashboard-page .student-summary-card .empty-state { padding: 8px 0; text-align: left; }
 .student-dashboard-page .prism-wf-panel,

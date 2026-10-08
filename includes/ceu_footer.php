@@ -15,7 +15,7 @@ if (realpath($_SERVER['SCRIPT_FILENAME'] ?? '') === __FILE__
     <div class="ceu-footer-details">
         <a class="ceu-footer-brand" href="https://www.ceu.edu.ph/" target="_blank" rel="noopener noreferrer" aria-label="Visit the Centro Escolar University website (opens in a new tab)">
             <img src="assets/images/ceu-logo.webp" alt="Centro Escolar University logo" width="256" height="307" loading="lazy" decoding="async">
-            <span><strong>CENTRO ESCOLAR UNIVERSITY</strong><small>Malolos Campus</small><span class="ceu-footer-website">Visit the CEU website <span aria-hidden="true">&nearr;</span></span></span>
+            <span><strong>CENTRO ESCOLAR UNIVERSITY</strong><small>Malolos Campus</small></span>
         </a>
         <section class="ceu-footer-contact" aria-label="CEU Malolos contact information">
             <h2>Contact CEU Malolos</h2>

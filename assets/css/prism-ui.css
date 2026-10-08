@@ -1041,6 +1041,10 @@ button:disabled,
   .calendar-page .panel-title{flex-wrap:wrap}
   .calendar-page #reminderForm input,.calendar-page #reminderForm textarea{min-width:0}
 }
+@media(max-width:400px){
+  .calendar-page .calendar-toolbar{flex-wrap:wrap}
+  .calendar-page .calendar-toolbar h2{flex-basis:100%;order:-1}
+}
 .report-ai-note{font-size:var(--prism-font-meta) !important;line-height:1.5}
 
 /* Keep a visible context column while horizontally scrolling wide staff tables. */

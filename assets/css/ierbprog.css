@@ -81,7 +81,8 @@ html.dark-theme .current-stage { color: #ff9dc7; }
 }
 
 .stage-chart {
-    grid-template-columns: repeat(6, minmax(0, 1fr));
+    grid-template-columns: repeat(6, minmax(120px, 1fr));
+    overflow-x: auto;
     align-items: start;
     height: auto;
     margin-top: 12px;
@@ -118,7 +119,8 @@ html.dark-theme .current-stage { color: #ff9dc7; }
     width: 100%;
     min-height: 31px;
     padding: 8px 3px 0;
-    overflow-wrap: anywhere;
+    overflow-wrap: normal;
+    word-break: normal;
     color: var(--text-secondary);
     font-size:var(--prism-font-badge);
     font-weight: 600;
@@ -302,6 +304,8 @@ html.dark-theme .current-stage { color: #ff9dc7; }
         gap: 5px;
         padding-inline: 0;
     }
+
+    .overview-heading { flex-wrap: wrap; }
 
     .stage-bar-col {
         grid-template-rows: 85px auto;

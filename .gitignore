@@ -35,3 +35,6 @@ storage/auth_rate_limits/
 !/tests/schema-v8-mysql.php
 !/tests/readiness-mysql.php
 !/tests/ui-polish-audit.cjs
+!/tests/auth-flows.php
+!/tests/hardening-audit.php
+!/tests/password-reset-browser.cjs

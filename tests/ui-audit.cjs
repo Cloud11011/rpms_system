@@ -161,7 +161,7 @@ function fixtureApi(file, action) {
     const state=studentSubmitted || scenario==='student-submitted'?'Submitted to RPMS':scenario==='student-ready'?'Ready for Formal RPMS Submission':scenario==='student-revision'?'Needs Revision':'Pending Adviser Review';
     return {ok:true,message:'Document uploaded.',documents:populated?[{id:'fixture-doc',originalName:attack+'LongFileName'.repeat(15)+'.pdf',student:'Fixture Student',studentId:1,documentType:'Research Protocol',stage:'Stage 1',stageLabel:labels['Stage 1'],uploadedAt:'2026-09-24',workflowState:state,reviewStatus:state==='Needs Revision'?'Resubmission Requested':state==='Pending Adviser Review'?'Submitted':'Approved',reviewRemarks:attack,versionNo:1,isCurrent:true,actions:{submit:state==='Ready for Formal RPMS Submission'}}]:[]};
   }
-  if(file==='ierb_api.php' && role==='student') return action==='history'?{ok:true,history:[{stage:'Stage 1',status:'On Track',note:attack,actor:attack,created_at:'2026-09-24'}]}:{ok:true,records:populated?[{id:1,name:attack,research:attack,groupId:'Fixture Group',stage:'Stage 1',status:'On Track',progress:20,requirements:attack}]:[]};
+  if(file==='ierb_api.php' && role==='student') return action==='history'?{ok:true,history:[{stage:'Stage 1',status:'On Track',note:attack,actor:attack,created_at:'2026-09-24'}]}:{ok:true,records:populated?[academicRecord||{id:1,name:attack,research:attack,groupId:'Fixture Group',stage:'Stage 1',status:'On Track',progress:20,requirements:attack}]:[]};
   if (action === 'group_options' && ['students_api.php','notifications_api.php'].includes(file)) return {ok:true,groups:populated ? ['AMT-BSIT-Y2-2627-G01','AMT-BSIT-Y2-2627-G02'] : []};
   if (compactBellFixture && file === 'notifications_api.php' && action === 'list') return {ok:true,notifications:Array.from({length:9},(_,i)=>({subject:'Notice '+i+' '+('Long title '.repeat(20)),recipient_name:'Student '+i,status:'Sent',created_at:'2026-10-03 09:00:00',message:'LONG BODY MUST NOT APPEAR'}))};
   if (paginatedFixture && ['audit_api.php','notifications_api.php'].includes(file) && action === 'list') {
@@ -293,8 +293,8 @@ async function evaluateFunction(fn, ...args) {
   return evaluate(`(${fn.toString()})(${args.map(value => JSON.stringify(value)).join(',')})`);
 }
 
-async function waitFor(expression) {
-  for (let i = 0; i < 100; i++) {
+async function waitFor(expression, attempts = 100) {
+  for (let i = 0; i < attempts; i++) {
     if (await evaluate(expression)) return;
     await new Promise(resolve => setTimeout(resolve, 30));
   }
@@ -323,7 +323,7 @@ async function navigate(file, width, dark, data = 'empty', viewer = 'admin') {
   await command('Page.navigate', { url: `${origin}/${file}?fixture=${Date.now()}` });
   file = pageWrappers[file] || file;
   const ready = { 'admin_notifications.php': '#noticeHistory > *', 'admin_ai.php': '#aiHistory > *', 'ierbprog.php': '#stageChart > *', 'account.php': '#activityList > *', 'dashboard.php':'#ierbMonitorBody > *', 'research_adviser.php':'#adviserQueue > *', 'role_portal.php':'#studentDashboardState', 'admin_people.php':'#recordRows > *', 'documents.php':'#documentsTableBody > *', 'reports.php':'#reportTableBody > *', 'calendar.php':'#monthGrid > *', 'data_export.php':'.data-export-card' }[file];
-  await waitFor(`document.readyState === 'complete' && !!document.querySelector(${JSON.stringify(ready)})`);
+  await waitFor(`document.readyState === 'complete' && !!document.querySelector(${JSON.stringify(ready)})`,process.argv.includes('--visual-only')?300:100);
   if (file === 'role_portal.php') await waitFor('document.getElementById("studentDashboardState").getAttribute("aria-busy")==="false"');
   if (file === 'research_adviser.php') await waitFor('document.getElementById("adviserQueue").getAttribute("aria-busy")==="false"');
   if (file === 'admin_ai.php' && role === 'admin' && data !== 'error') await waitFor('document.querySelectorAll("#stageLabelEditor input").length === 6');
@@ -1494,6 +1494,153 @@ async function checkInstitutionalComponents() {
   }
 }
 
+async function checkStudentDashboardProtocol() {
+  const resultDir=path.join(root,'tests','release-candidate-results');fs.mkdirSync(resultDir,{recursive:true});
+  const base={id:1,studentId:'S1',name:'Alexandra Santos',research:'Community Information Technology Research',groupId:'AMT-BSIT-Y2-2627-G01',stage:'Stage 1',status:'On Track',progress:20,isPrincipalInvestigator:true};
+  const cases=[['absent',undefined],['null',null],['empty',''],['assigned','CEU-IERB-2026-0001'],['long','CEU-IERB-'+'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.repeat(12)],['literal',attack]];
+  try {
+    for(const width of [1920,1366,1024,768,390,375,320])for(const dark of [false,true]) {
+      let expectedRequests=null;
+      for(const [kind,code] of cases) {
+        academicRecord={...base,protocolCode:code};
+        const start=requests.length;
+        await navigate('student.php',width,dark,'populated','student');await evaluate('document.fonts.ready');
+        const label=`Student protocol ${kind} ${width} ${dark}`;
+        const result=await evaluateFunction(code=>{
+          const badge=document.getElementById('dashboardProtocol'),value=document.getElementById('dashboardProtocolCode'),label=badge.querySelector('b');
+          const range=document.createRange();range.selectNodeContents(label);
+          const hero=badge.closest('.welcome-card').getBoundingClientRect();
+          const codeRange=document.createRange();codeRange.selectNodeContents(value);
+          return {visible:!badge.hidden&&badge.getClientRects().length>0,text:value.textContent,safe:!value.querySelector('*'),labelWhole:!code||new Set([...range.getClientRects()].map(r=>Math.round(r.top))).size===1,fits:!code||[...codeRange.getClientRects()].every(r=>r.left>=hero.left&&r.right<=hero.right),font:getComputedStyle(badge).fontSize,submit:document.getElementById('submissionProtocol').value,documents:document.getElementById('protocolCodeValue').textContent,documentsVisible:!document.getElementById('protocolCodeCard').hidden};
+        },code||'');
+        check(result.visible===!!code,label+': assigned metadata visible; unassigned hidden');
+        check(result.text===(code||'')&&result.safe,label+': code rendered literally and safely');
+        check(result.labelWhole&&result.fits,label+': label whole and long code contained');
+        check(result.font==='11.5px',label+': secondary metadata typography');
+        check(result.submit===(code||'Not assigned')&&result.documentsVisible===!!code&&(!code||result.documents===code),label+': Submit Document and My Documents preserve code');
+        const signature=requests.slice(start).map(r=>`${r.method} ${r.file} ${r.action}`).sort().join('|');
+        if(expectedRequests===null)expectedRequests=signature;
+        check(signature===expectedRequests,label+': no additional requests for protocol code',signature);
+        await measure('role_portal.php',width,dark,' protocol '+kind);
+        if(code) {
+          await evaluate("document.querySelector('#portalNav [data-page=progress]').click();document.getElementById('principalIndicator').click()");
+          check(await evaluateFunction(code=>!document.getElementById('protocolCodeReveal').hidden&&document.getElementById('protocolCodeReveal').textContent==='Protocol Code: '+code,code),label+': IERB Progress retains its existing code reveal');
+          await evaluate("document.querySelector('#portalNav [data-page=dashboard]').click()");
+        }
+        if(width===320&&['assigned','long'].includes(kind)) {
+          const png=await command('Page.captureScreenshot',{format:'png'});fs.writeFileSync(path.join(resultDir,`student-protocol-${kind}-${dark?'dark':'light'}.png`),Buffer.from(png.data,'base64'));
+        }
+      }
+    }
+    academicRecord={...base,protocolCode:'CEU-IERB-2026-0001',isPrincipalInvestigator:false};
+    await navigate('student.php',320,false,'populated','student');
+    check(await evaluate("!document.getElementById('dashboardProtocol').hidden&&document.getElementById('principalIndicator').hidden"),'Assigned Dashboard code is independent of Principal Investigator reveal');
+    academicRecord=null;
+    for(const state of ['empty','error']) {
+      await navigate('student.php',320,false,state,'student');
+      check(await evaluate("document.getElementById('dashboardProtocol').hidden&&!document.getElementById('dashboardProtocolCode').textContent"),'No record/load error hides Dashboard protocol '+state);
+    }
+  } finally {academicRecord=null;}
+}
+
+async function checkShellPolish() {
+  const baseline=process.argv.includes('--shell-polish-baseline');
+  const resultDir=path.join(root,'tests','release-candidate-results');fs.mkdirSync(resultDir,{recursive:true});
+  const samples=[];
+  const viewers={admin:['dashboard.php','admin_students.php','admin_advisers.php','ierbprog.php','documents.php','reports.php','admin_ai.php','admin_notifications.php','calendar.php','account.php','data_export.php'],adviser:['research_adviser.php','admin_students.php','documents.php','ierbprog.php','admin_notifications.php','calendar.php','account.php'],student:['student.php']};
+  async function inspect(label) {
+    const result=await evaluateFunction(()=>{
+      const split=[],clipped=[],walker=document.createTreeWalker(document.body,NodeFilter.SHOW_TEXT);
+      while(walker.nextNode()) {
+        const n=walker.currentNode,e=n.parentElement;
+        if(!n.textContent.trim()||!e.getClientRects().length||e.closest('script,style,.fa-solid,.fa-regular,.fa-brands')||getComputedStyle(e).visibility==='hidden'||(e.closest('details:not([open])')&&!e.closest('summary')))continue;
+        // Filenames, email addresses and generated identifiers can wrap within tokens.
+        for(const match of n.textContent.matchAll(/[A-Za-z]+/g)) {
+          if(match[0].length<4||match[0].length>32||/[0-9_@./=<>-]/.test(n.textContent[match.index-1]||'')||/[0-9_@./=<>-]/.test(n.textContent[match.index+match[0].length]||''))continue;
+          const range=document.createRange();range.setStart(n,match.index);range.setEnd(n,match.index+match[0].length);
+          if(new Set([...range.getClientRects()].filter(r=>r.width>.5).map(r=>Math.round(r.top))).size>1)split.push({word:match[0],element:e.tagName+'.'+e.className,wrap:getComputedStyle(e).overflowWrap,width:e.getBoundingClientRect().width});
+        }
+        const button=e.closest('button');
+        if(button&&!['absolute','fixed'].includes(getComputedStyle(e).position)) {
+          const range=document.createRange();range.selectNodeContents(n);const r=range.getBoundingClientRect(),b=button.getBoundingClientRect();
+          if(r.width&&(r.left<b.left-2||r.right>b.right+2||r.top<b.top-2||r.bottom>b.bottom+2))clipped.push(button.id||button.className);
+        }
+      }
+      const table=document.querySelector('.dashboard-table-scroll .data-table');
+      const columns=table?[...table.querySelectorAll('tbody tr:first-child td')].map(e=>({text:e.textContent,width:e.getBoundingClientRect().width,wrap:getComputedStyle(e).overflowWrap,wordBreak:getComputedStyle(e).wordBreak,font:getComputedStyle(e).fontSize})):[];
+      return {split,clipped,columns,pageWidth:document.documentElement.scrollWidth,viewport:innerWidth,fontLoaded:[...document.fonts].some(f=>f.family.includes('Montserrat')&&f.status==='loaded')};
+    });
+    samples.push({label,...result});
+    if(!baseline) {
+      check(!result.split.length,label+': ordinary words wrap naturally',JSON.stringify(result.split));
+      check(!result.clipped.length,label+': button labels fit',result.clipped.join(', '));
+      check(result.pageWidth<=result.viewport+1,label+': no page horizontal overflow');
+      check(result.fontLoaded,label+': actual Montserrat loaded');
+    }
+  }
+  academicRecord={id:1,studentId:'S1',name:'Alexandra Christine Santos',email:'student@example.test',group:'AMT-BSIT-Y2-2627-G01',course:'BS in Information Technology',academicUnitKey:'amt',programKey:'bsit',yearLevel:'2nd Year',academicYear:'2026-2027',research:'Community Information Technology and Sustainable Research Development',requirements:'Application documentation and research methodology',stage:'Stage 1',status:'On Track'};
+  for(const [viewer,files] of Object.entries(viewers))for(const file of files)for(const [width,height] of (baseline?[[1366,768],[320,844]]:[[1920,1080],[1366,768],[1024,768],[768,1024],[390,844],[375,844],[320,844]]))for(const dark of (baseline?[false]:[false,true])) {
+    managementFixture=file==='admin_advisers.php'?'adviser':'student';
+    await navigate(file,width,dark,'populated',viewer);
+    await command('Emulation.setDeviceMetricsOverride',{width,height,deviceScaleFactor:1,mobile:false});
+    await evaluate('document.fonts.ready');
+    await evaluate("document.querySelectorAll('[data-prism-resources] details').forEach(e=>e.open=true)");
+    await evaluate("document.querySelectorAll('.activity-audit-details,.deadline-create').forEach(e=>e.open=true)");
+    const label=`${viewer} ${file} ${width} ${dark}`;
+    await inspect(label);
+    if(!baseline)await measure(pageWrappers[file]||file,width,dark,' shell polish '+viewer);
+    if(viewer==='student')for(const section of ['progress','submit','documents','calendar','notifications','profile']) {
+      await evaluateFunction(section=>{location.hash='#'+section},section);
+      await waitFor(`document.querySelector('.portal-page.active').dataset.section===${JSON.stringify(section)}`);
+      await inspect(label+' '+section);
+    }
+    if(!baseline&&viewer!=='student')await checkNavigation(file,width,dark);
+    if(!baseline&&['dashboard.php','research_adviser.php','student.php'].includes(file)) {
+      await evaluateFunction(viewer=>{
+        if(viewer==='admin') {
+          const toggle=document.getElementById('prismSidebarToggle');if(toggle.getAttribute('aria-expanded')!=='true')toggle.click();
+          document.querySelectorAll('.prism-nav-group-toggle').forEach(e=>{if(e.getAttribute('aria-expanded')!=='true')e.click()});
+        } else {
+          const toggle=document.querySelector('.portal-navigation-toggle');if(getComputedStyle(toggle).display!=='none'&&toggle.getAttribute('aria-expanded')!=='true')toggle.click();
+        }
+      },viewer);
+      await evaluate('new Promise(resolve=>setTimeout(resolve,400))');
+      await inspect(label+' open navigation');
+      await evaluateFunction(viewer=>{
+        const toggle=document.querySelector(viewer==='admin'?'#prismSidebarToggle':'.portal-navigation-toggle');if(toggle.getAttribute('aria-expanded')==='true')toggle.click();
+        document.querySelector('[data-prism-account-toggle],#portalProfileToggle')?.click();
+      },viewer);
+      await evaluate('new Promise(resolve=>setTimeout(resolve,400))');
+      await inspect(label+' account dropdown');
+      check(await evaluateFunction(()=>[...document.querySelectorAll('.portal-profile-dropdown:not([hidden]),.prism-account-links:not([hidden])')].every(e=>{const r=e.getBoundingClientRect();return r.left>=-1&&r.right<=innerWidth+1&&e.scrollWidth<=e.clientWidth+1})),label+': account dropdown fits');
+      await evaluate("document.querySelector('[data-prism-account-toggle],#portalProfileToggle')?.click()");
+      if(viewer==='admin') {
+        await evaluate("document.getElementById('notificationToggle').click()");await inspect(label+' notification dropdown');
+        await measure(file,width,dark,' notification dropdown');await evaluate("document.getElementById('notificationToggle').click()");
+      }
+      if(viewer==='adviser') {
+        await evaluate("document.querySelector('[data-review-id]').click()");await inspect(label+' review dialog');
+        await measure(file,width,dark,' review dialog');await evaluate("document.getElementById('adviserReviewCancel').click()");
+      }
+    }
+    if(!baseline&&file==='documents.php'&&viewer==='admin') {
+      await evaluate("document.querySelector('[data-summary]').click()");await waitFor('document.getElementById("summaryResult").getAttribute("aria-busy")!=="true"');
+      await inspect(label+' document summary');await measure(file,width,dark,' document summary');
+      await evaluate("document.querySelector('#summaryModal [data-close]').click()");
+    }
+    if(['dashboard.php','research_adviser.php','student.php'].includes(file)&&[1366,320].includes(width)&&!dark) {
+      if(viewer==='student')await evaluate("location.hash='#dashboard'");
+      const target=viewer==='admin'?'.dashboard-table-scroll':viewer==='adviser'?'.adviser-panel':'main';
+      await evaluateFunction(target=>document.querySelector(target)?.scrollIntoView({block:'center'}),target);
+      if(viewer==='admin')await evaluate("document.querySelector('.dashboard-table-scroll').scrollLeft=130");
+      const png=await command('Page.captureScreenshot',{format:'png'});fs.writeFileSync(path.join(resultDir,`shell-${baseline?'before':'after'}-${viewer}-${width}.png`),Buffer.from(png.data,'base64'));
+    }
+  }
+  academicRecord=null;
+  fs.writeFileSync(path.join(resultDir,`shell-polish-${baseline?'before':'after'}.json`),JSON.stringify({checks,failures,errors,samples},null,2));
+  if(baseline)for(const sample of samples.filter(s=>s.split.length||s.clipped.length))console.log(JSON.stringify({label:sample.label,split:sample.split,clipped:sample.clipped,columns:sample.columns}));
+}
+
 async function checkReleaseTypography() {
   const resultDir=path.join(root,'tests','release-candidate-results');fs.mkdirSync(resultDir,{recursive:true});
   const sizes=[];
@@ -1900,6 +2047,10 @@ async function run() {
   await command('Log.enable');
   await command('Fetch.enable', { patterns: [{ urlPattern: '*' }] });
   await command('Browser.setDownloadBehavior', { behavior: 'deny' }, true);
+  if (process.argv.includes('--student-protocol-only')) {
+    await checkStudentDashboardProtocol();await checkStudentPortal();check(errors.length===0,'No Student protocol browser exceptions',errors.join(' | '));
+    console.log(`${checks} Student protocol/portal UI checks; ${failures.length} failures.`);for(const failure of failures)console.error('FAIL '+failure);if(failures.length)process.exitCode=1;return;
+  }
   if (process.argv.includes('--hardening-only')) {
     for (const [viewer,file] of [['admin','dashboard.php'],['adviser','research_adviser.php'],['student','student.php']]) {
       for (const width of [1440,1280,1024,768,390,375,320]) for (const dark of [false,true]) {
@@ -1944,6 +2095,10 @@ async function run() {
     console.log(checks+' final polish browser checks; '+failures.length+' failures.');
     if(failures.length) throw new Error(failures.join('\n'));
     return;
+  }
+  if (process.argv.includes('--shell-polish-only')) {
+    await checkShellPolish();check(errors.length===0,'No shell polish browser exceptions',errors.join(' | '));
+    console.log(`${checks} shell polish UI checks; ${failures.length} failures.`);if(failures.length)process.exitCode=1;return;
   }
   if (process.argv.includes('--release-panels-only')) {
     await checkReleasePanels();check(errors.length===0,'No release panel browser exceptions',errors.join(' | '));

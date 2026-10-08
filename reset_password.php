@@ -1,6 +1,7 @@
 <?php
 require __DIR__ . '/config.php';
-header('Referrer-Policy: no-referrer');
+// Give the POST guard origin evidence without disclosing the reset URL or token.
+header('Referrer-Policy: origin');
 
 $token = trim((string)($_GET['token'] ?? $_POST['token'] ?? ''));
 $tokenRow = null;
@@ -43,7 +44,7 @@ if (!$tokenValid) {
 
         <div class="logo-container">
 
-            <img src="assets/images/ceu_logo2.jpg" class="logo-main reset-password-logo" alt="Centro Escolar University Malolos">
+            <img src="assets/images/prismlogo1.png" class="logo-main" alt="PRISM logo">
 
         </div>
 

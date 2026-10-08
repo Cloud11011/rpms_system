@@ -549,14 +549,6 @@ button:hover{
     font-size:24px;
 }
 
-.forgot-card .reset-password-logo{
-    width:190px;
-    height:auto;
-    display:block;
-    margin:0 auto 12px;
-}
-
-.forgot-card .reset-password-logo + *,
 .forgot-card h2{
     margin-top:0;
 }
@@ -577,11 +569,6 @@ button:hover{
         width:175px;
         margin-top:-44px;
         margin-bottom:-46px;
-    }
-
-    .forgot-card .reset-password-logo{
-        width:180px;
-        margin:0 auto 12px;
     }
 
 }

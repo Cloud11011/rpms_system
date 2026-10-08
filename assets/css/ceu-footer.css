@@ -30,3 +30,4 @@
     .ceu-footer .ceu-footer-bottom { padding:14px 16px; }
 }
 @media (max-width:600px) { .ceu-footer-accreditations { padding:10px 12px; } }
+@media (max-width:400px) { .ceu-footer .ceu-footer-brand { flex-direction:column; align-items:flex-start; } }

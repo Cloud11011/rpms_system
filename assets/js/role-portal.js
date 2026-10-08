@@ -148,6 +148,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
         $('welcomeName').textContent = body.dataset.name;
         $('researchTitle').textContent = loadErrors.progress ? 'Research details are temporarily unavailable.' : myRecord?.research || 'No research details yet.';
+        const dashboardProtocolCode = myRecord?.protocolCode || '';
+        $('dashboardProtocolCode').textContent = dashboardProtocolCode;
+        $('dashboardProtocol').hidden = !dashboardProtocolCode;
         $('dashboardStageValue').textContent = stageText;
         $('dashboardProgressPercent').textContent = loadErrors.progress ? 'Unavailable' : `${progress}%`;
         $('dashboardProgressBar').style.width = loadErrors.progress ? '0%' : `${progress}%`;
