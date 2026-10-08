@@ -9,11 +9,12 @@ require_once __DIR__ . '/includes/office_container.php';
 $user = api_require_login(['admin', 'adviser', 'student']);
 $pdo = db();
 $action = $_GET['action'] ?? $_POST['action'] ?? 'list';
+if ($action === 'summarize' && $user['role'] !== 'admin') {
+    audit_log($user, 'document_summary_failed', ['entity_type' => 'document', 'details' => 'reason=forbidden_role']);
+    json_out(['ok' => false, 'message' => 'Only RPMS Administrators may generate document summaries.'], 403);
+}
 if (in_array($action, ['upload', 'review', 'submit_to_rpms', 'override_review', 'delete', 'summarize'], true)) {
     require_post_same_origin();
-}
-if ($action === 'summarize') {
-    json_out(['ok' => false, 'message' => 'Document summarization is no longer available.'], 410);
 }
 
 // The viewing adviser's row id in `advisers` (used to scope who may review what).
@@ -118,7 +119,7 @@ function doc_row(array $d, array $user, ?int $viewerAdviserId): array
         // The AI/regex-detected approval date printed on the document itself.
         'detectedApprovalDate' => $d['detected_approval_date'] ?? null,
         'approvalDateSource' => $d['approval_date_source'] ?? null,
-        'aiSummary' => $d['ai_summary'],
+        'aiSummary' => $role === 'admin' ? $d['ai_summary'] : null,
 
         // Workflow + record integrity
         'workflowState' => $state,
@@ -135,6 +136,7 @@ function doc_row(array $d, array $user, ?int $viewerAdviserId): array
 
         // What the signed-in user may do with this row (the UI just reads these flags).
         'actions' => [
+            'summarize' => $role === 'admin',
             'review' => $isCurrent && !$locked && can_review_doc($user, $viewerAdviserId, $d),
             'submitToRpms' => $isCurrent && !$locked && $state === WF_READY_FOR_RPMS && in_array($role, ['student', 'admin'], true),
             'forceSubmitToRpms' => $isCurrent && !$locked && $role === 'admin' && $state !== WF_READY_FOR_RPMS,
@@ -423,6 +425,51 @@ if ($action === 'upload') {
 // ---------------------------------------------------------------------
 // Everything below works on one existing document
 // ---------------------------------------------------------------------
+if ($action === 'summarize') {
+    require_once __DIR__ . '/includes/document_summary.php';
+    $payload = json_body();
+    $id = $payload['id'] ?? null;
+    if (!is_string($id) || !preg_match('/\A[a-f0-9]{24}\z/', $id)) {
+        audit_log($user, 'document_summary_failed', ['entity_type' => 'document', 'details' => 'reason=invalid_document_id']);
+        json_out(['ok' => false, 'message' => 'Provide a valid document ID.'], 422);
+    }
+    // Reserve enough memory to return a safe response if a hostile PDF exhausts PHP's budget.
+    $summaryReserve = str_repeat('x', 262144); $summaryActive = true;
+    register_shutdown_function(static function () use (&$summaryReserve, &$summaryActive): void {
+        $last = error_get_last();
+        if (!$summaryActive || !$last || !in_array($last['type'], [E_ERROR, E_CORE_ERROR, E_COMPILE_ERROR], true)) return;
+        $summaryReserve = null;
+        if (!headers_sent()) { http_response_code(422); header('Content-Type: application/json'); }
+        echo json_encode(['ok' => false, 'message' => 'The document exceeded safe processing limits. Try a smaller text-based copy.']);
+    });
+    try {
+        $doc = fetch_doc($pdo, $id);
+        if (!$doc) throw new DocumentSummaryError('document_missing', 'Document not found. It may have been deleted.', 404);
+        $path = summary_stored_document_path($doc);
+        $extraction = extract_document_text_for_summary($path);
+        $result = generate_document_summary($extraction, document_summary_identifiers($pdo, $doc, $user));
+        // No external service runs under a database lock. Recheck the document before saving.
+        begin_document_write($pdo, $doc);
+        $current = fetch_doc($pdo, $id, true);
+        if ($current['stored_name'] !== $doc['stored_name'] || $current['version_no'] !== $doc['version_no']) {
+            throw new DocumentWriteConflict('This document changed. Refresh and try again.');
+        }
+        $pdo->prepare('UPDATE documents SET ai_summary = :summary WHERE id = :id')->execute([':summary' => $result['summary'], ':id' => $id]);
+        $pdo->commit();
+        audit_log($user, 'document_summarized', ['entity_type' => 'document', 'entity_id' => $id,
+            'student_id' => $doc['student_id'], 'details' => 'source=' . $result['source'] . '; partial=' . (int)$result['partial']]);
+        $summaryActive = false;
+        json_out(['ok' => true] + $result);
+    } catch (Throwable $error) {
+        if ($pdo->inTransaction()) $pdo->rollBack();
+        $reason = $error instanceof DocumentSummaryError ? $error->reasonCode : ($error instanceof DocumentWriteConflict ? 'document_changed' : 'summary_failed');
+        audit_log($user, 'document_summary_failed', ['entity_type' => 'document', 'entity_id' => $id, 'details' => 'reason=' . $reason]);
+        $summaryActive = false;
+        json_out(['ok' => false, 'message' => $error instanceof DocumentSummaryError || $error instanceof DocumentWriteConflict
+            ? $error->getMessage() : 'The summary could not be saved. Please try again.'],
+            $error instanceof DocumentSummaryError ? $error->httpStatus : ($error instanceof DocumentWriteConflict ? 409 : 503));
+    }
+}
 $payload = json_body();
 $id = $_GET['id'] ?? $payload['id'] ?? '';
 $doc = fetch_doc($pdo, (string)$id);

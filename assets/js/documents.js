@@ -5,6 +5,44 @@ let documents=[],listData={},loadSequence=0,loadError=false,view='table';const d
 const esc=v=>String(v??'').replace(/[&<>'"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'})[c]);
 const size=v=>v<1024?`${v} B`:v<1048576?`${(v/1024).toFixed(1)} KB`:`${(v/1048576).toFixed(1)} MB`;const date=v=>new Date(v).toLocaleString('en-PH',{month:'short',day:'numeric',year:'numeric',hour:'numeric',minute:'2-digit'});
 async function api(action,options={}){return PrismUI.request(`documents_api.php?action=${encodeURIComponent(action)}`,options)}
+const summaryModal=document.getElementById('summaryModal'),summaryResult=document.getElementById('summaryResult'),summarySource=document.getElementById('summarySource'),regenerateSummary=document.getElementById('regenerateSummary');
+let summaryDocument=null,summarySequence=0,summaryReturnFocus=null,summaryBusy=false;
+const summarySources=new Map();
+function summaryButton(d){return currentRole==='admin'&&d.actions?.summarize&&summaryModal?`<button type="button" class="document-action-button summary-action" data-summary="${esc(d.id)}"><i class="fa-solid fa-wand-magic-sparkles" aria-hidden="true"></i>${d.aiSummary?'View AI Summary':'Generate AI Summary'}</button>`:''}
+function bindSummaryButtons(host){host.querySelectorAll('[data-summary]').forEach(button=>button.addEventListener('click',()=>showSummary(documents.find(d=>String(d.id)===button.dataset.summary),button)))}
+function showSummary(d,opener){
+    if(!d||currentRole!=='admin'||!summaryModal||summaryBusy)return;
+    summaryDocument=d;summaryReturnFocus=opener||document.activeElement;
+    document.getElementById('summaryFilename').textContent=d.originalName;
+    summaryResult.textContent=d.aiSummary||'';
+    summaryResult.classList.remove('document-error');
+    const recordedSource=summarySources.get(d.id);
+    summarySource.textContent=d.aiSummary?(recordedSource?.summary===d.aiSummary?recordedSource.label:'Source not recorded'):'';
+    openModal(summaryModal);summaryModal.querySelector('[data-close]').focus();
+    if(!d.aiSummary)generateSummary();
+}
+async function generateSummary(){
+    if(!summaryDocument||summaryBusy)return;
+    const d=summaryDocument,sequence=++summarySequence;summaryBusy=true;regenerateSummary.disabled=true;
+    summaryResult.textContent='Extracting document text and preparing the summary…';summaryResult.setAttribute('aria-busy','true');summaryResult.classList.remove('document-error');summarySource.textContent='';
+    try{
+        const data=await api('summarize',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({id:d.id})});
+        if(sequence!==summarySequence)return;
+        d.aiSummary=data.summary;summaryResult.textContent=data.summary;
+        const source=data.source==='ai'?'AI generated':data.source==='local_fallback'?'Local extractive fallback — AI unavailable or response rejected':'Source not recorded';
+        summarySource.textContent=source+(data.partial?' · Based on a bounded excerpt; some document content was omitted.':'');summarySources.set(d.id,{summary:data.summary,label:summarySource.textContent});
+        renderTable();renderFolders();renderCourseView();
+    }catch(error){if(sequence===summarySequence){summaryResult.textContent=error.message;summaryResult.classList.add('document-error');summarySource.textContent='Summary was not generated. Any existing saved summary is retained.'}}
+    finally{summaryBusy=false;regenerateSummary.disabled=false;summaryResult.setAttribute('aria-busy','false')}
+}
+regenerateSummary?.addEventListener('click',generateSummary);
+summaryModal?.addEventListener('keydown',event=>{
+    if(event.key==='Escape'){event.preventDefault();event.stopPropagation();closeModal(summaryModal);return}
+    if(event.key!=='Tab')return;
+    const buttons=[...summaryModal.querySelectorAll('button:not(:disabled)')],first=buttons[0],last=buttons.at(-1);
+    if(event.shiftKey&&document.activeElement===first){event.preventDefault();last.focus()}
+    else if(!event.shiftKey&&document.activeElement===last){event.preventDefault();first.focus()}
+});
 let uploadStudents=[];
 async function loadUploadStudents(){
     if(!isStaff)return;
@@ -53,6 +91,7 @@ function renderTable(){
             <td>${esc(d.student)}${d.course?` <small>(${esc(d.course)})</small>`:''}</td>
             <td><div class="doc-category"><span>${esc(d.documentType)} · ${esc(d.stageLabel||d.stage)}</span><span>${PrismUI.badge(d.workflowState||d.reviewStatus,{small:true})}${d.adminOverride?' '+PrismUI.badge('Admin Override',{small:true}):''}</span>${d.reviewRemarks?`<small>${esc(d.reviewRemarks)}</small>`:''}</div></td>
             <td><div class="document-row-actions">
+                ${summaryButton(d)}
                 <a class="document-action-button" href="documents_api.php?action=file&id=${encodeURIComponent(d.id)}" target="_blank" rel="noopener" title="View"><i class="fa-solid fa-eye"></i></a>
                 <a class="document-action-button" href="documents_api.php?action=file&download=1&id=${encodeURIComponent(d.id)}" title="Download"><i class="fa-solid fa-download"></i></a>
                 <button class="document-action-button" data-versions title="Version history"><i class="fa-solid fa-clock-rotate-left"></i></button>
@@ -73,11 +112,12 @@ function renderTable(){
 
         body.appendChild(tr);
     });
+    bindSummaryButtons(body);
 }
-function renderFolders(){folderView.replaceChildren();const groups=new Map();filtered().forEach(d=>{if(!groups.has(d.student))groups.set(d.student,[]);groups.get(d.student).push(d)});groups.forEach((files,name)=>{const folder=document.createElement('div');folder.className='document-folder';folder.innerHTML=`<div class="folder-heading"><i class="fa-solid fa-folder"></i><strong>${esc(name)}</strong><span>${files.length}</span></div><div class="folder-files">${files.map(f=>`<a class="folder-file" href="documents_api.php?action=file&id=${encodeURIComponent(f.id)}" target="_blank"><i class="fa-regular ${fileIcon(f.originalName)}"></i>${esc(f.originalName)}</a>`).join('')}</div>`;folderView.appendChild(folder)})}
-function renderCourseView(){courseView.replaceChildren();const groups=new Map();filtered().forEach(d=>{const key=d.course||'Unassigned / No Course';if(!groups.has(key))groups.set(key,[]);groups.get(key).push(d)});[...groups.keys()].sort().forEach(course=>{const files=groups.get(course);const folder=document.createElement('div');folder.className='document-folder';folder.innerHTML=`<div class="folder-heading"><i class="fa-solid fa-layer-group"></i><strong>${esc(course)}</strong><span>${files.length}</span></div><div class="folder-files">${files.map(f=>`<a class="folder-file" href="documents_api.php?action=file&id=${encodeURIComponent(f.id)}" target="_blank"><i class="fa-regular ${fileIcon(f.originalName)}"></i>${esc(f.originalName)} <small>(${esc(f.student)}, ${esc(f.year||'')})</small></a>`).join('')}</div>`;courseView.appendChild(folder)})}
+function renderFolders(){folderView.replaceChildren();const groups=new Map();filtered().forEach(d=>{if(!groups.has(d.student))groups.set(d.student,[]);groups.get(d.student).push(d)});groups.forEach((files,name)=>{const folder=document.createElement('div');folder.className='document-folder';folder.innerHTML=`<div class="folder-heading"><i class="fa-solid fa-folder"></i><strong>${esc(name)}</strong><span>${files.length}</span></div><div class="folder-files">${files.map(f=>`<a class="folder-file" href="documents_api.php?action=file&id=${encodeURIComponent(f.id)}" target="_blank"><i class="fa-regular ${fileIcon(f.originalName)}"></i>${esc(f.originalName)}</a>${summaryButton(f)}`).join('')}</div>`;folderView.appendChild(folder)});bindSummaryButtons(folderView)}
+function renderCourseView(){courseView.replaceChildren();const groups=new Map();filtered().forEach(d=>{const key=d.course||'Unassigned / No Course';if(!groups.has(key))groups.set(key,[]);groups.get(key).push(d)});[...groups.keys()].sort().forEach(course=>{const files=groups.get(course);const folder=document.createElement('div');folder.className='document-folder';folder.innerHTML=`<div class="folder-heading"><i class="fa-solid fa-layer-group"></i><strong>${esc(course)}</strong><span>${files.length}</span></div><div class="folder-files">${files.map(f=>`<a class="folder-file" href="documents_api.php?action=file&id=${encodeURIComponent(f.id)}" target="_blank"><i class="fa-regular ${fileIcon(f.originalName)}"></i>${esc(f.originalName)} <small>(${esc(f.student)}, ${esc(f.year||'')})</small></a>${summaryButton(f)}`).join('')}</div>`;courseView.appendChild(folder)});bindSummaryButtons(courseView)}
 function render(){renderFilters();renderTypeManager();renderTable();renderFolders();renderCourseView()}
-function openModal(m){m.classList.add('show');m.setAttribute('aria-hidden','false')}function closeModal(m){m.classList.remove('show');m.setAttribute('aria-hidden','true')}
+function openModal(m){m.classList.add('show');m.setAttribute('aria-hidden','false')}function closeModal(m){m.classList.remove('show');m.setAttribute('aria-hidden','true');if(m===summaryModal){const focus=summaryReturnFocus?.isConnected?summaryReturnFocus:body.querySelector('[data-summary]');focus?.focus()}}
 function toast(message,type='success'){PrismUI.toast(message,type)}
 const pager=PrismUI.recordPager(document.getElementById('documentsCourseView'),document.getElementById('documentCount'),[search,typeFilter,courseFilter,yearFilter,sortSelect].filter(Boolean),load);
 async function load(){
@@ -158,8 +198,8 @@ document.getElementById('uploadDocumentButton').addEventListener('click',async()
     const s=uploadStudents.find(x=>String(x.id)===e.target.value);
     if(s&&s.stage)document.getElementById('documentStage').value=s.stage;
 });
-document.getElementById('manageDocumentTypes').addEventListener('click',()=>openModal(document.getElementById('documentTypesModal')));document.getElementById('documentTypeForm').addEventListener('submit',e=>{e.preventDefault();const input=document.getElementById('newDocumentType'),value=input.value.trim();if(!value)return;if(allDocumentTypes().some(t=>t.toLowerCase()===value.toLowerCase())){toast('That document type already exists.','error');return}customTypes.push(value);localStorage.setItem(customTypeKey,JSON.stringify(customTypes));input.value='';renderTypeManager();renderFilters()});document.querySelectorAll('[data-close]').forEach(b=>b.addEventListener('click',()=>closeModal(document.getElementById(b.dataset.close))));[uploadModal,document.getElementById('documentTypesModal')].forEach(m=>m.addEventListener('click',e=>{if(e.target===m)closeModal(m)}));search.addEventListener('input',()=>{pager.reset();load()});typeFilter.addEventListener('change',()=>{pager.reset();load()});courseFilter.addEventListener('change',()=>{pager.reset();load()});yearFilter.addEventListener('change',()=>{pager.reset();load()});if(sortSelect)sortSelect.addEventListener('change',()=>{pager.reset();load()});
+document.getElementById('manageDocumentTypes').addEventListener('click',()=>openModal(document.getElementById('documentTypesModal')));document.getElementById('documentTypeForm').addEventListener('submit',e=>{e.preventDefault();const input=document.getElementById('newDocumentType'),value=input.value.trim();if(!value)return;if(allDocumentTypes().some(t=>t.toLowerCase()===value.toLowerCase())){toast('That document type already exists.','error');return}customTypes.push(value);localStorage.setItem(customTypeKey,JSON.stringify(customTypes));input.value='';renderTypeManager();renderFilters()});document.querySelectorAll('[data-close]').forEach(b=>b.addEventListener('click',()=>closeModal(document.getElementById(b.dataset.close))));[uploadModal,summaryModal,document.getElementById('documentTypesModal')].filter(Boolean).forEach(m=>m.addEventListener('click',e=>{if(e.target===m)closeModal(m)}));search.addEventListener('input',()=>{pager.reset();load()});typeFilter.addEventListener('change',()=>{pager.reset();load()});courseFilter.addEventListener('change',()=>{pager.reset();load()});yearFilter.addEventListener('change',()=>{pager.reset();load()});if(sortSelect)sortSelect.addEventListener('change',()=>{pager.reset();load()});
 function setView(next){view=next;tableView.style.display=next==='table'?'block':'none';folderView.classList.toggle('show',next==='folder');courseView.classList.toggle('show',next==='course');document.getElementById('tableViewButton').classList.toggle('active',next==='table');document.getElementById('folderViewButton').classList.toggle('active',next==='folder');document.getElementById('courseViewButton').classList.toggle('active',next==='course')}
 document.getElementById('tableViewButton').addEventListener('click',()=>setView('table'));document.getElementById('folderViewButton').addEventListener('click',()=>setView('folder'));document.getElementById('courseViewButton').addEventListener('click',()=>setView('course'));
-const theme=document.getElementById('themeToggle');theme.addEventListener('click',()=>{const dark=document.documentElement.classList.toggle('dark-theme');try{localStorage.setItem('prismTheme',dark?'dark':'light')}catch(_){}});document.addEventListener('keydown',e=>{if(e.key==='Escape'){closeModal(uploadModal);closeModal(document.getElementById('documentTypesModal'))}});load();
+const theme=document.getElementById('themeToggle');theme.addEventListener('click',()=>{const dark=document.documentElement.classList.toggle('dark-theme');try{localStorage.setItem('prismTheme',dark?'dark':'light')}catch(_){}});document.addEventListener('keydown',e=>{if(e.key==='Escape'){if(summaryModal?.classList.contains('show'))closeModal(summaryModal);closeModal(uploadModal);closeModal(document.getElementById('documentTypesModal'))}});load();
 });

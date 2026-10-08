@@ -148,6 +148,8 @@ function audit_action_label(string $action): string
 {
     static $labels = [
         'document_uploaded'                 => 'Document uploaded',
+        'document_summarized'               => 'Document summary generated',
+        'document_summary_failed'           => 'Document summary failed',
         'document_approved'                 => 'Document approved',
         'document_denied'                   => 'Document denied',
         'document_resubmission_requested'   => 'Resubmission requested',

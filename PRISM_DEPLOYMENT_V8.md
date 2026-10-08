@@ -1,5 +1,59 @@
 # PRISM v8 operator deployment instructions
 
+## Admin document summaries: additional prerequisites
+
+This change has not been deployed. The hosting environment has not been inspected remotely.
+Before deploying this version, build dependencies from the supplied `composer.lock` using
+`composer install --no-dev --prefer-dist --no-interaction --no-scripts --optimize-autoloader`.
+The direct PDF dependency is pinned to stable **smalot/pdfparser 2.12.5**; retain its license files.
+Ship the resulting **entire `vendor/` directory** with the application: Hostinger may not run
+Composer in its deployment path. Never rely on a development machine's unshipped dependencies.
+Run `composer check-platform-reqs --no-dev` where Composer is available, and run
+`php tools/check-document-summary.php` with the hosting PHP configuration. Confirm PHP 8.1+,
+zlib, iconv, mbstring, XML/DOM, ZIP (DOCX), cURL (AI), and readable `vendor/autoload.php` in
+the **web runtime**, which may have different extensions/settings from CLI. Local ZIP is
+disabled by default; local test commands explicitly use `-d extension=zip`.
+
+Provide at least 128 MB PHP memory (256 MB recommended; larger files may be rejected at the
+lower setting) and at least 60 seconds request time, with sufficient hosting worker limits.
+Admin PDF extraction temporarily caps PHP memory at the lower of the configured limit and
+256 MB, limits parsing to 20 seconds in web requests, and checks a 15-second processing budget.
+It caps files at 20 MB, each decoded stream at 8 MB, inspected streams at 64 MB, objects at
+15,000, font mappings at 100,000 entries, extracted text at 200,000 bytes and examined pages
+at 200. The mature parser initially builds its raw object structures before some application
+checks; PHP's finite memory/time limit and safe fatal-response handler remain the final boundary.
+No shell command, worker process, remote file upload or OCR service is used. Upload-time
+approval-date extraction remains the existing lightweight local operation.
+
+The summary-specific CMap adapter normalizes legal compact CMap end delimiters before the
+locked parser initializes fonts, preventing a real publisher PDF's ligature array from being
+misread as a huge scalar range. Keep `includes/summary_pdf_parser.php` with the application;
+do not replace it with an unmodified direct parser call or edit `vendor` as a deployment fix.
+
+Ensure Apache/LiteSpeed honors the root `.htaccess` and its rewrite rules. Verify direct HTTP
+requests to `vendor/autoload.php`, `vendor/composer/installed.json`, `composer.json`,
+`composer.lock`, private storage and tests receive 403/404, while server-side autoload works.
+When those rules are not supported, configure equivalent hosting-level denials before release.
+
+Only the authenticated Admin `summarize` POST action transmits redacted text. Input is bounded
+below the existing 12,000-character transport limit; later method/ethics passages may be sampled.
+Document responses opt into sensitive transport logging, a 900-token output limit and a 64 KB
+response limit. Existing aggregate calls retain their transport defaults and model configuration.
+Known linked student/group/adviser identities, student IDs, email addresses, protocol codes and
+obvious labeled identifiers are removed locally; arbitrary prose cannot be guaranteed anonymous.
+The review aid explicitly discloses truncated coverage. Scanned/image-only, encrypted and
+unreadable PDFs require a readable text-based copy; no OCR has been added.
+
+`documents.ai_summary` contains summary text only. Source/partial indicators are returned for
+the current generation and recorded in content-free audit details. A saved summary reopened
+without that in-memory response shows **Source not recorded**. No schema change is required.
+No workflow fields or approval dates are updated by generation or regeneration.
+
+Tests and their fixtures were previously ignored wholesale. The narrowly scoped `.gitignore`
+exceptions now expose the new summary tests, changed regression sources and attributed format
+fixtures for review; caches and generated result logs remain ignored. Existing broader local
+regression fixtures are still used by the local regression runner.
+
 Prepared 2026-10-08. These are review instructions; deployment and production migration have **not** been performed. Preserve the live configuration, secrets, database and private files. Local verification used PHP 8.2.12 and disposable MariaDB 10.4.32. Confirm the hosting PHP/MariaDB versions and extensions separately.
 
 ## 1. Review and back up

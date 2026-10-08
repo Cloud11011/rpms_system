@@ -1,0 +1,15 @@
+Student name: Maria Santos
+Student ID: 2026-12345
+Protocol code: CEU-IERB-2026-071
+Email: maria@example.test
+Purpose: This research protocol examines access to digital library services among university students.
+Methodology: The study uses an anonymous questionnaire and descriptive analysis of responses.
+Sampling: Recruitment is voluntary and participants may decline any question without penalty.
+Ethics: Participants will provide informed consent before completing the questionnaire.
+Privacy: The team will store de-identified responses in an access-controlled university repository.
+Submission information: The protocol and participant information sheet are supplied for IERB review.
+Approval date: Not recorded. The protocol does not assert that ethical approval has been granted.
+Limitations: Convenience sampling may limit applicability beyond the participating university.
+Data handling: The research team will delete contact information after recruitment.
+Analysis: Counts and percentages will describe access patterns; no causal claims are planned.
+Résumé: café resources are available. A participant may withdraw before anonymization.

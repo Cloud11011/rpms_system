@@ -28,11 +28,22 @@ Options -Indexes
     # Private documents/reports must only be served through authenticated PHP endpoints.
     RewriteRule ^storage(?:/|$) - [F,L]
     RewriteRule ^tests(?:/|$) - [F,L]
+    RewriteRule ^vendor(?:/|$) - [F,L]
     # The one-time Gmail OAuth helper is browser-based but also enforces loopback-only access itself.
     RewriteRule ^tools/gmail_get_refresh_token\.php$ - [L]
     # Other maintenance utilities are CLI/cron only and must never be directly web-accessible.
     RewriteRule ^tools(?:/|$) - [F,L]
 </IfModule>
+
+<FilesMatch "^composer\.(json|lock)$">
+    <IfModule mod_authz_core.c>
+        Require all denied
+    </IfModule>
+    <IfModule !mod_authz_core.c>
+        Order allow,deny
+        Deny from all
+    </IfModule>
+</FilesMatch>
 
 # Local credentials are never a public endpoint.
 <Files "config.local.php">

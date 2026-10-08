@@ -1212,20 +1212,24 @@ function log_api_error(string $service, string $message): void
  * query template. Returns the generated text, or null on failure/unavailable
  * so callers can fall back to local processing.
  */
-function openrouter_generate(string $systemPrompt, string $userContent): ?string
+function openrouter_generate(string $systemPrompt, string $userContent, bool $sensitiveContent = false): ?string
 {
     if (!openrouter_available()) {
         return null;
     }
 
-    $payload = json_encode([
+    if ($sensitiveContent && !function_exists('curl_init')) return null;
+    $request = [
         'model'       => OPENROUTER_MODEL,
         'messages'    => [
             ['role' => 'system', 'content' => $systemPrompt],
             ['role' => 'user', 'content' => mb_substr($userContent, 0, 12000)],
         ],
         'temperature' => 0.3,
-    ]);
+    ];
+    // Document calls opt in; the aggregate report request remains unchanged.
+    if ($sensitiveContent) $request['max_tokens'] = 900;
+    $payload = json_encode($request);
 
     $ch = curl_init('https://openrouter.ai/api/v1/chat/completions');
     curl_setopt_array($ch, [
@@ -1240,15 +1244,25 @@ function openrouter_generate(string $systemPrompt, string $userContent): ?string
             'X-Title: PRISM RPMS',
         ],
     ]);
+    $boundedResponse = '';
+    if ($sensitiveContent) {
+        curl_setopt($ch, CURLOPT_WRITEFUNCTION, static function ($handle, string $chunk) use (&$boundedResponse): int {
+            if (strlen($boundedResponse) + strlen($chunk) > 65536) return 0;
+            $boundedResponse .= $chunk;
+            return strlen($chunk);
+        });
+    }
     $response  = curl_exec($ch);
     $status    = curl_getinfo($ch, CURLINFO_HTTP_CODE);
     $curlError = curl_error($ch);
     curl_close($ch);
 
     if ($response === false || $status >= 400) {
-        log_api_error('openrouter', $curlError !== '' ? $curlError : "HTTP $status: " . substr((string)$response, 0, 500));
+        log_api_error('openrouter', $sensitiveContent ? "Document summary request failed (HTTP $status)."
+            : ($curlError !== '' ? $curlError : "HTTP $status: " . substr((string)$response, 0, 500)));
         return null;
     }
+    if ($sensitiveContent) $response = $boundedResponse;
     $decoded = json_decode($response, true);
     return $decoded['choices'][0]['message']['content'] ?? null;
 }
