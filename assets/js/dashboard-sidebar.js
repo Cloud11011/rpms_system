@@ -5,6 +5,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const groups = [...sidebar.querySelectorAll('.prism-nav-group-toggle')];
     const media = window.matchMedia('(max-width: 900px)');
     const submenu = button => document.getElementById(button.getAttribute('aria-controls'));
+    const rememberedGroups = new Map();
+    let wasCollapsed = false;
     function setGroup(button, open) {
         const list = submenu(button);
         if (!list) return;
@@ -17,7 +19,12 @@ document.addEventListener('DOMContentLoaded', () => {
         sidebar.classList.toggle('is-collapsed', collapsed);
         toggle.setAttribute('aria-expanded', String(!collapsed));
         toggle.setAttribute('aria-label', collapsed ? 'Expand navigation' : 'Collapse navigation');
-        if (collapsed) groups.forEach(button => setGroup(button, false));
+        if (collapsed && !wasCollapsed) groups.forEach(button => {
+            rememberedGroups.set(button, button.getAttribute('aria-expanded') === 'true');
+            setGroup(button, false);
+        });
+        if (!collapsed && wasCollapsed) groups.forEach(button => setGroup(button, rememberedGroups.get(button) === true));
+        wasCollapsed = collapsed;
         if (remember) { try { sessionStorage.setItem('prismNavigationMinimized', String(collapsed)); } catch (_) {} }
     }
     let collapsed = media.matches;
@@ -33,12 +40,13 @@ document.addEventListener('DOMContentLoaded', () => {
         setGroup(button, open);
     }));
     sidebar.addEventListener('keydown', event => {
-        if (event.key !== 'Escape') return;
+        if (event.key !== 'Escape' || event.defaultPrevented) return;
         const group = groups.find(button => button === event.target || submenu(button)?.contains(event.target));
         if (group && group.getAttribute('aria-expanded') === 'true') {
             setGroup(group, false); group.focus();
         } else { setCollapsed(true, true); toggle.focus(); }
         event.preventDefault();
+        event.stopPropagation();
     });
     media.addEventListener('change', () => setCollapsed(media.matches));
 });

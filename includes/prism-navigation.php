@@ -46,7 +46,18 @@ $prismNavGroups = [
     ]],
 ];
 ?>
-<div class="sidebar-header prism-sidebar-brand"><img src="assets/images/prismlogo1.png?v=2" class="sidebar-brand-logo" alt="PRISM"><span class="prism-navigation-caption">Research workspace</span></div>
+<script>
+// Apply the canonical sidebar class during parsing, before its branding can paint.
+(() => {
+    const sidebar = document.currentScript.closest('.prism-sidebar');
+    if (!sidebar) return;
+    let collapsed = matchMedia('(max-width:900px)').matches;
+    if (!collapsed) { try { collapsed = sessionStorage.getItem('prismNavigationMinimized') === 'true'; } catch (_) {} }
+    sidebar.classList.add('is-initializing');
+    sidebar.classList.toggle('is-collapsed', collapsed);
+})();
+</script>
+<div class="sidebar-header prism-sidebar-brand"><img src="assets/images/prismlogo1.png?v=2" class="sidebar-brand-logo" alt="PRISM"><img src="assets/images/prismicon.png" class="sidebar-brand-icon" alt="PRISM"><span class="prism-navigation-caption">Research workspace</span></div>
 <button type="button" id="prismSidebarToggle" class="prism-sidebar-toggle" aria-expanded="true" aria-controls="prismPrimaryNavigation" aria-label="Collapse navigation"><i class="fa-solid fa-bars" aria-hidden="true"></i><span>Navigation</span></button>
 <nav id="prismPrimaryNavigation" aria-label="Main navigation">
 <?php if ($authUser['role'] === 'admin'): ?>

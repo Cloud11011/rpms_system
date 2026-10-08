@@ -1,11 +1,12 @@
 <?php
 require __DIR__ . '/config.php';
+header('Referrer-Policy: no-referrer');
 
 $token = trim((string)($_GET['token'] ?? $_POST['token'] ?? ''));
 $tokenRow = null;
 if ($token !== '') {
-    $stmt = db()->prepare('SELECT * FROM password_resets WHERE token = :t LIMIT 1');
-    $stmt->execute([':t' => $token]);
+    $stmt = db()->prepare('SELECT * FROM password_resets WHERE (token = :hashed OR token = :legacy) AND used = 0 AND expires_at > NOW() LIMIT 1');
+    $stmt->execute(reset_token_parameters($token));
     $tokenRow = $stmt->fetch();
 }
 $tokenValid = $tokenRow && !$tokenRow['used'] && strtotime($tokenRow['expires_at']) > time();
@@ -88,7 +89,7 @@ if (!$tokenValid) {
                 id="password"
                 placeholder="New Password"
                 autocomplete="new-password"
-                minlength="8"
+                minlength="12"
                 required>
 
                 <span class="toggle-password">
@@ -109,7 +110,7 @@ if (!$tokenValid) {
                 id="confirmPassword"
                 placeholder="Confirm Password"
                 autocomplete="new-password"
-                minlength="8"
+                minlength="12"
                 required>
 
                 <span class="toggle-password">

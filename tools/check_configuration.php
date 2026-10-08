@@ -8,7 +8,7 @@ if (!is_writable(STORAGE_DIR)) $issues[] = 'Application storage must be writable
 if (in_array('--production', $argv, true) && APP_ENV !== 'production') {
     $issues[] = 'Production deployment requires APP_ENV=production.';
 }
-foreach (['pdo_mysql', 'mbstring', 'fileinfo'] as $extension) {
+foreach (['pdo_mysql', 'mbstring', 'fileinfo', 'zip'] as $extension) {
     if (!extension_loaded($extension)) $issues[] = 'Required PHP extension missing: ' . $extension . '.';
 }
 if ($issues) {

@@ -177,7 +177,7 @@
             const tr = document.createElement('tr');
             if (isAdviser) {
                 tr.innerHTML = `
-                    <td><strong>${escapeHtml(record.name)}</strong><br><small>${escapeHtml(record.email)}</small></td>
+                    <td><strong>${escapeHtml(record.name)}</strong>${record.archivedAt ? ' <span class="prism-badge">Archived</span>' : ''}<br><small>${escapeHtml(record.email)}</small></td>
                     <td>${escapeHtml(record.employeeId)}</td>
                     <td>${escapeHtml(record.department || 'N/A')}</td>
                     <td class="adviser-groups"></td>
@@ -189,7 +189,7 @@
                     : '<span class="muted">Not yet assigned</span>';
                 const piBadge = record.isPrincipalInvestigator ? ' <span class="pi-badge" title="Principal Investigator">PI</span>' : '';
                 tr.innerHTML = `
-                    <td><strong>${escapeHtml(record.name)}</strong><br><small>${escapeHtml(record.email)}</small></td>
+                    <td><strong>${escapeHtml(record.name)}</strong>${record.archivedAt ? ' <span class="prism-badge">Archived</span>' : ''}<br><small>${escapeHtml(record.email)}</small></td>
                     <td>${escapeHtml(record.studentId)}</td>
                     <td>${escapeHtml(record.research || 'Not set')}<br><small>${escapeHtml(record.group || 'No group')}</small></td>
                     <td>${escapeHtml(record.adviserName || 'Unassigned')}</td>
@@ -216,7 +216,7 @@
             editBtn.addEventListener('click', () => openModal(record));
             const delBtn = document.createElement('button');
             delBtn.className = 'icon-btn';
-            delBtn.title = 'Delete';
+            delBtn.title = isAdviser ? 'Deactivate adviser' : 'Archive student';
             delBtn.innerHTML = '<i class="fa-solid fa-trash"></i>';
             delBtn.addEventListener('click', e => PrismUI.runAction(e.currentTarget,'Processing...',() => deleteRecord(record)));
             actions.append(editBtn);
@@ -242,7 +242,11 @@
             } else {
                 document.getElementById('research').value = record.research || '';
                 document.getElementById('requirements').value = record.requirements || '';
-                document.getElementById('adviser').value = record.adviserId || '';
+                const adviserSelect = document.getElementById('adviser');
+                if (record.adviserId && ![...adviserSelect.options].some(option => option.value === String(record.adviserId))) {
+                    adviserSelect.add(new Option((record.adviserName || 'Existing adviser') + ' (retained assignment)', String(record.adviserId)));
+                }
+                adviserSelect.value = record.adviserId || '';
                 document.getElementById('stage').value = record.stage || 'Stage 1';
                 document.getElementById('recordStatus').value = record.status || 'On Track';
                 const pcField = document.getElementById('protocolCode');
@@ -283,9 +287,9 @@
 
     async function deleteRecord(record) {
         const answer = await PrismUI.confirm({
-            title:`Delete ${isAdviser ? 'adviser' : 'student'} record`,
-            icon:'fa-trash', tone:'danger', confirmText:'Delete',
-            message:`Delete the record for ${record.name}? The associated login will be deactivated.`
+            title:isAdviser ? 'Deactivate adviser' : 'Archive student record',
+            icon:'fa-box-archive', tone:'danger', confirmText:isAdviser ? 'Deactivate' : 'Archive',
+            message:isAdviser ? `Deactivate ${record.name} and their login? Adviser records and historical student assignments will be retained. Active students can be reassigned by RPMS.` : `Archive ${record.name} and deactivate their login? Student, IERB, documents, versions and submission history will be retained.`
         });
         if (!answer) return;
         try {

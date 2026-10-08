@@ -31,7 +31,7 @@ function prism_student_scope(array $user): array
     $scope = 'FROM students s LEFT JOIN advisers f ON f.id = s.adviser_id WHERE 1=1';
     $params = [];
     if ($user['role'] === 'adviser') {
-        $scope .= ' AND f.email = :viewer';
+        $scope .= ' AND f.email = :viewer AND s.archived_at IS NULL';
         $params[':viewer'] = $user['email'];
     } elseif ($user['role'] === 'student') {
         $scope .= ' AND s.email = :viewer';

@@ -11,7 +11,7 @@ if ($studentDbId <= 0) {
 }
 
 $pdo = db();
-$stmt = $pdo->prepare('SELECT s.id, s.student_id, s.full_name, s.email, s.stage, s.status, s.requirements,
+$stmt = $pdo->prepare('SELECT s.id, s.student_id, s.full_name, s.email, s.stage, s.status, s.requirements, s.archived_at,
         a.email AS adviser_email
     FROM students s
     LEFT JOIN advisers a ON a.id = s.adviser_id
@@ -21,7 +21,7 @@ $student = $stmt->fetch();
 if (!$student) {
     json_out(['ok' => false, 'message' => 'Student record not found.'], 404);
 }
-if ($user['role'] === 'adviser' && strcasecmp((string)$student['adviser_email'], (string)$user['email']) !== 0) {
+if ($user['role'] === 'adviser' && (!empty($student['archived_at']) || strcasecmp((string)$student['adviser_email'], (string)$user['email']) !== 0)) {
     json_out(['ok' => false, 'message' => 'You can only send follow-ups to students assigned to you.'], 403);
 }
 

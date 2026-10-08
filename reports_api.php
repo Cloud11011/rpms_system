@@ -1,5 +1,6 @@
 <?php
 require __DIR__ . '/config.php';
+require_once __DIR__ . '/workflow.php';
 require_once __DIR__ . '/includes/pagination.php';
 $user = api_require_login('admin');
 $pdo = db();
@@ -318,7 +319,7 @@ if ($action === 'ai_report') {
     $pdo->prepare('INSERT INTO reports (id, title, type, filename, generated_by, generated_by_user_id) VALUES (:id,:title,:type,:file,:by,:uid)')
         ->execute([':id' => $reportId, ':title' => $title, ':type' => $reportType, ':file' => $filename, ':by' => $user['full_name'], ':uid' => $user['id']]);
 
-    log_activity($user['email'], 'ai_report_generated', "mode=$mode ai_used=" . ($aiUsed ? '1' : '0'));
+    audit_log($user, 'ai_report_generated', ['entity_type'=>'report', 'entity_id'=>$reportId, 'after'=>$mode, 'details'=>'External model used: '.($aiUsed ? 'yes' : 'no')]);
     json_out(['ok' => true, 'report' => ['id' => $reportId, 'name' => $title, 'type' => $reportType, 'generatedAt' => date(DATE_ATOM)], 'aiUsed' => $aiUsed]);
 }
 
@@ -395,7 +396,8 @@ function ai_narrative_excludes_names(string $text, array $students): bool
         $name = trim((string)($student['full_name'] ?? ''));
         $parts = array_merge([$name], preg_split('/[^\p{L}\p{N}]+/u', $name, -1, PREG_SPLIT_NO_EMPTY) ?: []);
         foreach (array_unique($parts) as $part) {
-            if ($part === '') continue;
+            if ($part === '' || ($part !== $name && (mb_strlen($part) <= 2
+                || (mb_strtolower($part) === 'may' && $part === (preg_split('/[^\p{L}\p{N}]+/u', $name, -1, PREG_SPLIT_NO_EMPTY)[0] ?? ''))))) continue;
             if (preg_match('/(?<![\p{L}\p{N}])' . preg_quote($part, '/') . '(?![\p{L}\p{N}])/iu', $text) !== 0) return false;
             $plainPart = str_replace(["'", '`', '^', '~', '"'], '', report_pdf_plain($part));
             // Some Windows converters substitute accented letters with '?'; match conservatively.
@@ -487,7 +489,7 @@ if ($action === 'generate') {
     $pdo->prepare('INSERT INTO reports (id, title, type, filename, generated_by, generated_by_user_id) VALUES (:id,:title,:type,:file,:by,:uid)')
         ->execute([':id' => $reportId, ':title' => $title, ':type' => $type, ':file' => $filename, ':by' => $user['full_name'], ':uid' => $user['id']]);
 
-    log_activity($user['email'], 'report_generated', "type=$type title=$title");
+    audit_log($user, 'report_generated', ['entity_type'=>'report', 'entity_id'=>$reportId, 'after'=>$type, 'details'=>$title]);
     json_out(['ok' => true, 'report' => ['id' => $reportId, 'name' => $title, 'type' => $type, 'generatedAt' => date(DATE_ATOM)]]);
 }
 
@@ -520,11 +522,11 @@ if ($action === 'file') {
 }
 
 if ($action === 'delete') {
-    if (is_file($path)) {
-        @unlink($path);
-    }
     $pdo->prepare('DELETE FROM reports WHERE id = :id')->execute([':id' => $id]);
-    log_activity($user['email'], 'report_deleted', "id=$id");
+    if (is_file($path) && !@unlink($path)) {
+        log_api_error('report_file_cleanup', 'Could not remove file for report ' . $id . ' after committed deletion.');
+    }
+    audit_log($user, 'report_deleted', ['entity_type'=>'report', 'entity_id'=>$id, 'before'=>$found['title'], 'after'=>'Deleted']);
     json_out(['ok' => true, 'message' => 'Report deleted.']);
 }
 

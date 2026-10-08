@@ -44,10 +44,10 @@ $isAdmin = $authUser['role'] === 'admin';
 <section class="management-card account-card" id="security"><div class="management-card-head"><div><h2>Security</h2><p>Change your password.</p></div></div>
 <form id="accountPasswordForm" class="account-form">
 <label>Current password<input id="accountCurrentPassword" type="password" autocomplete="current-password" required></label>
-<label>New password<input id="accountNewPassword" type="password" minlength="8" maxlength="200" autocomplete="new-password" required></label>
-<label>Confirm new password<input id="accountConfirmPassword" type="password" minlength="8" maxlength="200" autocomplete="new-password" required></label>
+<label>New password<input id="accountNewPassword" type="password" minlength="12" maxlength="200" autocomplete="new-password" required></label>
+<label>Confirm new password<input id="accountConfirmPassword" type="password" minlength="12" maxlength="200" autocomplete="new-password" required></label>
 <button class="management-primary" type="submit"><i class="fa-solid fa-key"></i> Change password</button>
-</form><p class="account-note">Use at least 8 characters and choose a password different from your current one.</p></section>
+</form><p class="account-note">Use at least 12 characters and choose a password different from your current one.</p></section>
 </div>
 <section class="management-card account-card activity-card" id="activity">
 <div class="management-card-head"><div><h2>Activity Logs</h2><p><?php echo $isAdmin ? 'Audit activity across PRISM.' : 'Audit activity for students assigned to you.'; ?></p></div><p id="activityCount">0 entries</p></div>

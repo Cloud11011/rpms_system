@@ -1,5 +1,6 @@
 <?php
 require __DIR__ . '/config.php';
+header('Referrer-Policy: no-referrer');
 
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     header('Location: forgot_password.php');
@@ -14,8 +15,8 @@ $confirm = (string)($_POST['confirm_password'] ?? '');
 $pdo = null;
 try {
     $pdo = db();
-    $owner = $pdo->prepare('SELECT user_id FROM password_resets WHERE token = :t AND used = 0 AND expires_at > NOW() LIMIT 1');
-    $owner->execute([':t' => $token]);
+    $owner = $pdo->prepare('SELECT user_id FROM password_resets WHERE (token = :hashed OR token = :legacy) AND used = 0 AND expires_at > NOW() LIMIT 1');
+    $owner->execute(reset_token_parameters($token));
     $ownerId = $owner->fetchColumn();
     $pdo->beginTransaction();
     if ($ownerId) {
@@ -24,8 +25,8 @@ try {
         $lock->execute([':id' => $ownerId]);
         $lock->fetchColumn();
     }
-    $stmt = $pdo->prepare('SELECT * FROM password_resets WHERE token = :t AND used = 0 AND expires_at > NOW() LIMIT 1 FOR UPDATE');
-    $stmt->execute([':t' => $token]);
+    $stmt = $pdo->prepare('SELECT * FROM password_resets WHERE (token = :hashed OR token = :legacy) AND used = 0 AND expires_at > NOW() LIMIT 1 FOR UPDATE');
+    $stmt->execute(reset_token_parameters($token));
     $row = $stmt->fetch();
     $valid = (bool)$row;
 
@@ -35,9 +36,9 @@ try {
         header('Location: forgot_password.php');
         exit;
     }
-    if ($password === '' || strlen($password) < 8) {
+    if (!new_password_is_valid($password)) {
         if ($pdo->inTransaction()) $pdo->rollBack();
-        $_SESSION['error'] = 'Password must be at least 8 characters long.';
+        $_SESSION['error'] = 'Password must be 12 to 200 characters long; a passphrase is welcome.';
         header('Location: reset_password.php?token=' . urlencode($token));
         exit;
     }

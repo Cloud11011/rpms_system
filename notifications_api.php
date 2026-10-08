@@ -1,5 +1,6 @@
 <?php
 require __DIR__ . '/config.php';
+require_once __DIR__ . '/workflow.php';
 require_once __DIR__ . '/includes/notification_delivery.php';
 require_once __DIR__ . '/includes/research_groups.php';
 $user = api_require_login(['admin', 'adviser', 'student']);
@@ -19,7 +20,7 @@ if ($action === 'list') {
         $scope .= ' LEFT JOIN students s ON n.recipient_type = "student" AND n.recipient_id = s.id
             LEFT JOIN advisers a ON a.id = s.adviser_id
             WHERE (n.recipient_email = :self)
-               OR (n.recipient_type = "student" AND a.email = :self)';
+               OR (n.recipient_type = "student" AND a.email = :self AND s.archived_at IS NULL)';
         $params[':self'] = $user['email'];
     }
     if (isset($_GET['preview']) && !empty($_GET['personal'])) {
@@ -107,24 +108,44 @@ if ($action === 'send') {
         json_out(['ok' => false, 'message' => 'No matching recipients were found for that audience.'], 422);
     }
 
-    $isScheduled = $automated;
+    $queued = !$automated && count($recipients) > 5;
+    $isScheduled = $automated || $queued;
+    if ($queued) $scheduleAt = date('Y-m-d H:i:s');
     $subject = "PRISM $type - CEU Malolos RPMS";
     $sentCount = 0;
     $loggedCount = 0;
-
+    $persisted = [];
+    $pdo->beginTransaction();
+    try {
     foreach ($recipients as $recipient) {
         $body = "Hello {$recipient['name']},\n\n{$message}\n\n"
             . "This is an automated notification from the CEU Malolos Research Planning and Monitoring Section (RPMS) via PRISM.\n";
         $result = create_notification($pdo, $recipient['type'], (int)$recipient['id'],
             (string)($recipient['email'] ?? ''), (string)$recipient['name'], $subject, $message, $type,
-            $user['full_name'], $body, $isScheduled ? date('Y-m-d H:i:s', strtotime($scheduleAt)) : null);
+            $user['full_name'], $body, $isScheduled ? date('Y-m-d H:i:s', strtotime($scheduleAt)) : date('Y-m-d H:i:s'));
+        $persisted[] = ['id'=>(int)$pdo->lastInsertId(), 'email'=>(string)$recipient['email'], 'body'=>$body];
+    }
+    $pdo->commit();
+    } catch (Throwable $e) {
+        if ($pdo->inTransaction()) $pdo->rollBack();
+        log_api_error('notification_batch', 'Notification records could not be saved.');
+        json_out(['ok'=>false, 'message'=>'Notification records could not be saved; no email was sent.'], 500);
+    }
+    // Every in-app record is committed before any provider call.
+    foreach ($isScheduled ? [] : $persisted as $notice) {
+        // Use the same atomic Scheduled claim as the worker; never race an overlapping cron.
+        $claim = $pdo->prepare("UPDATE notifications SET status = 'Sending', sending_started_at = NOW()
+            WHERE id = :id AND status = 'Scheduled'");
+        $claim->execute([':id'=>$notice['id']]);
+        if ($claim->rowCount() !== 1) continue;
+        $result = deliver_notification_email($pdo, $notice['id'], $notice['email'], $subject, $notice['body'], true);
         if ($result['status'] === 'Sent') $sentCount++;
         if ($result['status'] === 'Logged') $loggedCount++;
     }
 
-    log_activity($user['email'], 'notification_sent', "audience=$audience type=$type recipients=" . count($recipients));
+    audit_log($user, 'notification_sent', ['entity_type'=>'notification_batch', 'after'=>$isScheduled ? 'Scheduled' : 'Attempted', 'details'=>"audience=$audience type=$type recipients=" . count($recipients)]);
     json_out(['ok' => true, 'sent' => $sentCount, 'logged' => $loggedCount,
-        'total' => count($recipients), 'scheduled' => $isScheduled]);
+        'total' => count($recipients), 'scheduled' => $isScheduled, 'queued' => $queued]);
 }
 
 function resolve_recipients(PDO $pdo, array $user, string $audience, string $group): array
@@ -141,7 +162,7 @@ function resolve_recipients(PDO $pdo, array $user, string $audience, string $gro
         }
         $sql = 'SELECT s.id, s.full_name, s.email, s.research_group
             FROM students s JOIN advisers a ON a.id = s.adviser_id
-            WHERE a.email = :adv';
+            WHERE a.email = :adv AND s.archived_at IS NULL';
         $params = [':adv' => $user['email']];
         if ($audience === 'Specific Research Group') {
             if ($group === '') return [];
@@ -157,11 +178,11 @@ function resolve_recipients(PDO $pdo, array $user, string $audience, string $gro
     }
 
     if (in_array($audience, ['All Students', 'Students and Advisers', 'Specific Research Group'], true)) {
-        $sql = 'SELECT id, full_name, email, research_group FROM students';
+        $sql = 'SELECT id, full_name, email, research_group FROM students WHERE archived_at IS NULL';
         $params = [];
         if ($audience === 'Specific Research Group') {
             if ($group === '') return [];
-            $sql .= ' WHERE BINARY research_group = BINARY :g';
+            $sql .= ' AND BINARY research_group = BINARY :g';
             $params[':g'] = $group;
         }
         $stmt = $pdo->prepare($sql);

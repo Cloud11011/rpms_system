@@ -3,6 +3,9 @@
 .prism-sidebar ~ .main-content { margin-left:260px; width:calc(100% - 260px); min-width:0; }
 .prism-sidebar .prism-sidebar-brand { padding:0 8px 10px; }
 .prism-sidebar .sidebar-brand-logo { max-width:100%; width:170px; height:72px; object-fit:contain; animation:none; }
+.prism-sidebar .sidebar-brand-icon { display:none; }
+.prism-sidebar.is-collapsed .sidebar-brand-logo { display:none; }
+.prism-sidebar.is-collapsed .sidebar-brand-icon { display:block; width:44px; height:80px; margin:auto; object-fit:contain; }
 .prism-navigation-caption { display:block; color:#fff; font-size:10px; letter-spacing:.05em; opacity:.85; }
 .prism-sidebar button, .prism-sidebar .prism-nav-home { font:500 12px/1.5 Montserrat,sans-serif; }
 .prism-sidebar-toggle, .prism-nav-group-toggle, .prism-nav-home { display:flex; align-items:center; gap:11px; width:100%; min-height:44px; padding:11px 12px; border:0; border-radius:9px; color:#fff; background:transparent; cursor:pointer; text-align:left; text-decoration:none; }

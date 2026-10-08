@@ -19,8 +19,9 @@ if ($email === '' || $password === '') {
 // Throttle repeated failed attempts against a single email, regardless of
 // whether that email actually exists (checked before the DB lookup so the
 // block itself doesn't leak which accounts are real).
-if (too_many_recent_failures($email)) {
-    $_SESSION['error'] = 'Too many failed login attempts for this account. Please try again in a few minutes.';
+if (!consume_auth_attempt('login_ip', (string)($_SERVER['REMOTE_ADDR'] ?? 'unknown'), 60, 900)
+    || too_many_recent_failures($email)) {
+    $_SESSION['error'] = 'Too many login attempts. Please try again in a few minutes.';
     header('Location: login.php');
     exit;
 }

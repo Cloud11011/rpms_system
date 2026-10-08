@@ -181,6 +181,31 @@ function student_with_adviser(PDO $pdo, int $studentDbId): ?array
     return $row ?: null;
 }
 
+/** Archive under the student lock, retaining every relationship and collected row. */
+function archive_student(PDO $pdo, array $actor, int $id): array
+{
+    if ($actor['role'] !== 'admin') throw new DomainException('Only RPMS administrators may archive students.');
+    $pdo->beginTransaction();
+    try {
+        $q = $pdo->prepare('SELECT * FROM students WHERE id = :id FOR UPDATE');
+        $q->execute([':id' => $id]); $before = $q->fetch();
+        if (!$before) throw new InvalidArgumentException('Student record not found.');
+        $pdo->prepare('UPDATE students SET archived_at = COALESCE(archived_at, NOW()) WHERE id = :id')->execute([':id' => $id]);
+        $pdo->prepare("UPDATE users SET status = 'Inactive' WHERE role = 'student' AND email = :email")
+            ->execute([':email' => $before['email']]);
+        if (empty($before['archived_at'])) audit_log($actor, 'student_archived', [
+            'entity_type' => 'student', 'entity_id' => $id, 'student_id' => $id,
+            'before' => 'Active record', 'after' => 'Archived; login inactive',
+            'details' => 'Student, IERB, document versions and submission history retained.',
+        ]);
+        $pdo->commit();
+        return $before;
+    } catch (Throwable $e) {
+        if ($pdo->inTransaction()) $pdo->rollBack();
+        throw $e;
+    }
+}
+
 // ---------------------------------------------------------------------
 // Notifications (in-app rows plus best-effort email for every recipient)
 // ---------------------------------------------------------------------
@@ -324,7 +349,7 @@ function student_document_counts(PDO $pdo, ?array $studentIds = null): array
 function students_needing_attention(PDO $pdo, array $user): array
 {
     $sql = 'SELECT s.*, a.full_name AS adviser_name FROM students s
-            LEFT JOIN advisers a ON a.id = s.adviser_id WHERE s.stage <> :done';
+            LEFT JOIN advisers a ON a.id = s.adviser_id WHERE s.archived_at IS NULL AND s.stage <> :done';
     $params = [':done' => 'Completed'];
     if ($user['role'] === 'adviser') {
         $sql .= ' AND a.email = :e';

@@ -51,6 +51,7 @@ function row_to_student(array $r): array
         'progress' => stage_progress_percent($r['stage']),
         'createdAt' => $r['created_at'],
         'updatedAt' => $r['updated_at'],
+        'archivedAt' => $r['archived_at'] ?? null,
     ];
 }
 
@@ -188,7 +189,7 @@ if ($action === 'save') {
                 json_out(['ok' => false, 'message' => 'Student record not found.'], 404);
             }
             // Revalidate ownership on the locked row, after any concurrent reassignment.
-            if ($user['role'] === 'adviser' && (string)$before['adviser_id'] !== (string)$ownAdviserId) {
+            if ($user['role'] === 'adviser' && (!empty($before['archived_at']) || (string)$before['adviser_id'] !== (string)$ownAdviserId)) {
                 $pdo->rollBack();
                 json_out(['ok' => false, 'message' => 'You can only manage students assigned to you.'], 403);
             }
@@ -233,6 +234,7 @@ if ($action === 'save') {
             if ($before['stage'] !== $stage || $before['status'] !== $status) {
                 if (!override_reason_valid($reason)) {
                     if ($pdo->inTransaction()) $pdo->rollBack();
+                    research_group_release($pdo);
                     json_out(['ok' => false, 'requiresReason' => true,
                         'message' => 'Changing a student stage or status needs a reason for the progress history. ' . override_reason_message()], 422);
                 }
@@ -312,8 +314,10 @@ if ($action === 'save') {
             ]);
         }
         $pdo->commit();
+        research_group_release($pdo);
     } catch (Throwable $e) {
         if ($pdo->inTransaction()) $pdo->rollBack();
+        research_group_release($pdo);
         $driverCode = $e instanceof PDOException ? (int)($e->errorInfo[1] ?? 0) : 0;
         if ($driverCode === 1452) {
             json_out(['ok' => false, 'message' => 'The selected adviser is invalid.'], 422);
@@ -347,35 +351,12 @@ if ($action === 'delete') {
     api_require_login('admin');
     $id = (int)($data['id'] ?? 0);
     try {
-        $pdo->beginTransaction();
-        $row = $pdo->prepare('SELECT email FROM students WHERE id = :id FOR UPDATE');
-        $row->execute([':id' => $id]);
-        $before = $row->fetch();
-        if (!$before) {
-            $pdo->rollBack();
-            json_out(['ok' => false, 'message' => 'Student record not found.'], 404);
-        }
-        $documents = $pdo->prepare('SELECT id FROM documents WHERE student_id = :id LIMIT 1');
-        $documents->execute([':id' => $id]);
-        if ($documents->fetch()) {
-            $pdo->rollBack();
-            json_out(['ok' => false, 'message' => 'This student cannot be deleted because document records already exist. Retain the student record to preserve submission history.'], 409);
-        }
-        $studentEmail = (string)$before['email'];
-        $pdo->prepare('DELETE FROM students WHERE id = :id')->execute([':id' => $id]);
-        if ($studentEmail !== '') {
-            $pdo->prepare("UPDATE users SET status = 'Inactive' WHERE role = 'student' AND email = :e")
-                ->execute([':e' => $studentEmail]);
-        }
-        $pdo->commit();
+        archive_student($pdo, $user, $id);
     } catch (Throwable $e) {
-        if ($pdo->inTransaction()) $pdo->rollBack();
-        json_out(['ok' => false, 'message' => 'The student could not be deleted.'], 500);
+        log_api_error('student_archive', 'The archive operation could not be completed.');
+        json_out(['ok' => false, 'message' => $e instanceof \InvalidArgumentException ? 'Student record not found.' : 'The student could not be archived.'], $e instanceof \InvalidArgumentException ? 404 : 500);
     }
-    log_activity($user['email'], 'student_deleted', "id=$id");
-    json_out(['ok' => true, 'message' => $studentEmail !== ''
-        ? 'Student record deleted and the associated login was deactivated.'
-        : 'Student record deleted.']);
+    json_out(['ok' => true, 'message' => 'Student archived and login deactivated. All historical records are retained.']);
 }
 
 json_out(['ok' => false, 'message' => 'Unknown action.'], 400);

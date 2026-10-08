@@ -42,7 +42,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!event.target.closest('.portal-navbar')) setNavigation(false);
     });
     document.addEventListener('keydown', event => {
-        if (event.key !== 'Escape') return;
+        if (event.key !== 'Escape' || event.defaultPrevented) return;
         if (links && !links.hidden) { setAccount(false, true); event.preventDefault(); }
         else if (nav && media.matches && !nav.hidden) { setNavigation(false, true); event.preventDefault(); }
     });
@@ -52,4 +52,13 @@ document.addEventListener('DOMContentLoaded', () => {
         if (dashboard) dashboard.click();
         requestAnimationFrame(() => document.getElementById('prismResourcesTitle')?.scrollIntoView({block:'start'}));
     }));
+    function updateSectionLocation() {
+        document.querySelectorAll('.portal-nav-links a[href*="#"]').forEach(link => {
+            const url = new URL(link.href);
+            if (url.pathname === location.pathname && url.hash === location.hash) link.setAttribute('aria-current', 'location');
+            else link.removeAttribute('aria-current');
+        });
+    }
+    window.addEventListener('hashchange', updateSectionLocation);
+    updateSectionLocation();
 });

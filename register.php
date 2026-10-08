@@ -110,7 +110,7 @@
                     name="password"
                     id="password"
                     placeholder="Password (8+ characters)"
-                    minlength="8"
+                    minlength="12"
                     maxlength="200"
                     autocomplete="new-password"
                     required>
@@ -132,7 +132,7 @@
                     name="confirm_password"
                     id="confirmPassword"
                     placeholder="Confirm Password"
-                    minlength="8"
+                    minlength="12"
                     maxlength="200"
                     autocomplete="new-password"
                     required>

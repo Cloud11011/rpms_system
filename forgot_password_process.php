@@ -20,7 +20,7 @@ $resetAllowed = consume_auth_attempt('reset_ip', (string)($_SERVER['REMOTE_ADDR'
     && consume_auth_attempt('reset_email', $email, 5, 900);
 if (!$resetAllowed || !app_base_url_is_valid()) {
     if ($resetAllowed) log_api_error('password_reset', 'Canonical URL configuration prevents reset delivery.');
-    $_SESSION['success'] = 'If that email is registered, a password reset link has been sent.';
+    $_SESSION['success'] = 'If that email is registered, a reset link was requested. If no email arrives, contact the RPMS office.';
     header('Location: forgot_password.php');
     exit;
 }
@@ -49,7 +49,7 @@ if ($user) {
             $pdo->prepare('UPDATE password_resets SET used = 1 WHERE user_id = :u AND used = 0')
                 ->execute([':u' => $user['id']]);
             $ins = $pdo->prepare('INSERT INTO password_resets (user_id, token, expires_at) VALUES (:u,:t,:x)');
-            $ins->execute([':u' => $user['id'], ':t' => $token, ':x' => $expires]);
+            $ins->execute([':u' => $user['id'], ':t' => 'sha256:' . hash('sha256', $token), ':x' => $expires]);
         }
         $pdo->commit();
     } catch (Throwable $e) {
@@ -68,11 +68,11 @@ if ($user) {
             . "If you did not request this, you can safely ignore this email.\n\n"
             . "- CEU Malolos RPMS / PRISM";
 
-        send_notification_email($email, 'PRISM Password Reset Request', $body);
+        send_notification_email($email, 'PRISM Password Reset Request', $body, true);
         log_activity($email, 'password_reset_requested', '');
     }
 }
 
-$_SESSION['success'] = 'If that email is registered, a password reset link has been sent.';
+$_SESSION['success'] = 'If that email is registered, a reset link was requested. If no email arrives, contact the RPMS office.';
 header('Location: forgot_password.php');
 exit;

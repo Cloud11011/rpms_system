@@ -198,7 +198,7 @@
 
                 const delBtn = document.createElement('button');
                 delBtn.className = 'icon-btn';
-                delBtn.title = 'Delete entry';
+                delBtn.title = 'Archive student';
                 delBtn.innerHTML = '<i class="fa-solid fa-trash"></i>';
                 delBtn.addEventListener('click', e => PrismUI.runAction(e.currentTarget,'Processing...',() => deleteEntry(record)));
                 actions.appendChild(delBtn);
@@ -317,8 +317,8 @@
 
     async function deleteEntry(record) {
         const answer = await PrismUI.confirm({
-            title:'Delete student record', icon:'fa-trash', tone:'danger', confirmText:'Delete',
-            message:`Delete the IERB/student record for ${record.name}? The associated login will be deactivated.`
+            title:'Archive student record', icon:'fa-box-archive', tone:'danger', confirmText:'Archive',
+            message:`Archive ${record.name} and deactivate their login? All Student, IERB and document history will be retained.`
         });
         if (!answer) return;
         try {

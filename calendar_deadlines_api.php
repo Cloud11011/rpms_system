@@ -1,6 +1,7 @@
 <?php
 require __DIR__ . '/config.php';
 require_once __DIR__ . '/includes/calendar_deadlines.php';
+require_once __DIR__ . '/workflow.php';
 $user = api_require_login(['admin', 'adviser', 'student']);
 $action = $_GET['action'] ?? 'list';
 if (!is_string($action)) json_out(['ok' => false, 'message' => 'Invalid action.'], 422);
@@ -56,7 +57,26 @@ try {
         }
         $date = deadline_date($data['date'] ?? null);
         $pdo->beginTransaction();
+        // Serialize creates for this actor; the lock is released by commit/rollback.
+        $creatorLock = $pdo->prepare('SELECT id FROM users WHERE id = :id FOR UPDATE');
+        $creatorLock->execute([':id' => $user['id']]); $creatorLock->fetchColumn();
         [$target, $groups] = deadline_targets($pdo, $user, $data);
+        sort($groups, SORT_STRING);
+        $recent = $pdo->prepare("SELECT id FROM calendar_deadlines WHERE creator_user_id = :creator
+            AND title = :title AND COALESCE(description, '') = :description AND deadline_date = :date
+            AND target_scope = :scope AND status = 'Active' AND created_at >= :cutoff ORDER BY id DESC");
+        $recent->execute([':creator'=>$user['id'], ':title'=>trim($title), ':description'=>trim($description),
+            ':date'=>$date, ':scope'=>$target, ':cutoff'=>date('Y-m-d H:i:s', time()-120)]);
+        foreach ($recent->fetchAll(PDO::FETCH_COLUMN) as $existingId) {
+            $q = $pdo->prepare('SELECT research_group FROM calendar_deadline_groups WHERE deadline_id = :id ORDER BY research_group');
+            $q->execute([':id'=>$existingId]); $existingGroups = $q->fetchAll(PDO::FETCH_COLUMN);
+            sort($existingGroups, SORT_STRING);
+            if ($existingGroups === $groups) {
+                $pdo->commit();
+                json_out(['ok'=>true, 'id'=>(int)$existingId, 'duplicate'=>true,
+                    'message'=>'This official deadline was already created. No duplicate notification was queued.', 'delivery'=>null]);
+            }
+        }
         $stmt = $pdo->prepare('INSERT INTO calendar_deadlines (creator_user_id, title, description, deadline_date, target_scope)
             VALUES (:creator, :title, :description, :date, :scope)');
         $stmt->execute([':creator' => $user['id'], ':title' => trim($title), ':description' => trim($description),
@@ -64,8 +84,9 @@ try {
         $id = (int)$pdo->lastInsertId();
         $stmt = $pdo->prepare('INSERT INTO calendar_deadline_groups (deadline_id, research_group) VALUES (:id, :group)');
         foreach ($groups as $group) $stmt->execute([':id' => $id, ':group' => $group]);
+        deadline_snapshot_recipients($pdo, $user, $id, $target, $groups);
         $pdo->commit();
-        log_activity($user['email'], 'deadline_created', 'Official deadline #' . $id);
+        audit_log($user, 'deadline_created', ['entity_type'=>'deadline', 'entity_id'=>$id, 'after'=>'Active', 'details'=>trim($title).' / '.$date]);
         $deadline = ['id' => $id, 'title' => trim($title), 'description' => trim($description), 'deadline_date' => $date,
             'target_scope' => $target, 'status' => 'Active'];
         $delivery = deadline_notify($pdo, $user, $deadline, $groups);
@@ -84,7 +105,7 @@ try {
         $stmt = $pdo->prepare('SELECT research_group FROM calendar_deadline_groups WHERE deadline_id = :id');
         $stmt->execute([':id' => $id]); $groups = $stmt->fetchAll(PDO::FETCH_COLUMN);
         $pdo->commit();
-        if ($changed) log_activity($user['email'], 'deadline_cancelled', 'Official deadline #' . $id);
+        if ($changed) audit_log($user, 'deadline_cancelled', ['entity_type'=>'deadline', 'entity_id'=>$id, 'before'=>'Active', 'after'=>'Cancelled', 'details'=>'Original recipients notified after cancellation.']);
         $deadline['status'] = 'Cancelled';
         $delivery = $changed ? deadline_notify($pdo, $user, $deadline, $groups) : null;
         json_out(['ok' => true, 'message' => 'Official deadline cancelled.', 'delivery' => $delivery]);

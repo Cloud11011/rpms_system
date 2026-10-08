@@ -247,7 +247,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if(!release){sending=false;return;}
         try {
             const data = await PrismUI.postJson('notifications_api.php?action=send', payload);
-            const deliveryText = data.scheduled
+            const deliveryText = data.queued ? `Queued for delivery to ${data.total} recipient(s).` : data.scheduled
                 ? `Scheduled for ${data.total} recipient(s).`
                 : (data.logged
                     ? `Delivered to ${data.sent}; logged locally for ${data.logged} recipient(s) because live email is not configured.`

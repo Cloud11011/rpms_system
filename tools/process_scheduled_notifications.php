@@ -18,23 +18,31 @@ $processed = 0;
 $sent = 0;
 $failed = 0;
 $logged = 0;
+$leaseCutoff = date('Y-m-d H:i:s', time() - 900);
 
 // Keep each claim atomic so overlapping cron invocations cannot send the same row twice.
-$stmt = $pdo->query("SELECT id FROM notifications
-    WHERE status = 'Scheduled'
-      AND scheduled_at IS NOT NULL
-      AND scheduled_at <= NOW()
+$stmt = $pdo->prepare("SELECT id FROM notifications
+    WHERE (status = 'Scheduled' AND scheduled_at IS NOT NULL AND scheduled_at <= NOW())
+       OR (status = 'Sending' AND sending_started_at IS NOT NULL AND sending_started_at < :stale)
     ORDER BY scheduled_at ASC, id ASC
-    LIMIT 100");
+    LIMIT 20");
+$stmt->execute([':stale' => $leaseCutoff]);
 $ids = array_map('intval', $stmt->fetchAll(PDO::FETCH_COLUMN));
 
 foreach ($ids as $id) {
+    // Hold the delivery mutex through the provider call and final status update.
+    // Recovery cannot race a slow live worker, even after the lease has expired.
+    $mutexName = 'prism_notification_' . $id;
+    $mutex = $pdo->prepare('SELECT GET_LOCK(:name, 0)');
+    $mutex->execute([':name' => $mutexName]);
+    if ((int)$mutex->fetchColumn() !== 1) continue;
+    try {
     $claim = $pdo->prepare("UPDATE notifications
-        SET status = 'Sending'
+        SET status = 'Sending', sending_started_at = NOW()
         WHERE id = :id
-          AND status = 'Scheduled'
-          AND scheduled_at <= NOW()");
-    $claim->execute([':id' => $id]);
+          AND ((status = 'Scheduled' AND scheduled_at <= NOW())
+            OR (status = 'Sending' AND sending_started_at IS NOT NULL AND sending_started_at < :stale))");
+    $claim->execute([':id' => $id, ':stale' => $leaseCutoff]);
     if ($claim->rowCount() !== 1) {
         continue;
     }
@@ -60,6 +68,10 @@ foreach ($ids as $id) {
         $logged++;
     } elseif (!$result['ok']) {
         $failed++;
+    }
+    } finally {
+        $release = $pdo->prepare('SELECT RELEASE_LOCK(:name)');
+        $release->execute([':name' => $mutexName]);
     }
 }
 

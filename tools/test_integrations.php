@@ -8,7 +8,7 @@
 require __DIR__ . '/../config.php';
 
 $cli = PHP_SAPI === 'cli';
-if (!$cli && !in_array($_SERVER['REMOTE_ADDR'] ?? '', ['127.0.0.1', '::1'], true)) {
+if (!$cli && (APP_ENV !== 'development' || !is_loopback_development_request())) {
     http_response_code(403);
     exit('Local machine only.');
 }

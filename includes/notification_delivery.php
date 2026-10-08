@@ -5,6 +5,14 @@
 function deliver_notification_email(PDO $pdo, int $id, string $email, string $subject, string $body,
                                     bool $scheduled = false): array
 {
+    // Immediate claimed delivery and cron share a mutex, including during lease recovery.
+    $mutexName = 'prism_notification_' . $id;
+    if ($scheduled) {
+        $mutex = $pdo->prepare('SELECT GET_LOCK(:name, 0)');
+        $mutex->execute([':name'=>$mutexName]);
+        if ((int)$mutex->fetchColumn() !== 1) return ['ok'=>true, 'status'=>'Scheduled', 'message'=>'Delivery is handled by another worker.'];
+    }
+    try {
     try {
         $result = send_notification_email($email, $subject, $body);
     } catch (Throwable $e) {
@@ -13,7 +21,7 @@ function deliver_notification_email(PDO $pdo, int $id, string $email, string $su
     $status = !empty($result['ok']) ? (($result['channel'] ?? '') === 'log' ? 'Logged' : 'Sent') : 'Failed';
     $info = (string)($result['message'] ?? 'Email delivery failed.');
     try {
-        $pdo->prepare('UPDATE notifications SET status = :status, delivery_info = :info, sent_at = :sent
+        $pdo->prepare('UPDATE notifications SET status = :status, delivery_info = :info, sent_at = :sent, sending_started_at = NULL
             WHERE id = :id' . ($scheduled ? ' AND status = "Sending"' : ''))
             ->execute([
                 ':status' => $status, ':info' => $info,
@@ -25,6 +33,12 @@ function deliver_notification_email(PDO $pdo, int $id, string $email, string $su
         log_api_error('notification_delivery_status', $e->getMessage());
     }
     return $result + ['status' => $status, 'message' => $info];
+    } finally {
+        if ($scheduled) {
+            $release = $pdo->prepare('SELECT RELEASE_LOCK(:name)');
+            $release->execute([':name'=>$mutexName]);
+        }
+    }
 }
 
 /** Save the in-app record before attempting email, or leave it Scheduled for the worker. */

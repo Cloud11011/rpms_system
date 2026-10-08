@@ -1,22 +1,23 @@
 /* Institutional presentation adapted from the approved reference; scoped to this footer. */
 .ceu-footer { min-width:0; margin-top:32px; overflow:hidden; border:1px solid #30365d; border-radius:14px; background:#0c0e3f; color:#fff; }
 /* Exact reference artwork crop removes the original image's white margins. */
-.ceu-footer-accreditations { padding:12px 24px; background:#fff; border-bottom:3px solid #ed80b2; }
-.ceu-footer-accreditation-art { position:relative; width:100%; max-width:640px; margin:0 auto; aspect-ratio:36 / 11; overflow:hidden; }
-.ceu-footer-accreditation-art img { position:absolute; width:138.8889%; max-width:none; height:auto; left:-22.2222%; top:-93.9394%; }
+.ceu-footer-accreditations { display:flex; flex-wrap:wrap; align-items:center; gap:12px; padding:10px 16px; background:#fff; border-bottom:3px solid #ed80b2; }
+.ceu-footer-accreditation-art { flex:1 1 360px; min-width:0; }
+.ceu-footer-accreditation-art img { display:block; width:100%; height:auto; }
+
 .ceu-footer .ceu-footer-details { display:grid; grid-template-columns:minmax(0,1.1fr) minmax(0,1fr) minmax(0,.75fr); align-items:start; gap:24px; padding:24px; }
 .ceu-footer-socials { display:flex; flex-wrap:wrap; gap:8px 14px; font-size:11px; }
-.ceu-footer-socials a { display:inline-flex; gap:6px; align-items:center; min-height:32px; }
+.ceu-footer-socials a { display:inline-flex; gap:6px; align-items:center; min-height:36px; min-width:36px; justify-content:center; border:1px solid #ffffff60; border-radius:50%; font-size:16px; }
 .ceu-footer :is(a,p,strong,small,span,h2) { overflow-wrap:anywhere; }
-.ceu-footer a { color:inherit; text-decoration:underline; text-underline-offset:3px; }
-.ceu-footer a:hover { text-decoration-thickness:2px; }
+.ceu-footer a { color:inherit; text-decoration:none; text-underline-offset:3px; }
+.ceu-footer a:hover { color:#ff9dcd; }
 .ceu-footer a:focus-visible { outline:3px solid #fff; outline-offset:4px; border-radius:3px; }
 .ceu-footer .ceu-footer-brand { display:flex; align-items:center; gap:16px; min-width:0; text-decoration:none; }
 .ceu-footer .ceu-footer-brand > img { display:block; flex:0 0 64px; width:64px; max-width:100%; height:auto; }
 .ceu-footer .ceu-footer-brand > span { min-width:0; }
 .ceu-footer .ceu-footer-brand strong { display:block; font-size:15px; font-weight:600; line-height:1.5; }
 .ceu-footer .ceu-footer-brand small { display:block; margin-top:4px; color:#e5e5ef; font-size:12px; line-height:1.6; }
-.ceu-footer .ceu-footer-website { display:block; margin-top:8px; font-size:12px; line-height:1.6; text-decoration:underline; text-underline-offset:3px; }
+.ceu-footer .ceu-footer-website { display:block; margin-top:8px; font-size:12px; line-height:1.6; text-decoration:none; text-underline-offset:3px; }
 .ceu-footer .ceu-footer-contact { min-width:0; }
 .ceu-footer h2 { margin:0 0 10px; color:#fff; font-size:14px; line-height:1.5; font-weight:600; }
 .ceu-footer address { font-style:normal; color:#e5e5ef; font-size:12px; line-height:1.8; }

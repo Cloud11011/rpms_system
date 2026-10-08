@@ -1,5 +1,6 @@
 <?php
 require __DIR__ . '/config.php';
+require_once __DIR__ . '/workflow.php';
 require_once __DIR__ . '/includes/pagination.php';
 require_once __DIR__ . '/includes/record_filters.php';
 require_once __DIR__ . '/includes/research_groups.php';
@@ -106,7 +107,7 @@ if ($action === 'save') {
     try {
         $pdo->beginTransaction();
         if ($id > 0) {
-            $beforeStmt = $pdo->prepare('SELECT email, department FROM advisers WHERE id = :id FOR UPDATE');
+            $beforeStmt = $pdo->prepare('SELECT email, department, status FROM advisers WHERE id = :id FOR UPDATE');
             $beforeStmt->execute([':id' => $id]);
             $before = $beforeStmt->fetch();
             if (!$before) {
@@ -179,7 +180,8 @@ if ($action === 'save') {
     if ($newLoginUserId && $status === 'Active') {
         $setupDelivery = send_account_setup_email($pdo, $newLoginUserId, $email, $name);
     }
-    log_activity($user['email'], 'adviser_saved', "employee_id=$employeeId");
+    audit_log($user, 'adviser_saved', ['entity_type'=>'adviser', 'entity_id'=>$id,
+        'before'=>$before['status'] ?? 'New record', 'after'=>$status, 'details'=>'Adviser account and permitted identity fields updated.']);
     $response = ['ok' => true, 'id' => $id, 'message' => 'Adviser record saved.'];
     if ($newLoginUserId && $status === 'Active') {
         $response['accountCreated'] = true;
@@ -204,8 +206,7 @@ if ($action === 'delete') {
             json_out(['ok' => false, 'message' => 'Adviser record not found.'], 404);
         }
         $adviserEmail = (string)$before['email'];
-        $pdo->prepare('UPDATE students SET adviser_id = NULL WHERE adviser_id = :id')->execute([':id' => $id]);
-        $pdo->prepare('DELETE FROM advisers WHERE id = :id')->execute([':id' => $id]);
+        $pdo->prepare("UPDATE advisers SET status = 'Inactive' WHERE id = :id")->execute([':id' => $id]);
         if ($adviserEmail !== '') {
             $pdo->prepare("UPDATE users SET status = 'Inactive' WHERE role = 'adviser' AND email = :e")
                 ->execute([':e' => $adviserEmail]);
@@ -213,12 +214,12 @@ if ($action === 'delete') {
         $pdo->commit();
     } catch (Throwable $e) {
         if ($pdo->inTransaction()) $pdo->rollBack();
-        json_out(['ok' => false, 'message' => 'The adviser could not be deleted.'], 500);
+        json_out(['ok' => false, 'message' => 'The adviser could not be deactivated.'], 500);
     }
-    log_activity($user['email'], 'adviser_deleted', "id=$id");
+    audit_log($user, 'adviser_deactivated', ['entity_type'=>'adviser', 'entity_id'=>$id, 'before'=>'Existing adviser', 'after'=>'Inactive', 'details'=>'Adviser record, student assignments and history retained.']);
     json_out(['ok' => true, 'message' => $adviserEmail !== ''
-        ? 'Adviser record deleted, assigned students were unassigned, and the associated login was deactivated.'
-        : 'Adviser record deleted and assigned students were unassigned.']);
+        ? 'Adviser and associated login deactivated. Records and historical assignments are retained.'
+        : 'Adviser deactivated. Records and historical assignments are retained.']);
 }
 
 json_out(['ok' => false, 'message' => 'Unknown action.'], 400);

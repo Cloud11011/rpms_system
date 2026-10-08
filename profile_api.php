@@ -1,5 +1,6 @@
 <?php
 require __DIR__ . '/config.php';
+require_once __DIR__ . '/workflow.php';
 $user = api_require_login(['admin', 'adviser', 'student']);
 $pdo = db();
 $action = $_GET['action'] ?? 'me';
@@ -37,7 +38,7 @@ if ($action === 'update_profile') {
         json_out(['ok' => false, 'message' => 'Profile could not be updated. Please try again.'], 500);
     }
     $_SESSION['user_name'] = $name;
-    log_activity($user['email'], 'profile_updated', '');
+    audit_log($user, 'profile_updated', ['entity_type'=>'user', 'entity_id'=>$user['id'], 'before'=>$user['full_name'], 'after'=>$name]);
     json_out(['ok' => true]);
 }
 
@@ -47,8 +48,8 @@ if ($action === 'change_password') {
     if (!password_verify($current, $user['password_hash'])) {
         json_out(['ok' => false, 'message' => 'Your current password is incorrect.'], 422);
     }
-    if (strlen($new) < 8) {
-        json_out(['ok' => false, 'message' => 'New password must be at least 8 characters.'], 422);
+    if (!new_password_is_valid($new)) {
+        json_out(['ok' => false, 'message' => 'New password must be 12 to 200 characters; a passphrase is welcome.'], 422);
     }
     if (strlen($new) > 200) {
         json_out(['ok' => false, 'message' => 'New password is too long.'], 422);

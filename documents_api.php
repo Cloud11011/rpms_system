@@ -4,6 +4,7 @@ require __DIR__ . '/config.php';
 require_once __DIR__ . '/includes/pagination.php';
 require_once __DIR__ . '/ai_helpers.php';
 require_once __DIR__ . '/workflow.php';
+require_once __DIR__ . '/includes/office_container.php';
 
 $user = api_require_login(['admin', 'adviser', 'student']);
 $pdo = db();
@@ -27,7 +28,7 @@ if ($user['role'] === 'adviser') {
 /** Loads one document joined with the student fields the UI needs. */
 function fetch_doc(PDO $pdo, string $id, bool $forUpdate = false): ?array
 {
-    $stmt = $pdo->prepare('SELECT d.*, s.course, s.protocol_code, s.adviser_id
+    $stmt = $pdo->prepare('SELECT d.*, s.course, s.protocol_code, s.adviser_id, s.archived_at
         FROM documents d LEFT JOIN students s ON s.id = d.student_id WHERE d.id = :id'
         . ($forUpdate ? ' FOR UPDATE' : ''));
     $stmt->execute([':id' => $id]);
@@ -56,7 +57,7 @@ function begin_document_write(PDO $pdo, array $document): void
         $student->fetchColumn();
     }
     $current = fetch_doc($pdo, (string)$document['id'], true);
-    $fields = ['student_id', 'adviser_id', 'is_current', 'supersedes_id', 'review_status',
+    $fields = ['student_id', 'adviser_id', 'archived_at', 'is_current', 'supersedes_id', 'review_status',
         'review_remarks', 'reviewed_by', 'reviewed_at', 'rpms_submitted_at', 'admin_override',
         'override_reason', 'override_by', 'override_at'];
     if ($current) {
@@ -84,7 +85,7 @@ function can_review_doc(array $user, ?int $viewerAdviserId, array $d): bool
     if (!ADVISERS_REVIEW_ONLY_OWN_STUDENTS) {
         return true;
     }
-    return $viewerAdviserId !== null && !empty($d['adviser_id']) && (int)$d['adviser_id'] === $viewerAdviserId;
+    return $viewerAdviserId !== null && !empty($d['adviser_id']) && (int)$d['adviser_id'] === $viewerAdviserId && empty($d['archived_at']);
 }
 
 function doc_row(array $d, array $user, ?int $viewerAdviserId): array
@@ -152,7 +153,7 @@ if ($action === 'list') {
     if ($user['role'] === 'student') {
         $scope .= ' AND s.email = :e'; $params[':e'] = $user['email'];
     } elseif ($user['role'] === 'adviser') {
-        $scope .= $viewerAdviserId !== null ? ' AND s.adviser_id = :vad' : ' AND 1=0';
+        $scope .= $viewerAdviserId !== null ? ' AND s.adviser_id = :vad AND s.archived_at IS NULL' : ' AND 1=0';
         if ($viewerAdviserId !== null) $params[':vad'] = $viewerAdviserId;
     }
     if (($_GET['includeOld'] ?? '') !== '1') $scope .= ' AND d.is_current = 1';
@@ -185,7 +186,7 @@ if ($action === 'list') {
         }
     }
     $orders = ['oldest' => 'd.uploaded_at ASC, d.id ASC', 'name-asc' => 'd.original_name ASC, d.id ASC', 'name-desc' => 'd.original_name DESC, d.id ASC', 'student-asc' => 'd.student_name ASC, d.id ASC'];
-    $page = prism_page_query($pdo, 'SELECT d.*, s.course, s.protocol_code, s.adviser_id', $scope, $params, $orders[$_GET['sort'] ?? ''] ?? 'd.uploaded_at DESC, d.id DESC', $_GET);
+    $page = prism_page_query($pdo, 'SELECT d.*, s.course, s.protocol_code, s.adviser_id, s.archived_at', $scope, $params, $orders[$_GET['sort'] ?? ''] ?? 'd.uploaded_at DESC, d.id DESC', $_GET);
     $rows = array_map(fn($d) => doc_row($d, $user, $viewerAdviserId), $page['rows']); unset($page['rows']);
     json_out(['ok' => true, 'documents' => $rows, 'counts' => $counts, 'filterOptions' => $filterOptions] + $page);
 }
@@ -296,6 +297,11 @@ if ($action === 'upload') {
         json_out(['ok' => false, 'message' => 'The uploaded file content does not match its file extension. Please upload the original document without renaming its extension.'], 415);
     }
 
+    if (!office_container_is_valid($target, $ext)) {
+        remove_document_file($target, $id, 'invalid Office container');
+        json_out(['ok' => false, 'message' => 'The Office document container is invalid or exceeds safe archive limits. Upload the original document.'], 415);
+    }
+
     // Best-effort approval-date detection; never blocks the upload.
     $detectedDate = null;
     $detectedSource = null;
@@ -313,12 +319,12 @@ if ($action === 'upload') {
     try {
         $pdo->beginTransaction();
         // Lock the student before selecting a version. Two first uploads must also serialize.
-        $studentLock = $pdo->prepare('SELECT id, full_name, stage, adviser_id, email, research_title, research_group FROM students WHERE id = :id FOR UPDATE');
+        $studentLock = $pdo->prepare('SELECT id, full_name, stage, adviser_id, email, research_title, research_group, archived_at FROM students WHERE id = :id FOR UPDATE');
         $studentLock->execute([':id' => $studentDbId]);
         $currentStudent = $studentLock->fetch();
         if (!$currentStudent
             || ($user['role'] === 'student' && strcasecmp((string)$currentStudent['email'], (string)$user['email']) !== 0)
-            || ($user['role'] === 'adviser' && (int)$currentStudent['adviser_id'] !== $viewerAdviserId)) {
+            || ($user['role'] === 'adviser' && ((int)$currentStudent['adviser_id'] !== $viewerAdviserId || !empty($currentStudent['archived_at'])))) {
             throw new DocumentWriteConflict('The student record changed while the file was uploading. Refresh and select the student again.');
         }
         $studentName = $currentStudent['full_name'];
@@ -433,7 +439,7 @@ if ($user['role'] === 'student') {
     }
 }
 
-if ($user['role'] === 'adviser' && ($viewerAdviserId === null || (int)($doc['adviser_id'] ?? 0) !== $viewerAdviserId)) {
+if ($user['role'] === 'adviser' && ($viewerAdviserId === null || (int)($doc['adviser_id'] ?? 0) !== $viewerAdviserId || !empty($doc['archived_at']))) {
     json_out(['ok' => false, 'message' => 'This document belongs to a student assigned to another adviser.'], 403);
 }
 
@@ -469,7 +475,7 @@ if ($action === 'versions') {
     if (!$doc['student_id']) {
         $rows = [$doc];
     } else {
-        $stmt = $pdo->prepare('SELECT d.*, s.course, s.protocol_code, s.adviser_id
+        $stmt = $pdo->prepare('SELECT d.*, s.course, s.protocol_code, s.adviser_id, s.archived_at
             FROM documents d LEFT JOIN students s ON s.id = d.student_id
             WHERE d.student_id = :sid AND d.stage = :stage AND d.document_type = :type
             ORDER BY d.version_no DESC, d.uploaded_at DESC');

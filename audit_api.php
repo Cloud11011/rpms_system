@@ -20,7 +20,7 @@ if ($action === 'list') {
     $params = [];
 
     if ($user['role'] === 'adviser') {
-        $where[] = 'l.student_id IN (SELECT s.id FROM students s JOIN advisers a ON a.id = s.adviser_id WHERE a.email = :adv)';
+        $where[] = 'l.student_id IN (SELECT s.id FROM students s JOIN advisers a ON a.id = s.adviser_id WHERE a.email = :adv AND s.archived_at IS NULL)';
         $params[':adv'] = $user['email'];
     }
     if ((int)($_GET['studentId'] ?? 0) > 0) {

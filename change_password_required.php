@@ -75,8 +75,8 @@ $landing = $user['role'] === 'admin' ? 'dashboard.php' : ($user['role'] === 'adv
                 <input
                     type="password"
                     id="newPassword"
-                    placeholder="New password (min. 8 characters)"
-                    minlength="8"
+                    placeholder="New password (min. 12 characters)"
+                    minlength="12"
                     maxlength="200"
                     autocomplete="new-password"
                     required>
@@ -93,7 +93,7 @@ $landing = $user['role'] === 'admin' ? 'dashboard.php' : ($user['role'] === 'adv
                     type="password"
                     id="confirmPassword"
                     placeholder="Confirm new password"
-                    minlength="8"
+                    minlength="12"
                     maxlength="200"
                     autocomplete="new-password"
                     required>

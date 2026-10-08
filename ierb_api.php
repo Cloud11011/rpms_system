@@ -20,7 +20,7 @@ function adviser_may_access_student(PDO $pdo, array $user, int $studentId): bool
     if ($user['role'] === 'admin') {
         return true;
     }
-    $q = $pdo->prepare('SELECT 1 FROM students s JOIN advisers a ON a.id = s.adviser_id WHERE s.id = :id AND a.email = :e');
+    $q = $pdo->prepare('SELECT 1 FROM students s JOIN advisers a ON a.id = s.adviser_id WHERE s.id = :id AND a.email = :e AND s.archived_at IS NULL');
     $q->execute([':id' => $studentId, ':e' => $user['email']]);
     return (bool)$q->fetchColumn();
 }
@@ -63,7 +63,7 @@ function load_student_rows(PDO $pdo, array $user): array
     } elseif ($user['role'] === 'adviser') {
         $stmt = $pdo->prepare('SELECT s.*, f.full_name AS adviser_name FROM students s
             LEFT JOIN advisers f ON f.id = s.adviser_id
-            WHERE f.email = :e ORDER BY s.full_name');
+            WHERE f.email = :e AND s.archived_at IS NULL ORDER BY s.full_name');
         $stmt->execute([':e' => $user['email']]);
     } else {
         $stmt = $pdo->query('SELECT s.*, f.full_name AS adviser_name FROM students s
@@ -262,6 +262,7 @@ if ($action === 'override') {
         record_history($pdo, $id, $newStage, $newStatus, 'ADMIN OVERRIDE - ' . $change . '. Reason: ' . $reason,
             null, $user['full_name'] . ' (Admin Override)');
         $pdo->commit();
+        research_group_release($pdo);
     } catch (Throwable $e) {
         if ($pdo->inTransaction()) {
             $pdo->rollBack();
@@ -437,10 +438,12 @@ if ($action === 'save') {
             ':actor' => $user['full_name'] . ($override ? ' (Admin Override)' : ''),
         ]);
         $pdo->commit();
+        research_group_release($pdo);
     } catch (Throwable $e) {
         if ($pdo->inTransaction()) {
             $pdo->rollBack();
         }
+        research_group_release($pdo);
         if ($e instanceof PDOException && (int)($e->errorInfo[1] ?? 0) === 1062) {
             json_out(['ok' => false, 'message' => 'That student ID or email is already in use.'], 422);
         }
@@ -508,35 +511,12 @@ if ($action === 'delete') {
     api_require_login('admin');
     $id = (int)($data['id'] ?? 0);
     try {
-        $pdo->beginTransaction();
-        $info = $pdo->prepare('SELECT student_id, full_name, email, protocol_code, stage, status FROM students WHERE id = :id FOR UPDATE');
-        $info->execute([':id' => $id]);
-        $gone = $info->fetch();
-        if (!$gone) {
-            $pdo->rollBack();
-            json_out(['ok' => false, 'message' => 'Student record not found.'], 404);
-        }
-        $documents = $pdo->prepare('SELECT id FROM documents WHERE student_id = :id LIMIT 1');
-        $documents->execute([':id' => $id]);
-        if ($documents->fetch()) {
-            $pdo->rollBack();
-            json_out(['ok' => false, 'message' => 'This student cannot be deleted because document records already exist. Retain the student record to preserve submission history.'], 409);
-        }
-        $pdo->prepare('DELETE FROM students WHERE id = :id')->execute([':id' => $id]);
-        $pdo->prepare("UPDATE users SET status='Inactive' WHERE role='student' AND email=:email")
-            ->execute([':email' => $gone['email']]);
-        $pdo->commit();
+        archive_student($pdo, $user, $id);
     } catch (Throwable $e) {
-        if ($pdo->inTransaction()) $pdo->rollBack();
-        log_api_error('ierb_delete', $e->getMessage());
-        json_out(['ok' => false, 'message' => 'The student record could not be deleted.'], 500);
+        log_api_error('student_archive', 'The archive operation could not be completed.');
+        json_out(['ok' => false, 'message' => $e instanceof \InvalidArgumentException ? 'Student record not found.' : 'The student could not be archived.'], $e instanceof \InvalidArgumentException ? 404 : 500);
     }
-    audit_log($user, 'ierb_deleted', [
-        'entity_type' => 'student', 'entity_id' => $id,
-        'details' => "{$gone['full_name']} ({$gone['student_id']}" . (!empty($gone['protocol_code']) ? ", {$gone['protocol_code']}" : '')
-            . "), {$gone['stage']} / {$gone['status']}",
-    ]);
-    json_out(['ok' => true, 'message' => "Deleted the IERB record for {$gone['full_name']} and deactivated the associated login."]);
+    json_out(['ok' => true, 'message' => 'Student archived and login deactivated. All historical records are retained.']);
 }
 
 json_out(['ok' => false, 'message' => 'Unknown action.'], 400);

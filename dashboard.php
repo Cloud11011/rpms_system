@@ -351,7 +351,7 @@ document.addEventListener('keydown', event => {
 
 // Dark/Light Mode Switcher
 const themeToggle = document.getElementById('themeToggle');
-themeToggle.addEventListener('click', () => {
+themeToggle?.addEventListener('click', () => {
     const isDark = document.documentElement.classList.toggle('dark-theme');
     try {
         localStorage.setItem('prismTheme', isDark ? 'dark' : 'light');

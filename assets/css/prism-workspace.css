@@ -81,9 +81,10 @@ body.admin-shell .prism-navigation-caption { font-size:10px; letter-spacing:.12e
 body.admin-shell .prism-sidebar-toggle { min-height:38px; margin:10px 0; }
 body.admin-shell #prismPrimaryNavigation { flex:1; }
 body.admin-shell .prism-nav-section-label { margin:18px 12px 6px; font-size:9px; font-weight:600; letter-spacing:.14em; text-transform:uppercase; color:#ffffffb8; }
-body.admin-shell .prism-nav-group-toggle { font-size:11px; }
+body.admin-shell .prism-sidebar .prism-nav-group-toggle { font-size:13px; font-weight:650; }
 body.admin-shell .prism-nav-submenu { padding-left:12px; }
-body.admin-shell .prism-nav-submenu a { font-size:11px; border-radius:12px; }
+/* Override the older shared sidebar readability rule without changing portal navigation. */
+body.admin-shell .prism-sidebar .prism-nav-submenu a { font-size:12px !important; font-weight:500; border-radius:12px; }
 body.admin-shell .prism-sidebar a[aria-current=page] { color:var(--prism-navy); background:#fff; box-shadow:0 4px 12px #100f4020; }
 body.admin-shell .prism-sidebar-utilities { margin-top:auto; padding-top:16px; border-top:1px solid #ffffff2e; }
 body.admin-shell .prism-sidebar.is-collapsed { width:68px; padding:14px 8px; }

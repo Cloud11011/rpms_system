@@ -10,7 +10,7 @@
 require __DIR__ . '/../config.php';
 
 $remote = $_SERVER['REMOTE_ADDR'] ?? '';
-if (!in_array($remote, ['127.0.0.1', '::1'], true)) {
+if (APP_ENV !== 'development' || !is_loopback_development_request()) {
     http_response_code(403);
     exit('This helper only runs on the local machine.');
 }

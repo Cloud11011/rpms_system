@@ -13,7 +13,7 @@ Options -Indexes
 </Files>
 
 # Repo docs, diffs, logs and version-control metadata must never be downloadable.
-<FilesMatch "\.(md|diff|patch|log|sql|sqlite|bak|dist)$|^\.git">
+<FilesMatch "\.(md|diff|patch|log|sql|sqlite|bak|dist)$|^\.git|^schema-audit\.txt$">
     <IfModule mod_authz_core.c>
         Require all denied
     </IfModule>
@@ -27,6 +27,7 @@ Options -Indexes
     RewriteRule (^|/)\.git(/|$) - [R=404,L]
     # Private documents/reports must only be served through authenticated PHP endpoints.
     RewriteRule ^storage(?:/|$) - [F,L]
+    RewriteRule ^tests(?:/|$) - [F,L]
     # The one-time Gmail OAuth helper is browser-based but also enforces loopback-only access itself.
     RewriteRule ^tools/gmail_get_refresh_token\.php$ - [L]
     # Other maintenance utilities are CLI/cron only and must never be directly web-accessible.

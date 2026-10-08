@@ -23,32 +23,32 @@ function deadline_id($value): int
 /** Use the exact same visibility scope for rows, counts and calendar markers. */
 function deadline_scope(PDO $pdo, array $user, bool $manage = false): array
 {
-    $where = 'FROM calendar_deadlines d WHERE 1=1';
-    $params = [];
+    $where = 'FROM calendar_deadlines d WHERE 1=1'; $params = [];
     if ($manage) {
         if ($user['role'] === 'student') throw new DomainException('Students cannot manage official deadlines.');
-        if ($user['role'] === 'adviser') {
-            $where .= ' AND d.creator_user_id = :creator';
-            $params[':creator'] = $user['id'];
-        }
+        if ($user['role'] === 'adviser') { $where .= ' AND d.creator_user_id = :creator'; $params[':creator'] = $user['id']; }
         return [$where, $params];
     }
     $where .= " AND d.status = 'Active'";
     if ($user['role'] === 'admin') return [$where, $params];
+    $adminCreated = "EXISTS (SELECT 1 FROM users creator WHERE creator.id = d.creator_user_id AND creator.role = 'admin')";
     if ($user['role'] === 'adviser') {
         $groups = research_group_options($pdo, $user);
+        $where .= ' AND (' . $adminCreated . ' OR d.creator_user_id = :creator)';
+        $params[':creator'] = $user['id'];
     } else {
         $stmt = $pdo->prepare('SELECT research_group, academic_unit_key, program_key, year_level, academic_year
-            FROM students WHERE email = :email');
-        $stmt->execute([':email' => $user['email']]);
-        $student = $stmt->fetch();
+            FROM students WHERE email = :email AND archived_at IS NULL');
+        $stmt->execute([':email' => $user['email']]); $student = $stmt->fetch();
         $groups = $student && research_group_is_standard($student) ? [$student['research_group']] : [];
+        $where .= ' AND (' . $adminCreated . " OR EXISTS (SELECT 1 FROM students own_student
+            JOIN advisers a ON a.id = own_student.adviser_id JOIN users creator ON creator.email = a.email
+            JOIN calendar_deadline_recipients r ON r.student_id = own_student.id AND r.deadline_id = d.id
+            WHERE own_student.email = :viewer AND own_student.archived_at IS NULL
+              AND creator.id = d.creator_user_id AND creator.role = 'adviser'))";
+        $params[':viewer'] = $user['email'];
     }
-    $parts = ["d.target_scope = 'all'"];
-    if ($user['role'] === 'adviser') {
-        $parts[] = 'd.creator_user_id = :creator';
-        $params[':creator'] = $user['id'];
-    }
+    $parts = ["d.target_scope = 'all' AND " . $adminCreated];
     if ($groups) {
         $keys = [];
         foreach ($groups as $i => $group) { $keys[] = ':scope' . $i; $params[':scope' . $i] = $group; }
@@ -56,6 +56,22 @@ function deadline_scope(PDO $pdo, array $user, bool $manage = false): array
             AND BINARY g.research_group IN (' . implode(',', $keys) . '))';
     }
     return [$where . ' AND (' . implode(' OR ', $parts) . ')', $params];
+}
+
+/** Original recipients are captured in the canonical creation transaction. */
+function deadline_snapshot_recipients(PDO $pdo, array $user, int $id, string $target, array $groups): void
+{
+    $sql = 'SELECT s.id FROM students s LEFT JOIN advisers a ON a.id = s.adviser_id WHERE s.archived_at IS NULL';
+    $params = [];
+    if ($user['role'] === 'adviser') { $sql .= ' AND a.email = :adviser'; $params[':adviser'] = $user['email']; }
+    if ($target === 'groups') {
+        $keys = [];
+        foreach ($groups as $i => $group) { $keys[] = ':g'.$i; $params[':g'.$i] = $group; }
+        $sql .= ' AND BINARY s.research_group IN (' . implode(',', $keys) . ')';
+    }
+    $q = $pdo->prepare($sql); $q->execute($params);
+    $insert = $pdo->prepare('INSERT INTO calendar_deadline_recipients (deadline_id, student_id) VALUES (:id, :student)');
+    foreach ($q->fetchAll(PDO::FETCH_COLUMN) as $student) $insert->execute([':id' => $id, ':student' => $student]);
 }
 
 /** Called inside the creation transaction. Lock assignments before resolving authorized groups. */
@@ -98,22 +114,12 @@ function deadline_targets(PDO $pdo, array $user, array $data): array
 /** Ordinary per-student notifications, after canonical commit; no per-student deadline records. */
 function deadline_notify(PDO $pdo, array $user, array $deadline, array $groups): array
 {
-    $result = ['recipients' => 0, 'notificationFailures' => 0, 'emailFailures' => 0];
+    $result = ['recipients' => 0, 'notificationFailures' => 0, 'emailFailures' => 0, 'queued' => 0];
     try {
-        $sql = 'SELECT s.id, s.email, s.full_name FROM students s';
-        $params = []; $conditions = [];
-        if ($user['role'] === 'adviser') {
-            $sql .= ' JOIN advisers a ON a.id = s.adviser_id';
-            $conditions[] = 'a.email = :adviser'; $params[':adviser'] = $user['email'];
-        }
-        if ($deadline['target_scope'] === 'groups') {
-            if (!$groups) return $result;
-            $keys = [];
-            foreach ($groups as $i => $group) { $keys[] = ':group' . $i; $params[':group' . $i] = $group; }
-            $conditions[] = 'BINARY s.research_group IN (' . implode(',', $keys) . ')';
-        }
-        if ($conditions) $sql .= ' WHERE ' . implode(' AND ', $conditions);
-        $stmt = $pdo->prepare($sql); $stmt->execute($params);
+        $stmt = $pdo->prepare('SELECT s.id, s.email, s.full_name FROM students s
+            JOIN calendar_deadline_recipients r ON r.student_id = s.id
+            WHERE r.deadline_id = :id AND s.archived_at IS NULL');
+        $stmt->execute([':id' => $deadline['id']]);
         $seen = [];
         while ($student = $stmt->fetch()) {
             if (isset($seen[$student['id']])) continue;
@@ -126,7 +132,8 @@ function deadline_notify(PDO $pdo, array $user, array $deadline, array $groups):
                 . "\nView your PRISM Calendar for the current official record.";
             try {
                 $delivery = create_notification($pdo, 'student', (int)$student['id'], (string)$student['email'],
-                    (string)$student['full_name'], $subject, $message, 'Reminder', (string)$user['full_name']);
+                    (string)$student['full_name'], $subject, $message, 'Reminder', (string)$user['full_name'], null, date('Y-m-d H:i:s'));
+                if (($delivery['status'] ?? '') === 'Scheduled') $result['queued']++;
                 if (empty($delivery['ok'])) $result['emailFailures']++;
             } catch (Throwable $e) {
                 $result['notificationFailures']++;

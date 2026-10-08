@@ -49,8 +49,8 @@ if (mb_strlen($employeeId) > 100 || mb_strlen($fullname) > 190 || mb_strlen($ema
 if ($password !== $confirm) {
     back_with_error('Password and confirmation do not match.');
 }
-if (strlen($password) < 8) {
-    back_with_error('Password must be at least 8 characters long.');
+if (!new_password_is_valid($password)) {
+    back_with_error('Password must be 12 to 200 characters long; a passphrase is welcome.');
 }
 if (strlen($password) > 200) {
     back_with_error('Password is too long.');

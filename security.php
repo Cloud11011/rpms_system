@@ -62,7 +62,7 @@ function account_setup_response_fields(?array $delivery, ?string $temporaryPassw
 function application_security_headers(): array
 {
     // No script/style restrictions are added here: existing inline code and external assets remain usable.
-    return [
+    $headers = [
         // Bootstrap defaults; streaming/export endpoints may replace these later.
         'Cache-Control: private, no-store, max-age=0',
         'Pragma: no-cache',
@@ -71,6 +71,26 @@ function application_security_headers(): array
         'Referrer-Policy: strict-origin-when-cross-origin',
         "Content-Security-Policy: frame-ancestors 'self'; base-uri 'self'",
     ];
+    if (defined('APP_ENV') && APP_ENV === 'production' && request_uses_https()
+        && defined('APP_BASE_URL') && app_base_url_is_valid() && !is_loopback_development_request()) {
+        $headers[] = 'Strict-Transport-Security: max-age=31536000';
+    }
+    return $headers;
+}
+
+/** Shared policy for newly chosen passwords; existing credentials are untouched. */
+function new_password_is_valid(string $password): bool
+{
+    return mb_strlen($password, 'UTF-8') >= 12 && strlen($password) <= 200;
+}
+
+/** A prefix distinguishes new digests from expiring legacy plaintext records. */
+function reset_token_parameters(string $token): array
+{
+    return [':hashed' => 'sha256:' . hash('sha256', $token),
+        // Legacy issuers generated exactly 64 lowercase hex characters. Never let
+        // a submitted prefixed digest match the legacy branch (digest replay).
+        ':legacy' => preg_match('/\A[a-f0-9]{64}\z/', $token) ? $token : ''];
 }
 
 function handle_unhandled_application_error(Throwable $error): never

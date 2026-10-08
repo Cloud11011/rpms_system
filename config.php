@@ -63,8 +63,6 @@ if (is_file(BASE_DIR . '/config.local.php')) {
     require BASE_DIR . '/config.local.php';
 }
 
-// Reapply web error/header policy after local overrides; no diagnostic text is sent to browsers.
-install_application_security();
 if (!defined('APP_ENV')) {
     $environment = strtolower(trim((string)(getenv('APP_ENV') ?: '')));
     define('APP_ENV', $environment !== '' ? $environment
@@ -99,6 +97,8 @@ if (!defined('APP_BASE_URL')) {
     }
     define('APP_BASE_URL', $configuredBaseUrl);
 }
+// Reapply after environment and URL defaults so conditional production HSTS is evaluated correctly.
+install_application_security();
 
 // ---------------------------------------------------------------------
 // External service configuration
@@ -181,7 +181,7 @@ function db(): PDO
 // Bump this whenever you add anything to migrate(). migrate() is skipped entirely on requests
 // where the stored version already matches, instead of running ~45 INFORMATION_SCHEMA/ALTER
 // checks on every single request.
-const SCHEMA_VERSION = 7;
+const SCHEMA_VERSION = 8;
 
 function migrate(PDO $pdo): void
 {
@@ -195,8 +195,10 @@ function migrate(PDO $pdo): void
         return;
     }
     // Keep the existing explicitly authorized v6 command compatible; v7 needs its own opt-in.
-    $targetVersion = getenv('PRISM_ALLOW_SCHEMA_V7_MIGRATION') === '1' ? 7 : 6;
-    if (PHP_SAPI !== 'cli' || (getenv('PRISM_ALLOW_SCHEMA_V7_MIGRATION') !== '1'
+    $targetVersion = getenv('PRISM_ALLOW_SCHEMA_V8_MIGRATION') === '1' ? 8
+        : (getenv('PRISM_ALLOW_SCHEMA_V7_MIGRATION') === '1' ? 7 : 6);
+    if (PHP_SAPI !== 'cli' || (getenv('PRISM_ALLOW_SCHEMA_V8_MIGRATION') !== '1'
+        && getenv('PRISM_ALLOW_SCHEMA_V7_MIGRATION') !== '1'
         && getenv('PRISM_ALLOW_SCHEMA_V6_MIGRATION') !== '1')) {
         throw new RuntimeException(
             'PRISM schema migration is pending. Back up the database and verify a disposable copy before running the explicitly enabled CLI migration.'
@@ -220,6 +222,7 @@ function migrate(PDO $pdo): void
             }
             if ($stored === false || (int)$stored < 6) migrate_schema_v6($pdo);
             if ($targetVersion >= 7) migrate_schema_v7($pdo);
+            if ($targetVersion >= 8) migrate_schema_v8($pdo);
             $pdo->prepare("REPLACE INTO schema_meta (k, v) VALUES ('schema_version', :v)")
                 ->execute([':v' => (string)$targetVersion]);
         }
@@ -273,6 +276,74 @@ function migrate_schema_v7(PDO $pdo): void
                 AND k.REFERENCED_TABLE_NAME = :parent AND k.REFERENCED_COLUMN_NAME = :id AND r.DELETE_RULE = :rule');
         $stmt->execute([':table' => $table, ':column' => $column, ':parent' => $parent, ':id' => 'id', ':rule' => $rule]);
         if ((int)$stmt->fetchColumn() !== 1) throw new RuntimeException('Incompatible official deadline foreign key: ' . $table);
+    }
+    $column = $pdo->query("SELECT COLUMN_TYPE, COLLATION_NAME, IS_NULLABLE FROM INFORMATION_SCHEMA.COLUMNS
+        WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'calendar_deadline_groups' AND COLUMN_NAME = 'research_group'")->fetch();
+    if (!$column || strtolower($column['COLUMN_TYPE']) !== 'varchar(190)'
+        || $column['COLLATION_NAME'] !== 'utf8mb4_bin' || $column['IS_NULLABLE'] !== 'NO') {
+        throw new RuntimeException('Incompatible deadline group type/collation; review manual remediation after backup.');
+    }
+    foreach (['calendar_deadlines', 'calendar_deadline_groups'] as $table) {
+        $engine = $pdo->prepare('SELECT ENGINE FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = :table');
+        $engine->execute([':table' => $table]);
+        if (strcasecmp((string)$engine->fetchColumn(), 'InnoDB') !== 0) throw new RuntimeException('Incompatible deadline engine: ' . $table);
+    }
+    foreach ([['calendar_deadlines', 'deadline_date_status', 'deadline_date,status'],
+        ['calendar_deadlines', 'deadline_creator', 'creator_user_id'],
+        ['calendar_deadline_groups', 'deadline_group_lookup', 'research_group,deadline_id']] as [$table, $index, $columns]) {
+        $q = $pdo->prepare('SELECT GROUP_CONCAT(COLUMN_NAME ORDER BY SEQ_IN_INDEX) FROM INFORMATION_SCHEMA.STATISTICS
+            WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = :table AND INDEX_NAME = :idx AND INDEX_TYPE = :kind');
+        $q->execute([':table' => $table, ':idx' => $index, ':kind' => 'BTREE']);
+        if ($q->fetchColumn() !== $columns) throw new RuntimeException('Incompatible deadline index: ' . $index);
+    }
+}
+
+/** Add lifecycle/lease fields and a retained original deadline audience; never remove records. */
+function migrate_schema_v8(PDO $pdo): void
+{
+    add_column_if_missing($pdo, 'students', 'archived_at', 'DATETIME NULL');
+    add_column_if_missing($pdo, 'notifications', 'sending_started_at', 'DATETIME NULL');
+    $pdo->exec("CREATE TABLE IF NOT EXISTS calendar_deadline_recipients (
+        deadline_id INT NOT NULL, student_id INT NOT NULL,
+        PRIMARY KEY (deadline_id, student_id), INDEX deadline_recipient_student (student_id, deadline_id),
+        FOREIGN KEY (deadline_id) REFERENCES calendar_deadlines(id) ON DELETE CASCADE,
+        FOREIGN KEY (student_id) REFERENCES students(id) ON DELETE RESTRICT
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
+    // Recover the historical audience from retained notification records first.
+    $pdo->exec("INSERT IGNORE INTO calendar_deadline_recipients (deadline_id, student_id)
+        SELECT d.id, s.id FROM calendar_deadlines d JOIN notifications n
+          ON n.recipient_type = 'student' AND n.subject = 'New official deadline'
+          AND LEFT(n.message, CHAR_LENGTH(CONCAT('New official deadline (Deadline #', d.id, ').', CHAR(10), 'Title: ')))
+              = CONCAT('New official deadline (Deadline #', d.id, ').', CHAR(10), 'Title: ')
+        JOIN students s ON s.id = n.recipient_id");
+    // If no historical delivery exists, preserve the currently authorized audience as a baseline.
+    $pdo->exec("INSERT IGNORE INTO calendar_deadline_recipients (deadline_id, student_id)
+        SELECT d.id, s.id FROM calendar_deadlines d JOIN users u ON u.id = d.creator_user_id
+        JOIN students s ON s.archived_at IS NULL LEFT JOIN advisers a ON a.id = s.adviser_id
+        WHERE (u.role = 'admin' OR (u.role = 'adviser' AND a.email = u.email))
+          AND (d.target_scope = 'all' OR EXISTS (SELECT 1 FROM calendar_deadline_groups g
+            WHERE g.deadline_id = d.id AND BINARY g.research_group = BINARY s.research_group))
+          AND NOT EXISTS (SELECT 1 FROM calendar_deadline_recipients r WHERE r.deadline_id = d.id)");
+    foreach (['students' => 'archived_at', 'notifications' => 'sending_started_at'] as $table => $field) {
+        $q = $pdo->prepare('SELECT DATA_TYPE, IS_NULLABLE FROM INFORMATION_SCHEMA.COLUMNS
+            WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = :table AND COLUMN_NAME = :field');
+        $q->execute([':table' => $table, ':field' => $field]); $row = $q->fetch();
+        if (!$row || $row['DATA_TYPE'] !== 'datetime' || $row['IS_NULLABLE'] !== 'YES') throw new RuntimeException('Incompatible lifecycle/lease column.');
+    }
+    foreach ([['calendar_deadline_recipients', 'deadline_id', 'calendar_deadlines', 'CASCADE'],
+        ['calendar_deadline_recipients', 'student_id', 'students', 'RESTRICT']] as $relation) {
+        if (!migration_foreign_key_exists($pdo, $relation)) throw new RuntimeException('Incompatible deadline audience foreign key.');
+    }
+    $primary = $pdo->query("SELECT GROUP_CONCAT(COLUMN_NAME ORDER BY SEQ_IN_INDEX) FROM INFORMATION_SCHEMA.STATISTICS
+        WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'calendar_deadline_recipients' AND INDEX_NAME = 'PRIMARY'")->fetchColumn();
+    if ($primary !== 'deadline_id,student_id') throw new RuntimeException('Incompatible deadline audience primary key.');
+    $engine = $pdo->query("SELECT ENGINE FROM INFORMATION_SCHEMA.TABLES
+        WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'calendar_deadline_recipients'")->fetchColumn();
+    $index = $pdo->query("SELECT GROUP_CONCAT(COLUMN_NAME ORDER BY SEQ_IN_INDEX) FROM INFORMATION_SCHEMA.STATISTICS
+        WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'calendar_deadline_recipients'
+          AND INDEX_NAME = 'deadline_recipient_student' AND INDEX_TYPE = 'BTREE'")->fetchColumn();
+    if (strcasecmp((string)$engine, 'InnoDB') !== 0 || $index !== 'student_id,deadline_id') {
+        throw new RuntimeException('Incompatible deadline audience engine/index.');
     }
 }
 
@@ -551,7 +622,10 @@ function migration_required_foreign_keys(): array
 /** Validate semantics and prerequisites, not an installation-specific constraint name. */
 function migration_foreign_key_exists(PDO $pdo, array $relationship): bool
 {
-    if (!in_array($relationship, migration_required_foreign_keys(), true)) {
+    if (!in_array($relationship, array_merge(migration_required_foreign_keys(), [
+        ['calendar_deadline_recipients', 'deadline_id', 'calendar_deadlines', 'CASCADE'],
+        ['calendar_deadline_recipients', 'student_id', 'students', 'RESTRICT'],
+    ]), true)) {
         throw new RuntimeException('Unreviewed foreign-key repair target.');
     }
     [$table, $column, $parent, $delete] = $relationship;
@@ -1002,17 +1076,23 @@ function send_account_setup_email(PDO $pdo, int $userId, string $email, string $
     try {
         $token = bin2hex(random_bytes(32));
         $expires = date('Y-m-d H:i:s', time() + 3600);
+        $pdo->beginTransaction();
+        $owner = $pdo->prepare('SELECT id FROM users WHERE id = :id FOR UPDATE');
+        $owner->execute([':id'=>$userId]);
+        if (!$owner->fetchColumn()) throw new RuntimeException('Setup account not found.');
         // A fresh setup link supersedes every earlier reset/setup token for this account.
         $pdo->prepare('UPDATE password_resets SET used = 1 WHERE user_id = :u AND used = 0')
             ->execute([':u' => $userId]);
         $pdo->prepare('INSERT INTO password_resets (user_id, token, expires_at) VALUES (:u,:t,:x)')
-            ->execute([':u' => $userId, ':t' => $token, ':x' => $expires]);
+            ->execute([':u' => $userId, ':t' => 'sha256:' . hash('sha256', $token), ':x' => $expires]);
+        $pdo->commit();
         $link = rtrim(APP_BASE_URL, '/') . '/reset_password.php?token=' . urlencode($token);
         $body = "Hello $name,\n\nYour PRISM account has been created. Set your password using the one-time link below (valid for 1 hour):\n\n"
             . $link . "\n\nIf you were not expecting this account, contact the RPMS office.\n\n- CEU Malolos RPMS / PRISM";
-        return send_notification_email($email, 'Set up your PRISM account', $body);
+        return send_notification_email($email, 'Set up your PRISM account', $body, true);
     } catch (Throwable $e) {
-        log_api_error('account_setup', $e->getMessage());
+        if ($pdo->inTransaction()) $pdo->rollBack();
+        log_api_error('account_setup', 'The setup link could not be issued or delivered.');
         return ['ok' => false, 'channel' => 'none', 'message' => 'The account was created, but the setup link could not be issued. Contact the RPMS office to arrange access.'];
     }
 }
@@ -1234,7 +1314,7 @@ function gmail_access_token(): ?string
 }
 
 /** Sends a message through the Gmail API (users.messages.send) using an OAuth 2.0 access token. */
-function gmail_api_send(string $to, string $subject, string $body): bool
+function gmail_api_send(string $to, string $subject, string $body, bool $sensitive = false): bool
 {
     $accessToken = gmail_access_token();
     if (!$accessToken) {
@@ -1270,7 +1350,7 @@ function gmail_api_send(string $to, string $subject, string $body): bool
 
     $ok = $response !== false && $status < 300;
     if (!$ok) {
-        log_api_error('gmail_send', $curlError !== '' ? $curlError : "HTTP $status: " . substr((string)$response, 0, 500));
+        log_api_error('gmail_send', $sensitive ? "Sensitive email delivery failed (HTTP $status)." : ($curlError !== '' ? $curlError : "HTTP $status: " . substr((string)$response, 0, 500)));
     }
     return $ok;
 }
@@ -1281,14 +1361,14 @@ function gmail_api_send(string $to, string $subject, string $body): bool
  * logging the message to storage/mail.log so the notification workflow can
  * still be demonstrated/tested end-to-end without any live credentials.
  */
-function send_notification_email(string $to, string $subject, string $body): array
+function send_notification_email(string $to, string $subject, string $body, bool $sensitive = false): array
 {
     if (!filter_var($to, FILTER_VALIDATE_EMAIL)) {
         return ['ok' => false, 'message' => 'A valid recipient email is required.'];
     }
 
     if (gmail_api_available()) {
-        if (gmail_api_send($to, $subject, $body)) {
+        if (gmail_api_send($to, $subject, $body, $sensitive)) {
             return ['ok' => true, 'message' => 'Email delivered via the Gmail API.', 'channel' => 'gmail_api'];
         }
         // fall through to the local fallbacks below so the attempt is not silently lost
@@ -1300,6 +1380,8 @@ function send_notification_email(string $to, string $subject, string $body): arr
     if ($delivered) {
         return ['ok' => true, 'message' => 'Email delivered via server mail transport.', 'channel' => 'mail'];
     }
+
+    if ($sensitive) return ['ok' => false, 'channel' => 'none', 'message' => 'The credential email could not be delivered. Contact the RPMS office.'];
 
     // No live mail transport configured/reachable in this environment: log it instead of failing the workflow.
     $entry = sprintf(
