@@ -9,10 +9,10 @@ if (in_array($action, ['ai_report', 'generate', 'delete'], true)) {
     require_post_same_origin();
 }
 
-/** Institution-wide report records, optionally filtered by stage. The endpoint is admin-only. */
+/** Current active institution-wide report records, optionally filtered by stage. The endpoint is admin-only. */
 function report_students(PDO $pdo, string $stage = ''): array
 {
-    $where = [];
+    $where = ['s.archived_at IS NULL'];
     $params = [];
     if ($stage !== '') {
         $where[] = 's.stage = :stage';
@@ -277,10 +277,10 @@ if ($action === 'ai_report') {
 
     $students = report_students($pdo);
     if (!$students) {
-        json_out(['ok' => false, 'message' => 'There are no student records yet to report on.'], 422);
+        json_out(['ok' => false, 'message' => 'There are no active student records to report on.'], 422);
     }
 
-    $scopeText = "Scope: all student records visible to RPMS administration.\n";
+    $scopeText = "Scope: all active student records visible to RPMS administration.\n";
     $structured = $scopeText . build_structured_progress_text($students);
     $prompt = $mode === 'full' ? AI_FULL_PROMPT : AI_SUMMARY_PROMPT;
     $narrative = openrouter_generate($prompt, $structured);
@@ -300,7 +300,7 @@ if ($action === 'ai_report') {
     foreach (array_values($students) as $index => $student) $localIds[report_case_ref($index)] = 'Student ID ' . (trim((string)($student['student_id'] ?? '')) ?: 'Not recorded');
     $narrative = preg_replace_callback('/\bCASE-[0-9]{4,}\b/', fn($match)=>$localIds[$match[0]] ?? $match[0], $narrative);
 
-    $scopeTitle = 'All Students';
+    $scopeTitle = 'All Active Students';
     $title = $mode === 'full' ? "AI Full Progress Report - $scopeTitle" : "AI Summarized Progress Report - $scopeTitle";
     $lines = [
         $aiUsed ? 'Narrative source: AI-assisted; verify against the factual tables.' : 'Narrative source: Local fallback (AI unavailable).',
@@ -435,7 +435,7 @@ if ($action === 'generate') {
     if ($type === 'Student Report') {
         $studentDbId = (int)($data['studentId'] ?? 0);
         $stmt = $pdo->prepare('SELECT s.*, f.full_name AS adviser_name FROM students s
-            LEFT JOIN advisers f ON f.id = s.adviser_id WHERE s.id = :id');
+            LEFT JOIN advisers f ON f.id = s.adviser_id WHERE s.id = :id AND s.archived_at IS NULL');
         $stmt->execute([':id' => $studentDbId]);
         $s = $stmt->fetch();
         if (!$s) {
@@ -465,7 +465,7 @@ if ($action === 'generate') {
         }
         $students = report_students($pdo, $stage);
 
-        $scopeTitle = 'All Students';
+        $scopeTitle = 'All Active Students';
         $title = $stage !== '' ? "IERB Progress Report - $stage" : "IERB Progress Report - $scopeTitle";
         $lines[] = 'REPORT OVERVIEW';
         $lines[] = 'Students included: ' . count($students);

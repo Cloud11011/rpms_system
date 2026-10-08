@@ -286,7 +286,7 @@ function advance_stage_for_document(PDO $pdo, array $doc, array $actor, string $
     if (empty($doc['student_id'])) {
         return null;
     }
-    $q = $pdo->prepare('SELECT stage, status FROM students WHERE id = :id');
+    $q = $pdo->prepare('SELECT stage, status FROM students WHERE id = :id AND archived_at IS NULL');
     $q->execute([':id' => $doc['student_id']]);
     $student = $q->fetch();
     if (!$student || $doc['stage'] !== $student['stage']) {

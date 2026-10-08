@@ -15,7 +15,7 @@ $stmt = $pdo->prepare('SELECT s.id, s.student_id, s.full_name, s.email, s.stage,
         a.email AS adviser_email
     FROM students s
     LEFT JOIN advisers a ON a.id = s.adviser_id
-    WHERE s.id = :id LIMIT 1');
+    WHERE s.id = :id AND s.archived_at IS NULL LIMIT 1');
 $stmt->execute([':id' => $studentDbId]);
 $student = $stmt->fetch();
 if (!$student) {

@@ -31,7 +31,7 @@
     display: grid;
     gap: 7px;
     color: var(--text-primary);
-    font-size: 10px;
+    font-size:var(--prism-font-label);
     font-weight: 600;
 }
 
@@ -48,7 +48,7 @@
     color: var(--text-primary);
     background: var(--input-bg);
     font: inherit;
-    font-size: 10px;
+    font-size:var(--prism-font-body);
 }
 
 .notification-center-page .notification-form-grid textarea {
@@ -133,12 +133,12 @@
 
 .workspace-empty-state strong {
     color: var(--text-primary);
-    font-size: 12px;
+    font-size:var(--prism-font-body);
 }
 
 .workspace-empty-state span {
     max-width: 430px;
-    font-size: 10px;
+    font-size:var(--prism-font-meta);
     line-height: 1.55;
 }
 
@@ -178,7 +178,7 @@
     display: block;
     margin-top: 10px;
     color: var(--accent-purple);
-    font-size: 11px;
+    font-size:var(--prism-font-body);
     font-weight: 600;
 }
 
@@ -221,19 +221,19 @@ html.dark-theme .ai-report-page .report-history-action {
 
 .ai-report-page .report-tool-copy .report-tool-kicker {
     color: var(--accent-pink);
-    font-size: 8px;
+    font-size:var(--prism-font-meta);
     font-weight: 700;
     letter-spacing: .06em;
     text-transform: uppercase;
 }
 
 .ai-report-page .report-tool-copy strong {
-    font-size: 13px;
+    font-size:var(--prism-font-body);
 }
 
 .ai-report-page .report-tool-copy small {
     margin-top: 0;
-    font-size: 10px;
+    font-size:var(--prism-font-meta);
     line-height: 1.55;
 }
 
@@ -279,12 +279,12 @@ html.dark-theme .ai-report-page .report-history-action {
 
 .ai-report-page .stage-key strong {
     color: var(--text-primary);
-    font-size: 11px;
+    font-size:var(--prism-font-badge);
 }
 
 .ai-report-page .stage-key span {
     color: var(--text-secondary);
-    font-size: 9px;
+    font-size:var(--prism-font-badge);
 }
 
 .ai-report-page .stage-label-row input {
@@ -296,7 +296,7 @@ html.dark-theme .ai-report-page .report-history-action {
     color: var(--text-primary);
     background: var(--input-bg);
     font: inherit;
-    font-size: 10px;
+    font-size:var(--prism-font-label);
 }
 
 .account-page .account-grid {
@@ -317,7 +317,7 @@ html.dark-theme .ai-report-page .report-history-action {
 .account-page .account-form label {
     display: grid;
     gap: 6px;
-    font-size: 11px;
+    font-size:var(--prism-font-label);
     font-weight: 600;
 }
 
@@ -364,7 +364,7 @@ html.dark-theme .ai-report-page .report-history-action {
     gap: 7px;
     min-width: 0;
     color: var(--text-primary);
-    font-size: 10px;
+    font-size:var(--prism-font-meta);
     font-weight: 600;
 }
 
@@ -380,7 +380,7 @@ html.dark-theme .ai-report-page .report-history-action {
     min-height: 14px;
     margin-bottom: 7px;
     color: var(--text-primary);
-    font-size: 10px;
+    font-size:var(--prism-font-label);
     font-weight: 600;
 }
 
@@ -394,7 +394,7 @@ html.dark-theme .ai-report-page .report-history-action {
     display: grid;
     gap: 5px;
     color: var(--text-secondary);
-    font-size: 9px;
+    font-size:var(--prism-font-label);
     font-weight: 600;
 }
 
@@ -452,14 +452,14 @@ html.dark-theme .ai-report-page .report-history-action {
 
 .account-page .activity-row header strong {
     color: var(--text-primary);
-    font-size: 12px;
+    font-size:var(--prism-font-body);
     line-height: 1.4;
 }
 
 .account-page .activity-row time {
     flex: 0 0 auto;
     color: var(--text-secondary);
-    font-size: 9px;
+    font-size:var(--prism-font-meta);
     white-space: nowrap;
 }
 
@@ -470,7 +470,7 @@ html.dark-theme .ai-report-page .report-history-action {
     gap: 7px;
     margin-top: 6px;
     color: var(--text-secondary);
-    font-size: 10px;
+    font-size:var(--prism-font-meta);
     line-height: 1.45;
 }
 
@@ -481,7 +481,7 @@ html.dark-theme .ai-report-page .report-history-action {
     border-radius: 999px;
     color: #8a5200;
     background: rgba(249, 168, 37, .12);
-    font-size: 8px;
+    font-size:var(--prism-font-badge);
     font-weight: 700;
     text-transform: uppercase;
 }
@@ -494,7 +494,7 @@ html.dark-theme .account-page .activity-override-badge {
 .account-page .activity-reason {
     margin: 10px 0 0;
     color: var(--text-primary);
-    font-size: 10px;
+    font-size:var(--prism-font-meta);
     line-height: 1.6;
     white-space: pre-wrap;
 }
@@ -510,7 +510,7 @@ html.dark-theme .account-page .activity-override-badge {
     padding-top: 10px;
     border-top: 1px solid var(--border-color);
     color: var(--text-secondary);
-    font-size: 11px;
+    font-size:var(--prism-font-body);
 }
 
 .account-page .activity-audit-details summary {
@@ -545,7 +545,7 @@ html.dark-theme .account-page .activity-override-badge {
 .account-page .account-note {
     margin-top: 6px;
     color: var(--text-secondary);
-    font-size: 11px;
+    font-size:var(--prism-font-meta);
 }
 
 @media (max-width: 1500px) {
@@ -627,7 +627,7 @@ html.dark-theme .account-page .activity-override-badge {
 .notification-center-page .notification-form-grid select,
 .notification-center-page .notification-form-grid input,
 .notification-center-page .notification-form-grid textarea {
-    font-size: 12px;
+    font-size:var(--prism-font-label);
 }
 
 .notification-center-page .notification-form-grid select,
@@ -649,7 +649,7 @@ html.dark-theme .account-page .activity-override-badge {
     border-radius: 8px;
     background: var(--bg-color);
     color: var(--text-secondary);
-    font-size: 12px;
+    font-size:var(--prism-font-body);
     line-height: 1.55;
     overflow-wrap: anywhere;
 }
@@ -662,7 +662,7 @@ html.dark-theme .account-page .activity-override-badge {
 .notification-center-page .notification-message-count {
     justify-self: end;
     color: var(--text-secondary);
-    font-size: 11px;
+    font-size:var(--prism-font-body);
     font-weight: 400;
 }
 
@@ -677,7 +677,7 @@ html.dark-theme .account-page .activity-override-badge {
     min-width: 0;
     white-space: normal;
     overflow-wrap: anywhere;
-    font-size: 12px;
+    font-size:var(--prism-font-body);
 }
 
 .notification-center-page .notification-secondary,
@@ -688,7 +688,7 @@ html.dark-theme .account-page .activity-override-badge {
     background: var(--bg-color);
     color: var(--text-primary);
     font: inherit;
-    font-size: 12px;
+    font-size:var(--prism-font-body);
     cursor: pointer;
 }
 
@@ -697,13 +697,13 @@ html.dark-theme .account-page .activity-override-badge {
 }
 
 .notification-center-page .history-item strong {
-    font-size: 13px;
+    font-size:var(--prism-font-body);
     line-height: 1.5;
 }
 
 .notification-center-page .history-item p,
 .notification-center-page .history-item small {
-    font-size: 12px;
+    font-size:var(--prism-font-meta);
     line-height: 1.6;
 }
 
@@ -742,12 +742,12 @@ html.dark-theme .account-page .activity-override-badge {
 
 .notification-center-page .notification-detail-heading > span {
     color: var(--text-secondary);
-    font-size: 12px;
+    font-size:var(--prism-font-body);
 }
 
 .notification-center-page .notification-detail-heading h2 {
     margin-top: 7px;
-    font-size: 19px;
+    font-size:var(--prism-font-subheading);
     line-height: 1.4;
 }
 
@@ -756,7 +756,7 @@ html.dark-theme .account-page .activity-override-badge {
     grid-template-columns: minmax(0, 110px) minmax(0, 1fr);
     gap: 8px 16px;
     margin: 20px 0;
-    font-size: 12px;
+    font-size:var(--prism-font-body);
     line-height: 1.55;
 }
 
@@ -777,12 +777,12 @@ html.dark-theme .account-page .activity-override-badge {
 
 .notification-center-page .notification-detail-section h3 {
     margin-bottom: 8px;
-    font-size: 13px;
+    font-size:var(--prism-font-subheading);
 }
 
 .notification-center-page .notification-detail-section p {
     white-space: pre-wrap;
-    font-size: 12px;
+    font-size:var(--prism-font-body);
     line-height: 1.65;
 }
 
@@ -822,3 +822,11 @@ html.dark-theme .account-page .activity-override-badge {
         margin-bottom: 9px;
     }
 }
+
+.data-export-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:20px; }
+.data-export-card { display:flex; flex-direction:column; gap:14px; min-width:0; padding:24px; }
+.data-export-card h2 { margin:0; }
+.data-export-card p { margin:0; flex:1; }
+.data-export-card .prism-btn { display:inline-flex; align-items:center; justify-content:center; gap:8px; white-space:normal; text-align:center; text-decoration:none; }
+.data-export-note { margin-top:20px; color:var(--prism-muted); }
+@media(max-width:768px) { .data-export-grid { grid-template-columns:minmax(0,1fr); } }

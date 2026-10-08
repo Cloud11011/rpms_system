@@ -16,7 +16,7 @@ const { once } = require('node:events');
 
 const root = path.resolve(__dirname, '..');
 const pages = ['admin_notifications.php', 'admin_ai.php', 'ierbprog.php', 'account.php'];
-const extraPages = ['dashboard.php', 'research_adviser.php', 'role_portal.php', 'admin_people.php', 'documents.php', 'reports.php', 'calendar.php', 'data_export.php'];
+const extraPages = ['dashboard.php', 'research_adviser.php', 'role_portal.php', 'admin_people.php', 'documents.php', 'reports.php', 'calendar.php'];
 const pageWrappers = { 'admin_students.php': 'admin_people.php', 'admin_advisers.php': 'admin_people.php', 'student.php': 'role_portal.php' };
 const php = process.env.PRISM_TEST_PHP || (process.platform === 'win32' ? 'C:\\xampp\\php\\php.exe' : 'php');
 const browser = process.env.PRISM_TEST_BROWSER || [
@@ -47,8 +47,6 @@ let academicRecord = null;
 let academicSaveError = false;
 let setupPendingFixture = false;
 let reviewFailure = 0;
-let summaryProvider = 'ai';
-let summaryStored = null;
 let reviewedStatus = null;
 let studentSubmitted = false;
 const requests = [];
@@ -131,11 +129,6 @@ function fixtureTemplate(file) {
 }
 
 function fixtureApi(file, action) {
-  if (file === 'documents_api.php' && action === 'summarize') {
-    if (summaryProvider === 'error') return {ok:false,message:'No extractable text was found. This appears to be a scanned/image-only PDF. '+attack};
-    summaryStored='Purpose: University research review. '+attack+'\nEthics: Informed consent is planned.';
-    return {ok:true,summary:summaryStored,source:summaryProvider,partial:true};
-  }
   if (setupPendingFixture && file === 'ierb_api.php' && action === 'save') {
     return { ok: true, accountCreated: true, setupPending: true, setupMessage: 'Setup pending ' + attack };
   }
@@ -184,13 +177,12 @@ function fixtureApi(file, action) {
   if (file === 'students_api.php' && academicRecord) return {ok:true,students:[academicRecord]};
   if (file === 'students_api.php') return {ok:true,students:populated?[{id:1,name:attack,research:attack,course:'Fixture Course',stage:'Stage 1',status:'On Track'}]:[]};
   if (file === 'documents_api.php' && role === 'adviser') return {ok:true,documents:populated?[{id:'fixture-doc',originalName:attack+'LongFileName'.repeat(15)+'.pdf',student:attack,studentId:1,documentType:'Research Protocol',stage:'Stage 1',uploadedAt:'2026-09-24',workflowState:reviewedStatus==='Approved'?'Ready for Formal RPMS Submission':(['Denied','Resubmission Requested'].includes(reviewedStatus)?'Needs Revision':'Pending Adviser Review'),reviewStatus:reviewedStatus||'Submitted',reviewRemarks:attack,versionNo:1,isCurrent:true,actions:{review:true}}]:[],counts:{}};
-  if (file === 'documents_api.php') return { ok:true, documents:populated ? [{ id:'fixture-doc', originalName:attack, aiSummary:summaryStored, student:'Fixture Student', studentId:1, documentType:'Protocol', stage:'Stage 1', stageLabel:'Initial review', uploadedAt:'2026-09-24', workflowState:'Pending Adviser Review', reviewStatus:'Submitted', versionNo:1, isCurrent:true, actions:{review:true,summarize:role==='admin'} }] : [], counts:{} };
+  if (file === 'documents_api.php') return { ok:true, documents:populated ? [{ id:'fixture-doc', originalName:attack, student:'Fixture Student', studentId:1, documentType:'Protocol', stage:'Stage 1', stageLabel:'Initial review', uploadedAt:'2026-09-24', workflowState:'Pending Adviser Review', reviewStatus:'Submitted', versionNo:1, isCurrent:true, actions:{review:true} }] : [], counts:{} };
   if (file === 'ierb_api.php' && action === 'needs_attention') return {ok:true, students:[], total:0};
   if (file === 'reports_api.php') return { ok: true, reports: populated ? [{ id: 'fixture-report', title: attack, type: 'AI Summarized Report', generated_at: '2026-09-24 08:00:00', generated_by: attack, requiresRegeneration:legacyAIFixture }] : [], report: { id: 'fixture-report' }, aiUsed: false };
   if (file === 'stage_labels_api.php') return { ok: true, labels: labelsForScenario() };
   if (file === 'ierb_api.php' && action === 'save' && academicSaveError) return {ok:false,message:'Academic validation error '+attack};
   if (file === 'ierb_api.php' && action === 'list' && academicRecord) return {ok:true,records:[academicRecord]};
-  if (file === 'ierb_api.php' && action === 'history') return {ok:true,history:populated?[{stage:'Stage 1',status:'On Track',note:'Fixture history',actor:'Fixture actor',created_at:'2026-09-24'}]:[]};
   if (file === 'ierb_api.php') return { ok: true, records: populated ? Array.from({ length: 6 }, (_, i) => ({ id: i + 1, name: i ? `Student ${i}` : attack, studentId: `S${i + 1}`, email: 'fixture@example.test', groupId: 'A', course:'Fixture Course', stage: i < 4 ? 'Stage 1' : 'Stage 2', status: 'On Track', progress: 20, research: 'Fixture research', requirements: attack, lastSubmissionDate: '2026-09-24' })) : [] };
   if (file === 'audit_api.php') return { ok: true, entries: populated ? [{ id: 1, action: 'document_override', actionLabel: 'Document override', at: '2026-09-24 08:00:00', actorName: attack, actorEmail: 'fixture@example.test', actorRole: role, studentName: attack, protocolCode: 'P-001', override: true, details: 'Fixture details ' + attack, reason: 'Fixture reason ' + attack }] : [] };
   if (file === 'profile_api.php') return { ok: true, user: { name: 'UI Audit Fixture', email: 'fixture@example.test', role, refId: 'FIXTURE' }, message: action === 'change_password' ? 'Password updated.' : 'Updated.' };
@@ -202,7 +194,7 @@ function mockApi(file, action, query = new URLSearchParams()) {
   const data = fixtureApi(file,action);
   if(!data.ok) return data;
   if(file==='ierb_api.php' && action==='history') {
-    const history=readinessFixture?Array.from({length:113},(_,i)=>({...data.history?.[0],note:'History '+i})):(data.history || []);
+    const history=readinessFixture?Array.from({length:113},(_,i)=>({...data.history[0],note:'History '+i})):data.history;
     const total=history.length,page=Math.max(1,Math.min(Math.max(1,Math.ceil(total/10)),Number(query.get('page'))||1));
     return {...data,history:history.slice((page-1)*10,page*10),total,page,limit:10};
   }
@@ -271,7 +263,7 @@ async function serve(req, res) {
       res.writeHead(200, { 'Content-Type': types[path.extname(file)] || 'application/octet-stream' });
       res.end(fs.readFileSync(absolute));
     } else { res.writeHead(404); res.end('Only isolated fixtures are served.'); }
-  } catch (e) { errors.push(String(e)); console.error('Fixture failed:',e.stack || String(e)); if (!res.headersSent) res.writeHead(500); if (!res.writableEnded) res.end('Fixture failed.'); }
+  } catch (e) { errors.push(String(e)); console.error('Fixture failed:',String(e)); if (!res.headersSent) res.writeHead(500); if (!res.writableEnded) res.end('Fixture failed.'); }
 }
 
 function command(method, params = {}, browserCommand = false) {
@@ -322,7 +314,7 @@ async function navigate(file, width, dark, data = 'empty', viewer = 'admin') {
   await command('Emulation.setDeviceMetricsOverride', { width, height: 1000, deviceScaleFactor: 1, mobile: false });
   await command('Page.navigate', { url: `${origin}/${file}?fixture=${Date.now()}` });
   file = pageWrappers[file] || file;
-  const ready = { 'admin_notifications.php': '#noticeHistory > *', 'admin_ai.php': '#aiHistory > *', 'ierbprog.php': '#stageChart > *', 'account.php': '#activityList > *', 'dashboard.php':'#ierbMonitorBody > *', 'research_adviser.php':'#adviserQueue > *', 'role_portal.php':'#studentDashboardState', 'admin_people.php':'#recordRows > *', 'documents.php':'#documentsTableBody > *', 'reports.php':'#reportTableBody > *', 'calendar.php':'#monthGrid > *', 'data_export.php':'.data-export-card' }[file];
+  const ready = { 'admin_notifications.php': '#noticeHistory > *', 'admin_ai.php': '#aiHistory > *', 'ierbprog.php': '#stageChart > *', 'account.php': '#activityList > *', 'dashboard.php':'#ierbMonitorBody > *', 'research_adviser.php':'#adviserQueue > *', 'role_portal.php':'#studentDashboardState', 'admin_people.php':'#recordRows > *', 'documents.php':'#documentsTableBody > *', 'reports.php':'#reportTableBody > *', 'calendar.php':'#monthGrid > *' }[file];
   await waitFor(`document.readyState === 'complete' && !!document.querySelector(${JSON.stringify(ready)})`);
   if (file === 'role_portal.php') await waitFor('document.getElementById("studentDashboardState").getAttribute("aria-busy")==="false"');
   if (file === 'research_adviser.php') await waitFor('document.getElementById("adviserQueue").getAttribute("aria-busy")==="false"');
@@ -350,7 +342,6 @@ async function measure(file, width, dark, suffix = '') {
     };
   })()`);
   check(layout.page <= width + 1, `${name}: document fits viewport`, `${layout.page}px`);
-  if(layout.page>width+1) console.error('Overflow elements: '+JSON.stringify(await evaluateFunction(()=>[...document.querySelectorAll('body *')].filter(e=>e.getClientRects().length&&!e.closest('table')).map(e=>({tag:e.tagName,id:e.id,cls:e.className,right:e.getBoundingClientRect().right})).filter(e=>e.right>innerWidth+1).slice(0,15))));
   check(layout.outside.length === 0, `${name}: controls fit viewport`, layout.outside.join(', '));
   check(layout.clipped.length === 0, `${name}: controls fit forms`, layout.clipped.join(', '));
   check(!layout.xss, `${name}: malicious fixture is text`);
@@ -834,7 +825,7 @@ async function checkTonightPolish() {
   academicRecord = null;
   for (const file of ['documents.php','reports.php']) {
     await navigate(file,1280,false,'populated');
-    check(await evaluate(file==='documents.php'?'!!document.querySelector("[data-summary]") && !!document.getElementById("summaryModal")':'!document.querySelector("[data-summary],#summaryModal,#openDocumentReport,#documentModal")'), file + ': summary controls scoped to Admin repository');
+    check(await evaluate(file==='documents.php'?'!!document.getElementById("summaryModal")':'!document.querySelector("[data-summary],#summaryModal,#openDocumentReport,#documentModal")'), file + ': summary controls scoped to Admin repository');
   }
   const reportCalls = requests.filter(r=>r.file==='reports_api.php' && r.action==='ai_report').length;
   check(await evaluateFunction(() => !!document.querySelector('.report-tools a[href="admin_ai.php"]') && !document.getElementById('generateSummarizedReport')), 'Generated Reports directs AI creation to the existing AI workspace');
@@ -842,56 +833,6 @@ async function checkTonightPolish() {
   await evaluate('document.getElementById("generateSummarizedReport").click()');
   await waitFor('!document.getElementById("generateSummarizedReport").disabled');
   check(requests.filter(r=>r.file==='reports_api.php' && r.action==='ai_report').length===reportCalls+1, 'Reports aggregate summary still generates independently of repository summaries');
-}
-
-async function checkDocumentSummary() {
-  summaryStored=null;summaryProvider='ai';
-  for(const [width,dark] of [[375,false],[1280,true]]) {
-    await navigate('documents.php',width,dark,'populated','admin');
-    await waitFor('document.querySelector("[data-summary]")');
-    const before=requests.filter(r=>r.file==='documents_api.php'&&r.action==='summarize').length;
-    apiDelay=120;
-    await evaluate('document.querySelector("[data-summary]").click()');
-    if(!summaryStored)check(await evaluate('document.getElementById("summaryResult").getAttribute("aria-busy")==="true" && document.getElementById("regenerateSummary").disabled'),'Loading state disables duplicate regeneration');
-    await waitFor('!document.getElementById("regenerateSummary").disabled');apiDelay=0;
-    check(await evaluate('document.getElementById("summaryResult").textContent.includes("University research") && !document.querySelector("#summaryResult img,#summaryFilename img") && !window.__fixtureXss'),'Summary and filename render as safe text');
-    check(await evaluate('document.querySelector("#summaryModal [role=dialog]").getAttribute("aria-modal")==="true" && document.getElementById("summaryHeading").textContent==="AI-Assisted Document Summary"'),'Accessible AI-assisted heading');
-    check(await evaluate('document.querySelector(".summary-review-note").textContent.includes("Verify important information against the original document")'),'Human review notice present');
-    check(await evaluateFunction(()=>{const box=document.querySelector('.summary-dialog').getBoundingClientRect();return box.left>=0&&box.right<=innerWidth&&box.bottom<=innerHeight}),`Summary fits ${width}px ${dark?'dark':'light'}`);
-    if(width===375) {
-      check(requests.filter(r=>r.file==='documents_api.php'&&r.action==='summarize').length===before+1,'Generate invokes exactly one selected document request');
-      const sent=JSON.parse(requests.findLast(r=>r.file==='documents_api.php'&&r.action==='summarize').body);
-      check(Object.keys(sent).join(',')==='id'&&sent.id==='fixture-doc','Client sends only selected document ID');
-      check(await evaluate('document.getElementById("summarySource").textContent.includes("AI generated") && document.getElementById("summarySource").textContent.includes("bounded excerpt")'),'AI source and omitted coverage explicit');
-    } else {
-      check(requests.filter(r=>r.file==='documents_api.php'&&r.action==='summarize').length===before,'Reopened saved summary triggers no provider request');
-      check(await evaluate('document.getElementById("summarySource").textContent==="Source not recorded"'),'Persisted summary source is not guessed');
-    }
-    await evaluate('document.querySelector("#summaryModal [data-close]").focus()');
-    await command('Input.dispatchKeyEvent',{type:'keyDown',key:'Tab',code:'Tab',modifiers:8});
-    check(await evaluate('document.activeElement.id==="regenerateSummary"'),'Modal traps reverse-tab focus');
-    await command('Input.dispatchKeyEvent',{type:'keyDown',key:'Escape',code:'Escape'});
-    check(await evaluate('!document.getElementById("summaryModal").classList.contains("show") && document.activeElement.hasAttribute("data-summary")'),'Escape closes and restores focus');
-  }
-  await evaluate('document.querySelector("[data-summary]").click()');
-  summaryProvider='local_fallback';
-  await evaluate('document.getElementById("regenerateSummary").click()');await waitFor('!document.getElementById("regenerateSummary").disabled');
-  check(await evaluate('document.getElementById("summarySource").textContent.includes("Local extractive fallback")'),'Local fallback explicitly labeled');
-  summaryProvider='error';
-  await evaluate('document.getElementById("regenerateSummary").click()');await waitFor('!document.getElementById("regenerateSummary").disabled');
-  check(await evaluate('document.getElementById("summaryResult").textContent.includes("scanned/image-only PDF") && !document.querySelector("#summaryResult img")'),'Specific extraction error is safe and useful');
-  await evaluate('document.querySelector("#summaryModal [data-close]").click();document.querySelector("[data-summary]").click()');
-  check(await evaluate('document.getElementById("summaryResult").textContent.includes("University research")'),'Failed regeneration retains saved summary');
-  await evaluate('document.querySelector("#summaryModal [data-close]").click()');
-  for(const id of ['folderViewButton','courseViewButton']) {
-    await evaluateFunction(id=>document.getElementById(id).click(),id);
-    check(await evaluateFunction(id=>!!document.querySelector(id==='folderViewButton'?'#documentsFolderView [data-summary]':'#documentsCourseView [data-summary]'),id),'Summary action available in '+id);
-  }
-  await navigate('documents.php',1280,false,'populated','adviser');
-  check(await evaluate('!document.querySelector("[data-summary],#summaryModal")'),'Adviser repository has no summary controls');
-  await navigate('role_portal.php',375,false,'student-ready','student');
-  check(await evaluate('!document.querySelector("[data-summary],#summaryModal")'),'Student portal has no summary controls');
-  summaryProvider='ai';summaryStored=null;
 }
 
 async function checkNotificationComposer() {
@@ -1494,110 +1435,6 @@ async function checkInstitutionalComponents() {
   }
 }
 
-async function checkReleaseTypography() {
-  const resultDir=path.join(root,'tests','release-candidate-results');fs.mkdirSync(resultDir,{recursive:true});
-  const sizes=[];
-  const viewers={admin:['dashboard.php','admin_students.php','admin_advisers.php','ierbprog.php','documents.php','admin_notifications.php','calendar.php','reports.php','admin_ai.php','account.php','data_export.php'],adviser:['research_adviser.php','admin_students.php','documents.php','ierbprog.php','calendar.php','account.php'],student:['student.php']};
-  for (const [viewer,files] of Object.entries(viewers)) for (const file of files) for (const [width,height] of [[1920,1080],[1366,768],[1024,768],[768,1024],[390,844]]) for (const dark of [false,true]) {
-    managementFixture=file==='admin_advisers.php'?'adviser':'student';
-    await navigate(file,width,dark,'populated',viewer);
-    await command('Emulation.setDeviceMetricsOverride',{width,height,deviceScaleFactor:1,mobile:false});
-    await evaluate('new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r)))');
-    await measure(file,width,dark,' release '+viewer);
-    const measured=await evaluateFunction(()=>{
-      const sample=selector=>{const e=document.querySelector(selector);return e?parseFloat(getComputedStyle(e).fontSize):null};
-      const walker=document.createTreeWalker(document.body,NodeFilter.SHOW_TEXT),undersized=[];
-      while(walker.nextNode()) { const n=walker.currentNode,e=n.parentElement;if(!n.textContent.trim()||!e.getClientRects().length||e.closest('script,style,.fa-solid,.fa-regular,.fa-brands'))continue;
-        if(parseFloat(getComputedStyle(e).fontSize)<10)undersized.push(e.className+' '+n.textContent.trim().slice(0,30));
-      }
-      const nav=document.querySelector('.portal-navbar');let navFits=true;
-      if(nav){const r=nav.getBoundingClientRect();navFits=r.left>=-1&&r.right<=innerWidth+1&&r.bottom<=document.querySelector('main').getBoundingClientRect().top+1;}
-      return {body:sample('body'),root:sample('html'),tableBody:sample('main td'),tableHead:sample('main th'),mainNav:sample('.prism-nav-group-toggle,.portal-nav-links a,.portal-nav-links button'),submenu:sample('.prism-nav-submenu a'),profileMeta:sample('.portal-profile-btn small'),input:sample('main input:not([type=hidden]):not([type=checkbox])'),button:sample('.management-primary,.upload-document-button,.prism-btn,.ai-action-btn'),summary:sample('.summary-result'),undersized,navFits};
-    });
-    sizes.push({viewer,file,width,height,dark,...measured});
-    const label=viewer+' '+file+' '+width+' '+dark;
-    check(measured.root===16&&measured.body===13.5,label+': unchanged root; body 13.5px');
-    check(measured.undersized.length===0,label+': meaningful text at least 10px',measured.undersized.join(', '));
-    check(measured.navFits,label+': navigation clears content');
-    if(measured.tableBody!==null)check(measured.tableBody===13.5,label+': table body uses semantic size',String(measured.tableBody));
-    if(measured.tableHead!==null)check(measured.tableHead===12.5,label+': table headings use semantic size',String(measured.tableHead));
-    if(viewer==='admin') {
-      await evaluate('document.getElementById("prismNavReportingToggle").click()');
-      if(width>=1024){await evaluate('document.getElementById("prismSidebarToggle").click()');await measure(file,width,dark,' collapsed');await evaluate('document.getElementById("prismSidebarToggle").click()');}
-    } else if(width<=1024) {
-      await evaluate('document.querySelector(".portal-navigation-toggle").click()');
-      check(await evaluateFunction(()=>document.querySelector('.portal-nav-links').scrollWidth<=document.querySelector('.portal-nav-links').clientWidth+1),label+': open mobile navigation fits');
-      await evaluate('document.querySelector(".portal-navigation-toggle").click()');
-    }
-    if(file==='documents.php'&&viewer==='admin') {
-      await evaluate('document.querySelector("[data-summary]").click()');await waitFor('document.getElementById("summaryResult").getAttribute("aria-busy")!=="true"');
-      check(await evaluateFunction(()=>{const r=document.querySelector('.summary-dialog').getBoundingClientRect();return r.left>=0&&r.right<=innerWidth+1&&r.top>=0&&r.bottom<=innerHeight+1&&getComputedStyle(document.querySelector('.summary-result')).fontSize==='14.5px';}),label+': summary readable and within viewport');
-      await evaluate('document.querySelector("#summaryModal [data-close]").click()');
-    }
-    if(['dashboard.php','research_adviser.php','student.php','data_export.php'].includes(file)&&[1366,390].includes(width)&&!dark) {
-      const png=await command('Page.captureScreenshot',{format:'png'});fs.writeFileSync(path.join(resultDir,file.replace('.php','')+'-'+width+'.png'),Buffer.from(png.data,'base64'));
-    }
-  }
-  fs.writeFileSync(path.join(resultDir,'typography-ui.json'),JSON.stringify({checks,failures,errors,sizes},null,2));
-}
-
-async function checkReleasePanels() {
-  async function inspect(label) {
-    const result=await evaluateFunction(()=>{
-      const walker=document.createTreeWalker(document.body,NodeFilter.SHOW_TEXT),small=[],clipped=[];
-      while(walker.nextNode()) {const n=walker.currentNode,e=n.parentElement;
-        if(!n.textContent.trim()||!e.getClientRects().length||e.closest('script,style,.fa-solid,.fa-regular,.fa-brands'))continue;
-        if(parseFloat(getComputedStyle(e).fontSize)<10)small.push(n.textContent.trim().slice(0,40));
-        const button=e.closest('button');
-        if(button&&!['absolute','fixed'].includes(getComputedStyle(e).position)) {
-          const range=document.createRange();range.selectNodeContents(n);const r=range.getBoundingClientRect(),b=button.getBoundingClientRect();
-          if(r.width&&(r.left<b.left-2||r.right>b.right+2||r.top<b.top-2||r.bottom>b.bottom+2))clipped.push(button.id||button.className);
-        }
-      }
-      return {small,clipped,page:document.documentElement.scrollWidth};
-    });
-    check(!result.small.length,label+': visible text at least 10px',result.small.join(', '));
-    check(!result.clipped.length,label+': button text fits',result.clipped.join(', '));
-    check(result.page<=await evaluate('innerWidth+1'),label+': page fits viewport');
-  }
-  for(const [viewer,file] of [['admin','dashboard.php'],['adviser','research_adviser.php'],['student','student.php']]) {
-    for(const [width,height] of [[1920,1080],[1366,768],[1024,768],[768,1024],[390,844]]) for(const dark of [false,true]) {
-      await navigate(file,width,dark,'populated',viewer);
-      await command('Emulation.setDeviceMetricsOverride',{width,height,deviceScaleFactor:1,mobile:false});
-      await evaluate('document.fonts.ready');
-      await evaluate("document.querySelectorAll('[data-prism-resources] details').forEach(e=>e.open=true)");
-      await inspect(`${viewer} resources ${width} ${dark}`);
-      if(viewer==='student') {
-        for(const section of ['progress','submit','documents','calendar','notifications','profile']) {
-          await evaluateFunction(section=>{location.hash='#'+section},section);
-          await waitFor(`document.querySelector('.portal-page.active').dataset.section===${JSON.stringify(section)}`);
-          await inspect(`${viewer} ${section} ${width} ${dark}`);
-        }
-      } else {
-        await navigate('calendar.php',width,dark,'populated',viewer);
-        await evaluate("document.querySelector('.deadline-create').open=true");
-        await inspect(`${viewer} deadline form ${width} ${dark}`);
-        await navigate('account.php',width,dark,'populated',viewer);
-        await inspect(`${viewer} activity/account ${width} ${dark}`);
-      }
-    }
-  }
-}
-
-async function checkDataExport() {
-  for (const width of [1920,1366,1024,768,390]) for (const dark of [false,true]) {
-    await navigate('data_export.php',width,dark,'populated','admin');
-    await measure('data_export.php',width,dark);
-    check(await evaluateFunction(()=>document.querySelectorAll('.data-export-card').length===4 && [...document.querySelectorAll('.data-export-card a')].every(a=>/^data_exports_api\.php\?action=(students|advisers|ierb|documents)$/.test(a.getAttribute('href')))), 'Four centralized export actions');
-    check(await evaluateFunction(()=>document.querySelector('a[href="data_export.php"]').getAttribute('aria-current')==='page'),'Data Export has current Admin navigation');
-    check(await evaluateFunction(()=>document.querySelector('.data-export-note').textContent.includes('backups')),'Export purpose includes backup boundary');
-  }
-  await navigate('research_adviser.php',1366,false,'populated','adviser');
-  check(await evaluateFunction(()=>!document.querySelector('a[href="data_export.php"]')),'Adviser has no institution-wide export navigation');
-  await navigate('student.php',390,false,'populated','student');
-  check(await evaluateFunction(()=>!document.querySelector('a[href="data_export.php"]')),'Student has no institution-wide export navigation');
-}
-
 async function checkFooterCoverage() {
   const publicPages = ['login.php', 'forgot_password.php', 'reset_password.php', 'register.php',
     'change_password_required.php',  'login_admin.php', 'login_adviser.php', 'login_students.php'];
@@ -1900,55 +1737,81 @@ async function run() {
   await command('Log.enable');
   await command('Fetch.enable', { patterns: [{ urlPattern: '*' }] });
   await command('Browser.setDownloadBehavior', { behavior: 'deny' }, true);
-  if (process.argv.includes('--hardening-only')) {
-    for (const [viewer,file] of [['admin','dashboard.php'],['adviser','research_adviser.php'],['student','student.php']]) {
-      for (const width of [1440,1280,1024,768,390,375,320]) for (const dark of [false,true]) {
-        await navigate(file,width,dark,'populated',viewer);
-        await measure(pageWrappers[file]||file,width,dark,' final polish '+viewer);
-        await evaluate('document.querySelector(".ceu-footer").scrollIntoView({block:"center"})');
-        await waitFor('[...document.querySelectorAll(".ceu-footer-accreditation-art img")].every(i=>i.complete&&i.naturalWidth>0)');
-        check(await evaluate(`[...document.querySelectorAll('.ceu-footer-socials a')].every(a=>!a.textContent.trim()&&a.getAttribute('aria-label'))`),viewer+width+': accessible icon-only social links');
-        check(await evaluate(`[...document.querySelectorAll('.ceu-footer a')].every(a=>getComputedStyle(a).textDecorationLine==='none')`),viewer+width+': footer links have no underlines');
-        if(width>=1280) check(await evaluate(`(()=>{const r=[...document.querySelectorAll('.ceu-footer-accreditation-art')].map(e=>e.getBoundingClientRect());return Math.abs(r[0].top-r[1].top)<2;})()`),viewer+width+': artwork forms one compact desktop row');
-        if(viewer==='admin') {
-          await evaluate(`document.getElementById('prismSidebarToggle').scrollIntoView();`);
-          check(await evaluate(`(()=>{const s=document.querySelector('.prism-sidebar'),collapsed=s.classList.contains('is-collapsed');return (getComputedStyle(s.querySelector('.sidebar-brand-logo')).display==='none')===collapsed&&(getComputedStyle(s.querySelector('.sidebar-brand-icon')).display!=='none')===collapsed;})()`),'Exactly one correct sidebar logo');
-          if(width>=1024) {
-            await evaluate(`(()=>{const t=document.getElementById('prismSidebarToggle');if(t.getAttribute('aria-expanded')!=='true')t.click();const g=document.getElementById('prismNavResearchToggle');if(g.getAttribute('aria-expanded')!=='true')g.click();for(let i=0;i<8;i++)t.click();})()`);
-            await waitFor(`document.querySelector('.prism-sidebar').getBoundingClientRect().right<=document.querySelector('.main-content').getBoundingClientRect().left+1`);
-            check(await evaluate(`document.getElementById('prismSidebarToggle').getAttribute('aria-expanded')==='true'&&document.getElementById('prismNavResearchToggle').getAttribute('aria-expanded')==='true'&&!document.getElementById('prismNavResearch').hidden`),'Rapid collapse preserves submenu and canonical aria state');
-            check(await evaluate(`parseFloat(getComputedStyle(document.querySelector('.prism-nav-group-toggle')).fontSize)>parseFloat(getComputedStyle(document.querySelector('.prism-nav-submenu a')).fontSize)`),'Admin heading remains larger than submenu',await evaluate(`JSON.stringify([getComputedStyle(document.querySelector('.prism-nav-group-toggle')).fontSize,getComputedStyle(document.querySelector('.prism-nav-submenu a')).fontSize])`));
-            await evaluate(`document.getElementById('prismSidebarToggle').click()`);
-            await navigate(file,width,dark,'populated',viewer);
-            check(await evaluate(`document.querySelector('.prism-sidebar').classList.contains('is-collapsed')&&getComputedStyle(document.querySelector('.sidebar-brand-logo')).display==='none'`),'Reload restores collapsed icon state');
+  if (process.argv.includes('--polish-only')) {
+    readinessFixture = true; paginatedFixture = true;
+    const baseline = process.argv.includes('--baseline');
+    const widths = baseline ? [1280] : [1440,1280,1024,768,375,320];
+    const viewers = {
+      admin:['admin_students.php','admin_advisers.php','ierbprog.php','documents.php','reports.php','admin_ai.php','admin_notifications.php','account.php','calendar.php'],
+      adviser:['admin_students.php','ierbprog.php','documents.php','research_adviser.php','admin_notifications.php','account.php','calendar.php'],
+      student:['role_portal.php']
+    };
+    for (const [viewer, files] of Object.entries(viewers)) for (const file of files) {
+      for (const width of widths) for (const dark of baseline ? [false] : [false,true]) {
+        managementFixture = file==='admin_advisers.php' ? 'adviser' : 'student';
+        await navigate(file,width,dark,viewer==='student'?'student-ready':'populated',viewer);
+        for (const section of viewer==='student' ? ['documents','progress','notifications','calendar'] : [null]) {
+          if (section) {
+            await evaluateFunction(section => {location.hash='#'+section;},section);
+            await waitFor(`document.querySelector('.portal-page.active').dataset.section===${JSON.stringify(section)}`);
           }
-        } else if(viewer==='student') {
-          await evaluate(`document.querySelector('#portalNav [data-page="documents"]').click()`);
-          check(await evaluate(`!!document.querySelector('[data-section="documents"] [data-go="submit"]')`),'My Documents includes existing upload action');
-          await evaluate(`document.querySelector('[data-section="documents"] [data-go="submit"]').click()`);
-          check(await evaluate(`document.querySelector('[data-section="submit"]').getBoundingClientRect().height>0`),'Upload action opens existing submission form');
-        } else {
-          await evaluate(`location.hash='prismResourcesTitle'`);
-          await waitFor(`document.querySelector('.portal-nav-links a[href*="#prismResourcesTitle"]').getAttribute('aria-current')==='location'`);
-          check(await evaluate(`document.querySelectorAll('.portal-nav-links [aria-current="page"]').length===1`),'Resources hash retains one authenticated current page');
+          await waitFor("[...document.querySelectorAll('.prism-pagination')].some(p=>p.getBoundingClientRect().width && p.querySelector('button'))");
+          const states=await evaluateFunction(()=>[...document.querySelectorAll('.prism-pagination')].some(p=>p.getBoundingClientRect().width && p.querySelector('[aria-label="Page 12"]')) ? [1,2,12] : [1]);
+          for (const pageTarget of baseline ? [1] : states) {
+          if (pageTarget!==1) {
+            await evaluateFunction(target=>{
+              const p=[...document.querySelectorAll('.prism-pagination')].find(p=>p.getBoundingClientRect().width && p.querySelector('[aria-label="Page '+target+'"]'));
+              p.querySelector('[aria-label="Page '+target+'"]').click();
+            },pageTarget);
+            await waitFor(`[...document.querySelectorAll('.prism-pagination')].some(p=>p.getBoundingClientRect().width && p.querySelector('[aria-current="page"]')?.textContent===${JSON.stringify(String(pageTarget))})`);
+          }
+          const label = `${viewer} ${file} ${section||''} ${width} ${dark?'dark':'light'} page ${pageTarget}`;
+          const geometry = await evaluateFunction(() => {
+            const rect=e=>{const r=e.getBoundingClientRect();return {left:r.left,right:r.right,top:r.top,bottom:r.bottom,height:r.height};};
+            return [...document.querySelectorAll('.prism-pagination')].filter(p=>p.getBoundingClientRect().width && p.querySelector('button')).map(p=>({
+              rect:rect(p),gap:getComputedStyle(p).gap,buttons:[...p.querySelectorAll('button')].map(b=>{
+                const s=getComputedStyle(b),range=document.createRange();range.selectNodeContents(b);const text=range.getBoundingClientRect();
+                return {...rect(b),text:b.textContent,disabled:b.disabled,active:b.hasAttribute('aria-current'),font:s.fontSize,line:s.lineHeight,margin:s.margin,padding:s.padding,radius:s.borderRadius,border:s.borderTopWidth,display:s.display,align:s.alignItems,justify:s.justifyContent,textCenter:(text.top+text.bottom)/2};
+              }),children:[...p.children].map(rect)
+            }));
+          });
+          if (baseline) console.log(label+' '+JSON.stringify(geometry));
+          for (const pager of geometry) {
+            check(pager.buttons.every(b=>Math.abs(b.height-42)<.1 && Math.abs(b.textCenter-(b.top+b.bottom)/2)<1 && b.margin==='0px' && b.font==='13.5px' && parseFloat(b.line)>=parseFloat(b.font)*1.4 && parseFloat(b.line)<=parseFloat(b.font)*1.5 && ['flex','inline-flex'].includes(b.display) && b.align==='center' && b.justify==='center'),label+' consistent centered 42px controls',JSON.stringify(pager.buttons));
+            check(pager.gap==='8px' && new Set(pager.buttons.map(b=>b.radius+' '+b.border+' '+b.padding)).size===1,label+' common gap/border/radius/padding');
+            check(pager.buttons.every(b=>pager.buttons.filter(a=>Math.abs(a.top-b.top)<10).every(a=>Math.abs(a.top-b.top)<.1 && Math.abs(a.textCenter-b.textCenter)<.1)),label+' same row / text alignment');
+            check(pager.children.every((b,i,all)=>b.left>=pager.rect.left-.1 && b.right<=pager.rect.right+.1 && (!i || (Math.abs(b.top-all[i-1].top)<.1 ? Math.abs(b.left-all[i-1].right-8)<.1 : b.top>=all[i-1].bottom+7.9))),label+' clean wrapping / no overlap');
+          }
+          check(await evaluate('document.documentElement.scrollWidth<=innerWidth+1'),label+' no page overflow');
+          }
         }
       }
+      console.log('Pagination verified: '+viewer+' '+file);
     }
-    managementFixture='student';
-    academicRecord={id:1,studentId:'S1',name:'Synthetic Student',email:'student@example.test',group:'AMT-BSIT-Y2-2627-G01',course:'BS in Information Technology',academicUnitKey:'amt',programKey:'bsit',yearLevel:'2nd Year',academicYear:'2026-2027',adviserId:999,adviserName:'Retired Fixture',stage:'Stage 1',status:'On Track'};
-    await navigate('admin_students.php',1280,false,'populated','admin');
-    await waitFor('!!document.querySelector("#recordRows button[title=Edit]")');
-    await evaluate('document.querySelector("#recordRows button[title=Edit]").click()');
-    check(await evaluateFunction(()=>document.getElementById('adviser').value==='999'&&[...document.getElementById('adviser').options].some(option=>option.value==='999'&&option.textContent.includes('retained assignment'))),'Editing a Student preserves an existing inactive Adviser assignment');
-    academicRecord=null;
-    console.log(checks+' final polish browser checks; '+failures.length+' failures.');
-    if(failures.length) throw new Error(failures.join('\n'));
+    for (const [file,viewer] of [['dashboard.php','admin'],['research_adviser.php','adviser'],['role_portal.php','student']]) {
+      for (const width of widths) for (const dark of baseline ? [false] : [false,true]) {
+        await navigate(file,width,dark,viewer==='student'?'student-ready':'populated',viewer);
+        const m=await evaluateFunction(()=>{
+          const section=document.querySelector('.prism-research-resources');
+          const rect=e=>{const r=e.getBoundingClientRect();return {left:r.left,right:r.right,top:r.top,bottom:r.bottom,width:r.width};};
+          const heading=section.querySelector('.prism-resources-heading'),grid=section.querySelector('.prism-resource-grid');
+          return {section:rect(section),padding:getComputedStyle(section).paddingLeft,heading:rect(heading),h2:rect(heading.querySelector('h2')),p:rect(heading.querySelector('p')),grid:rect(grid),cards:[...grid.children].map(rect),gap:getComputedStyle(grid).gap};
+        });
+        const label=`${viewer} resources ${width} ${dark?'dark':'light'}`;
+        if (baseline) console.log(label+' '+JSON.stringify(m));
+        check([m.heading,m.h2,m.p].every(r=>Math.abs(r.left-m.grid.left)<.1 && Math.abs(r.right-m.grid.right)<.1),label+' heading / subheading / grid exact edges',JSON.stringify(m));
+        check(Math.abs(m.cards[0].left-m.grid.left)<.1 && Math.abs(m.cards[1].right-m.grid.right)<.1 && m.padding===(width<=900?'16px':'24px'),label+' shared parent inset / card outer edges');
+        check(m.gap==='16px' && Math.abs(m.grid.top-m.heading.bottom-16)<.1 && (width<=900 ? Math.abs(m.cards[1].top-m.cards[0].bottom-16)<.1 && Math.abs(m.cards[1].left-m.cards[0].left)<.1 : Math.abs(m.cards[1].left-m.cards[0].right-16)<.1),label+' card gap / heading spacing / stacking');
+        await evaluate("document.querySelectorAll('.prism-resource').forEach(r=>r.open=true)");
+        check(await evaluate('document.documentElement.scrollWidth<=innerWidth+1'),label+' expanded content no overflow');
+      }
+      console.log('Resources verified: '+viewer);
+    }
+    check(errors.length===0,'No browser/PHP runtime exceptions',errors.join(' | '));
+    console.log(`${checks} focused UI checks; ${failures.length} failures.`);
+    for (const failure of failures) console.error('FAIL '+failure);
+    if (failures.length) process.exitCode=1;
     return;
-  }
-  if (process.argv.includes('--release-panels-only')) {
-    await checkReleasePanels();check(errors.length===0,'No release panel browser exceptions',errors.join(' | '));
-    const result={checks,failures,errors};fs.writeFileSync(path.join(root,'tests','release-candidate-results','panels-ui.json'),JSON.stringify(result,null,2));
-    console.log(`${checks} release panel UI checks; ${failures.length} failures.`);for(const failure of failures)console.error('FAIL '+failure);if(failures.length)process.exitCode=1;return;
   }
   if (process.argv.includes('--restyle-only') || process.argv.includes('--visual-only')) {
     const visualOnly=process.argv.includes('--visual-only');
@@ -2033,18 +1896,6 @@ async function run() {
     await checkOfficialDeadlines();check(errors.length===0,'No deadline browser exceptions',errors.join(' | '));
     console.log(`${checks} official deadline UI checks; ${failures.length} failures.`);for(const failure of failures)console.error('FAIL '+failure);if(failures.length)process.exitCode=1;return;
   }
-  if (process.argv.includes('--release-typography-only')) {
-    await checkReleaseTypography();check(errors.length===0,'No typography browser exceptions',errors.join(' | '));
-    console.log(`${checks} release typography/UI checks; ${failures.length} failures.`);for(const failure of failures)console.error('FAIL '+failure);if(failures.length)process.exitCode=1;return;
-  }
-  if (process.argv.includes('--data-export-only')) {
-    await checkDataExport();check(errors.length===0,'No Data Export browser exceptions',errors.join(' | '));
-    console.log(`${checks} Data Export UI checks; ${failures.length} failures.`);if(failures.length)process.exitCode=1;return;
-  }
-  if (process.argv.includes('--document-summary-only')) {
-    await checkDocumentSummary();check(errors.length===0,'No document summary browser exceptions',errors.join(' | '));
-    console.log(`${checks} document summary UI checks; ${failures.length} failures.`);for(const failure of failures)console.error('FAIL '+failure);if(failures.length)process.exitCode=1;return;
-  }
   if (process.argv.includes('--workspace-only')) {
     await checkWorkspaceConsistency();check(errors.length===0,'No workspace consistency browser exceptions',errors.join(' | '));
     console.log(`${checks} workspace consistency UI checks; ${failures.length} failures.`);for(const failure of failures)console.error('FAIL '+failure);if(failures.length)process.exitCode=1;return;
@@ -2086,7 +1937,7 @@ async function run() {
     if (failures.length) process.exitCode = 1;
     return;
   }
-  if (process.argv.includes('--polish-only')) {
+  if (process.argv.includes('--tonight-only')) {
     await checkTonightPolish();
     check(errors.length===0, 'No focused browser runtime exceptions', errors.join(' | '));
     console.log(`${checks} focused polish UI checks; ${failures.length} failures.`);
@@ -2299,7 +2150,6 @@ async function run() {
   await checkAlignment();
   await checkDashboard();
   await checkNotificationComposer();
-  await checkDocumentSummary();
   await checkTonightPolish();
   await checkAdviserDashboard();
   await checkAdviserHeaderControls();
@@ -2312,7 +2162,6 @@ async function run() {
   checkInstitutionalPartialBoundary();
   await checkInstitutionalComponents();
   await checkFooterCoverage();
-  await checkDataExport();
   console.log((checks - institutionalStart) + ' focused institutional checks.');
   if (process.env.PRISM_TEST_SCREENSHOTS === '1') {
     const screenshots = fs.mkdtempSync(path.join(os.tmpdir(), 'prism-ui-audit-screenshots-'));

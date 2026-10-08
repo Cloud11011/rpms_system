@@ -60,7 +60,7 @@ check(str_contains($reports, "if (\$action === 'ai_report')") && str_contains($r
 $docs = file_get_contents(__DIR__ . '/../documents_api.php');
 check(str_contains($docs, "\$action === 'summarize' && \$user['role'] !== 'admin'") && str_contains($docs, 'Only RPMS Administrators'), 'Document summary API enforces Admin-only access');
 check(str_contains($docs, 'SET ai_summary = :summary WHERE id = :id') && str_contains($docs, 'extract_document_text(') && str_contains($docs, 'ai_detect_approval_date('), 'Summary-only writes restored; lightweight approval extraction retained');
-foreach (['login.php','login_process.php','index.php','role_login_template.php','login_admin.php','login_adviser.php','login_students.php'] as $file) {
+foreach (['login.php','login_process.php','index.php','login_admin.php','login_adviser.php','login_students.php'] as $file) {
     check(!str_contains(file_get_contents(__DIR__ . '/../' . $file), 'loading.php'), 'Normal login flow bypasses loading page');
 }
 echo "PASS: $checks login and Admin-only document-summary boundary checks; no live services.\n";

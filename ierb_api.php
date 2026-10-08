@@ -2,6 +2,7 @@
 
 require __DIR__ . '/config.php';
 require_once __DIR__ . '/includes/pagination.php';
+require_once __DIR__ . '/includes/csv_export.php';
 require_once __DIR__ . '/includes/record_filters.php';
 require_once __DIR__ . '/workflow.php';
 require_once __DIR__ . '/includes/academic_catalog.php';
@@ -53,56 +54,16 @@ function ierb_row(array $r, array $docCounts = []): array
     ];
 }
 
-/** Student rows visible to this user (students: themselves, advisers: their advisees, admin: all). */
-function load_student_rows(PDO $pdo, array $user): array
+/** One validated filter/order definition for the current list and complete CSV dataset. */
+function ierb_apply_current_filters(string &$scope, array &$params, array $query, array $filterOptions): string
 {
-    if ($user['role'] === 'student') {
-        $stmt = $pdo->prepare('SELECT s.*, f.full_name AS adviser_name FROM students s
-            LEFT JOIN advisers f ON f.id = s.adviser_id WHERE s.email = :e');
-        $stmt->execute([':e' => $user['email']]);
-    } elseif ($user['role'] === 'adviser') {
-        $stmt = $pdo->prepare('SELECT s.*, f.full_name AS adviser_name FROM students s
-            LEFT JOIN advisers f ON f.id = s.adviser_id
-            WHERE f.email = :e AND s.archived_at IS NULL ORDER BY s.full_name');
-        $stmt->execute([':e' => $user['email']]);
-    } else {
-        $stmt = $pdo->query('SELECT s.*, f.full_name AS adviser_name FROM students s
-            LEFT JOIN advisers f ON f.id = s.adviser_id ORDER BY s.full_name');
-    }
-    return $stmt->fetchAll();
-}
-
-/** Optional filters shared by the list and the CSV export: q, stage, status. */
-function apply_student_filters(array $rows, array $query): array
-{
-    $q = mb_strtolower(trim((string)($query['q'] ?? '')));
-    $stage = trim((string)($query['stage'] ?? ''));
-    $status = trim((string)($query['status'] ?? ''));
-    if ($q === '' && $stage === '' && $status === '') {
-        return $rows;
-    }
-    return array_values(array_filter($rows, function ($r) use ($q, $stage, $status) {
-        if ($stage !== '' && $r['stage'] !== $stage) return false;
-        if ($status !== '' && $r['status'] !== $status) return false;
-        if ($q !== '') {
-            $hay = mb_strtolower(implode(' ', [
-                $r['protocol_code'] ?? '', $r['student_id'], $r['full_name'], $r['email'],
-                $r['research_title'], $r['research_group'], $r['course'], $r['adviser_name'] ?? '',
-            ]));
-            if (mb_strpos($hay, $q) === false) return false;
-        }
-        return true;
-    }));
-}
-
-/** Spreadsheet formula-injection guard for CSV cells. */
-function csv_safe($value): string
-{
-    $s = (string)($value ?? '');
-    if ($s !== '' && in_array($s[0], ['=', '+', '-', '@', "\t", "\r"], true)) {
-        return "'" . $s;
-    }
-    return $s;
+    prism_apply_student_filters($scope, $params, $query, $filterOptions);
+    $q = prism_record_search($query);
+    if ($q !== '') $scope .= ' AND ' . prism_search_clause(['s.protocol_code', 's.student_id', 's.full_name', 's.email', 's.research_title', 's.research_group', 's.course', 'f.full_name'], $q, $params);
+    // Stage sequence has Completed last, rather than alphabetically first.
+    $stageOrder = "CASE s.stage WHEN 'Stage 1' THEN 0 WHEN 'Stage 2' THEN 1 WHEN 'Stage 3' THEN 2 WHEN 'Stage 4' THEN 3 WHEN 'Stage 5' THEN 4 WHEN 'Completed' THEN 5 ELSE 0 END";
+    $sort = $query['sort'] ?? '';
+    return in_array($sort, ['high-to-low', 'low-to-high'], true) ? $stageOrder . ($sort === 'high-to-low' ? ' DESC' : ' ASC') . ', s.full_name ASC, s.id ASC' : prism_record_order($query, ['name'=>'s.full_name','studentId'=>'s.student_id','stage'=>$stageOrder,'status'=>'s.status','academicYear'=>'s.academic_year','group'=>'s.research_group'], 'name', 's.id ASC');
 }
 
 /** Plain-language description of a stage/status change, e.g. "Stage: A -> B; Status: On Track -> Delayed". */
@@ -122,7 +83,7 @@ function describe_progress_change(array $old, string $newStage, string $newStatu
 // list (search + filters: ?q=&stage=&status=)
 // ---------------------------------------------------------------------
 if ($action === 'list') {
-    [$scope, $params] = prism_student_scope($user);
+    [$scope, $params] = prism_operational_student_scope($user);
     $summary = $pdo->prepare('SELECT s.stage, s.status, COUNT(*) AS c ' . $scope . ' GROUP BY s.stage, s.status');
     $summary->execute($params);
     $overview = $summary->fetchAll();
@@ -130,13 +91,7 @@ if ($action === 'list') {
     $courses->execute($params);
     $courseOptions = $courses->fetchAll(PDO::FETCH_COLUMN);
     $filterOptions = prism_student_filter_options($pdo, $scope, $params);
-    prism_apply_student_filters($scope, $params, $_GET, $filterOptions);
-    $q = prism_record_search($_GET);
-    if ($q !== '') $scope .= ' AND ' . prism_search_clause(['s.protocol_code', 's.student_id', 's.full_name', 's.email', 's.research_title', 's.research_group', 's.course', 'f.full_name'], $q, $params);
-    // Stage sequence has Completed last, rather than alphabetically first.
-    $stageOrder = "CASE s.stage WHEN 'Stage 1' THEN 0 WHEN 'Stage 2' THEN 1 WHEN 'Stage 3' THEN 2 WHEN 'Stage 4' THEN 3 WHEN 'Stage 5' THEN 4 WHEN 'Completed' THEN 5 ELSE 0 END";
-    $sort = $_GET['sort'] ?? '';
-    $order = in_array($sort, ['high-to-low', 'low-to-high'], true) ? $stageOrder . ($sort === 'high-to-low' ? ' DESC' : ' ASC') . ', s.full_name ASC, s.id ASC' : prism_record_order($_GET, ['name'=>'s.full_name','studentId'=>'s.student_id','stage'=>$stageOrder,'status'=>'s.status','academicYear'=>'s.academic_year','group'=>'s.research_group'], 'name', 's.id ASC');
+    $order = ierb_apply_current_filters($scope, $params, $_GET, $filterOptions);
     $page = prism_page_query($pdo, 'SELECT s.*, f.full_name AS adviser_name', $scope, $params, $order, $_GET);
     $rows = $page['rows']; unset($page['rows']);
     $counts = student_document_counts($pdo, array_column($rows, 'id'));
@@ -161,7 +116,7 @@ if ($action === 'history') {
 }
 
 if ($action === 'stage_distribution') {
-    [$scope, $params] = prism_student_scope($user);
+    [$scope, $params] = prism_operational_student_scope($user);
     $stmt = $pdo->prepare('SELECT s.stage, COUNT(*) AS c ' . $scope . ' GROUP BY s.stage');
     $stmt->execute($params);
     $distribution = array_column($stmt->fetchAll(), 'c', 'stage');
@@ -189,7 +144,12 @@ if ($action === 'needs_attention') {
 // ---------------------------------------------------------------------
 if ($action === 'export_csv') {
     api_require_login(['admin', 'adviser']);
-    $rows = apply_student_filters(load_student_rows($pdo, $user), $_GET);
+    [$scope, $params] = prism_operational_student_scope($user);
+    $filterOptions = prism_student_filter_options($pdo, $scope, $params);
+    $order = ierb_apply_current_filters($scope, $params, $_GET, $filterOptions);
+    $stmt = $pdo->prepare('SELECT s.*, f.full_name AS adviser_name ' . $scope . ' ORDER BY ' . $order);
+    $stmt->execute($params);
+    $rows = $stmt->fetchAll();
     $counts = student_document_counts($pdo);
     $attention = [];
     foreach (students_needing_attention($pdo, $user) as $a) {

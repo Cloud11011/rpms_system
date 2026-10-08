@@ -60,7 +60,7 @@ if ($action === 'list') {
         if ($matchingGroups) {
             $keys = [];
             foreach ($matchingGroups as $i => $group) { $key = ':group' . $i; $keys[] = $key; $params[$key] = $group; }
-            $search .= ' OR EXISTS (SELECT 1 FROM students s WHERE s.adviser_id = a.id AND s.research_group IN (' . implode(',', $keys) . '))';
+            $search .= ' OR EXISTS (SELECT 1 FROM students s WHERE s.adviser_id = a.id AND s.archived_at IS NULL AND s.research_group IN (' . implode(',', $keys) . '))';
         }
         $scope .= ' AND (' . $search . ')';
     }

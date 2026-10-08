@@ -100,6 +100,7 @@ if (($argv[1] ?? '') === '--case') {
     if ($isPage) $source = explode('?>', $source, 2)[0];
     $source = str_replace("require_once __DIR__ . '/includes/pagination.php';", '', $source);
     $source = str_replace("require_once __DIR__ . '/includes/record_filters.php';", '', $source);
+    $source = str_replace("require_once __DIR__ . '/includes/csv_export.php';", '', $source);
     if (preg_match('/^\s*(?:require|include)(?:_once)?\s/m', $source)) throw new RuntimeException('Unexpected include');
     ob_start();
     register_shutdown_function(function () {

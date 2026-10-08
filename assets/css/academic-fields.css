@@ -1,10 +1,10 @@
 /* Scoped academic form layout shared by Student Management and IERB. */
 .academic-fields{grid-column:1/-1;min-width:0;margin:0;padding:14px;border:1px solid var(--border-color);border-radius:8px;color:var(--text-primary)}
-.academic-fields legend{padding:0 6px;font-weight:600;font-size:12px}
+.academic-fields legend{padding:0 6px;font-weight:600;font-size:var(--prism-font-body)}
 .academic-fields-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
-.academic-fields .academic-fields-grid label{display:grid;min-width:0;gap:6px;font-size:11px;font-weight:600}
+.academic-fields .academic-fields-grid label{display:grid;min-width:0;gap:6px;font-size:var(--prism-font-label);font-weight:600}
 .academic-fields select{box-sizing:border-box;width:100%;min-width:0;max-width:100%;padding:10px;border:1px solid var(--border-color);border-radius:7px;background:var(--input-bg,var(--card-bg));color:var(--text-primary);font:inherit}
-.academic-fields p{margin:10px 0 0;font-size:11px;line-height:1.6;overflow-wrap:anywhere;color:var(--text-secondary)}
+.academic-fields p{margin:10px 0 0;font-size:var(--prism-font-body);line-height:1.6;overflow-wrap:anywhere;color:var(--text-secondary)}
 .academic-fields button{margin-top:10px;padding:8px 10px;background:var(--card-bg);color:var(--text-primary);border:1px solid var(--border-color);border-radius:6px;cursor:pointer}
 .academic-fields :focus-visible{outline:2px solid var(--accent-purple);outline-offset:2px}
 .management-form-grid:has(.academic-fields){grid-template-columns:repeat(2,minmax(0,1fr))}
@@ -12,7 +12,7 @@
 .management-form-grid:has(.academic-fields)>label input,.management-form-grid:has(.academic-fields)>label select{min-width:0;max-width:100%;box-sizing:border-box}
 @media(max-width:600px){.academic-fields-grid,.management-form-grid:has(.academic-fields){grid-template-columns:minmax(0,1fr)}}
 
-.academic-record-summary{max-width:320px;margin-top:9px;font-size:10px;line-height:1.6;white-space:normal;overflow-wrap:anywhere;color:var(--text-secondary)}
+.academic-record-summary{max-width:320px;margin-top:9px;font-size:var(--prism-font-meta);line-height:1.6;white-space:normal;overflow-wrap:anywhere;color:var(--text-secondary)}
 .academic-record-summary>div{margin-top:3px}
 .academic-record-summary dt{display:inline;font-weight:600;color:var(--text-primary)}
 .academic-record-summary dd{display:inline;margin:0}

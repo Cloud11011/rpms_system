@@ -26,7 +26,7 @@ try:
     conf += f'PidFile "{(temporary / "httpd.pid").as_posix()}"\nErrorLog "{(temporary / "error.log").as_posix()}"\n'
     conf += f'DocumentRoot "{public.as_posix()}"\n<Directory "{public.as_posix()}">\nAllowOverride All\nRequire all granted\n</Directory>\n'
     (temporary / 'httpd.conf').write_text(conf, encoding='utf-8')
-    command = [str(apache / 'bin/httpd.exe'), '-f', str(temporary / 'httpd.conf')]
+    command = [str(apache / 'bin/httpd.exe'), '-f', (temporary / 'httpd.conf').as_posix()]
     syntax = subprocess.run(command + ['-t'], capture_output=True, text=True)
     assert syntax.returncode == 0, syntax.stderr
     process = subprocess.Popen(command + ['-X'], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, creationflags=subprocess.CREATE_NO_WINDOW)

@@ -102,7 +102,7 @@ function deadline_targets(PDO $pdo, array $user, array $data): array
         $lock = $pdo->prepare('SELECT id FROM students WHERE BINARY research_group IN (' . implode(',', $keys) . ') FOR UPDATE');
         $lock->execute($params); $lock->fetchAll();
     }
-    $allowed = research_group_options($pdo, $user);
+    $allowed = research_group_options($pdo, $user, null, true);
     $groups = $target === 'all' ? $allowed : array_values(array_unique($requested));
     if (!$groups) throw new InvalidArgumentException('Choose at least one currently assigned/existing research group.');
     foreach ($groups as $group) {

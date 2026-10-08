@@ -22,6 +22,7 @@ class FixtureDb extends PDO
     }
     public function beginTransaction(): bool
     {
+        if (!empty($GLOBALS['case']['archiveDuringUpload'])) $this->student['archived_at']='2026-10-02';
         if (!empty($GLOBALS['case']['stageChanged'])) $this->student['stage'] = 'Stage 2';
         $this->snapshot = [$this->student, $this->document, $GLOBALS['audit'], $GLOBALS['history']];
         $this->events[] = 'BEGIN'; $this->transaction = true; return true;
@@ -227,6 +228,9 @@ if (($argv[1] ?? '') === '--case') {
     exit;
 }
 $cases = [
+    ['name'=>'Concurrent archival rejects Admin upload','action'=>'upload','archiveDuringUpload'=>true,'expectedStatus'=>409],
+    ['name'=>'Concurrent archival rejects Adviser upload','action'=>'upload','role'=>'adviser','archiveDuringUpload'=>true,'expectedStatus'=>409],
+    ['name'=>'Concurrent archival rejects Student upload','action'=>'upload','role'=>'student','archiveDuringUpload'=>true,'expectedStatus'=>409],
     ['name' => 'Student cannot invoke document summary', 'action' => 'summarize', 'role' => 'student', 'expectedStatus' => 403],
     ['name' => 'Adviser cannot invoke document summary', 'action' => 'summarize', 'role' => 'adviser', 'expectedStatus' => 403],
     ['name' => 'Failed student formal transaction sends no admin email', 'action' => 'submit_to_rpms', 'mode' => 'submission', 'beforeStatus' => 'Approved', 'role' => 'student', 'failSubmit' => true, 'expectedStatus' => 500],

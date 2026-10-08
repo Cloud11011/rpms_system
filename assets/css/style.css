@@ -485,59 +485,12 @@ button:hover{
     font-weight:500;
 }
 
-.loading-card{
-
-    width:420px;
-    background:rgba(255,255,255,.96);
-    border-radius:25px;
-    padding:45px 40px;
-    text-align:center;
-    box-shadow:0 15px 40px rgba(0,0,0,.25);
-
-}
-
-.loading-logo{
-
-    width:240px;
-    margin-bottom:-55px;
-
-}
-
-.loading-card .prism-branding{
-    margin-bottom:28px;
-}
-
-.loading-bar{
-
-    width:100%;
-    height:8px;
-    background:#e8e8e8;
-    border-radius:50px;
-    overflow:hidden;
-
-}
-
-.loading-progress{
-
-    width:0%;
-    height:100%;
-    border-radius:50px;
-    background:linear-gradient(90deg,#3F447F,#F65296);
-    animation:loading 3s linear forwards;
-
-}
-
-/* Compact authentication and loading cards */
+/* Compact authentication cards */
 .login-card,
 .register-card,
 .forgot-card{
     width:390px;
     padding:24px 28px;
-}
-
-.loading-card{
-    width:380px;
-    padding:28px 32px;
 }
 
 .logo-container{
@@ -548,12 +501,6 @@ button:hover{
     width:190px;
     margin-top:-48px;
     margin-bottom:-50px;
-}
-
-.loading-logo{
-    width:205px;
-    margin-top:-50px;
-    margin-bottom:-48px;
 }
 
 .prism-branding{
@@ -618,15 +565,10 @@ button:hover{
     margin-bottom:20px;
 }
 
-.loading-card .prism-branding{
-    margin-bottom:20px;
-}
-
 @media(max-width:480px){
     .login-card,
     .register-card,
-    .forgot-card,
-    .loading-card{
+    .forgot-card{
         width:100%;
         padding:22px;
     }
@@ -640,25 +582,6 @@ button:hover{
     .forgot-card .reset-password-logo{
         width:180px;
         margin:0 auto 12px;
-    }
-
-    .loading-logo{
-        margin-top:-46px;
-    }
-}
-
-@keyframes loading{
-
-    0%{
-
-        width:0%;
-
-    }
-
-    100%{
-
-        width:100%;
-
     }
 
 }

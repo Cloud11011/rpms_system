@@ -5,7 +5,7 @@ require_once __DIR__ . '/workflow.php';
 $user = api_require_login(['admin', 'adviser', 'student']);
 $action = $_GET['action'] ?? 'list';
 if (!is_string($action)) json_out(['ok' => false, 'message' => 'Invalid action.'], 422);
-if (in_array($action, ['create', 'cancel', 'update', 'delete'], true)) {
+if (in_array($action, ['create', 'cancel'], true)) {
     api_require_login(['admin', 'adviser']);
     require_post_same_origin();
 }
@@ -13,7 +13,7 @@ $pdo = db();
 try {
     if ($action === 'group_options') {
         api_require_login(['admin', 'adviser']);
-        json_out(['ok' => true, 'groups' => research_group_options($pdo, $user)]);
+        json_out(['ok' => true, 'groups' => research_group_options($pdo, $user, null, true)]);
     }
     if ($action === 'list' || $action === 'dates') {
         $from = deadline_date($_GET['from'] ?? date('Y-m-d'));

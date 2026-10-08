@@ -58,7 +58,7 @@ if ($action === 'mark_all_read') {
 // Sending is an RPMS (and, for follow-ups only, research adviser) responsibility.
 api_require_login(['admin', 'adviser']);
 if ($action === 'group_options') {
-    json_out(['ok' => true, 'groups' => research_group_options($pdo, $user)]);
+    json_out(['ok' => true, 'groups' => research_group_options($pdo, $user, null, true)]);
 }
 $data = json_body();
 
@@ -150,7 +150,7 @@ if ($action === 'send') {
 
 function resolve_recipients(PDO $pdo, array $user, string $audience, string $group): array
 {
-    if ($audience === 'Specific Research Group' && !in_array($group, research_group_options($pdo, $user), true)) {
+    if ($audience === 'Specific Research Group' && !in_array($group, research_group_options($pdo, $user, null, true), true)) {
         json_out(['ok' => false, 'message' => 'Choose an existing research group in your permitted scope.'], 422);
     }
     $recipients = [];

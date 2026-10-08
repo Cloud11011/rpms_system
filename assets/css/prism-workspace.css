@@ -10,7 +10,7 @@ body.prism-workspace {
     --accent-pink:#bd0d65; --accent-purple:var(--prism-purple);
     --prism-surface:var(--prism-card); --prism-surface-2:var(--prism-bg);
     --sidebar-bg:linear-gradient(180deg,#ee1280 0%,#b31971 35%,#64175f 65%,#0c0e3f 100%);
-    background:var(--prism-bg); color:var(--prism-text); font:400 13px/1.6 Montserrat,sans-serif;
+    background:var(--prism-bg); color:var(--prism-text); font:400 var(--prism-font-body)/1.45 Montserrat,sans-serif;
 }
 html.dark-theme body.prism-workspace {
     --prism-bg:#10111e; --prism-card:#1b1d30; --prism-text:#f1f1fa;
@@ -34,38 +34,38 @@ body.prism-workspace :is(a,button,input,select,textarea,summary,[tabindex]):focu
 body.prism-workspace :is(h1,h2,h3,p,label) { overflow-wrap:anywhere; }
 body.prism-workspace .topbar { gap:16px; flex-wrap:wrap; margin-bottom:24px; }
 body.prism-workspace .topbar > div { min-width:0; }
-body.prism-workspace .topbar h1 { font-size:clamp(23px,2.1vw,30px); line-height:1.3; letter-spacing:-.035em; }
-body.prism-workspace .topbar p { margin-top:6px; font-size:12px; line-height:1.6; color:var(--prism-muted); }
+body.prism-workspace .topbar h1 { font-size:var(--prism-font-title); line-height:1.3; letter-spacing:-.035em; }
+body.prism-workspace .topbar p { margin-top:6px; font-size:var(--prism-font-body); line-height:1.6; color:var(--prism-muted); }
 body.prism-workspace .top-controls { gap:10px; flex-wrap:wrap; }
 body.prism-workspace :is(.content-box,.management-card,.panel,.adviser-panel,.student-summary-card,.ierb-overview-card,.calendar-card,.report-card,.prism-research-resources) {
     border:1px solid var(--prism-border); border-radius:var(--prism-radius); background:var(--prism-card); box-shadow:var(--prism-shadow);
 }
-body.prism-workspace :is(.management-card-head,.adviser-panel-heading,.table-header) h2 { font-size:16px; }
+body.prism-workspace :is(.management-card-head,.adviser-panel-heading,.table-header) h2 { font-size:var(--prism-font-subheading); }
 body.prism-workspace :is(.management-primary,.primary-btn,.adviser-button.is-primary,.prism-btn.is-primary,.btn-primary) {
     min-height:42px; padding:10px 16px; border:1px solid transparent; border-radius:10px;
-    background:var(--prism-navy); color:#fff; font-size:12px; font-weight:600; line-height:1.5;
+    background:var(--prism-navy); color:#fff; font-size:var(--prism-font-body); font-weight:600; line-height:1.5;
 }
 body.prism-workspace :is(.management-primary,.primary-btn,.adviser-button.is-primary,.prism-btn.is-primary,.btn-primary):hover { background:var(--prism-purple); }
 html.dark-theme body.prism-workspace :is(.management-primary,.primary-btn,.adviser-button.is-primary,.prism-btn.is-primary,.btn-primary) { border-color:#747696; }
-body.prism-workspace :is(.adviser-button,.prism-btn,.btn-secondary,.btn-secondary-sm,.management-secondary) { border-radius:10px; font-size:12px; min-height:40px; }
+body.prism-workspace :is(.adviser-button,.prism-btn,.btn-secondary,.btn-secondary-sm,.management-secondary) { border-radius:10px; font-size:var(--prism-font-body); min-height:40px; }
 body.prism-workspace :is(input:not([type=checkbox]):not([type=radio]):not([type=hidden]):not([type=file]),select,textarea) {
     max-width:100%; min-width:0; min-height:42px; border-radius:9px; border-color:var(--prism-border);
-    background:var(--input-bg); color:var(--prism-text); font-size:12px;
+    background:var(--input-bg); color:var(--prism-text); font-size:var(--prism-font-body);
 }
 body.prism-workspace :is(input,textarea):read-only { background:var(--prism-bg); color:var(--prism-muted); }
 body.prism-workspace :is(input,select,textarea,button):disabled { opacity:.65; cursor:not-allowed; }
 body.prism-workspace :is(.data-table,.management-table,.docs-table,.adviser-review-table) { width:100%; border-collapse:collapse; color:var(--prism-text); }
-body.prism-workspace table th { padding:14px 12px; background:var(--prism-bg); color:var(--prism-muted); font-size:11px; font-weight:600; text-align:left; }
-body.prism-workspace table td { padding:14px 12px; border-bottom:1px solid var(--prism-border); font-size:12px; line-height:1.6; }
+body.prism-workspace table th { padding:14px 12px; background:var(--prism-bg); color:var(--prism-muted); font-size:var(--prism-font-label); font-weight:600; text-align:left; }
+body.prism-workspace table td { padding:14px 12px; border-bottom:1px solid var(--prism-border); font-size:var(--prism-font-body); line-height:1.6; }
 body.prism-workspace table tbody tr:hover { background:var(--prism-bg); }
 body.prism-workspace :is(.table-scroll,.table-wrapper,.management-table-wrap,.adviser-table-scroll) { max-width:100%; overflow-x:auto; }
 body.prism-workspace :is(.prism-empty,.adviser-panel-state,.empty-state) { color:var(--prism-muted); line-height:1.7; }
 body.prism-workspace :is(.prism-dialog,.modal-content,.adviser-review-dialog,.support-modal-card) { border-radius:16px; max-width:calc(100vw - 24px); max-height:calc(100dvh - 32px); overflow-y:auto; }
 body.prism-workspace dialog::backdrop { background:rgba(12,14,63,.55); backdrop-filter:blur(3px); }
-body.prism-workspace .prism-badge { font-size:11px; }
+body.prism-workspace .prism-badge { font-size:var(--prism-font-badge); }
 /* Older page buttons share the brand treatment and retain contrast in dark mode. */
 body.prism-workspace :is(.upload-document-button,.doc-primary,.ierb-primary,.ierb-add-link,.generate-report-button,.small-btn,.dashboard-detail-button) {
-    min-height:42px; padding:10px 14px; border-radius:10px; background:var(--prism-navy); color:#fff; font-size:12px; border:1px solid transparent;
+    min-height:42px; padding:10px 14px; border-radius:10px; background:var(--prism-navy); color:#fff; font-size:var(--prism-font-body); border:1px solid transparent;
 }
 html.dark-theme body.prism-workspace :is(.upload-document-button,.doc-primary,.ierb-primary,.ierb-add-link,.generate-report-button,.small-btn,.dashboard-detail-button) { border-color:#747696; }
 html.dark-theme body.prism-workspace :is(.view-switch button.active,.day.active-day,.report-tool-icon,.quick-actions-toggle:hover,.quick-actions-toggle[aria-expanded=true],.dashboard-calendar-day:hover) { background:var(--prism-purple); color:#fff; }
@@ -77,14 +77,14 @@ body.admin-shell .prism-sidebar ~ .main-content { margin-left:280px; width:calc(
 body.admin-shell .prism-sidebar.is-initializing,
 body.admin-shell .prism-sidebar.is-initializing ~ .main-content { transition:none; }
 body.admin-shell .prism-sidebar .sidebar-brand-logo { width:176px; height:80px; object-fit:cover; object-position:center 45%; }
-body.admin-shell .prism-navigation-caption { font-size:10px; letter-spacing:.12em; text-transform:uppercase; }
+body.admin-shell .prism-navigation-caption { font-size:var(--prism-font-micro); letter-spacing:.12em; text-transform:uppercase; }
 body.admin-shell .prism-sidebar-toggle { min-height:38px; margin:10px 0; }
 body.admin-shell #prismPrimaryNavigation { flex:1; }
-body.admin-shell .prism-nav-section-label { margin:18px 12px 6px; font-size:9px; font-weight:600; letter-spacing:.14em; text-transform:uppercase; color:#ffffffb8; }
-body.admin-shell .prism-sidebar .prism-nav-group-toggle { font-size:13px; font-weight:650; }
+body.admin-shell .prism-nav-section-label { margin:18px 12px 6px; font-size:var(--prism-font-micro); font-weight:600; letter-spacing:.14em; text-transform:uppercase; color:#ffffffb8; }
+body.admin-shell .prism-sidebar .prism-nav-group-toggle { font-size:var(--prism-font-nav-main); font-weight:650; }
 body.admin-shell .prism-nav-submenu { padding-left:12px; }
 /* Override the older shared sidebar readability rule without changing portal navigation. */
-body.admin-shell .prism-sidebar .prism-nav-submenu a { font-size:12px !important; font-weight:500; border-radius:12px; }
+body.admin-shell .prism-sidebar .prism-nav-submenu a { font-size:var(--prism-font-nav) !important; font-weight:500; border-radius:12px; }
 body.admin-shell .prism-sidebar a[aria-current=page] { color:var(--prism-navy); background:#fff; box-shadow:0 4px 12px #100f4020; }
 body.admin-shell .prism-sidebar-utilities { margin-top:auto; padding-top:16px; border-top:1px solid #ffffff2e; }
 body.admin-shell .prism-sidebar.is-collapsed { width:68px; padding:14px 8px; }
@@ -95,14 +95,14 @@ body.admin-shell .search-box { min-height:48px; border:1px solid var(--prism-bor
 body.admin-shell .search-box input { background:transparent; border:0; min-height:44px; }
 body.admin-shell .welcome-header h1 span { color:var(--accent-pink); }
 body.admin-shell .ai-summary-banner { background:linear-gradient(110deg,#0c0e3f,#64175f 65%,#bd126d); border-radius:18px; padding:28px; gap:24px; color:#fff; }
-body.admin-shell .ai-summary-banner h2 { color:#fff; font-size:23px; }
-body.admin-shell .ai-summary-banner p { color:#f3dfed; font-size:12px; line-height:1.7; }
-body.admin-shell .ai-badge { color:#fff; font-size:10px; letter-spacing:.12em; background:#ffffff1c; }
-body.admin-shell .ai-action-btn { border:1px solid #ffffff60; color:#fff; background:#ffffff18; min-height:44px; border-radius:10px; font-size:12px; }
+body.admin-shell .ai-summary-banner h2 { color:#fff; font-size:var(--prism-font-subheading); }
+body.admin-shell .ai-summary-banner p { color:#f3dfed; font-size:var(--prism-font-body); line-height:1.7; }
+body.admin-shell .ai-badge { color:#fff; font-size:var(--prism-font-micro); letter-spacing:.12em; background:#ffffff1c; }
+body.admin-shell .ai-action-btn { border:1px solid #ffffff60; color:#fff; background:#ffffff18; min-height:44px; border-radius:10px; font-size:var(--prism-font-body); }
 body.admin-shell .cards .card { min-height:148px; padding:24px 20px; border-radius:14px; background:var(--prism-card); box-shadow:var(--prism-shadow); text-align:left; }
 body.admin-shell .cards .card > i { position:absolute; top:26px; right:20px; color:var(--accent-pink); font-size:23px; }
 body.admin-shell .cards .card h1 { margin:0 38px 14px 0; font-size:34px; color:var(--prism-text); }
-body.admin-shell .cards .card p { color:var(--prism-text); font-size:12px; font-weight:600; }
+body.admin-shell .cards .card p { color:var(--prism-text); font-size:var(--prism-font-body); font-weight:600; }
 
 /* Shared lighter portal shell. Adviser links and Student section buttons use one visual system. */
 body.portal-shell { padding-top:120px; }
@@ -117,33 +117,33 @@ body.portal-shell .portal-navbar {
 body.portal-shell .portal-brand { display:flex; align-items:center; border:0; background:transparent; min-width:0; }
 body.portal-shell .portal-brand img { width:112px; height:50px; max-width:100%; object-fit:cover; object-position:center 45%; transform:none; }
 body.portal-shell .portal-nav-links { display:flex; align-items:center; justify-content:center; flex-wrap:wrap; gap:3px; padding:0; margin:0; list-style:none; min-width:0; }
-body.portal-shell .portal-nav-links :is(a,button) { display:block; width:auto; min-height:38px; padding:9px 8px; border:0; border-radius:9px; color:var(--prism-text); background:transparent; font:600 11px/1.5 Montserrat,sans-serif; text-decoration:none; white-space:normal; }
+body.portal-shell .portal-nav-links :is(a,button) { display:block; width:auto; min-height:38px; padding:9px 8px; border:0; border-radius:9px; color:var(--prism-text); background:transparent; font:600 var(--prism-font-nav)/1.5 Montserrat,sans-serif; text-decoration:none; white-space:normal; }
 body.portal-shell .portal-nav-links :is(a,button):hover,
 body.portal-shell .portal-nav-links [aria-current=page] { color:var(--accent-pink); background:var(--prism-bg); box-shadow:none; }
 body.portal-shell .portal-nav-right { display:flex; align-items:center; justify-self:end; gap:6px; min-width:0; }
 body.portal-shell :is(.portal-help,.portal-notification) { display:grid; place-items:center; flex:0 0 36px; width:36px; height:40px; margin:0; border:0; border-radius:10px; background:transparent; color:var(--prism-text); font-size:18px; text-decoration:none; }
 body.portal-shell .theme-toggle { flex:0 0 44px; width:44px; height:40px; min-width:44px; }
-body.portal-shell .portal-navigation-toggle { display:none; padding:8px 12px; min-height:40px; border:1px solid var(--prism-border); border-radius:9px; color:var(--prism-text); background:var(--prism-card); font:600 12px Montserrat,sans-serif; cursor:pointer; }
+body.portal-shell .portal-navigation-toggle { display:none; padding:8px 12px; min-height:40px; border:1px solid var(--prism-border); border-radius:9px; color:var(--prism-text); background:var(--prism-card); font:600 var(--prism-font-nav) Montserrat,sans-serif; cursor:pointer; }
 body.prism-workspace .portal-profile-btn { display:flex; align-items:center; gap:8px; max-width:180px; padding:5px 10px 5px 5px; border:1px solid var(--prism-border); border-radius:28px; color:var(--prism-text); background:var(--prism-card); box-shadow:none; cursor:pointer; text-align:left; }
 body.prism-workspace .portal-profile-btn:hover { transform:none; background:var(--prism-bg); }
 body.prism-workspace .portal-profile-btn img { width:32px; height:32px; border-radius:50%; }
 body.prism-workspace .portal-profile-btn span { min-width:0; }
 body.prism-workspace .portal-profile-btn :is(strong,small) { display:block; max-width:105px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
-body.prism-workspace .portal-profile-btn strong { font-size:11px; }
-body.prism-workspace .portal-profile-btn small { font-size:9px; color:var(--prism-muted); }
+body.prism-workspace .portal-profile-btn strong { font-size:var(--prism-font-label); }
+body.prism-workspace .portal-profile-btn small { font-size:var(--prism-font-profile-meta); color:var(--prism-muted); }
 body.prism-workspace .portal-profile-btn > i { font-size:9px; }
 body.prism-workspace .prism-account-menu { position:relative; flex-shrink:0; }
 body.prism-workspace :is(.prism-account-links,.portal-profile-dropdown) { position:absolute; top:calc(100% + 8px); right:0; z-index:1300; display:grid; width:190px; max-width:calc(100vw - 32px); padding:7px; border:1px solid var(--prism-border); border-radius:12px; color:var(--prism-text); background:var(--prism-card); box-shadow:0 12px 32px #10113025; }
-body.prism-workspace :is(.prism-account-links,.portal-profile-dropdown) :is(a,button) { min-height:42px; padding:10px 12px; color:var(--prism-text); border-radius:7px; font-size:12px; text-decoration:none; }
+body.prism-workspace :is(.prism-account-links,.portal-profile-dropdown) :is(a,button) { min-height:42px; padding:10px 12px; color:var(--prism-text); border-radius:7px; font-size:var(--prism-font-body); text-decoration:none; }
 body.prism-workspace :is(.prism-account-links,.portal-profile-dropdown) :is(a,button):hover { background:var(--prism-bg); }
 body.prism-workspace :is(.prism-account-links,.portal-profile-dropdown,.portal-nav-links)[hidden] { display:none; }
 body.prism-workspace .prism-sidebar > .prism-account-menu { margin-top:12px; }
 body.portal-shell :is(.welcome-card,.prism-workspace-hero) { display:flex; justify-content:space-between; align-items:center; gap:24px; padding:30px 32px; margin-bottom:24px; border:0; border-radius:18px; background:linear-gradient(112deg,#0c0e3f 0%,#64175f 65%,#bd126d 100%); color:#fff; }
-body.portal-shell :is(.welcome-card,.prism-workspace-hero) h2 { margin:8px 0; font-size:clamp(23px,2.1vw,30px); color:#fff; line-height:1.4; }
-body.portal-shell :is(.welcome-card,.prism-workspace-hero) p { color:#f1deed; font-size:12px; line-height:1.8; }
-body.portal-shell .prism-hero-eyebrow { font-size:10px; letter-spacing:.14em; font-weight:600; }
+body.portal-shell :is(.welcome-card,.prism-workspace-hero) h2 { margin:8px 0; font-size:var(--prism-font-title); color:#fff; line-height:1.4; }
+body.portal-shell :is(.welcome-card,.prism-workspace-hero) p { color:#f1deed; font-size:var(--prism-font-body); line-height:1.8; }
+body.portal-shell .prism-hero-eyebrow { font-size:var(--prism-font-micro); letter-spacing:.14em; font-weight:600; }
 body.portal-shell .prism-hero-date { margin-bottom:12px; }
-body.portal-shell .prism-hero-action { display:inline-flex; flex-shrink:0; gap:18px; align-items:center; padding:12px 18px; border:1px solid #ffffff70; border-radius:10px; background:#fff; color:#0c0e3f; font-size:12px; font-weight:600; text-decoration:none; }
+body.portal-shell .prism-hero-action { display:inline-flex; flex-shrink:0; gap:18px; align-items:center; padding:12px 18px; border:1px solid #ffffff70; border-radius:10px; background:#fff; color:#0c0e3f; font-size:var(--prism-font-body); font-weight:600; text-decoration:none; }
 body.portal-shell .adviser-summary-card { position:relative; border:1px solid var(--prism-border); border-radius:14px; padding:22px; box-shadow:var(--prism-shadow); }
 body.portal-shell .adviser-summary-card strong { font-size:34px; }
 body.portal-shell .adviser-summary-card p { color:var(--prism-text); }
@@ -154,17 +154,17 @@ body.portal-shell .adviser-eyebrow { display:none; }
 body.portal-shell .prism-resubmission-note { margin-top:22px; }
 body.portal-shell .adviser-queue { display:block; }
 body.portal-shell .adviser-review-table { min-width:760px; }
-body.portal-shell .adviser-review-table caption { text-align:left; padding:8px 0 14px; font-size:12px; color:var(--prism-muted); }
+body.portal-shell .adviser-review-table caption { text-align:left; padding:8px 0 14px; font-size:var(--prism-font-meta); color:var(--prism-muted); }
 body.portal-shell .adviser-review-table td { vertical-align:top; }
 body.portal-shell .adviser-review-table .adviser-document { display:table-cell; border:0; border-bottom:1px solid var(--prism-border); border-radius:0; background:transparent; min-width:230px; }
 body.portal-shell .adviser-document h3 { margin-bottom:10px; }
 body.portal-shell .adviser-document-actions { min-width:140px; }
-body.portal-shell .prism-resubmission-note p { margin-bottom:12px; color:var(--prism-muted); font-size:12px; }
-body.portal-shell .dashboard-calendar-weekdays span { font-size:10px; }
-body.portal-shell .dashboard-calendar-day { min-height:38px; font-size:11px; }
-body.portal-shell .dashboard-calendar-nav strong { font-size:12px; }
-body.portal-shell .dashboard-calendar-nav button { width:30px; height:30px; font-size:11px; }
-body.portal-shell .dashboard-calendar-views button { font-size:11px; padding:7px 12px; }
+body.portal-shell .prism-resubmission-note p { margin-bottom:12px; color:var(--prism-muted); font-size:var(--prism-font-meta); }
+body.portal-shell .dashboard-calendar-weekdays span { font-size:var(--prism-font-meta); }
+body.portal-shell .dashboard-calendar-day { min-height:38px; font-size:var(--prism-font-body); }
+body.portal-shell .dashboard-calendar-nav strong { font-size:var(--prism-font-body); }
+body.portal-shell .dashboard-calendar-nav button { width:30px; height:30px; font-size:var(--prism-font-body); }
+body.portal-shell .dashboard-calendar-views button { font-size:var(--prism-font-body); padding:7px 12px; }
 body.prism-workspace #prismResourcesTitle { scroll-margin-top:150px; }
 
 @media(max-width:1280px) {
@@ -173,7 +173,7 @@ body.prism-workspace #prismResourcesTitle { scroll-margin-top:150px; }
     body.prism-workspace .document-actions { flex-wrap:wrap; min-width:0; }
     body.portal-shell .portal-profile-btn span { display:none; }
     body.portal-shell .portal-navbar { grid-template-columns:100px minmax(0,1fr) auto; padding:10px 14px; gap:8px; }
-    body.portal-shell .portal-nav-links :is(a,button) { font-size:10px; padding:9px 7px; }
+    body.portal-shell .portal-nav-links :is(a,button) { font-size:var(--prism-font-nav); padding:9px 7px; }
 }
 @media(max-width:1120px) {
     body.portal-shell .portal-navbar { grid-template-columns:1fr auto; gap:8px; }
@@ -181,7 +181,7 @@ body.prism-workspace #prismResourcesTitle { scroll-margin-top:150px; }
     body.portal-shell .portal-nav-right { grid-column:2; grid-row:1; }
     body.portal-shell .portal-navigation-toggle { display:block; grid-column:1/-1; grid-row:2; justify-self:stretch; }
     body.portal-shell .portal-nav-links { grid-column:1/-1; grid-row:3; display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); width:100%; max-height:55dvh; overflow-y:auto; }
-    body.portal-shell .portal-nav-links :is(a,button) { width:100%; text-align:left; font-size:12px; padding:12px; }
+    body.portal-shell .portal-nav-links :is(a,button) { width:100%; text-align:left; font-size:var(--prism-font-nav); padding:12px; }
     body.portal-shell { padding-top:165px; }
     body.portal-shell .main-content { padding:20px 24px 32px; }
 }
@@ -214,9 +214,18 @@ body.prism-workspace #prismResourcesTitle { scroll-margin-top:150px; }
     body.admin-shell .portal-profile-btn span { display:none; }
     body.admin-shell .cards .card { min-height:130px; }
     body.admin-shell .ai-summary-banner { padding:20px 16px; }
-    body.admin-shell .ai-summary-banner h2 { font-size:20px; }
+    body.admin-shell .ai-summary-banner h2 { font-size:var(--prism-font-subheading); }
     body.prism-workspace .main-content::before { width:80vw; }
 }
 @media(prefers-reduced-motion:reduce) {
     body.prism-workspace *, body.prism-workspace *::before { transition:none; scroll-behavior:auto; animation:none; }
 }
+
+/* Shared semantic text roles. Component-specific metadata rules remain more precise. */
+body.prism-workspace .main-content :is(p,li,dd) { line-height:1.45; }
+body.prism-workspace :is(button,input,select,textarea) { line-height:1.45; }
+body.prism-workspace :is(h1,h2,h3) { line-height:1.25; }
+body.prism-workspace .main-content h2 { font-size:var(--prism-font-heading); }
+body.prism-workspace :is(.management-card-head,.adviser-panel-heading,.table-header,.document-modal-heading) h2 { font-size:var(--prism-font-subheading); }
+body.portal-shell :is(.welcome-card,.prism-workspace-hero) h2 { font-size:var(--prism-font-hero); }
+body.prism-workspace table td { line-height:1.45; }

@@ -62,6 +62,9 @@ function row_to_student(array $r): array
 if ($action === 'list' || $action === 'options') {
     [$scope, $params] = prism_student_scope($user);
     if ($action === 'options') {
+        $activeOnly = $_GET['activeOnly'] ?? '0';
+        if (!in_array($activeOnly, ['0', '1'], true)) json_out(['ok'=>false, 'message'=>'Invalid student scope.'], 422);
+        if ($activeOnly === '1') $scope .= ' AND s.archived_at IS NULL';
         $stmt = $pdo->prepare('SELECT s.id, s.student_id, s.full_name, s.protocol_code, s.stage ' . $scope . ' ORDER BY s.full_name, s.id');
         $stmt->execute($params);
         json_out(['ok' => true, 'students' => array_map(fn($r) => ['id' => (int)$r['id'], 'studentId' => $r['student_id'],

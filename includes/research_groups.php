@@ -36,7 +36,7 @@ function research_group_is_standard(array $row): bool
 }
 
 /** Only groups represented by students in the actor's existing management scope. */
-function research_group_options(PDO $pdo, array $user, ?array $academic = null): array
+function research_group_options(PDO $pdo, array $user, ?array $academic = null, bool $activeOnly = false): array
 {
     $prefix = $academic === null ? null : research_group_prefix($academic);
     $sql = 'SELECT DISTINCT s.research_group, s.academic_unit_key, s.program_key, s.year_level, s.academic_year FROM students s';
@@ -46,6 +46,8 @@ function research_group_options(PDO $pdo, array $user, ?array $academic = null):
         $params[':adviser'] = $user['email'];
     } elseif ($user['role'] !== 'admin') {
         return [];
+    } elseif ($activeOnly) {
+        $sql .= ' WHERE s.archived_at IS NULL';
     }
     $stmt = $pdo->prepare($sql);
     $stmt->execute($params);

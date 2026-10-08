@@ -1,6 +1,4 @@
 # Preserve historical/local artifacts while excluding them from git archive releases.
-/assets/js/student.js export-ignore
-/assets/css/student.css export-ignore
 /PRISM_V2_NOTES.md export-ignore
 /CHANGES_README.md export-ignore
 /AUDIT_REVIEW.md export-ignore

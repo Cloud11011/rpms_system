@@ -49,7 +49,7 @@ async function loadUploadStudents(){
     const select=document.getElementById('documentStudent');
     if(!select)return;
     try{
-        const data=await PrismUI.request('students_api.php?action=options');
+        const data=await PrismUI.request('students_api.php?action=options&activeOnly=1');
         uploadStudents=data.students||[];
         const selected=select.value;
         select.replaceChildren();

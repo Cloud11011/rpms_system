@@ -6,19 +6,19 @@
 .prism-sidebar .sidebar-brand-icon { display:none; }
 .prism-sidebar.is-collapsed .sidebar-brand-logo { display:none; }
 .prism-sidebar.is-collapsed .sidebar-brand-icon { display:block; width:44px; height:80px; margin:auto; object-fit:contain; }
-.prism-navigation-caption { display:block; color:#fff; font-size:10px; letter-spacing:.05em; opacity:.85; }
-.prism-sidebar button, .prism-sidebar .prism-nav-home { font:500 12px/1.5 Montserrat,sans-serif; }
+.prism-navigation-caption { display:block; color:#fff; font-size:var(--prism-font-micro); letter-spacing:.05em; opacity:.85; }
+.prism-sidebar button, .prism-sidebar .prism-nav-home { font:500 var(--prism-font-nav-main)/1.5 Montserrat,sans-serif; }
 .prism-sidebar-toggle, .prism-nav-group-toggle, .prism-nav-home { display:flex; align-items:center; gap:11px; width:100%; min-height:44px; padding:11px 12px; border:0; border-radius:9px; color:#fff; background:transparent; cursor:pointer; text-align:left; text-decoration:none; }
 .prism-sidebar-toggle { margin:4px 0 14px; background:rgba(255,255,255,.1); }
 .prism-sidebar-toggle > i, .prism-nav-group-toggle > i:first-child, .prism-nav-home > i { flex:0 0 18px; text-align:center; }
 .prism-nav-group { margin:8px 0; }
 .prism-nav-group-toggle span { flex:1; }
-.prism-nav-chevron { font-size:9px; }
+.prism-nav-chevron { font-size:var(--prism-font-meta); }
 .prism-nav-group-toggle[aria-expanded="true"] .prism-nav-chevron { transform:rotate(180deg); }
 .prism-sidebar [hidden] { display:none !important; }
 .prism-sidebar .prism-nav-submenu { list-style:none; padding:4px 0 4px 25px; margin:0; }
 .prism-sidebar .prism-nav-submenu li { margin:3px 0; }
-.prism-sidebar .prism-nav-submenu a { min-height:40px; padding:9px 12px; border-radius:8px; font-size:11px; line-height:1.6; }
+.prism-sidebar .prism-nav-submenu a { min-height:40px; padding:9px 12px; border-radius:8px; font-size:var(--prism-font-nav); line-height:1.6; }
 .prism-sidebar .prism-nav-submenu a span { display:block; }
 .prism-sidebar a[aria-current="page"] { background:#fff; color:#67204f; font-weight:700; }
 .prism-sidebar a:hover, .prism-sidebar button:hover { background:rgba(255,255,255,.15); color:#fff; }

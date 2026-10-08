@@ -42,6 +42,7 @@ if (($argv[1] ?? '') === '--case') {
     $pdo = $fixtureDb;
     $pdo->exec('CREATE TABLE students (id INTEGER PRIMARY KEY, full_name TEXT, student_id TEXT, email TEXT, protocol_code TEXT, research_group TEXT, adviser_id INTEGER, course TEXT, archived_at TEXT, stage TEXT, status TEXT)');
     $pdo->exec("INSERT INTO students VALUES (4,'Maria Santos','2026-12345','maria@example.test','CEU-IERB-2026-071','GROUP-2026',2,'BSIT',NULL,'Stage 3','On Track'), (5,'Ana Reyes','2026-12346','ana@example.test',NULL,'GROUP-2026',2,'BSIT',NULL,'Stage 3','On Track')");
+    if (!empty($case['archivedStudent'])) $pdo->exec("UPDATE students SET archived_at='2026-10-02' WHERE id=4");
     $pdo->exec('CREATE TABLE advisers (id INTEGER PRIMARY KEY, full_name TEXT, email TEXT)');
     $pdo->exec("INSERT INTO advisers VALUES (2,'Adviser Person','adviser@example.test')");
     $document = ['id'=>'0123456789abcdef01234567','student_id'=>4,'student_name'=>'Maria Santos','stored_name'=>$case['file']??'research-protocol.txt',
@@ -120,6 +121,8 @@ foreach (['academic-research.pdf','research-protocol.docx','research-protocol.tx
         verify($r['unexpected']==='', 'No warnings or paths emitted');
     }
 }
+$r=endpoint(['archivedStudent'=>true]);
+verify($r['status']===200 && $r['response']['ok'] && $r['studentsUnchanged'], 'Admin can summarize historical archived-student documents');
 foreach (['student','adviser'] as $role) foreach (['POST','GET'] as $method) {
     $r=endpoint(compact('role','method')); verify($r['status']===403 && !$r['aiCalls'] && !$r['writes'], "$role $method denied before extraction/model/write");
 }

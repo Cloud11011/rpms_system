@@ -31,7 +31,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const select = document.getElementById('reportStudent');
         select.replaceChildren();
         try {
-            const data = await PrismUI.request('students_api.php?action=options');
+            const data = await PrismUI.request('students_api.php?action=options&activeOnly=1');
             (data.students || []).forEach(r => {
                 const opt = document.createElement('option');
                 opt.value = r.id;

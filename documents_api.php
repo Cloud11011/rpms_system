@@ -138,8 +138,8 @@ function doc_row(array $d, array $user, ?int $viewerAdviserId): array
         'actions' => [
             'summarize' => $role === 'admin',
             'review' => $isCurrent && !$locked && can_review_doc($user, $viewerAdviserId, $d),
-            'submitToRpms' => $isCurrent && !$locked && $state === WF_READY_FOR_RPMS && in_array($role, ['student', 'admin'], true),
-            'forceSubmitToRpms' => $isCurrent && !$locked && $role === 'admin' && $state !== WF_READY_FOR_RPMS,
+            'submitToRpms' => empty($d['archived_at']) && $isCurrent && !$locked && $state === WF_READY_FOR_RPMS && in_array($role, ['student', 'admin'], true),
+            'forceSubmitToRpms' => empty($d['archived_at']) && $isCurrent && !$locked && $role === 'admin' && $state !== WF_READY_FOR_RPMS,
             'override' => $isCurrent && !$locked && $role === 'admin',
             'delete' => in_array($role, ['admin', 'adviser'], true) && (!$locked || $role === 'admin'),
         ],
@@ -218,7 +218,7 @@ if ($action === 'upload') {
     $studentName = trim((string)($_POST['student'] ?? ''));
     $studentStage = null;
     if ($user['role'] === 'student') {
-        $own = $pdo->prepare('SELECT id, full_name, stage FROM students WHERE email = :e');
+        $own = $pdo->prepare('SELECT id, full_name, stage FROM students WHERE email = :e AND archived_at IS NULL');
         $own->execute([':e' => $user['email']]);
         $ownRow = $own->fetch();
         if (!$ownRow) {
@@ -230,11 +230,11 @@ if ($action === 'upload') {
     } else {
         $requestedStudentId = (int)($_POST['studentDbId'] ?? 0);
         if ($requestedStudentId > 0) {
-            $match = $pdo->prepare('SELECT id, full_name, stage FROM students WHERE id = :id LIMIT 1');
+            $match = $pdo->prepare('SELECT id, full_name, stage FROM students WHERE id = :id AND archived_at IS NULL LIMIT 1');
             $match->execute([':id' => $requestedStudentId]);
         } elseif ($studentName !== '') {
             // Backward-compatible fallback for older clients.
-            $match = $pdo->prepare('SELECT id, full_name, stage FROM students WHERE full_name = :n OR student_id = :n LIMIT 1');
+            $match = $pdo->prepare('SELECT id, full_name, stage FROM students WHERE (full_name = :n OR student_id = :n) AND archived_at IS NULL LIMIT 1');
             $match->execute([':n' => $studentName]);
         } else {
             $match = null;
@@ -324,7 +324,7 @@ if ($action === 'upload') {
         $studentLock = $pdo->prepare('SELECT id, full_name, stage, adviser_id, email, research_title, research_group, archived_at FROM students WHERE id = :id FOR UPDATE');
         $studentLock->execute([':id' => $studentDbId]);
         $currentStudent = $studentLock->fetch();
-        if (!$currentStudent
+        if (!$currentStudent || !empty($currentStudent['archived_at'])
             || ($user['role'] === 'student' && strcasecmp((string)$currentStudent['email'], (string)$user['email']) !== 0)
             || ($user['role'] === 'adviser' && ((int)$currentStudent['adviser_id'] !== $viewerAdviserId || !empty($currentStudent['archived_at'])))) {
             throw new DocumentWriteConflict('The student record changed while the file was uploading. Refresh and select the student again.');
@@ -651,6 +651,9 @@ if ($action === 'submit_to_rpms') {
     api_require_login(['student', 'admin']);
     $reason = trim((string)($payload['reason'] ?? ''));
 
+    if (!empty($doc['archived_at'])) {
+        json_out(['ok'=>false, 'message'=>'Current submission is unavailable for an archived student.'], 409);
+    }
     if (!$isCurrent) {
         json_out(['ok' => false, 'message' => 'This is an older version. Submit the latest version instead.'], 409);
     }
@@ -912,5 +915,5 @@ if ($action === 'delete') {
 }
 
 // ---------------------------------------------------------------------
-// Document-level summarization has been retired.
+// Unknown document action.
 json_out(['ok' => false, 'message' => 'Unknown action.'], 400);

@@ -17,10 +17,10 @@ if ($current_hour >= 5 && $current_hour < 12) {
 $current_date_formatted = date('l, F j, Y');
 
 $pdo = db();
-$total_researchers = (int)$pdo->query('SELECT COUNT(*) FROM students')->fetchColumn();
-$pending_ierb = (int)$pdo->query("SELECT COUNT(*) FROM students WHERE status = 'Pending'")->fetchColumn();
-$approved_ethics = (int)$pdo->query("SELECT COUNT(*) FROM students WHERE stage = 'Completed'")->fetchColumn();
-$delayed_submissions = (int)$pdo->query("SELECT COUNT(*) FROM students WHERE status = 'Delayed'")->fetchColumn();
+$total_researchers = (int)$pdo->query('SELECT COUNT(*) FROM students WHERE archived_at IS NULL')->fetchColumn();
+$pending_ierb = (int)$pdo->query("SELECT COUNT(*) FROM students WHERE archived_at IS NULL AND status = 'Pending'")->fetchColumn();
+$approved_ethics = (int)$pdo->query("SELECT COUNT(*) FROM students WHERE archived_at IS NULL AND stage = 'Completed'")->fetchColumn();
+$delayed_submissions = (int)$pdo->query("SELECT COUNT(*) FROM students WHERE archived_at IS NULL AND status = 'Delayed'")->fetchColumn();
 ?>
 <!DOCTYPE html>
 <html lang="en">

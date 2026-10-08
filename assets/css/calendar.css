@@ -1,6 +1,6 @@
     .calendar-page { padding-bottom: 32px; }
-    .calendar-heading h1 { font-size: 25px; color: var(--text-primary); }
-    .calendar-heading p { margin-top: 5px; color: var(--text-secondary); font-size: 12px; }
+    .calendar-heading h1 { font-size:var(--prism-font-title); color: var(--text-primary); }
+    .calendar-heading p { margin-top: 5px; color: var(--text-secondary); font-size:var(--prism-font-body); }
     .today-button, .calendar-nav, .save-task, .cancel-edit, .task-action {
         border: 0; cursor: pointer; font-family: inherit;
     }
@@ -18,13 +18,13 @@
     }
     .full-calendar-card { padding: 24px; }
     .calendar-toolbar { display: flex; justify-content: center; align-items: center; gap: 22px; margin-bottom: 24px; }
-    .calendar-toolbar h2 { min-width: 220px; text-align: center; font-size: 20px; }
+    .calendar-toolbar h2 { min-width: 220px; text-align: center; font-size:var(--prism-font-subheading); }
     .calendar-nav {
         width: 38px; height: 38px; border-radius: 10px; background: var(--bg-color);
         color: var(--text-primary);
     }
     .weekday-row, .month-grid { display: grid; grid-template-columns: repeat(7, 1fr); }
-    .weekday-row span { padding: 11px 4px; text-align: center; color: var(--text-secondary); font-size: 11px; font-weight: 700; }
+    .weekday-row span { padding: 11px 4px; text-align: center; color: var(--text-secondary); font-size:var(--prism-font-body); font-weight: 700; }
     .month-grid { border-left: 1px solid var(--border-color); border-top: 1px solid var(--border-color); }
     .calendar-day {
         position: relative; min-height: 105px; padding: 10px; color: var(--text-primary);
@@ -34,44 +34,44 @@
     .calendar-day:hover, .calendar-day.selected { background: rgba(246, 82, 150, .08); }
     .calendar-day.selected { box-shadow: inset 0 0 0 2px #F65296; }
     .calendar-day.outside { color: var(--text-secondary); opacity: .48; }
-    .day-number { display: inline-grid; place-items: center; width: 28px; height: 28px; font-size: 12px; font-weight: 600; }
+    .day-number { display: inline-grid; place-items: center; width: 28px; height: 28px; font-size:var(--prism-font-body); font-weight: 600; }
     .calendar-day.today .day-number { color: #fff; background: #A21368; border-radius: 50%; }
     .day-tasks { margin-top: 6px; display: grid; gap: 4px; }
     .day-task {
         overflow: hidden; padding: 5px 7px; border-radius: 6px; white-space: nowrap;
         text-overflow: ellipsis; background: rgba(162, 19, 104, .12); color: var(--accent-purple);
-        font-size: 9px; font-weight: 600;
+        font-size:var(--prism-font-meta); font-weight: 600;
     }
     html.dark-theme .day-task { color: #ff84b9; }
-    .more-tasks { color: var(--text-secondary); font-size: 9px; padding-left: 5px; }
+    .more-tasks { color: var(--text-secondary); font-size:var(--prism-font-meta); padding-left: 5px; }
     .reminder-panel { padding: 22px; align-self: start; }
     .panel-title { display: flex; justify-content: space-between; gap: 12px; align-items: center; padding-bottom: 18px; border-bottom: 1px solid var(--border-color); }
-    .eyebrow { color: var(--accent-pink); font-size: 9px; text-transform: uppercase; letter-spacing: 1px; font-weight: 700; }
-    .panel-title h2 { margin-top: 4px; font-size: 16px; }
-    .task-count { flex: 0 0 auto; padding: 6px 9px; background: var(--bg-color); color: var(--text-secondary); border-radius: 20px; font-size: 9px; }
+    .eyebrow { color: var(--accent-pink); font-size:var(--prism-font-micro); text-transform: uppercase; letter-spacing: 1px; font-weight: 700; }
+    .panel-title h2 { margin-top: 4px; font-size:var(--prism-font-subheading); }
+    .task-count { flex: 0 0 auto; padding: 6px 9px; background: var(--bg-color); color: var(--text-secondary); border-radius: 20px; font-size:var(--prism-font-meta); }
     #reminderForm { display: grid; gap: 8px; padding: 19px 0; border-bottom: 1px solid var(--border-color); }
-    #reminderForm label { margin-top: 4px; font-size: 10px; font-weight: 700; color: var(--text-primary); }
+    #reminderForm label { margin-top: 4px; font-size:var(--prism-font-label); font-weight: 700; color: var(--text-primary); }
     #reminderForm label span { font-weight: 400; color: var(--text-secondary); }
     #reminderForm input, #reminderForm textarea {
         width: 100%; padding: 11px 12px; border: 1px solid var(--border-color); border-radius: 9px;
-        color: var(--text-primary); background: var(--input-bg); font: inherit; font-size: 11px; resize: vertical;
+        color: var(--text-primary); background: var(--input-bg); font: inherit; font-size:var(--prism-font-body); resize: vertical;
     }
     #reminderForm input:focus, #reminderForm textarea:focus { outline: 2px solid rgba(246, 82, 150, .25); border-color: #F65296; }
     .form-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 7px; }
-    .save-task, .cancel-edit { padding: 10px 13px; border-radius: 9px; font-weight: 600; font-size: 10px; }
+    .save-task, .cancel-edit { padding: 10px 13px; border-radius: 9px; font-weight: 600; font-size:var(--prism-font-body); }
     .save-task { color: #fff; background: linear-gradient(90deg, #F65296, #A21368); }
     .save-task i { margin-right: 6px; }
     .cancel-edit { color: var(--text-secondary); background: var(--bg-color); }
     .task-list { display: grid; gap: 10px; padding-top: 18px; }
     .task-item { padding: 13px; border: 1px solid var(--border-color); border-left: 3px solid #F65296; border-radius: 10px; }
     .task-item-head { display: flex; justify-content: space-between; gap: 8px; }
-    .task-item h3 { font-size: 11px; color: var(--text-primary); overflow-wrap: anywhere; }
-    .task-time { margin-top: 5px; color: var(--accent-pink); font-size: 9px; font-weight: 600; }
-    .task-notes { margin-top: 7px; color: var(--text-secondary); font-size: 10px; line-height: 1.5; white-space: pre-wrap; overflow-wrap: anywhere; }
+    .task-item h3 { font-size:var(--prism-font-subheading); color: var(--text-primary); overflow-wrap: anywhere; }
+    .task-time { margin-top: 5px; color: var(--accent-pink); font-size:var(--prism-font-meta); font-weight: 600; }
+    .task-notes { margin-top: 7px; color: var(--text-secondary); font-size:var(--prism-font-meta); line-height: 1.5; white-space: pre-wrap; overflow-wrap: anywhere; }
     .task-buttons { display: flex; gap: 2px; }
     .task-action { width: 25px; height: 25px; border-radius: 6px; color: var(--text-secondary); background: transparent; }
     .task-action:hover { color: var(--accent-pink); background: var(--bg-color); }
-    .empty-tasks { padding: 24px 8px; text-align: center; color: var(--text-secondary); font-size: 10px; line-height: 1.6; }
+    .empty-tasks { padding: 24px 8px; text-align: center; color: var(--text-secondary); font-size:var(--prism-font-meta); line-height: 1.6; }
     .empty-tasks i { display: block; margin-bottom: 10px; font-size: 22px; color: #d2d4df; }
     @media (max-width: 1050px) {
         .calendar-layout { grid-template-columns: 1fr; }
@@ -82,8 +82,8 @@
         .calendar-heading p { display: none; }
         .full-calendar-card { padding: 12px; }
         .calendar-toolbar { margin: 8px 0 15px; }
-        .calendar-toolbar h2 { min-width: 155px; font-size: 16px; }
-        .weekday-row span { font-size: 9px; }
+        .calendar-toolbar h2 { min-width: 155px; font-size:var(--prism-font-subheading); }
+        .weekday-row span { font-size:var(--prism-font-meta); }
         .calendar-day { min-height: 58px; padding: 4px; }
         .day-tasks { display: none; }
     }
@@ -91,21 +91,21 @@
 /* Official records reuse the calendar's cards; personal reminder controls stay independent. */
 .official-deadline-panel { margin-top: 22px; min-width: 0; }
 .official-deadline-panel .panel-title { align-items: start; }
-.official-deadline-panel .panel-title p, .deadline-form small { color: var(--text-secondary); font-size: 12px; margin-top: 8px; }
+.official-deadline-panel .panel-title p, .deadline-form small { color: var(--text-secondary); font-size:var(--prism-font-meta); margin-top: 8px; }
 .deadline-create { margin: 18px 0; }
 .deadline-create summary { cursor: pointer; font-weight: 600; }
 .deadline-form { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 14px; margin: 16px 0; }
-.deadline-form label { display: grid; gap: 6px; min-width: 0; font-size: 12px; }
+.deadline-form label { display: grid; gap: 6px; min-width: 0; font-size:var(--prism-font-label); }
 .deadline-form input, .deadline-form select, .deadline-form textarea { width: 100%; min-width: 0; box-sizing: border-box; font: inherit; padding: 10px; border: 1px solid var(--border-color); border-radius: 8px; background: var(--bg-color); color: var(--text-primary); }
 .deadline-form select[multiple] { white-space: normal; }
 .deadline-form [hidden] { display: none; }
 .deadline-form .save-task { justify-self: start; }
-.deadline-manage { display: flex; align-items: center; gap: 8px; font-size: 12px; margin: 16px 0; }
+.deadline-manage { display: flex; align-items: center; gap: 8px; font-size:var(--prism-font-body); margin: 16px 0; }
 .deadline-manage input[type="checkbox"] { width: 18px; height: 18px; min-height: 18px; padding: 0; flex: 0 0 18px; }
 .official-deadline-panel h3 { margin-top: 12px; }
 .official-deadline { overflow-wrap: anywhere; }
 .official-marker { border-left: 2px solid var(--text-primary); }
-@media (max-width:600px) { .deadline-form { grid-template-columns: minmax(0,1fr); } .official-deadline-panel { padding: 14px; } .official-marker { padding: 3px 1px; font-size: 8px; } }
+@media (max-width:600px) { .deadline-form { grid-template-columns: minmax(0,1fr); } .official-deadline-panel { padding: 14px; } .official-marker { padding: 3px 1px; font-size:var(--prism-font-meta); } }
 
 /* Keep official dates discoverable when mobile hides personal text previews. */
 @media (max-width:600px) { .calendar-day.has-official-deadline::after { content: ""; position: absolute; top: 4px; right: 4px; width: 6px; height: 6px; border-radius: 50%; background: var(--accent-pink); } }

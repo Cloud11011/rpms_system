@@ -37,7 +37,7 @@ $prismNavGroups = [
         ['ierbprog.php', 'IERB Progress'], ['documents.php', 'Document Submissions'],
     ]],
     'Reporting' => ['Reports & Communication', 'fa-chart-line', [
-        ...($authUser['role'] === 'admin' ? [['admin_ai.php', 'AI Progress Reports'], ['reports.php', 'Generated Reports']] : []),
+        ...($authUser['role'] === 'admin' ? [['admin_ai.php', 'AI Progress Reports'], ['reports.php', 'Generated Reports'], ['data_export.php', 'Data Export']] : []),
         ['admin_notifications.php', 'Notifications'],
     ]],
     'Account' => ['Account & Planning', 'fa-user-gear', [

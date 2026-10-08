@@ -24,3 +24,14 @@ storage/auth_rate_limits/
 !/tests/fixtures/
 /tests/fixtures/*
 !/tests/fixtures/document-summary/
+
+!/tests/archive-operational-audit.php
+!/tests/report-format-audit.php
+!/tests/csv-export-audit.php
+!/tests/backend-audit.php
+!/tests/calendar-deadlines-audit.php
+!/tests/academic-migration-audit.php
+!/tests/crud-audit.php
+!/tests/schema-v8-mysql.php
+!/tests/readiness-mysql.php
+!/tests/ui-polish-audit.cjs

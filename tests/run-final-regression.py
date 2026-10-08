@@ -8,7 +8,7 @@ suites=['auth-audit','auth-flows','session-idle-audit','security-audit','rate-li
 'crud-audit','document-workflow-audit','notification-delivery-audit','research-group-audit','academic-audit',
 'academic-api-audit','alignment-audit','report-format-audit','backend-audit','tonight-polish-audit','readiness-audit',
 'email-format-audit','cache-audit','final-regression-audit','hardening-audit','calendar-deadlines-audit',
-'document-extraction-audit','document-summary-audit','document-summary-transport-audit']
+'document-extraction-audit','document-summary-audit','document-summary-transport-audit','archive-operational-audit','csv-export-audit']
 results=[]
 for name in suites:
     command=['C:/xampp/php/php.exe','-d','extension=zip',f'tests/{name}.php']

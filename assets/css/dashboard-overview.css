@@ -5,13 +5,13 @@
 .dashboard-page .search-box input { min-width:0; width:100%; }
 .dashboard-page .top-controls { flex-shrink:0; }
 .dashboard-page .welcome-header { margin:24px 0; }
-.dashboard-page .dashboard-eyebrow { margin-bottom:10px; font-size:10px; font-weight:700; letter-spacing:.12em; color:var(--accent-purple); }
+.dashboard-page .dashboard-eyebrow { margin-bottom:10px; font-size:var(--prism-font-micro); font-weight:700; letter-spacing:.12em; color:var(--accent-purple); }
 .dashboard-page .welcome-header h1 { font-size:clamp(22px,2.3vw,32px); line-height:1.35; }
 .dashboard-page .cards { gap:16px; grid-template-columns:repeat(4,minmax(0,1fr)); }
 .dashboard-page .card { position:relative; padding:22px 18px; border:1px solid var(--border-color); border-radius:12px; box-shadow:none; }
 .dashboard-page .card i { font-size:18px; margin-bottom:16px; }
 .dashboard-page .card h1 { font-size:clamp(23px,2.3vw,34px); overflow-wrap:anywhere; }
-.dashboard-page .card p { font-size:11px; line-height:1.6; }
+.dashboard-page .card p { font-size:var(--prism-font-body); line-height:1.6; }
 .dashboard-page .content { grid-template-columns:minmax(0,1fr) minmax(255px,.42fr); gap:20px; }
 .dashboard-page :is(.left-column,.right-column,.content-box,.pipeline-card) { min-width:0; }
 .dashboard-page .content-box { padding:20px; border-radius:12px; box-shadow:none; }
@@ -41,3 +41,8 @@
 .dashboard-page .repo-item { display:grid; grid-template-columns:18px minmax(0,1fr); gap:8px; align-items:start; }
 .dashboard-page .repo-item > span { min-width:0; overflow-wrap:anywhere; }
 .dashboard-page .repo-item > small { grid-column:2; min-width:0; overflow-x:auto; }
+
+/* Keep weekday labels within the compact dashboard calendar on narrow phones. */
+@media(max-width:400px) {
+ .dashboard-page .calendar-grid { gap:4px; }
+}
