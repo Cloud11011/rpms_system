@@ -110,11 +110,11 @@ body.portal-shell > .container { display:block; min-height:calc(100vh - 120px); 
 body.portal-shell .main-content { width:100%; max-width:1500px; margin:0 auto; padding:22px 32px 40px; }
 body.portal-shell .portal-navbar {
     position:fixed; top:18px; left:50%; transform:translateX(-50%); z-index:1200;
-    display:grid; grid-template-columns:112px minmax(0,1fr) auto; grid-template-rows:auto; gap:12px;
+    display:grid; grid-template-columns:112px minmax(0,1fr) auto; grid-template-rows:auto; align-items:center; gap:12px;
     width:calc(100% - 48px); max-width:1460px; height:auto; min-height:78px; padding:12px 18px;
     border:1px solid var(--prism-border); border-radius:18px; background:var(--prism-card); box-shadow:var(--prism-shadow); backdrop-filter:none;
 }
-body.portal-shell .portal-brand { display:flex; align-items:center; border:0; background:transparent; min-width:0; }
+body.portal-shell .portal-brand { display:flex; align-items:center; border:0; background:transparent; min-width:0; text-decoration:none; }
 body.portal-shell .portal-brand img { width:112px; height:50px; max-width:100%; object-fit:cover; object-position:center 45%; transform:none; }
 body.portal-shell .portal-nav-links { display:flex; align-items:center; justify-content:center; flex-wrap:wrap; gap:3px; padding:0; margin:0; list-style:none; min-width:0; }
 body.portal-shell .portal-nav-links :is(a,button) { display:block; width:auto; min-height:38px; padding:9px 8px; border:0; border-radius:9px; color:var(--prism-text); background:transparent; font:600 var(--prism-font-nav)/1.5 Montserrat,sans-serif; text-decoration:none; white-space:normal; }
@@ -232,17 +232,60 @@ body.prism-workspace table td { line-height:1.45; }
 
 /* Full system name is secondary branding and wraps at word boundaries. */
 body.prism-workspace .prism-navigation-caption { min-width:0; max-width:100%; font-size:var(--prism-font-micro); line-height:1.5; letter-spacing:normal; text-transform:none; white-space:normal; overflow-wrap:normal; word-break:normal; }
-body.portal-shell .portal-brand { flex-direction:column; align-items:flex-start; gap:2px; text-align:left; text-decoration:none; color:var(--text-secondary); }
-body.portal-shell .portal-navbar { grid-template-columns:210px minmax(0,1fr) auto; }
-body.portal-shell { padding-top:155px; }
-@media(max-width:1120px) {
- body.portal-shell .portal-navbar { grid-template-columns:minmax(0,1fr) auto auto; }
- body.portal-shell .portal-brand { grid-column:1/-1; grid-row:1; display:grid; grid-template-columns:100px minmax(0,1fr); align-items:center; gap:10px; }
- body.portal-shell .portal-navigation-toggle { grid-column:2; grid-row:2; }
- body.portal-shell .portal-nav-right { grid-column:3; grid-row:2; }
- body.portal-shell { padding-top:166px; }
+
+/* Field rhythm shared by the existing form and detail shells, not summary cards. */
+body.prism-workspace {
+    --prism-field-gap:6px;
+    --prism-row-gap:16px;
+    --prism-field-padding:10px 12px;
 }
+body.prism-workspace :is(.account-grid,.portal-two-col):has(.form-panel,.account-card) { align-items:start; }
+body.prism-workspace .account-grid .account-card > .management-card-head { padding:0; margin-bottom:16px; }
+body.prism-workspace :is(.account-grid .account-form,.form-panel > form) { display:grid; gap:var(--prism-row-gap); min-width:0; }
+body.prism-workspace :is(.management-form-grid,.ierb-entry-grid,.document-form-grid,.form-grid,.academic-fields-grid,.notification-form-grid,.deadline-form,.adviser-review-dialog form) {
+    gap:var(--prism-row-gap); min-width:0; align-items:start;
+}
+body.prism-workspace .form-panel .form-grid { margin-bottom:0; }
+body.prism-workspace :is(.account-grid .account-form,.form-panel,.management-form-grid,.academic-fields-grid,.notification-form-grid,.deadline-form,.adviser-review-dialog) label:not(.check-label):not(.lifecycle-check):not(.profile-photo-button) {
+    display:grid; gap:var(--prism-field-gap); min-width:0; margin:0;
+}
+body.prism-workspace :is(.ierb-entry-grid,.document-form-grid) > div { min-width:0; gap:var(--prism-field-gap); align-content:start; }
+body.prism-workspace :is(.account-grid .account-form,.form-panel,.management-form-grid,.ierb-entry-grid,.document-form-grid,.notification-form-grid,.deadline-form,.adviser-review-dialog,.report-modal,.add-type-form,.stage-label-row,.prism-dialog) :is(input:not([type=hidden]):not([type=checkbox]):not([type=radio]),select,textarea),
+body.prism-workspace #reminderForm :is(input:not([type=hidden]),textarea) {
+    box-sizing:border-box; width:100%; min-width:0; max-width:100%;
+    padding:var(--prism-field-padding); line-height:1.45;
+}
+body.prism-workspace :is(.account-grid .account-form,.form-panel,.management-form-grid,.ierb-entry-grid,.document-form-grid,.notification-form-grid,.deadline-form,.adviser-review-dialog,.report-modal,.add-type-form,.stage-label-row,.prism-dialog) :is(input:not([type=hidden]):not([type=checkbox]):not([type=radio]),select:not([multiple])) { min-height:42px; }
+body.prism-workspace :is(.account-grid .account-form,.form-panel) input[readonly] { opacity:1; }
+body.prism-workspace :is(.form-panel,.account-grid .account-card,.management-dialog,.ierb-modal-dialog,.document-modal-dialog,.notification-detail,.adviser-review-dialog,.report-modal-dialog,.reminder-panel,.stage-label-row) {
+    min-width:0; overflow-wrap:anywhere;
+}
+body.prism-workspace :is(.form-panel,.adviser-review-dialog) > :is(h2,p) { margin-top:0; margin-bottom:16px; }
+body.prism-workspace .form-panel > h2 { margin-bottom:6px; }
+body.prism-workspace :is(.account-grid .account-form,.form-panel > form) > button[type=submit] { width:100%; margin:0; }
+body.prism-workspace :is(.management-actions,.ierb-modal-actions,.document-modal-actions,.adviser-dialog-actions,.notification-submit,.form-actions) {
+    align-items:center; flex-wrap:wrap; gap:8px;
+}
+body.prism-workspace :is(.management-actions,.ierb-modal-actions,.document-modal-actions,.adviser-dialog-actions,.notification-submit,.form-actions) > button {
+    min-width:0; max-width:100%; min-height:42px; padding:var(--prism-field-padding); white-space:normal; overflow-wrap:anywhere;
+}
+body.prism-workspace .deadline-form > :is(label:has(textarea),#deadlineGroupsLabel,p,button[type=submit]) { grid-column:1/-1; }
+body.prism-workspace .deadline-form > button[type=submit] { justify-self:stretch; }
+body.prism-workspace .deadline-form > p { margin:0; }
+body.prism-workspace #reminderForm label { margin-top:8px; }
+
+/* Native definition lists keep their read-only semantics and use the field edge. */
+body.prism-workspace :is(.adviser-profile-details,.notification-detail-meta) { display:grid; grid-template-columns:minmax(0,1fr); gap:var(--prism-field-gap); }
+body.prism-workspace .adviser-profile-details { gap:var(--prism-row-gap); }
+body.prism-workspace .adviser-profile-details > div { display:grid; gap:var(--prism-field-gap); min-width:0; }
+body.prism-workspace :is(.adviser-profile-details,.notification-detail-meta) dt { font-size:var(--prism-font-label); font-weight:600; line-height:1.45; }
+body.prism-workspace :is(.readonly-field,.adviser-profile-details dd,.notification-detail-meta dd) {
+    box-sizing:border-box; width:100%; min-width:0; min-height:42px; margin:0;
+    padding:var(--prism-field-padding); border:1px solid var(--prism-border); border-radius:9px;
+    background:var(--prism-bg); color:var(--prism-text); font-size:var(--prism-font-body); line-height:1.45;
+    white-space:pre-wrap; overflow-wrap:anywhere;
+}
+body.prism-workspace .notification-detail-meta dd:not(:last-child) { margin-bottom:10px; }
 @media(max-width:600px) {
- body.portal-shell .portal-brand { grid-template-columns:90px minmax(0,1fr); }
- body.portal-shell { padding-top:158px; }
+    body.prism-workspace :is(.management-actions,.ierb-modal-actions,.document-modal-actions,.adviser-dialog-actions,.form-actions) > button { flex:1 1 120px; }
 }

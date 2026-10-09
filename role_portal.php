@@ -32,7 +32,7 @@ $identityKey = hash('sha256', $portalRole . '|' . $userId);
 <body class="prism-workspace portal-shell student-page student-dashboard-page" data-portal-key="<?php echo htmlspecialchars($identityKey, ENT_QUOTES); ?>" data-role="<?php echo htmlspecialchars($portalRole, ENT_QUOTES); ?>" data-name="<?php echo htmlspecialchars($userName, ENT_QUOTES); ?>" data-email="<?php echo htmlspecialchars($userEmail, ENT_QUOTES); ?>">
 <script>window.PRISM_STAGE_LABELS = <?php echo json_encode(stage_labels_map(), JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT); ?>;</script>
 <nav class="portal-navbar" aria-label="Portal navigation">
-<button class="portal-brand" type="button" data-go="dashboard" aria-label="PRISM dashboard: Progress and Research Information System for Monitoring" title="Progress and Research Information System for Monitoring"><img src="assets/images/prismlogo1.png?v=2" alt="PRISM Logo"><span class="prism-navigation-caption">Progress and Research Information System for Monitoring</span></button>
+<button class="portal-brand" type="button" data-go="dashboard" aria-label="PRISM dashboard: Progress and Research Information System for Monitoring" title="Progress and Research Information System for Monitoring"><img src="assets/images/prismlogo1.png?v=2" alt="PRISM Logo"></button>
 <button id="portalNavigationToggle" class="portal-navigation-toggle" type="button" aria-expanded="false" aria-controls="portalNav">Menu</button>
 <ul class="portal-nav-links" id="portalNav">
 <li class="active"><button data-page="dashboard" aria-current="page">Dashboard</button></li>

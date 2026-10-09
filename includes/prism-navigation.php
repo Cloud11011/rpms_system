@@ -14,7 +14,7 @@ if ($authUser['role'] === 'adviser'):
         ['calendar.php', 'Calendar'], ['research_adviser.php#prismResourcesTitle', 'Research Resources'],
     ];
 ?>
-<a class="portal-brand" href="research_adviser.php" aria-label="PRISM dashboard: Progress and Research Information System for Monitoring" title="Progress and Research Information System for Monitoring"><img src="assets/images/prismlogo1.png?v=2" alt="PRISM"><span class="prism-navigation-caption">Progress and Research Information System for Monitoring</span></a>
+<a class="portal-brand" href="research_adviser.php" aria-label="PRISM dashboard: Progress and Research Information System for Monitoring" title="Progress and Research Information System for Monitoring"><img src="assets/images/prismlogo1.png?v=2" alt="PRISM"></a>
 <button class="portal-navigation-toggle" id="adviserNavigationToggle" type="button" aria-expanded="false" aria-controls="prismPrimaryNavigation">Menu</button>
 <nav id="prismPrimaryNavigation" class="portal-nav-links" aria-label="Main navigation">
 <?php foreach ($prismPortalLinks as [$prismNavUrl, $prismNavLabel]): ?>
