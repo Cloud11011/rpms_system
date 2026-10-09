@@ -81,6 +81,11 @@ if (!defined('DB_NAME')) define('DB_NAME', getenv('DB_NAME') ?: 'prism');
 if (!defined('DB_USER')) define('DB_USER', getenv('DB_USER') ?: 'prism_user');
 if (!defined('DB_PASS')) define('DB_PASS', getenv('DB_PASS') ?: '');
 
+// Hard deletion requires explicit operator verification of this exact deployment and manifest.
+// Never enable this during schema changes. Archive is independent of this gate.
+if (!defined('PRISM_HARD_DELETE_SCHEMA_VERIFIED')) define('PRISM_HARD_DELETE_SCHEMA_VERIFIED', false);
+if (!defined('PRISM_HARD_DELETE_VERIFICATION')) define('PRISM_HARD_DELETE_VERIFICATION', []);
+
 // Canonical public URL used for security-sensitive absolute links (for example password resets).
 // Never derive these links from the request Host header.
 if (!defined('APP_BASE_URL')) {
@@ -1097,9 +1102,10 @@ function send_account_setup_email(PDO $pdo, int $userId, string $email, string $
     }
 }
 
-function json_body(): array
+function json_body(bool $strict = false): array
 {
     $raw = file_get_contents('php://input');
+    if ($strict) return lifecycle_decode_body($raw);
     $data = json_decode($raw, true);
     return is_array($data) ? $data : [];
 }

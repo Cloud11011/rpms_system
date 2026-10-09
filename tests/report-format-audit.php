@@ -1,6 +1,10 @@
 <?php
 /** CLI-only report formatting/privacy tests. No bootstrap, DB, AI, or real student data. */
 if (PHP_SAPI !== 'cli') { http_response_code(404); exit; }
+// Formatting/AI boundary mock only. Snapshot locking is exercised against disposable MariaDB.
+function report_persist_snapshot(PDO $pdo,array $students,array $values,?array $history=null): void {
+    $pdo->prepare('INSERT INTO reports (id,title,type,filename,generated_by,generated_by_user_id) VALUES (:id,:title,:type,:file,:by,:uid)')->execute($values);
+}
 $source = file_get_contents(dirname(__DIR__) . '/reports_api.php');
 function report_test_part(string $source, string $from, string $to): string {
     $start = strpos($source, $from); $end = strpos($source, $to, $start);

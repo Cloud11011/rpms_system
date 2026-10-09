@@ -229,3 +229,20 @@ body.prism-workspace .main-content h2 { font-size:var(--prism-font-heading); }
 body.prism-workspace :is(.management-card-head,.adviser-panel-heading,.table-header,.document-modal-heading) h2 { font-size:var(--prism-font-subheading); }
 body.portal-shell :is(.welcome-card,.prism-workspace-hero) h2 { font-size:var(--prism-font-hero); }
 body.prism-workspace table td { line-height:1.45; }
+
+/* Full system name is secondary branding and wraps at word boundaries. */
+body.prism-workspace .prism-navigation-caption { min-width:0; max-width:100%; font-size:var(--prism-font-micro); line-height:1.5; letter-spacing:normal; text-transform:none; white-space:normal; overflow-wrap:normal; word-break:normal; }
+body.portal-shell .portal-brand { flex-direction:column; align-items:flex-start; gap:2px; text-align:left; text-decoration:none; color:var(--text-secondary); }
+body.portal-shell .portal-navbar { grid-template-columns:210px minmax(0,1fr) auto; }
+body.portal-shell { padding-top:155px; }
+@media(max-width:1120px) {
+ body.portal-shell .portal-navbar { grid-template-columns:minmax(0,1fr) auto auto; }
+ body.portal-shell .portal-brand { grid-column:1/-1; grid-row:1; display:grid; grid-template-columns:100px minmax(0,1fr); align-items:center; gap:10px; }
+ body.portal-shell .portal-navigation-toggle { grid-column:2; grid-row:2; }
+ body.portal-shell .portal-nav-right { grid-column:3; grid-row:2; }
+ body.portal-shell { padding-top:166px; }
+}
+@media(max-width:600px) {
+ body.portal-shell .portal-brand { grid-template-columns:90px minmax(0,1fr); }
+ body.portal-shell { padding-top:158px; }
+}

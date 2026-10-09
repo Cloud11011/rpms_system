@@ -25,6 +25,7 @@ $pdo->exec("INSERT INTO advisers (id,employee_id,full_name,email) VALUES (1,'A',
 $pdo->exec("INSERT INTO students (id,student_id,full_name,email,adviser_id,research_group,academic_unit_key,program_key,year_level,academic_year)
     VALUES (1,'S1','Synthetic One','s1@example.test',1,'AMT-BSIT-Y2-2627-G01','amt','bsit','2nd Year','2026-2027'),
     (2,'S2','Synthetic Two','s2@example.test',2,'AMT-BSIT-Y2-2627-G01','amt','bsit','2nd Year','2026-2027')");
+$pdo->exec('UPDATE students SET user_id=4 WHERE id=1'); // Immutable ownership for the intentionally legacy login name.
 $pdo->exec("INSERT INTO ierb_history (student_id,stage,status,note,actor) VALUES (1,'Stage 1','On Track','Retain history','Admin')");
 $pdo->exec("INSERT INTO documents (id,student_id,student_name,uploaded_by,uploaded_by_role,original_name,stored_name,mime,size,document_type,stage,version_no,is_current)
     VALUES ('v1',1,'Synthetic One','Student','student','Fixture.txt','fixture.txt','text/plain',8,'Protocol','Stage 1',1,0),

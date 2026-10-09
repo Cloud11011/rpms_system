@@ -192,4 +192,22 @@ document.addEventListener('DOMContentLoaded', () => {
     $('activityFilterForm').addEventListener('submit', e => { e.preventDefault(); clearTimeout(filterTimer); loadActivity(1); });
     loadProfile();
     loadActivity();
+    for (const [formId, action] of [['adminArchiveForm','archive'],['adminDeleteForm','permanent_delete']]) {
+        $(formId)?.addEventListener('submit', async event => {
+            event.preventDefault();
+            const form=event.currentTarget, button=form.querySelector('[type="submit"]');
+            const release=PrismUI.busy(button,'Processing...'); if(!release)return;
+            const result=$('adminLifecycleResult'); result.textContent='';
+            try {
+                const data=await PrismUI.postJson('account_lifecycle_api.php', {
+                    accountType:'admin', action, targetId:Number($('lifecycle').dataset.userId),
+                    currentPassword:form.elements.currentPassword.value,
+                    confirmation:action==='archive'?'ARCHIVE':form.elements.confirmation.value,
+                    confirmed:form.elements.confirmed.checked
+                });
+                form.reset(); window.location.assign(data.redirect || 'login.php');
+            } catch(error) { result.textContent=error.message; form.elements.currentPassword.value=''; }
+            finally { release(); }
+        });
+    }
 });

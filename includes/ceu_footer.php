@@ -18,7 +18,7 @@ if (realpath($_SERVER['SCRIPT_FILENAME'] ?? '') === __FILE__
             <span><strong>CENTRO ESCOLAR UNIVERSITY</strong><small>Malolos Campus</small></span>
         </a>
         <section class="ceu-footer-contact" aria-label="CEU Malolos contact information">
-            <h2>Contact CEU Malolos</h2>
+            <h2>Contact Us</h2>
             <address>
                 <p>Km. 44 McArthur Highway,<br>City of Malolos, Bulacan, Philippines</p>
                 <p class="ceu-footer-phones"><a href="tel:+63447916359">(044) 791-6359</a><a href="tel:+63447919233">(044) 791-9233</a></p>

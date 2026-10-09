@@ -117,6 +117,7 @@ if ($action === 'send') {
     $persisted = [];
     $pdo->beginTransaction();
     try {
+    $recipients=notification_lock_recipients($pdo,$recipients);
     foreach ($recipients as $recipient) {
         $body = "Hello {$recipient['name']},\n\n{$message}\n\n"
             . "This is an automated notification from the CEU Malolos Research Planning and Monitoring Section (RPMS) via PRISM.\n";
@@ -160,7 +161,7 @@ function resolve_recipients(PDO $pdo, array $user, string $audience, string $gro
         if (!in_array($audience, ['All Students', 'Specific Research Group'], true)) {
             return [];
         }
-        $sql = 'SELECT s.id, s.full_name, s.email, s.research_group
+        $sql = 'SELECT s.id, s.full_name, s.email, s.research_group, s.adviser_id
             FROM students s JOIN advisers a ON a.id = s.adviser_id
             WHERE a.email = :adv AND s.archived_at IS NULL';
         $params = [':adv' => $user['email']];
@@ -172,7 +173,7 @@ function resolve_recipients(PDO $pdo, array $user, string $audience, string $gro
         $stmt = $pdo->prepare($sql);
         $stmt->execute($params);
         foreach ($stmt->fetchAll() as $s) {
-            $recipients[] = ['type' => 'student', 'id' => $s['id'], 'name' => $s['full_name'], 'email' => $s['email']];
+            $recipients[] = ['type' => 'student', 'id' => $s['id'], 'name' => $s['full_name'], 'email' => $s['email'], 'research_group'=>$s['research_group'], 'adviser_id'=>$s['adviser_id']];
         }
         return $recipients;
     }
@@ -188,7 +189,7 @@ function resolve_recipients(PDO $pdo, array $user, string $audience, string $gro
         $stmt = $pdo->prepare($sql);
         $stmt->execute($params);
         foreach ($stmt->fetchAll() as $s) {
-            $recipients[] = ['type' => 'student', 'id' => $s['id'], 'name' => $s['full_name'], 'email' => $s['email']];
+            $recipients[] = ['type' => 'student', 'id' => $s['id'], 'name' => $s['full_name'], 'email' => $s['email'], 'research_group'=>$s['research_group']];
         }
     }
     if (in_array($audience, ['All Advisers', 'Students and Advisers'], true)) {

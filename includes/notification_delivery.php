@@ -1,5 +1,6 @@
 <?php
 /** Shared notification persistence and best-effort email delivery. Config is loaded by the caller. */
+require_once __DIR__.'/student_snapshot.php';
 
 /** Deliver an already persisted notification; mail failures must never escape into a workflow. */
 function deliver_notification_email(PDO $pdo, int $id, string $email, string $subject, string $body,
@@ -46,19 +47,35 @@ function create_notification(PDO $pdo, string $recipientType, ?int $recipientId,
                              string $subject, string $message, string $type, string $createdBy,
                              ?string $emailBody = null, ?string $scheduledAt = null, ?string $emailSubject = null): array
 {
+    $ownedTransaction=!$pdo->inTransaction();
+    if($ownedTransaction) $pdo->beginTransaction();
+    try {
+    if(!notification_lock_recipients($pdo,[['type'=>$recipientType,'id'=>$recipientId,'email'=>$email,'name'=>$name]])) {
+        if($ownedTransaction) $pdo->commit();
+        return ['ok'=>true,'status'=>'Skipped','message'=>'Recipient is no longer current.'];
+    }
+    // A caller-owned transaction must queue delivery; it may not call a provider while holding locks.
+    $deferred=$scheduledAt!==null || !$ownedTransaction;
+    $persistSchedule=$scheduledAt ?? (!$ownedTransaction?date('Y-m-d H:i:s'):null);
     $pdo->prepare('INSERT INTO notifications (recipient_type, recipient_id, recipient_email, recipient_name,
         subject, message, type, status, delivery_info, scheduled_at, sent_at, created_by)
         VALUES (:rt,:rid,:re,:rn,:subj,:msg,:type,:status,:delivery,:sched,:sent,:by)')
         ->execute([
             ':rt' => $recipientType, ':rid' => $recipientId, ':re' => $email, ':rn' => $name,
             ':subj' => $subject, ':msg' => $message, ':type' => $type,
-            ':status' => $scheduledAt !== null ? 'Scheduled' : 'Failed',
-            ':delivery' => $scheduledAt !== null ? null : 'Email delivery has not completed.',
-            ':sched' => $scheduledAt, ':sent' => null, ':by' => $createdBy,
+            ':status' => $deferred ? 'Scheduled' : 'Failed',
+            ':delivery' => $deferred ? null : 'Email delivery has not completed.',
+            ':sched' => $persistSchedule, ':sent' => null, ':by' => $createdBy,
         ]);
-    if ($scheduledAt !== null) {
+    $notificationId=(int)$pdo->lastInsertId();
+    if($ownedTransaction) $pdo->commit();
+    } catch(Throwable $error) {
+        if($ownedTransaction && $pdo->inTransaction()) $pdo->rollBack();
+        throw $error;
+    }
+    if ($deferred) {
         return ['ok' => true, 'status' => 'Scheduled', 'message' => 'Notification scheduled.'];
     }
-    return deliver_notification_email($pdo, (int)$pdo->lastInsertId(), $email,
+    return deliver_notification_email($pdo, $notificationId, $email,
         $emailSubject ?? $subject, $emailBody ?? $message);
 }

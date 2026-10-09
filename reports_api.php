@@ -316,8 +316,16 @@ if ($action === 'ai_report') {
         json_out(['ok' => false, 'message' => 'PDF could not be generated.'], 500);
     }
     $reportType = $mode === 'full' ? 'AI Full Report' : 'AI Summarized Report';
-    $pdo->prepare('INSERT INTO reports (id, title, type, filename, generated_by, generated_by_user_id) VALUES (:id,:title,:type,:file,:by,:uid)')
-        ->execute([':id' => $reportId, ':title' => $title, ':type' => $reportType, ':file' => $filename, ':by' => $user['full_name'], ':uid' => $user['id']]);
+    try {
+        report_persist_snapshot($pdo,$students,[':id'=>$reportId,':title'=>$title,':type'=>$reportType,':file'=>$filename,':by'=>$user['full_name'],':uid'=>$user['id']]);
+    } catch(\StudentSnapshotConflict $error) {
+        @unlink(REPORTS_DIR . DIRECTORY_SEPARATOR . $filename);
+        json_out(['ok'=>false,'message'=>$error->getMessage()],409);
+    } catch(Throwable $error) {
+        @unlink(REPORTS_DIR . DIRECTORY_SEPARATOR . $filename);
+        log_api_error('report_persistence','Report persistence failed.');
+        json_out(['ok'=>false,'message'=>'Report could not be saved. Please try again.'],500);
+    }
 
     audit_log($user, 'ai_report_generated', ['entity_type'=>'report', 'entity_id'=>$reportId, 'after'=>$mode, 'details'=>'External model used: '.($aiUsed ? 'yes' : 'no')]);
     json_out(['ok' => true, 'report' => ['id' => $reportId, 'name' => $title, 'type' => $reportType, 'generatedAt' => date(DATE_ATOM)], 'aiUsed' => $aiUsed]);
@@ -431,6 +439,7 @@ if ($action === 'generate') {
     }
     $lines = [];
     $title = 'IERB Progress Report';
+    $reportHistory=null;
 
     if ($type === 'Student Report') {
         $studentDbId = (int)($data['studentId'] ?? 0);
@@ -441,6 +450,7 @@ if ($action === 'generate') {
         if (!$s) {
             json_out(['ok' => false, 'message' => 'Student not found.'], 404);
         }
+        $students=[$s];
         $title = 'Student IERB Progress Report - ' . $s['full_name'];
         $lines[] = 'STUDENT IERB PROGRESS REPORT';
         $lines[] = '';
@@ -455,7 +465,8 @@ if ($action === 'generate') {
         $lines[] = 'PROGRESS HISTORY';
         $hist = $pdo->prepare('SELECT * FROM ierb_history WHERE student_id = :id ORDER BY created_at DESC LIMIT 20');
         $hist->execute([':id' => $studentDbId]);
-        foreach ($hist->fetchAll() as $h) {
+        $reportHistory=$hist->fetchAll();
+        foreach ($reportHistory as $h) {
             $lines = array_merge($lines, wrap_lines("- [{$h['created_at']}] {$h['stage']} / {$h['status']} - " . ($h['note'] ?: 'No note') . ' (' . ($h['actor'] ?: 'System') . ')'));
         }
     } else {
@@ -486,8 +497,16 @@ if ($action === 'generate') {
     if (file_put_contents(REPORTS_DIR . DIRECTORY_SEPARATOR . $filename, make_pdf($title, $lines), LOCK_EX) === false) {
         json_out(['ok' => false, 'message' => 'PDF could not be generated.'], 500);
     }
-    $pdo->prepare('INSERT INTO reports (id, title, type, filename, generated_by, generated_by_user_id) VALUES (:id,:title,:type,:file,:by,:uid)')
-        ->execute([':id' => $reportId, ':title' => $title, ':type' => $type, ':file' => $filename, ':by' => $user['full_name'], ':uid' => $user['id']]);
+    try {
+        report_persist_snapshot($pdo,$students,[':id'=>$reportId,':title'=>$title,':type'=>$type,':file'=>$filename,':by'=>$user['full_name'],':uid'=>$user['id']],$reportHistory);
+    } catch(\StudentSnapshotConflict $error) {
+        @unlink(REPORTS_DIR . DIRECTORY_SEPARATOR . $filename);
+        json_out(['ok'=>false,'message'=>$error->getMessage()],409);
+    } catch(Throwable $error) {
+        @unlink(REPORTS_DIR . DIRECTORY_SEPARATOR . $filename);
+        log_api_error('report_persistence','Report persistence failed.');
+        json_out(['ok'=>false,'message'=>'Report could not be saved. Please try again.'],500);
+    }
 
     audit_log($user, 'report_generated', ['entity_type'=>'report', 'entity_id'=>$reportId, 'after'=>$type, 'details'=>$title]);
     json_out(['ok' => true, 'report' => ['id' => $reportId, 'name' => $title, 'type' => $type, 'generatedAt' => date(DATE_ATOM)]]);

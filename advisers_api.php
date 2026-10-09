@@ -107,13 +107,14 @@ if ($action === 'save') {
     try {
         $pdo->beginTransaction();
         if ($id > 0) {
-            $beforeStmt = $pdo->prepare('SELECT email, department, status FROM advisers WHERE id = :id FOR UPDATE');
+            $beforeStmt = $pdo->prepare('SELECT * FROM advisers WHERE id = :id FOR UPDATE');
             $beforeStmt->execute([':id' => $id]);
             $before = $beforeStmt->fetch();
             if (!$before) {
                 $pdo->rollBack();
                 json_out(['ok' => false, 'message' => 'Adviser record not found.'], 404);
             }
+            $identityBefore = lifecycle_identity_capture($pdo,$before,'adviser');
             if (!in_array($department, array_column(academic_catalog()['units'], 'label'), true)) {
                 if ($department !== trim((string)$before['department'])) {
                     $pdo->rollBack(); json_out(['ok'=>false,'message'=>'Choose an academic unit from the catalog.'],422);
@@ -167,9 +168,13 @@ if ($action === 'save') {
                 }
             }
         }
+        $identityRow=$pdo->prepare('SELECT * FROM advisers WHERE id=:id FOR UPDATE');
+        $identityRow->execute([':id'=>$id]);
+        lifecycle_identity_persist($pdo,$user,'adviser',$identityBefore??null,lifecycle_identity_capture($pdo,$identityRow->fetch(),'adviser'));
         $pdo->commit();
     } catch (Throwable $e) {
         if ($pdo->inTransaction()) $pdo->rollBack();
+        if ($e instanceof AccountLifecycleConflict) json_out(['ok'=>false,'message'=>$e->getMessage()],409);
         if ($e instanceof PDOException && (int)($e->errorInfo[1] ?? 0) === 1062) {
             json_out(['ok' => false, 'message' => 'That employee ID or email is already in use.'], 422);
         }
@@ -194,11 +199,8 @@ if ($action === 'delete') {
     $id = (int)($data['id'] ?? 0);
     try {
         $pdo->beginTransaction();
-        // Student writes take student locks first; use the same order when unassigning.
-        $assigned = $pdo->prepare('SELECT id FROM students WHERE adviser_id = :id ORDER BY id FOR UPDATE');
-        $assigned->execute([':id' => $id]);
-        $assigned->fetchAll();
-        $row = $pdo->prepare('SELECT email, department FROM advisers WHERE id = :id FOR UPDATE');
+        // Archive preserves every assignment; only the Adviser and confirmed login need locking.
+        $row = $pdo->prepare('SELECT * FROM advisers WHERE id = :id FOR UPDATE');
         $row->execute([':id' => $id]);
         $before = $row->fetch();
         if (!$before) {
@@ -206,14 +208,12 @@ if ($action === 'delete') {
             json_out(['ok' => false, 'message' => 'Adviser record not found.'], 404);
         }
         $adviserEmail = (string)$before['email'];
+        lifecycle_archive_login($pdo,$before,'adviser');
         $pdo->prepare("UPDATE advisers SET status = 'Inactive' WHERE id = :id")->execute([':id' => $id]);
-        if ($adviserEmail !== '') {
-            $pdo->prepare("UPDATE users SET status = 'Inactive' WHERE role = 'adviser' AND email = :e")
-                ->execute([':e' => $adviserEmail]);
-        }
         $pdo->commit();
     } catch (Throwable $e) {
         if ($pdo->inTransaction()) $pdo->rollBack();
+        if ($e instanceof AccountLifecycleConflict) json_out(['ok'=>false,'message'=>$e->getMessage()],409);
         json_out(['ok' => false, 'message' => 'The adviser could not be deactivated.'], 500);
     }
     audit_log($user, 'adviser_deactivated', ['entity_type'=>'adviser', 'entity_id'=>$id, 'before'=>'Existing adviser', 'after'=>'Inactive', 'details'=>'Adviser record, student assignments and history retained.']);

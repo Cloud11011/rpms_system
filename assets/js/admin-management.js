@@ -216,11 +216,23 @@
             editBtn.addEventListener('click', () => openModal(record));
             const delBtn = document.createElement('button');
             delBtn.className = 'icon-btn';
-            delBtn.title = isAdviser ? 'Deactivate adviser' : 'Archive student';
-            delBtn.innerHTML = '<i class="fa-solid fa-trash"></i>';
+            delBtn.title = isAdviser ? 'Archive Adviser' : 'Archive Student';
+            delBtn.setAttribute('aria-label',delBtn.title);
+            delBtn.innerHTML = '<i class="fa-solid fa-box-archive" aria-hidden="true"></i>';
             delBtn.addEventListener('click', e => PrismUI.runAction(e.currentTarget,'Processing...',() => deleteRecord(record)));
             actions.append(editBtn);
-            if (loggedInRole === 'admin') actions.append(delBtn);
+            if (loggedInRole === 'admin') {
+                actions.append(delBtn);
+                if (isAdviser ? record.status === 'Inactive' : !!record.archivedAt) {
+                    const hardDelete=document.createElement('button');
+                    hardDelete.className='icon-btn lifecycle-danger';
+                    hardDelete.title=isAdviser?'Permanently Delete Adviser':'Permanently Delete Student';
+                    hardDelete.setAttribute('aria-label',hardDelete.title);
+                    hardDelete.innerHTML='<i class="fa-solid fa-trash" aria-hidden="true"></i>';
+                    hardDelete.addEventListener('click',()=>openPermanentDelete(record,hardDelete));
+                    actions.append(hardDelete);
+                }
+            }
             rowsEl.appendChild(tr);
         });
     }
@@ -287,19 +299,46 @@
 
     async function deleteRecord(record) {
         const answer = await PrismUI.confirm({
-            title:isAdviser ? 'Deactivate adviser' : 'Archive student record',
-            icon:'fa-box-archive', tone:'danger', confirmText:isAdviser ? 'Deactivate' : 'Archive',
-            message:isAdviser ? `Deactivate ${record.name} and their login? Adviser records and historical student assignments will be retained. Active students can be reassigned by RPMS.` : `Archive ${record.name} and deactivate their login? Student, IERB, documents, versions and submission history will be retained.`
+            title:isAdviser ? 'Archive Adviser' : 'Archive Student',
+            icon:'fa-box-archive', tone:'danger', confirmText:'Archive',
+            message:isAdviser ? `Archive ${record.name} and deactivate their login? Adviser records and historical student assignments will be retained. Active students can be reassigned by RPMS.` : `Archive ${record.name} and deactivate their login? Student, IERB, documents, versions and submission history will be retained.`
         });
         if (!answer) return;
         try {
             const data = await PrismUI.postJson(`${apiUrl}?action=delete`, { id: record.id });
             await loadRecords();
-            PrismUI.toast(data.message || 'Record deleted.', 'success');
+            PrismUI.toast(data.message || 'Record archived.', 'success');
         } catch (e) {
             PrismUI.toast(e.message, 'error');
         }
     }
+
+    const permanentDialog=document.getElementById('permanentDeleteDialog');
+    const permanentForm=document.getElementById('permanentDeleteForm');
+    let permanentRecord=null, permanentReturnFocus=null;
+    function openPermanentDelete(record,button) {
+        permanentRecord=record; permanentReturnFocus=button; permanentForm.reset();
+        document.getElementById('permanentDeleteTitle').textContent=isAdviser?'Permanently Delete Adviser':'Permanently Delete Student';
+        document.getElementById('permanentDeleteIdentity').textContent=record.name+' - '+(isAdviser?record.employeeId:record.studentId);
+        document.getElementById('permanentDeleteConfirmationLabel').textContent='Type the exact '+(isAdviser?'Employee ID':'Student ID');
+        document.getElementById('permanentDeleteResult').textContent=''; permanentDialog.showModal();
+    }
+    function closePermanentDelete() { permanentDialog.close(); permanentForm.reset(); permanentRecord=null; permanentReturnFocus?.focus(); }
+    document.getElementById('cancelPermanentDelete')?.addEventListener('click',closePermanentDelete);
+    permanentDialog?.addEventListener('cancel',event=>{event.preventDefault();closePermanentDelete();});
+    permanentForm?.addEventListener('submit',async event=>{
+        event.preventDefault(); if(!permanentRecord)return;
+        const button=permanentForm.querySelector('[type="submit"]'),release=PrismUI.busy(button,'Deleting...'); if(!release)return;
+        try {
+            const data=await PrismUI.postJson('account_lifecycle_api.php',{
+                accountType:isAdviser?'adviser':'student',action:'permanent_delete',targetId:permanentRecord.id,
+                currentPassword:permanentForm.elements.currentPassword.value,confirmation:permanentForm.elements.confirmation.value,
+                confirmed:permanentForm.elements.confirmed.checked,testRecord:permanentForm.elements.testRecord.checked
+            });
+            closePermanentDelete(); await loadRecords(); PrismUI.toast(data.message,'success');
+        } catch(error) { document.getElementById('permanentDeleteResult').textContent=error.message; permanentForm.elements.currentPassword.value=''; }
+        finally { release(); }
+    });
 
     const recordNameForMessage = record => record?.name || 'this student';
 

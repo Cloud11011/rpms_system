@@ -57,6 +57,16 @@ class FixtureStatement extends PDOStatement
     public function rowCount(): int { return 0; }
 }
 function generate_temporary_password(): string { return 'FIXTURE-PROVISIONED-PASSWORD'; }
+// These CRUD mocks cover endpoint validation/atomicity; real ownership and provenance use MariaDB tests.
+function lifecycle_identity_capture(PDO $pdo,array $record,string $type): array { return $record; }
+function lifecycle_identity_persist(PDO $pdo,array $actor,string $type,?array $before,array $after): void {
+    if (!$pdo->inTransaction()) throw new RuntimeException('Identity evidence outside transaction.');
+    $pdo->prepare('INSERT INTO activity_logs (action) VALUES ("account_identity_fixture")')->execute();
+}
+function lifecycle_archive_login(PDO $pdo,array $record,string $type): void {
+    $pdo->prepare('UPDATE users SET status="Inactive" WHERE role=:role AND email=:email')->execute([':role'=>$type,':email'=>$record['email']]);
+    $pdo->prepare('UPDATE password_resets SET used=1 WHERE user_id=:id')->execute([':id'=>11]);
+}
 function send_account_setup_email(...$args): array { return $GLOBALS['case']['delivery']; }
 function db(): PDO { return $GLOBALS['fixtureDb']; }
 function api_require_login($roles): array

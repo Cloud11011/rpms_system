@@ -38,3 +38,10 @@ storage/auth_rate_limits/
 !/tests/auth-flows.php
 !/tests/hardening-audit.php
 !/tests/password-reset-browser.cjs
+!/tests/account-lifecycle-runner.php
+!/tests/account-lifecycle-mysql.php
+!/tests/account-lifecycle-worker.php
+!/tests/account-lifecycle-remediation.php
+!/tests/account-lifecycle-http.php
+!/tests/notification-delivery-audit.php
+!/tests/research-group-audit.php

@@ -14,7 +14,7 @@ if ($authUser['role'] === 'adviser'):
         ['calendar.php', 'Calendar'], ['research_adviser.php#prismResourcesTitle', 'Research Resources'],
     ];
 ?>
-<a class="portal-brand" href="research_adviser.php" aria-label="PRISM dashboard"><img src="assets/images/prismlogo1.png?v=2" alt="PRISM"></a>
+<a class="portal-brand" href="research_adviser.php" aria-label="PRISM dashboard: Progress and Research Information System for Monitoring" title="Progress and Research Information System for Monitoring"><img src="assets/images/prismlogo1.png?v=2" alt="PRISM"><span class="prism-navigation-caption">Progress and Research Information System for Monitoring</span></a>
 <button class="portal-navigation-toggle" id="adviserNavigationToggle" type="button" aria-expanded="false" aria-controls="prismPrimaryNavigation">Menu</button>
 <nav id="prismPrimaryNavigation" class="portal-nav-links" aria-label="Main navigation">
 <?php foreach ($prismPortalLinks as [$prismNavUrl, $prismNavLabel]): ?>
@@ -57,7 +57,7 @@ $prismNavGroups = [
     sidebar.classList.toggle('is-collapsed', collapsed);
 })();
 </script>
-<div class="sidebar-header prism-sidebar-brand"><img src="assets/images/prismlogo1.png?v=2" class="sidebar-brand-logo" alt="PRISM"><img src="assets/images/prismicon.png" class="sidebar-brand-icon" alt="PRISM"><span class="prism-navigation-caption">Research workspace</span></div>
+<div class="sidebar-header prism-sidebar-brand" title="Progress and Research Information System for Monitoring" aria-label="PRISM: Progress and Research Information System for Monitoring"><img src="assets/images/prismlogo1.png?v=2" class="sidebar-brand-logo" alt="PRISM"><img src="assets/images/prismicon.png" class="sidebar-brand-icon" alt="PRISM: Progress and Research Information System for Monitoring"><span class="prism-navigation-caption">Progress and Research Information System for Monitoring</span></div>
 <button type="button" id="prismSidebarToggle" class="prism-sidebar-toggle" aria-expanded="true" aria-controls="prismPrimaryNavigation" aria-label="Collapse navigation"><i class="fa-solid fa-bars" aria-hidden="true"></i><span>Navigation</span></button>
 <nav id="prismPrimaryNavigation" aria-label="Main navigation">
 <?php if ($authUser['role'] === 'admin'): ?>

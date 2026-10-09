@@ -4,6 +4,7 @@ use PDO;
 use PDOStatement;
 use RuntimeException;
 use Throwable;
+require_once __DIR__.'/../includes/student_snapshot.php';
 
 /** Real endpoint SQL on disposable SQLite and synthetic files. Never bootstrap config.php. */
 if (PHP_SAPI !== 'cli') exit(1);

@@ -57,7 +57,7 @@ document.addEventListener('DOMContentLoaded', () => {
         submit: ['Document Submission', 'Upload requirements for RPMS/IERB review.'],
         documents: ['My Documents', 'View and manage your submission history.'],
         notifications: ['Notifications', 'Stay updated on reviews, reminders, and follow-ups.'],
-        calendar: ['Calendar', 'Manage personal reminders stored in this browser.'],
+        calendar: ['Calendar', ''],
         profile: ['Profile', 'Manage your permitted personal and account information.'],
     };
 
@@ -75,6 +75,7 @@ document.addEventListener('DOMContentLoaded', () => {
         setProfileMenu(false);
         $('pageTitle').textContent = meta[0];
         $('pageSubtitle').textContent = meta[1];
+        $('pageSubtitle').hidden = !meta[1];
         if (window.location.hash !== '#' + active) history.replaceState(null, '', '#' + active);
         window.scrollTo({ top: 0, behavior: 'smooth' });
     }
@@ -164,10 +165,13 @@ document.addEventListener('DOMContentLoaded', () => {
         $('dashboardStatusValue').textContent = status;
         $('dashboardPendingValue').textContent = loadErrors.progress ? 'Unavailable' : pendingCount;
         $('dashboardSubmissionValue').textContent = loadErrors.documents ? 'Unavailable' : `${dashboardDocumentTotal} ${dashboardDocumentTotal === 1 ? 'document' : 'documents'}`;
-        $('dashboardSubmissionStatus').textContent = loadErrors.documents ? 'Document status could not be loaded.' : latestDoc ? `Latest: ${latestDoc.workflowState || latestDoc.reviewStatus}` : 'Upload a requirement when you are ready.';
-        $('studentCurrentDocument').textContent = loadErrors.documents ? 'Unable to load your latest submission.' : latestDoc?.originalName || 'No submissions yet.';
+        $('dashboardSubmissionStatus').textContent = loadErrors.documents ? 'Document status could not be loaded.' : latestDoc ? `Latest: ${latestDoc.workflowState || latestDoc.reviewStatus}` : '';
+        $('dashboardSubmissionStatus').hidden = !loadErrors.documents && !latestDoc;
+        $('studentCurrentDocument').textContent = loadErrors.documents ? 'Unable to load your latest submission.' : latestDoc?.originalName || '';
+        $('studentCurrentDocument').hidden = !loadErrors.documents && !latestDoc?.originalName;
         $('studentReviewState').textContent = loadErrors.documents ? 'Unavailable' : latestDoc?.reviewStatus || 'No review yet';
-        $('studentReviewRemarks').textContent = loadErrors.documents ? 'Reviewer remarks could not be loaded.' : latestDoc?.reviewRemarks || 'No reviewer remarks yet.';
+        $('studentReviewRemarks').textContent = loadErrors.documents ? 'Reviewer remarks could not be loaded.' : latestDoc?.reviewRemarks || '';
+        $('studentReviewRemarks').hidden = !loadErrors.documents && !latestDoc?.reviewRemarks;
 
         const unread = myNotifications.filter(n => !n.read_at).length;
         $('navBadge').textContent = loadErrors.notifications ? '!' : unread;

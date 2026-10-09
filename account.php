@@ -49,6 +49,24 @@ $isAdmin = $authUser['role'] === 'admin';
 <button class="management-primary" type="submit"><i class="fa-solid fa-key"></i> Change password</button>
 </form><p class="account-note">Use at least 12 characters and choose a password different from your current one.</p></section>
 </div>
+<?php if ($isAdmin): ?>
+<section class="management-card account-card account-lifecycle" id="lifecycle" data-user-id="<?php echo (int)$authUser['id']; ?>">
+<div class="management-card-head"><div><h2>My account lifecycle</h2><p>Archive is the recommended option. Another active Admin must remain.</p></div></div>
+<form id="adminArchiveForm" class="account-form">
+<h3>Archive my Admin account</h3><p>Your login will be deactivated and you will be signed out. Institutional records and your historical attribution will remain.</p>
+<label>Current password<input name="currentPassword" type="password" autocomplete="current-password" maxlength="200" required></label>
+<label class="lifecycle-check"><input name="confirmed" type="checkbox" required> I confirm that I want to archive my own Admin account.</label>
+<button type="submit" class="management-primary"><i class="fa-solid fa-box-archive" aria-hidden="true"></i> Archive my account</button>
+</form>
+<details class="lifecycle-destructive"><summary>Permanently delete my Admin account</summary>
+<form id="adminDeleteForm" class="account-form"><p><strong>This cannot be undone.</strong> Your own login and password reset/setup tokens will be removed. Institutional history and audit evidence remain. Accounts needed by official deadlines cannot be deleted; use Archive.</p>
+<label>Current password<input name="currentPassword" type="password" autocomplete="current-password" maxlength="200" required></label>
+<label>Type DELETE to confirm<input name="confirmation" autocomplete="off" required></label>
+<label class="lifecycle-check"><input name="confirmed" type="checkbox" required> I understand that permanent deletion cannot be undone.</label>
+<button type="submit" class="lifecycle-danger">Permanently delete my account</button></form>
+</details><p id="adminLifecycleResult" role="status" aria-live="polite"></p>
+</section>
+<?php endif; ?>
 <section class="management-card account-card activity-card" id="activity">
 <div class="management-card-head"><div><h2>Activity Logs</h2><p><?php echo $isAdmin ? 'Audit activity across PRISM.' : 'Audit activity for students assigned to you.'; ?></p></div><p id="activityCount">0 entries</p></div>
 <form id="activityFilterForm" class="activity-filters">

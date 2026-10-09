@@ -1,4 +1,12 @@
 /* Student workspace presentation; guarded data and workflow controls stay unchanged. */
+.student-dashboard-page #dashboardCalendarGrid { grid-template-columns:repeat(7,minmax(0,1fr)); align-items:center; text-align:center; }
+.student-dashboard-page #dashboardCalendarGrid .mini-day { display:grid; place-items:center; min-height:34px; padding:0; }
+.student-dashboard-page #dashboardCalendarGrid .mini-day.active-day { width:26px; height:26px; min-height:26px; margin:auto; border-radius:7px; background:var(--accent-purple); color:#fff; }
+.student-dashboard-page #dashboardCalendarGrid .mini-day.active-day.has-event::after { bottom:2px; }
+.student-dashboard-page .student-summary-heading .student-summary-icon { display:grid; place-items:center; flex:0 0 36px; width:36px; min-height:36px; padding:0; }
+.student-dashboard-page .student-summary-heading .student-summary-icon > i { position:static; color:inherit; }
+.student-dashboard-page .student-summary-card [hidden] { display:none; }
+.student-dashboard-page .student-calendar-actions { justify-content:flex-end; }
 .student-dashboard-page { padding-top: 112px; }
 .student-dashboard-page .portal-main { width: 100%; max-width: 1500px; margin: 0 auto; padding: 24px 32px 40px; min-width: 0; }
 .student-dashboard-page .portal-navbar { grid-template-columns: 130px minmax(0, 1fr) auto; grid-template-rows: auto; gap: 14px; height: auto; min-height: 76px; padding: 8px 18px; }

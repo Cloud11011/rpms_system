@@ -196,6 +196,7 @@ if ($action === 'save') {
                 $pdo->rollBack();
                 json_out(['ok' => false, 'message' => 'You can only manage students assigned to you.'], 403);
             }
+            $identityBefore = lifecycle_identity_capture($pdo,$before,'student');
             if ($adviserEdit) {
                 $studentId = (string)$before['student_id'];
                 $name = (string)$before['full_name'];
@@ -316,11 +317,15 @@ if ($action === 'save') {
                 ':note' => 'Record created by RPMS.', ':req' => ($requirements ?? ''), ':actor' => $user['full_name'],
             ]);
         }
+        $identityRow=$pdo->prepare('SELECT * FROM students WHERE id=:id FOR UPDATE');
+        $identityRow->execute([':id'=>$id]);
+        lifecycle_identity_persist($pdo,$user,'student',$identityBefore??null,lifecycle_identity_capture($pdo,$identityRow->fetch(),'student'));
         $pdo->commit();
         research_group_release($pdo);
     } catch (Throwable $e) {
         if ($pdo->inTransaction()) $pdo->rollBack();
         research_group_release($pdo);
+        if ($e instanceof AccountLifecycleConflict) json_out(['ok'=>false,'message'=>$e->getMessage()],409);
         $driverCode = $e instanceof PDOException ? (int)($e->errorInfo[1] ?? 0) : 0;
         if ($driverCode === 1452) {
             json_out(['ok' => false, 'message' => 'The selected adviser is invalid.'], 422);
@@ -357,7 +362,7 @@ if ($action === 'delete') {
         archive_student($pdo, $user, $id);
     } catch (Throwable $e) {
         log_api_error('student_archive', 'The archive operation could not be completed.');
-        json_out(['ok' => false, 'message' => $e instanceof \InvalidArgumentException ? 'Student record not found.' : 'The student could not be archived.'], $e instanceof \InvalidArgumentException ? 404 : 500);
+        json_out(['ok' => false, 'message' => $e instanceof AccountLifecycleConflict ? $e->getMessage() : ($e instanceof \InvalidArgumentException ? 'Student record not found.' : 'The student could not be archived.')], $e instanceof AccountLifecycleConflict ? 409 : ($e instanceof \InvalidArgumentException ? 404 : 500));
     }
     json_out(['ok' => true, 'message' => 'Student archived and login deactivated. All historical records are retained.']);
 }

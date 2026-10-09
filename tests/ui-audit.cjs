@@ -50,6 +50,7 @@ let reviewFailure = 0;
 let summaryProvider = 'ai';
 let summaryStored = null;
 let reviewedStatus = null;
+let lifecycleStageValues = null;
 let studentSubmitted = false;
 const requests = [];
 const errors = [];
@@ -191,7 +192,7 @@ function fixtureApi(file, action) {
   if (file === 'ierb_api.php' && action === 'save' && academicSaveError) return {ok:false,message:'Academic validation error '+attack};
   if (file === 'ierb_api.php' && action === 'list' && academicRecord) return {ok:true,records:[academicRecord]};
   if (file === 'ierb_api.php' && action === 'history') return {ok:true,history:populated?[{stage:'Stage 1',status:'On Track',note:'Fixture history',actor:'Fixture actor',created_at:'2026-09-24'}]:[]};
-  if (file === 'ierb_api.php') return { ok: true, records: populated ? Array.from({ length: 6 }, (_, i) => ({ id: i + 1, name: i ? `Student ${i}` : attack, studentId: `S${i + 1}`, email: 'fixture@example.test', groupId: 'A', course:'Fixture Course', stage: i < 4 ? 'Stage 1' : 'Stage 2', status: 'On Track', progress: 20, research: 'Fixture research', requirements: attack, lastSubmissionDate: '2026-09-24' })) : [] };
+  if (file === 'ierb_api.php') return { ok: true, ...(lifecycleStageValues ? {overview:stages.map((stage,i)=>({stage,status:'On Track',c:lifecycleStageValues[i]}))} : {}), records: populated ? Array.from({ length: 6 }, (_, i) => ({ id: i + 1, name: i ? `Student ${i}` : attack, studentId: `S${i + 1}`, email: 'fixture@example.test', groupId: 'A', course:'Fixture Course', stage: i < 4 ? 'Stage 1' : 'Stage 2', status: 'On Track', progress: 20, research: 'Fixture research', requirements: attack, lastSubmissionDate: '2026-09-24' })) : [] };
   if (file === 'audit_api.php') return { ok: true, entries: populated ? [{ id: 1, action: 'document_override', actionLabel: 'Document override', at: '2026-09-24 08:00:00', actorName: attack, actorEmail: 'fixture@example.test', actorRole: role, studentName: attack, protocolCode: 'P-001', override: true, details: 'Fixture details ' + attack, reason: 'Fixture reason ' + attack }] : [] };
   if (file === 'profile_api.php') return { ok: true, user: { name: 'UI Audit Fixture', email: 'fixture@example.test', role, refId: 'FIXTURE' }, message: action === 'change_password' ? 'Password updated.' : 'Updated.' };
   if (file === 'send_followup.php') return { ok: true, message: 'Fixture follow-up sent.' };
@@ -219,7 +220,7 @@ function mockApi(file, action, query = new URLSearchParams()) {
       data.filterOptions[field==='groups'?'group':field]=values.map(value=>({value,label:field==='stage'&&labels[value]?value+' - '+labels[value]:value==='__blank__'?'Not recorded':value}));
     }
   }
-  if(file==='ierb_api.php') { data.overview=all.map(r=>({stage:r.stage,status:r.status,c:1})); data.courses=[...new Set(all.map(r=>r.course).filter(Boolean))]; }
+  if(file==='ierb_api.php') { data.overview=lifecycleStageValues ? stages.map((stage,i)=>({stage,status:'On Track',c:lifecycleStageValues[i]})) : all.map(r=>({stage:r.stage,status:r.status,c:1})); data.courses=[...new Set(all.map(r=>r.course).filter(Boolean))]; }
   if(file==='documents_api.php') { data.counts={}; all.forEach(r=>{data.counts[r.workflowState]=(data.counts[r.workflowState]||0)+1;});data.filterOptions={types:[...new Set(all.map(r=>r.documentType))],courses:[...new Set(all.map(r=>r.course).filter(Boolean))],years:[...new Set(all.map(r=>String(r.uploadedAt||'').slice(0,4)).filter(Boolean))]}; }
   let rows = all.filter(r => {
     const q=query.get('q')?.trim().toLowerCase();
@@ -1645,7 +1646,7 @@ async function checkReleaseTypography() {
   const resultDir=path.join(root,'tests','release-candidate-results');fs.mkdirSync(resultDir,{recursive:true});
   const sizes=[];
   const viewers={admin:['dashboard.php','admin_students.php','admin_advisers.php','ierbprog.php','documents.php','admin_notifications.php','calendar.php','reports.php','admin_ai.php','account.php','data_export.php'],adviser:['research_adviser.php','admin_students.php','documents.php','ierbprog.php','calendar.php','account.php'],student:['student.php']};
-  for (const [viewer,files] of Object.entries(viewers)) for (const file of files) for (const [width,height] of [[1920,1080],[1366,768],[1024,768],[768,1024],[390,844]]) for (const dark of [false,true]) {
+  for (const [viewer,files] of Object.entries(viewers)) for (const file of files) for (const [width,height] of [[1920,1080],[1366,768],[1024,768],[768,1024],[390,844],[375,812],[320,568]]) for (const dark of [false,true]) {
     managementFixture=file==='admin_advisers.php'?'adviser':'student';
     await navigate(file,width,dark,'populated',viewer);
     await command('Emulation.setDeviceMetricsOverride',{width,height,deviceScaleFactor:1,mobile:false});
@@ -2003,6 +2004,74 @@ async function checkReadiness() {
   readinessFixture=false;
 }
 
+async function checkLifecyclePolish() {
+  const fullName='Progress and Research Information System for Monitoring';
+  const dest=path.join(root,'tests','lifecycle-results');fs.mkdirSync(dest,{recursive:true});
+  const matrix=[[1920,1080],[1366,768],[1024,768],[768,1024],[390,844],[375,812],[320,568]];
+  const samples=[];
+  for(const [viewer,file] of [['admin','dashboard.php'],['adviser','research_adviser.php'],['student','student.php']]) {
+    for(const [width,height] of matrix) for(const dark of [false,true]) {
+      await navigate(file,width,dark,'populated',viewer);
+      await command('Emulation.setDeviceMetricsOverride',{width,height,deviceScaleFactor:1,mobile:false});
+      await measure(file,width,dark,' lifecycle '+viewer);
+      const sample=await evaluateFunction(()=>{
+        const caption=document.querySelector('.prism-navigation-caption'),nav=document.querySelector('.portal-navbar'),main=document.querySelector('main');
+        const r=caption.getBoundingClientRect();
+        return {caption:caption.textContent,wordBreak:getComputedStyle(caption).wordBreak,overflowWrap:getComputedStyle(caption).overflowWrap,
+          fits:!r.width||(r.left>=0&&r.right<=innerWidth),clears:!nav||nav.getBoundingClientRect().bottom<=main.getBoundingClientRect().top,
+          footer:document.querySelector('.ceu-footer').textContent,
+          portal:[...document.querySelectorAll('[data-prism-resources] a')].filter(a=>a.href==='https://ceu-ierb.wixsite.com/ierb').map(a=>({target:a.target,rel:a.rel}))};
+      });
+      samples.push({viewer,width,height,dark,...sample});
+      check(sample.caption===fullName&&sample.wordBreak==='normal'&&sample.overflowWrap==='normal'&&sample.fits,'Full PRISM caption fits '+viewer+' '+width+' '+dark,JSON.stringify(sample));
+      check(sample.clears,'Header clears content '+viewer+' '+width+' '+dark);
+      check(sample.footer.includes('Contact Us')&&!sample.footer.includes('Contact CEU Malolos'),'Footer contact heading '+viewer+' '+width);
+      if(viewer!=='admin')check(sample.portal.length===1&&sample.portal[0].target==='_blank'&&sample.portal[0].rel.includes('noopener')&&sample.portal[0].rel.includes('noreferrer'),'Canonical IERB portal '+viewer+' '+width);
+      if(viewer==='admin') {
+        await evaluate('document.getElementById("prismSidebarToggle").click()');await measure(file,width,dark,' lifecycle sidebar toggle');
+        check(await evaluate('document.querySelector(".prism-sidebar-brand").title.includes("Progress and Research Information System for Monitoring")'),'Collapsed brand preserves full accessible name');
+      }
+      if(viewer==='student') {
+        check(await evaluateFunction(()=>['View documents','Open calendar'].every(label=>{const button=document.querySelector('button[aria-label="'+label+'"]');return button&&button.title===label&&!button.textContent.trim();})),'Accessible dashboard icons '+width);
+        const date=await evaluateFunction(()=>{const day=document.querySelector('#dashboardCalendarGrid .mini-day.active-day');const r=day.getBoundingClientRect();const range=document.createRange();range.selectNodeContents(day);const n=range.getBoundingClientRect();return {w:r.width,h:r.height,dx:Math.abs((r.left+r.right-n.left-n.right)/2),dy:Math.abs((r.top+r.bottom-n.top-n.bottom)/2)};});
+        check(date.w===26&&date.h===26&&date.dx<1&&date.dy<3,'Compact centered current date '+width+' '+dark,JSON.stringify(date));
+        check(await evaluateFunction(()=>!document.getElementById('studentReviewRemarks').hidden&&document.getElementById('studentReviewRemarks').textContent.includes('<img src=x onerror=')&&!document.getElementById('studentCurrentDocument').hidden),'Real review remarks and submission name remain visible '+width+' '+dark);
+        await evaluateFunction(()=>document.querySelector('button[aria-label="Open calendar"]').click());
+        check(await evaluateFunction(()=>document.getElementById('pageTitle').textContent==='Calendar'&&document.getElementById('pageSubtitle').hidden&&!document.querySelector('[data-section="calendar"]').textContent.includes('Research Calendar')&&!!document.getElementById('todayButton')),'Calendar heading cleanup '+width);
+      }
+      if(width===375&&!dark) {
+        await evaluate('window.scrollTo(0,0)');const png=await command('Page.captureScreenshot',{format:'png'});fs.writeFileSync(path.join(dest,'ui-'+viewer+'.png'),Buffer.from(png.data,'base64'));
+      }
+    }
+  }
+  for(const [width,height] of matrix) for(const dark of [false,true]) for(let rotation=0;rotation<6;rotation++) {
+    const values=[0,1,5,10,15,16];lifecycleStageValues=values.slice(rotation).concat(values.slice(0,rotation));
+    await navigate('ierbprog.php',width,dark,'populated','adviser');
+    const result=await evaluateFunction(()=>{
+      const chart=document.getElementById('stageChart'),r=chart.getBoundingClientRect();
+      return [...chart.querySelectorAll('.stage-bar span')].map(e=>{const b=e.getBoundingClientRect();return {count:Number(e.textContent),size:parseFloat(getComputedStyle(e).fontSize),clear:b.top>=r.top+1&&b.bottom<=r.bottom,top:b.top-r.top};});
+    });
+    check(result.length===6&&result.every(e=>e.clear&&e.size===12.5)&&result.map(e=>e.count).join(',')===lifecycleStageValues.join(','),'Every stage count fully visible '+width+' '+dark+' rotation '+rotation,JSON.stringify(result));
+    await measure('ierbprog.php',width,dark,' lifecycle counts');
+  }
+  lifecycleStageValues=null;
+  await navigate('student.php',375,false,'empty','student');
+  check(await evaluateFunction(()=>document.getElementById('dashboardSubmissionValue').textContent==='0 documents'&&document.getElementById('studentCurrentDocument').hidden&&document.getElementById('dashboardSubmissionStatus').hidden&&document.getElementById('studentReviewRemarks').hidden&&document.getElementById('studentReviewState').textContent==='No review yet'),'Empty cards retain primary states and hide redundant lines');
+  await evaluateFunction(()=>{const key='prismReminders:'+document.body.dataset.portalKey;const d=new Date(),date=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');localStorage.setItem(key,JSON.stringify({[date]:[{id:'fixture',title:'Preserved real reminder',time:'23:59',notes:'Fixture'}]}));});
+  await navigate('student.php',375,true,'empty','student');
+  check(await evaluateFunction(()=>!!document.querySelector('#dashboardCalendarGrid .active-day.has-event')&&document.getElementById('dashboardDeadlineValue').textContent.includes('Preserved real reminder')),'Current-day event dot and browser-local reminder preserved');
+  await navigate('account.php',320,true,'populated','admin');await measure('account.php',320,true,' lifecycle forms');
+  check(await evaluateFunction(()=>!!document.getElementById('adminArchiveForm')&&!!document.querySelector('#adminDeleteForm input[name=confirmation]')),'Admin separate archive and typed-delete forms');
+  await navigate('account.php',320,true,'populated','adviser');check(await evaluate('!document.getElementById("lifecycle")'),'Adviser has no Admin lifecycle controls');
+  managementFixture='student';academicRecord={id:100,studentId:'S100',name:'Archived test',email:'test@example.invalid',archivedAt:'2026-10-01',stage:'Stage 1',status:'On Track'};
+  await navigate('admin_students.php',320,true,'populated','admin');
+  await evaluateFunction(()=>document.querySelector('button[title="Permanently Delete Student"]').click());await measure('admin_students.php',320,true,' destructive dialog');
+  check(await evaluateFunction(()=>document.getElementById('permanentDeleteDialog').open&&document.querySelector('#permanentDeleteForm input[name=currentPassword]').required&&document.querySelector('#permanentDeleteForm input[name=confirmation]').required),'Student deletion uses explicit password and typed confirmation dialog');
+  await evaluate('document.getElementById("cancelPermanentDelete").click()');academicRecord=null;
+  check(errors.length===0,'No lifecycle UI exceptions',errors.join(' | '));
+  fs.writeFileSync(path.join(dest,'ui-results.json'),JSON.stringify({checks,failures,errors,samples},null,2));
+}
+
 async function run() {
   checkPartialBoundary();
   assert(browser, 'Set PRISM_TEST_BROWSER to an installed Chrome/Edge executable.');
@@ -2037,7 +2106,11 @@ async function run() {
       const request = message.params;
         const visualAsset = process.argv.includes('--visual-only') && /^https:\/\/(fonts\.googleapis\.com|fonts\.gstatic\.com|cdnjs\.cloudflare\.com)\//.test(request.request.url);
         const allowed = visualAsset || request.request.url.startsWith(origin + '/') || /^(data:|about:)/.test(request.request.url);
-      void command(allowed ? 'Fetch.continueRequest' : 'Fetch.fulfillRequest', allowed ? { requestId: request.requestId } : { requestId: request.requestId, responseCode: 200, body: '' }).catch(e => errors.push(String(e)));
+      void command(allowed ? 'Fetch.continueRequest' : 'Fetch.fulfillRequest', allowed ? { requestId: request.requestId } : { requestId: request.requestId, responseCode: 200, body: '' }).catch(e => {
+        // Navigation can cancel a paused request before its interception command reaches Chrome.
+        // Ignore only that exact protocol cancellation; retain application, CSP and other protocol errors.
+        if (e.message !== 'Invalid InterceptionId.') errors.push(String(e));
+      });
     }
   });
   const target = await command('Target.createTarget', { url: 'about:blank' }, true);
@@ -2047,6 +2120,7 @@ async function run() {
   await command('Log.enable');
   await command('Fetch.enable', { patterns: [{ urlPattern: '*' }] });
   await command('Browser.setDownloadBehavior', { behavior: 'deny' }, true);
+  if (process.argv.includes('--lifecycle-ui-only')) { await checkLifecyclePolish(); console.log(checks+' lifecycle UI checks; '+failures.length+' failures.'); for(const failure of failures)console.error('FAIL '+failure); if(failures.length)process.exitCode=1;return; }
   if (process.argv.includes('--student-protocol-only')) {
     await checkStudentDashboardProtocol();await checkStudentPortal();check(errors.length===0,'No Student protocol browser exceptions',errors.join(' | '));
     console.log(`${checks} Student protocol/portal UI checks; ${failures.length} failures.`);for(const failure of failures)console.error('FAIL '+failure);if(failures.length)process.exitCode=1;return;

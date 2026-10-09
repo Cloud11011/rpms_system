@@ -26,15 +26,26 @@ if ($action === 'update_profile') {
     }
     $pdo->beginTransaction();
     try {
+        if(in_array($user['role'],['student','adviser'],true)) {
+            $identityTable=$user['role']==='student'?'students':'advisers';
+            $identityField=$user['role']==='student'?'student_id':'employee_id';
+            $identityRows=lifecycle_rows($pdo,"SELECT * FROM $identityTable WHERE user_id=:uid OR email=:email OR $identityField=:ref ORDER BY id FOR UPDATE",
+                [':uid'=>$user['id'],':email'=>$user['email'],':ref'=>$user['ref_id']]);
+            if(count($identityRows)!==1) throw new AccountLifecycleConflict('Profile ownership requires Admin review.');
+            $identityRecord=$identityRows[0];
+            $identityBefore=lifecycle_identity_capture($pdo,$identityRecord,$user['role']);
+            if($identityBefore['login_id']!==(int)$user['id']) throw new AccountLifecycleConflict('Profile ownership requires Admin review.');
+        }
         $pdo->prepare('UPDATE users SET full_name = :n WHERE id = :id')->execute([':n' => $name, ':id' => $user['id']]);
-        if ($user['role'] === 'student') {
-            $pdo->prepare('UPDATE students SET full_name = :n WHERE email = :e')->execute([':n' => $name, ':e' => $user['email']]);
-        } elseif ($user['role'] === 'adviser') {
-            $pdo->prepare('UPDATE advisers SET full_name = :n WHERE email = :e')->execute([':n' => $name, ':e' => $user['email']]);
+        if(isset($identityRecord)) {
+            $pdo->prepare("UPDATE $identityTable SET full_name=:name WHERE id=:id")->execute([':name'=>$name,':id'=>$identityRecord['id']]);
+            $identityRecord['full_name']=$name;
+            lifecycle_identity_persist($pdo,$user,$user['role'],$identityBefore,lifecycle_identity_capture($pdo,$identityRecord,$user['role']));
         }
         $pdo->commit();
     } catch (Throwable $e) {
         if ($pdo->inTransaction()) $pdo->rollBack();
+        if($e instanceof AccountLifecycleConflict) json_out(['ok'=>false,'message'=>$e->getMessage()],409);
         json_out(['ok' => false, 'message' => 'Profile could not be updated. Please try again.'], 500);
     }
     $_SESSION['user_name'] = $name;

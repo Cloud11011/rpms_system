@@ -3,6 +3,8 @@ namespace PrismDocumentAudit;
 use PDO;
 use PDOStatement;
 use RuntimeException;
+// Workflow transport mocks; real recipient revalidation is covered by MariaDB concurrency tests.
+function notification_lock_recipients(PDO $pdo,array $recipients): array { return $recipients; }
 
 /** CLI-only workflow fixtures. Database, file, notification and AI operations are simulated. */
 if (PHP_SAPI !== 'cli') { http_response_code(404); exit; }
@@ -47,7 +49,7 @@ class FixtureStatement extends PDOStatement
     {
         $this->db->events[] = $this->sql;
         if (str_starts_with($this->sql, 'INSERT INTO notifications')) {
-            if ($this->db->transaction) throw new RuntimeException('Notification before commit.');
+            if (!$this->db->transaction) throw new RuntimeException('Notification persistence outside transaction.');
             $this->db->notifications[count($this->db->notifications) + 1] = $params;
             return true;
         }
@@ -196,6 +198,7 @@ if (($argv[1] ?? '') === '--case') {
     // Extract only real workflow functions; no workflow bootstrap or configuration is evaluated.
     $workflow = str_replace("\r\n", "\n", file_get_contents(__DIR__ . '/../workflow.php'));
     $delivery = file_get_contents(__DIR__ . '/../includes/notification_delivery.php');
+    $delivery = str_replace("require_once __DIR__.'/student_snapshot.php';",'',$delivery);
     eval('namespace ' . __NAMESPACE__ . '; use \\PDO; use \\Throwable; ' . preg_replace('/^<\?php\s*/', '', $delivery));
     foreach (['document_workflow_state', 'document_is_locked', 'override_reason_valid', 'override_reason_message', 'advance_stage_for_document', 'notify_rpms_admins', 'notify_in_app'] as $name) {
         $start = strpos($workflow, 'function ' . $name . '(');

@@ -305,6 +305,7 @@ if ($action === 'save') {
                 $pdo->rollBack();
                 json_out(['ok' => false, 'message' => 'Student record not found.'], 404);
             }
+            $identityBefore=lifecycle_identity_capture($pdo,$oldRow,'student');
             try {
                 $academic = academic_validate($data, $oldRow);
                 $groupId = research_group_assignment($pdo, $user, $data, $academic, $oldRow);
@@ -397,6 +398,9 @@ if ($action === 'save') {
             ':req' => $requirements, ':sub' => $submissionDate,
             ':actor' => $user['full_name'] . ($override ? ' (Admin Override)' : ''),
         ]);
+        $identityRow=$pdo->prepare('SELECT * FROM students WHERE id=:id FOR UPDATE');
+        $identityRow->execute([':id'=>$id]);
+        lifecycle_identity_persist($pdo,$user,'student',$identityBefore??null,lifecycle_identity_capture($pdo,$identityRow->fetch(),'student'));
         $pdo->commit();
         research_group_release($pdo);
     } catch (Throwable $e) {
@@ -404,6 +408,7 @@ if ($action === 'save') {
             $pdo->rollBack();
         }
         research_group_release($pdo);
+        if ($e instanceof AccountLifecycleConflict) json_out(['ok'=>false,'message'=>$e->getMessage()],409);
         if ($e instanceof PDOException && (int)($e->errorInfo[1] ?? 0) === 1062) {
             json_out(['ok' => false, 'message' => 'That student ID or email is already in use.'], 422);
         }

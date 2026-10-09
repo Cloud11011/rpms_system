@@ -8,7 +8,7 @@ if (realpath($_SERVER['SCRIPT_FILENAME'] ?? '') === __FILE__
 }
 ?>
 <section class="prism-research-resources" data-prism-resources aria-labelledby="prismResourcesTitle">
-    <header class="prism-resources-heading"><h2 id="prismResourcesTitle">Research resources</h2><p>Browse the Sustainable Development Goals and CEU Malolos Research Agenda.</p></header>
+    <header class="prism-resources-heading"><h2 id="prismResourcesTitle">Research resources</h2><p>Browse the Sustainable Development Goals, CEU Malolos Research Agenda, and official IERB resources.</p></header>
     <div class="prism-resource-grid">
         <details class="prism-resource" data-resource="sdg">
             <summary><span class="prism-resource-title">Sustainable Development Goals</span><span class="prism-resource-subtitle">17 global goals</span></summary>
@@ -47,5 +47,9 @@ if (realpath($_SERVER['SCRIPT_FILENAME'] ?? '') === __FILE__
                 </div>
             </div>
         </details>
+        <article class="prism-resource prism-resource-portal">
+            <h3><a href="https://ceu-ierb.wixsite.com/ierb" target="_blank" rel="noopener noreferrer">CEU IERB Portal <i class="fa-solid fa-arrow-up-right-from-square" aria-hidden="true"></i><span class="prism-resource-subtitle">Opens in a new tab</span></a></h3>
+            <p>Visit the CEU Institutional Ethics Review Board portal for official IERB information and resources.</p>
+        </article>
     </div>
 </section>

@@ -24,6 +24,7 @@ if (!function_exists('db')) {
     require __DIR__ . '/config.php';
 }
 require_once __DIR__ . '/includes/notification_delivery.php';
+require_once __DIR__ . '/includes/account_identity.php';
 
 // ---------------------------------------------------------------------
 // Tunables. Override any of these in config.local.php (loaded by config.php
@@ -193,8 +194,7 @@ function archive_student(PDO $pdo, array $actor, int $id): array
         $q->execute([':id' => $id]); $before = $q->fetch();
         if (!$before) throw new InvalidArgumentException('Student record not found.');
         $pdo->prepare('UPDATE students SET archived_at = COALESCE(archived_at, NOW()) WHERE id = :id')->execute([':id' => $id]);
-        $pdo->prepare("UPDATE users SET status = 'Inactive' WHERE role = 'student' AND email = :email")
-            ->execute([':email' => $before['email']]);
+        lifecycle_archive_login($pdo,$before,'student');
         if (empty($before['archived_at'])) audit_log($actor, 'student_archived', [
             'entity_type' => 'student', 'entity_id' => $id, 'student_id' => $id,
             'before' => 'Active record', 'after' => 'Archived; login inactive',

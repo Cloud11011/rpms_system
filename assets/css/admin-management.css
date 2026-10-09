@@ -4,3 +4,16 @@
 .muted{color:var(--text-secondary);font-size:var(--prism-font-meta)}
 .management-form-grid label.check-label{display:flex;flex-direction:row;align-items:center;gap:8px}
 .management-form-grid label.check-label input[type="checkbox"]{width:15px;height:15px;padding:0}
+
+.account-lifecycle { margin:24px 0; }
+.account-lifecycle p,.lifecycle-dialog p { line-height:1.7; margin:8px 0 12px; }
+.lifecycle-destructive { margin-top:24px; padding-top:18px; border-top:1px solid var(--border-color); }
+.lifecycle-destructive summary { cursor:pointer; font-weight:600; }
+.lifecycle-destructive form { margin-top:16px; }
+.account-page .account-form .lifecycle-check,.lifecycle-dialog .account-form .lifecycle-check { display:flex; align-items:flex-start; gap:10px; }
+.account-page .account-form .lifecycle-check input[type=checkbox],.lifecycle-dialog .account-form .lifecycle-check input[type=checkbox] { flex:0 0 18px; width:18px; min-width:18px; height:18px; min-height:18px; padding:0; margin-top:3px; }
+.lifecycle-danger { border:1px solid #a82540; border-radius:8px; padding:10px 14px; color:#fff; background:#a82540; font:600 var(--prism-font-body) Montserrat,sans-serif; cursor:pointer; }
+.lifecycle-dialog { width:min(520px,calc(100vw - 24px)); padding:24px; color:var(--text-primary); background:var(--card-bg); border:1px solid var(--border-color); }
+.lifecycle-dialog:not([open]) { display:none; }
+.lifecycle-dialog h2 { font-size:var(--prism-font-subheading); }
+.lifecycle-dialog [role=status],#adminLifecycleResult { color:var(--text-primary); overflow-wrap:anywhere; }

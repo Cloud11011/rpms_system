@@ -2,6 +2,10 @@
 namespace PrismAlignmentAudit;
 use PDO;
 use RuntimeException;
+require_once __DIR__.'/../includes/student_snapshot.php';
+class SnapshotFixturePDO extends PDO {
+    public function prepare(string $query,array $options=[]): \PDOStatement|false { return parent::prepare(str_replace(' FOR UPDATE','',$query),$options); }
+}
 
 /** Isolated endpoint checks: real in-memory SQL and real role guards, no config/runtime storage/network. */
 if (PHP_SAPI !== 'cli') { http_response_code(404); exit; }
@@ -18,7 +22,7 @@ function stage_labels_map(): array { return array_combine(STAGE_SEQUENCE,STAGE_S
 function audit_action_label(string $code): string { return $code; }
 function log_activity(...$args): void {}
 function audit_log(...$args): void {}
-function openrouter_generate(...$args): ?string { $GLOBALS['aiCalls']++; return empty($GLOBALS['case']['fallback']) ? '# Fixture narrative' : null; }
+function openrouter_generate(...$args): ?string { if($GLOBALS['pdo']->inTransaction()) throw new RuntimeException('Provider called inside persistence transaction'); $GLOBALS['aiCalls']++; return empty($GLOBALS['case']['fallback']) ? '# Fixture narrative' : null; }
 function file_put_contents(string $path, string $data, int $flags = 0): int { $GLOBALS['pdf'] = $data; return strlen($data); }
 function is_file(string $path): bool { return true; }
 function filesize(string $path): int { return 16; }
@@ -39,7 +43,7 @@ if (($argv[1] ?? '') === '--case') {
     $actor = ['id' => 9, 'role' => $case['role'] ?? 'admin', 'email' => ($case['role'] ?? '') === 'student' ? 'student@example.test' : 'adviser@example.test', 'full_name' => 'Fixture Operator'];
     $_SESSION = []; $_SERVER['SCRIPT_NAME'] = $case['file'];
     $_GET = ['action' => $case['action'] ?? 'list', 'id' => 'existing'] + ($case['query'] ?? []);
-    $pdo = new PDO('sqlite::memory:', null, null, [PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION, PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC]);
+    $pdo = new SnapshotFixturePDO('sqlite::memory:', null, null, [PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION, PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC]);
     $pdo->exec('CREATE TABLE advisers (id INTEGER PRIMARY KEY, employee_id TEXT, email TEXT, full_name TEXT, department TEXT, assigned_groups TEXT, status TEXT, created_at TEXT)');
     $pdo->exec("INSERT INTO advisers VALUES (1,'A1','adviser@example.test','Adviser','AMT','LEGACY FREE TEXT','Active','2026-01-01'), (2,'A2','other@example.test','Other','AMT','LEGACY ONLY','Active','2026-01-01'), (3,'A3','new@example.test','New','AMT','IGNORED','Active','2026-01-01')");
     $pdo->exec('CREATE TABLE students (id INTEGER PRIMARY KEY, student_id TEXT, full_name TEXT, email TEXT, adviser_id INTEGER, protocol_code TEXT,
