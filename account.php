@@ -52,18 +52,19 @@ $isAdmin = $authUser['role'] === 'admin';
 <?php if ($isAdmin): ?>
 <section class="management-card account-card account-lifecycle" id="lifecycle" data-user-id="<?php echo (int)$authUser['id']; ?>">
 <div class="management-card-head"><div><h2>My account lifecycle</h2><p>Archive is the recommended option. Another active Admin must remain.</p></div></div>
-<form id="adminArchiveForm" class="account-form">
+<form id="adminArchiveForm" class="account-form lifecycle-form">
 <h3>Archive my Admin account</h3><p>Your login will be deactivated and you will be signed out. Institutional records and your historical attribution will remain.</p>
-<label>Current password<input name="currentPassword" type="password" autocomplete="current-password" maxlength="200" required></label>
+<div class="lifecycle-form-group"><label for="adminArchivePassword">Current password</label><div class="lifecycle-password"><input id="adminArchivePassword" name="currentPassword" type="password" autocomplete="current-password" maxlength="200" required><button type="button" class="toggle-password lifecycle-password-toggle" data-lifecycle-password aria-label="Show password" aria-controls="adminArchivePassword" aria-pressed="false"><i id="adminArchivePasswordEye" class="fa-solid fa-eye" aria-hidden="true"></i></button></div></div>
 <label class="lifecycle-check"><input name="confirmed" type="checkbox" required> I confirm that I want to archive my own Admin account.</label>
 <button type="submit" class="management-primary"><i class="fa-solid fa-box-archive" aria-hidden="true"></i> Archive my account</button>
 </form>
 <details class="lifecycle-destructive"><summary>Permanently delete my Admin account</summary>
-<form id="adminDeleteForm" class="account-form"><p><strong>This cannot be undone.</strong> Your own login and password reset/setup tokens will be removed. Institutional history and audit evidence remain. Accounts needed by official deadlines cannot be deleted; use Archive.</p>
-<label>Current password<input name="currentPassword" type="password" autocomplete="current-password" maxlength="200" required></label>
-<label>Type DELETE to confirm<input name="confirmation" autocomplete="off" required></label>
+<form id="adminDeleteForm" class="account-form lifecycle-form"><p><strong>This cannot be undone.</strong> Your own login and password reset/setup tokens will be removed. Institutional history and audit evidence remain. Accounts needed by official deadlines cannot be deleted; use Archive.</p>
+<p id="adminDeleteAvailability" role="status">Checking permanent-delete schema verification...</p>
+<div class="lifecycle-form-group"><label for="adminDeletePassword">Current password</label><div class="lifecycle-password"><input id="adminDeletePassword" name="currentPassword" type="password" autocomplete="current-password" maxlength="200" required><button type="button" class="toggle-password lifecycle-password-toggle" data-lifecycle-password aria-label="Show password" aria-controls="adminDeletePassword" aria-pressed="false"><i id="adminDeletePasswordEye" class="fa-solid fa-eye" aria-hidden="true"></i></button></div></div>
+<div class="lifecycle-form-group"><label for="adminDeleteConfirmation">Type DELETE to confirm</label><input id="adminDeleteConfirmation" name="confirmation" autocomplete="off" maxlength="100" required></div>
 <label class="lifecycle-check"><input name="confirmed" type="checkbox" required> I understand that permanent deletion cannot be undone.</label>
-<button type="submit" class="lifecycle-danger">Permanently delete my account</button></form>
+<button type="submit" class="lifecycle-danger" disabled>Permanently delete my account</button></form>
 </details><p id="adminLifecycleResult" role="status" aria-live="polite"></p>
 </section>
 <?php endif; ?>
@@ -82,4 +83,6 @@ $isAdmin = $authUser['role'] === 'admin';
 </main></div>
 <script src="<?php echo htmlspecialchars(asset_url('assets/js/prism-ui.js'), ENT_QUOTES, 'UTF-8'); ?>"></script>
 <script src="<?php echo htmlspecialchars(asset_url('assets/js/account.js'), ENT_QUOTES, 'UTF-8'); ?>"></script>
+<script src="<?php echo htmlspecialchars(asset_url('assets/js/script.js'), ENT_QUOTES, 'UTF-8'); ?>"></script>
+<script src="<?php echo htmlspecialchars(asset_url('assets/js/lifecycle-forms.js'), ENT_QUOTES, 'UTF-8'); ?>"></script>
 </body></html>

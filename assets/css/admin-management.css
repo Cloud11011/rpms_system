@@ -17,3 +17,70 @@
 .lifecycle-dialog:not([open]) { display:none; }
 .lifecycle-dialog h2 { font-size:var(--prism-font-subheading); }
 .lifecycle-dialog [role=status],#adminLifecycleResult { color:var(--text-primary); overflow-wrap:anywhere; }
+
+/* Specific lifecycle rules override the shared pale row-action backgrounds. */
+.lifecycle-actions { display:grid; gap:6px; width:40px; }
+body.prism-workspace .management-page .row-actions .lifecycle-action {
+    display:grid; place-items:center; box-sizing:border-box;
+    width:40px; height:40px; min-width:40px; min-height:40px; padding:0;
+    border:1px solid var(--prism-border)!important; border-radius:8px;
+    color:var(--text-primary); background:var(--prism-surface-2)!important;
+    font-size:16px; opacity:1; filter:none;
+}
+body.prism-workspace .management-page .row-actions .lifecycle-danger {
+    color:#a31d35!important; background:#fff1f3!important; border-color:#b9485e!important;
+}
+body.prism-workspace .management-page .row-actions .lifecycle-action:hover:not(:disabled):not([aria-disabled=true]) {
+    color:#fff!important; background:#454a85!important; border-color:#454a85!important;
+}
+body.prism-workspace .management-page .row-actions .lifecycle-archive:hover:not(:disabled):not([aria-disabled=true]) {
+    background:#805500!important; border-color:#805500!important;
+}
+body.prism-workspace .management-page .row-actions .lifecycle-danger:hover:not(:disabled):not([aria-disabled=true]) {
+    background:#a31d35!important; border-color:#a31d35!important;
+}
+body.prism-workspace .management-page .row-actions .lifecycle-action:is(:disabled,[aria-disabled=true]) {
+    color:#565b67!important; background:#e8eaf0!important; border-color:#777d8a!important;
+    opacity:1; filter:none; transform:none; cursor:not-allowed;
+}
+body.prism-workspace .management-page .row-actions .lifecycle-danger[aria-disabled=true] {
+    color:#8b3446!important; background:#f4e6ea!important; border-color:#a75a6b!important;
+}
+body.prism-workspace .lifecycle-action:focus-visible,
+body.prism-workspace .lifecycle-password-toggle:focus-visible,
+body.prism-workspace .lifecycle-form button:focus-visible {
+    outline:3px solid #454a85; outline-offset:3px;
+}
+html.dark-theme body.prism-workspace .lifecycle-action:focus-visible,
+html.dark-theme body.prism-workspace .lifecycle-form button:focus-visible { outline-color:#f7a8d0; }
+body.prism-workspace dialog.lifecycle-dialog {
+    box-sizing:border-box; width:calc(100vw - 32px); max-width:760px;
+    max-height:calc(100vh - 32px); max-height:calc(100dvh - 32px);
+    margin:auto; padding:28px; overflow:auto;
+}
+.lifecycle-dialog::backdrop { background:rgba(15,23,42,.6); }
+body.prism-workspace .lifecycle-form {
+    display:grid; gap:18px; width:100%; min-width:0; margin-inline:auto; overflow-wrap:anywhere;
+}
+body.prism-workspace .lifecycle-form .lifecycle-form-group { display:grid; gap:8px; min-width:0; }
+body.prism-workspace .lifecycle-form .lifecycle-form-group > label,
+body.prism-workspace .lifecycle-form .lifecycle-check { margin:0; }
+body.prism-workspace .lifecycle-form > :is(h2,h3,p) { margin:0; }
+.lifecycle-password { position:relative; min-width:0; }
+body.prism-workspace .lifecycle-form .lifecycle-password input { padding-right:54px; }
+body.prism-workspace .lifecycle-password-toggle {
+    position:absolute; top:50%; right:4px; transform:translateY(-50%);
+    display:grid; place-items:center; width:40px; height:36px; padding:0;
+    border:1px solid transparent; border-radius:6px;
+    color:var(--text-primary); background:transparent; font-size:16px; cursor:pointer;
+}
+body.prism-workspace .lifecycle-password-toggle:hover { background:var(--prism-surface-2); border-color:var(--prism-border); }
+body.prism-workspace .lifecycle-form .lifecycle-check { display:flex; align-items:flex-start; gap:10px; line-height:1.5; }
+body.prism-workspace .lifecycle-form .lifecycle-danger[type=submit] {
+    color:#fff; background:#a82540; border:1px solid #a82540;
+}
+body.prism-workspace .lifecycle-form .lifecycle-danger[type=submit]:hover:not(:disabled) { background:#861b32; }
+#permanentDeleteAvailability { margin:12px 0; line-height:1.5; overflow-wrap:anywhere; }
+@media(max-width:600px) {
+    body.prism-workspace dialog.lifecycle-dialog { width:calc(100vw - 24px); padding:20px 16px; }
+}

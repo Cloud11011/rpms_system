@@ -83,6 +83,11 @@ function lifecycle_worker_finish(array $worker): array {
     return json_decode($out,true,512,JSON_THROW_ON_ERROR);
 }
 
+if($argv[1]==='--lifecycle-shared-hosting') {
+    require __DIR__.'/account-lifecycle-shared-hosting.php';
+    echo 'PASS: isolated shared-hosting checks; total assertions '.$GLOBALS['checks'].".\n";
+    return;
+}
 if($argv[1]==='--lifecycle-remediation') {
     require __DIR__.'/account-lifecycle-remediation.php';
     echo 'PASS: isolated remediation checks; total assertions '.$GLOBALS['checks'].".\n";
@@ -238,5 +243,6 @@ lifecycle_expect_failure(lifecycle_input());$pdo->exec('DROP DATABASE hardening_
 lifecycle_verify_schema($pdo);
 reset_migration_expect('8',$pdo->query("SELECT v FROM schema_meta WHERE k='schema_version'")->fetchColumn(),'Lifecycle leaves schema version unchanged');
 require __DIR__.'/account-lifecycle-remediation.php';
+require __DIR__.'/account-lifecycle-shared-hosting.php';
 file_put_contents(__DIR__.'/lifecycle-results/integration-results.json',json_encode(['assertions'=>$GLOBALS['checks'],'passed'=>true,'database'=>'disposable MariaDB','schema_version'=>8],JSON_PRETTY_PRINT));
 echo 'PASS: account lifecycle integration and concurrency checks completed; total assertions '.$GLOBALS['checks'].".\n";

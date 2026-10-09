@@ -20,10 +20,11 @@ class LifecyclePausedStatement extends PDOStatement {
 }
 if(!empty($fixture['finalGate'])) $pdo->setAttribute(PDO::ATTR_STATEMENT_CLASS,[LifecyclePausedStatement::class,[$fixture]]);
 $pdo->exec("SET time_zone='+08:00'");
+if(isset($fixture['foreignKeyChecks'])) $pdo->exec('SET SESSION FOREIGN_KEY_CHECKS='.(int)$fixture['foreignKeyChecks']);
 $actor=$pdo->query('SELECT * FROM users WHERE id='.(int)$fixture['actor'])->fetch();
 require __DIR__.'/../includes/account_lifecycle.php';
 define('PRISM_HARD_DELETE_SCHEMA_VERIFIED',($fixture['verified']??true)===true);
-define('PRISM_HARD_DELETE_VERIFICATION',$fixture['verification']??[]);
+if(empty($fixture['omitVerification'])) define('PRISM_HARD_DELETE_VERIFICATION',$fixture['verification']??[]);
 define('STAGE_SEQUENCE',['Stage 1','Stage 2','Stage 3','Stage 4','Stage 5','Completed']);
 if(isset($fixture['isolation'])) $pdo->exec('SET SESSION TRANSACTION ISOLATION LEVEL '.$fixture['isolation']);
 ini_set('error_log',$fixture['datadir'].'/worker-errors.log');
@@ -79,6 +80,7 @@ if (in_array($fixture['mode']??'',['adviser_archive','adviser_save','student_sav
     $source=str_replace("require __DIR__ . '/config.php';",'',substr($source,5));
     eval(str_replace('__DIR__','dirname(__DIR__)',$source));
 } else {
+    if(($fixture['mode']??'')==='availability') { $_SERVER['REQUEST_METHOD']='GET'; $_GET['action']='availability'; }
     $source=file_get_contents(__DIR__.'/../account_lifecycle_api.php');
     $source=str_replace("require __DIR__.'/config.php';",'',substr($source,5));
     eval(str_replace('__DIR__','dirname(__DIR__)',$source));

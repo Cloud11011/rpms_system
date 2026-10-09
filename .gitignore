@@ -43,5 +43,6 @@ storage/auth_rate_limits/
 !/tests/account-lifecycle-worker.php
 !/tests/account-lifecycle-remediation.php
 !/tests/account-lifecycle-http.php
+!/tests/account-lifecycle-shared-hosting.php
 !/tests/notification-delivery-audit.php
 !/tests/research-group-audit.php

@@ -5,7 +5,7 @@
  * Run: C:\xampp\php\php.exe tests/account-lifecycle-runner.php --lifecycle
  */
 if (PHP_SAPI !== 'cli') { http_response_code(404); exit; }
-if ($argc !== 2 || !in_array($argv[1], ['--lifecycle-metadata', '--lifecycle', '--lifecycle-remediation'], true) || PHP_OS_FAMILY !== 'Windows') {
+if ($argc !== 2 || !in_array($argv[1], ['--lifecycle-metadata', '--lifecycle', '--lifecycle-remediation', '--lifecycle-shared-hosting'], true) || PHP_OS_FAMILY !== 'Windows') {
     fwrite(STDERR, "Requires Windows/XAMPP and --lifecycle or --lifecycle-metadata.\n");
     exit(1);
 }

@@ -192,6 +192,12 @@ document.addEventListener('DOMContentLoaded', () => {
     $('activityFilterForm').addEventListener('submit', e => { e.preventDefault(); clearTimeout(filterTimer); loadActivity(1); });
     loadProfile();
     loadActivity();
+    if($('adminDeleteForm')) {
+        PrismUI.request('account_lifecycle_api.php?action=availability').then(data=>{
+            $('adminDeleteAvailability').textContent=data.message || 'Permanent deletion is unavailable.';
+            $('adminDeleteForm').querySelector('[type="submit"]').disabled=data.available!==true;
+        }).catch(()=>{ $('adminDeleteAvailability').textContent='Schema verification could not be checked. Permanent deletion is unavailable; use Archive.'; });
+    }
     for (const [formId, action] of [['adminArchiveForm','archive'],['adminDeleteForm','permanent_delete']]) {
         $(formId)?.addEventListener('submit', async event => {
             event.preventDefault();
@@ -206,7 +212,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     confirmed:form.elements.confirmed.checked
                 });
                 form.reset(); window.location.assign(data.redirect || 'login.php');
-            } catch(error) { result.textContent=error.message; form.elements.currentPassword.value=''; }
+            } catch(error) { result.textContent=error.message; form.elements.currentPassword.value=''; PrismLifecycleForms.resetPassword(form); }
             finally { release(); }
         });
     }

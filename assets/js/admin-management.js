@@ -73,6 +73,19 @@
     let returnFocus = null;
     let records = [];
     let loadError = false;
+    let deletionAvailability = {available:false,message:'Checking permanent-delete schema verification...'};
+    async function loadDeletionAvailability() {
+        if(loggedInRole!=='admin') return;
+        try {
+            const data=await PrismUI.request('account_lifecycle_api.php?action=availability');
+            deletionAvailability={available:data.available===true,message:data.message || 'Permanent deletion is unavailable.'};
+        } catch(_) {
+            deletionAvailability={available:false,message:'Schema verification could not be checked. Permanent deletion is unavailable; use Archive.'};
+        }
+        document.getElementById('permanentDeleteAvailability').textContent=deletionAvailability.message;
+        render();
+    }
+    loadDeletionAvailability();
 
     const definitions = isAdviser ? [['department','Departments'],['status','Account statuses'],['group','Research groups']]
       : [['academicUnitKey','Academic units'],['programKey','Programs'],['academicYear','Academic years'],['yearLevel','Year levels'],['group','Research groups'],['stage','Stages'],['status','Statuses'],['protocol','Protocol status']];
@@ -208,30 +221,42 @@
                     cell.append(chip);
                 });
             } else PrismAcademicFields.appendSummary(tr.cells[2], record);
-            const actions = tr.querySelector('.row-actions');
+            const actions = document.createElement('div');
+            actions.className='lifecycle-actions';
+            tr.querySelector('.row-actions').append(actions);
+            const accountLabel=isAdviser?'Adviser':'Student';
+            const archived=isAdviser?record.status==='Inactive':!!record.archivedAt;
             const editBtn = document.createElement('button');
-            editBtn.className = 'icon-btn';
-            editBtn.title = 'Edit';
-            editBtn.innerHTML = '<i class="fa-solid fa-pen"></i>';
+            editBtn.type='button';
+            editBtn.className = 'icon-btn lifecycle-action';
+            editBtn.title = 'Edit '+accountLabel;
+            editBtn.setAttribute('aria-label',editBtn.title);
+            editBtn.innerHTML = '<i class="fa-solid fa-pen" aria-hidden="true"></i>';
             editBtn.addEventListener('click', () => openModal(record));
             const delBtn = document.createElement('button');
-            delBtn.className = 'icon-btn';
+            delBtn.type='button';
+            delBtn.className = 'icon-btn lifecycle-action lifecycle-archive';
             delBtn.title = isAdviser ? 'Archive Adviser' : 'Archive Student';
+            if(archived) delBtn.title=accountLabel+' is already archived';
+            delBtn.disabled=archived;
             delBtn.setAttribute('aria-label',delBtn.title);
             delBtn.innerHTML = '<i class="fa-solid fa-box-archive" aria-hidden="true"></i>';
             delBtn.addEventListener('click', e => PrismUI.runAction(e.currentTarget,'Processing...',() => deleteRecord(record)));
             actions.append(editBtn);
             if (loggedInRole === 'admin') {
                 actions.append(delBtn);
-                if (isAdviser ? record.status === 'Inactive' : !!record.archivedAt) {
-                    const hardDelete=document.createElement('button');
-                    hardDelete.className='icon-btn lifecycle-danger';
-                    hardDelete.title=isAdviser?'Permanently Delete Adviser':'Permanently Delete Student';
-                    hardDelete.setAttribute('aria-label',hardDelete.title);
-                    hardDelete.innerHTML='<i class="fa-solid fa-trash" aria-hidden="true"></i>';
-                    hardDelete.addEventListener('click',()=>openPermanentDelete(record,hardDelete));
-                    actions.append(hardDelete);
-                }
+                const hardDelete=document.createElement('button');
+                hardDelete.type='button';
+                hardDelete.className='icon-btn lifecycle-action lifecycle-danger';
+                const disabledReason=!archived?'Archive '+accountLabel+' before permanent deletion.':
+                    (!deletionAvailability.available?deletionAvailability.message:'');
+                hardDelete.title=disabledReason || 'Permanently Delete '+accountLabel;
+                hardDelete.setAttribute('aria-label','Permanently Delete '+accountLabel+(disabledReason?'. '+disabledReason:''));
+                // Keep blocked actions keyboard-focusable so their explanation is discoverable.
+                hardDelete.setAttribute('aria-disabled',String(!!disabledReason));
+                hardDelete.innerHTML='<i class="fa-solid fa-trash" aria-hidden="true"></i>';
+                hardDelete.addEventListener('click',()=>{if(!disabledReason)openPermanentDelete(record,hardDelete);});
+                actions.append(hardDelete);
             }
             rowsEl.appendChild(tr);
         });
@@ -317,6 +342,7 @@
     const permanentForm=document.getElementById('permanentDeleteForm');
     let permanentRecord=null, permanentReturnFocus=null;
     function openPermanentDelete(record,button) {
+        if(!deletionAvailability.available || !(isAdviser?record.status==='Inactive':record.archivedAt)) return;
         permanentRecord=record; permanentReturnFocus=button; permanentForm.reset();
         document.getElementById('permanentDeleteTitle').textContent=isAdviser?'Permanently Delete Adviser':'Permanently Delete Student';
         document.getElementById('permanentDeleteIdentity').textContent=record.name+' - '+(isAdviser?record.employeeId:record.studentId);
@@ -336,7 +362,7 @@
                 confirmed:permanentForm.elements.confirmed.checked,testRecord:permanentForm.elements.testRecord.checked
             });
             closePermanentDelete(); await loadRecords(); PrismUI.toast(data.message,'success');
-        } catch(error) { document.getElementById('permanentDeleteResult').textContent=error.message; permanentForm.elements.currentPassword.value=''; }
+        } catch(error) { document.getElementById('permanentDeleteResult').textContent=error.message; permanentForm.elements.currentPassword.value=''; PrismLifecycleForms.resetPassword(permanentForm); }
         finally { release(); }
     });
 

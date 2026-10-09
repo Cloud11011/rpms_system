@@ -7,13 +7,14 @@ foreach(['config.php','security.php','auth_rate_limit.php','workflow.php','accou
 foreach(glob(__DIR__.'/../includes/*') as $file) if(is_file($file) && in_array(pathinfo($file,PATHINFO_EXTENSION),['php','json'],true)) copy($file,$httpRoot.'/includes/'.basename($file));
 $socket=stream_socket_server('tcp://127.0.0.1:0',$errno,$error); $httpPort=(int)substr(strrchr(stream_socket_get_name($socket,false),':'),1); fclose($socket);
 $httpBase='http://127.0.0.1:'.$httpPort;
-function remediation_http_config(bool $verified=true,bool $deniedAudit=false): void {
+function remediation_http_config(bool $verified=true,bool $deniedAudit=false,?array $verification=null,?array $connection=null): void {
     global $httpRoot,$httpBase,$port,$password,$restrictedPassword;
     $values=['DB_HOST'=>'127.0.0.1','DB_PORT'=>$port,'DB_NAME'=>'hardening_test_lifecycle',
         'DB_USER'=>$deniedAudit?'lifecycle_restricted':'root','DB_PASS'=>$deniedAudit?$restrictedPassword:$password,
         'APP_ENV'=>'development','APP_BASE_URL'=>$httpBase,'ALLOWED_EMAIL_DOMAINS'=>['example.invalid'],
         'GMAIL_CLIENT_ID'=>'','GMAIL_CLIENT_SECRET'=>'','GMAIL_REFRESH_TOKEN'=>'','OPENROUTER_API_KEY'=>'',
-        'PRISM_HARD_DELETE_SCHEMA_VERIFIED'=>$verified,'PRISM_HARD_DELETE_VERIFICATION'=>PRISM_HARD_DELETE_VERIFICATION];
+        'PRISM_HARD_DELETE_SCHEMA_VERIFIED'=>$verified,'PRISM_HARD_DELETE_VERIFICATION'=>$verification??PRISM_HARD_DELETE_VERIFICATION];
+    if($connection) $values=array_replace($values,$connection);
     $source="<?php\n"; foreach($values as $key=>$value) $source.='define('.var_export($key,true).','.var_export($value,true).");\n";
     file_put_contents($httpRoot.'/config.local.php',$source);
 }
@@ -51,6 +52,9 @@ try {
     lifecycle_reset_fixture(); $cookie='';
     reset_migration_expect(401,remediation_http_request('account_lifecycle_api.php',lifecycle_input(),$cookie)['status'],'Missing session denied by actual api_require_login');
     $cookie=remediation_http_login(1);
+    $availability=remediation_http_request('account_lifecycle_api.php?action=availability',[],$cookie,['method'=>'GET']);
+    reset_migration_expect(200,$availability['status'],'Actual authenticated read-only availability endpoint');
+    reset_migration_expect(true,$availability['data']['available'],'Actual global evidence availability');
     foreach([
         ['method'=>'GET'],['method'=>'PUT'],['origin'=>'https://attacker.invalid'],['noOrigin'=>true],
     ] as $options) reset_migration_expect(isset($options['method'])?405:403,remediation_http_request('account_lifecycle_api.php',lifecycle_input(),$cookie,$options)['status'],'Actual method/origin guard');
@@ -61,6 +65,8 @@ try {
     $other=lifecycle_input('admin'); $other['targetId']=2;
     reset_migration_expect(403,remediation_http_request('account_lifecycle_api.php',$other,$cookie)['status'],'Actual self-only Admin authorization');
     remediation_http_config(false);
+    $availability=remediation_http_request('account_lifecycle_api.php?action=availability',[],$cookie,['method'=>'GET']);
+    reset_migration_expect(false,$availability['data']['available'],'Actual unavailable gate is visible to Admin');
     reset_migration_expect(409,remediation_http_request('account_lifecycle_api.php',lifecycle_input(),$cookie)['status'],'Actual default-disabled gate 409'); remediation_http_config();
     // A real lock timeout is retryable, unlike denied persistence. Nothing is deleted.
     $pdo->exec('SET GLOBAL innodb_lock_wait_timeout=1'); $pdo->beginTransaction();
@@ -86,6 +92,28 @@ try {
         reset_migration_expect(200,$response['status'],'Actual transactional creation '.$endpoint);
         $newId=$response['data']['id'];
         reset_migration_expect(1,(int)$pdo->query("SELECT COUNT(*) FROM activity_logs WHERE action='account_identity_created' AND entity_type='".($advisor?'adviser':'student')."' AND entity_id='$newId'")->fetchColumn(),'Actual new record receives immutable creation marker');
+        if($endpoint==='students_api.php') {
+            // Exact production endpoint use case, with no global metadata grants on the web/verifier user.
+            $httpScopedPassword=bin2hex(random_bytes(24));
+            $pdo->exec("CREATE USER 'lifecycle_http_scoped'@'127.0.0.1' IDENTIFIED BY ".$pdo->quote($httpScopedPassword));
+            $pdo->exec("GRANT SELECT,INSERT,UPDATE,DELETE,TRIGGER ON hardening_test_lifecycle.* TO 'lifecycle_http_scoped'@'127.0.0.1'");
+            if(in_array('test',$pdo->query('SHOW DATABASES')->fetchAll(PDO::FETCH_COLUMN),true)) $pdo->exec('DROP DATABASE test');
+            $httpScoped=new PDO('mysql:host=127.0.0.1;port='.$port.';dbname=hardening_test_lifecycle','lifecycle_http_scoped',$httpScopedPassword,
+                [PDO::ATTR_ERRMODE=>PDO::ERRMODE_EXCEPTION,PDO::ATTR_DEFAULT_FETCH_MODE=>PDO::FETCH_ASSOC]);
+            $httpScoped->exec('SET TRANSACTION READ ONLY'); $httpScoped->beginTransaction();
+            $httpEvidence=lifecycle_shared_hosting_verification($httpScoped,true); $httpScoped->rollBack();
+            remediation_http_config(true,false,$httpEvidence,['DB_USER'=>'lifecycle_http_scoped','DB_PASS'=>$httpScopedPassword]);
+            $availability=remediation_http_request('account_lifecycle_api.php?action=availability',[],$cookie,['method'=>'GET']);
+            reset_migration_expect(true,$availability['data']['available'],'Actual HTTP shared-hosting availability succeeds');
+            reset_migration_expect('schema_scoped_shared_hosting',$availability['data']['verificationMode'],'Actual HTTP availability records scoped mode');
+            reset_migration_expect(200,remediation_http_request('students_api.php?action=delete',['id'=>$newId],$cookie)['status'],'New Student archived by actual Admin endpoint');
+            $delete=lifecycle_input(); $delete['targetId']=$newId; $delete['confirmation']='NEW-S';
+            $result=remediation_http_request('account_lifecycle_api.php',$delete,$cookie);
+            reset_migration_expect(200,$result['status'],'Newly created untouched archived Student permanently deleted with scoped verification: '.$result['body']);
+            reset_migration_expect(0,(int)$pdo->query('SELECT COUNT(*) FROM students WHERE id='.(int)$newId)->fetchColumn(),'Real HTTP-created Student removed');
+            reset_migration_expect(1,(int)$pdo->query("SELECT COUNT(*) FROM activity_logs WHERE action='student_permanently_deleted' AND entity_id=".$pdo->quote((string)$newId))->fetchColumn(),'Real HTTP deletion audit retained');
+            remediation_http_config();
+        }
     }
     // Actual identity writers, with real rollback when mandatory evidence cannot be inserted.
     foreach(['students_api.php','ierb_api.php','advisers_api.php'] as $endpoint) foreach([false,true] as $deny) {

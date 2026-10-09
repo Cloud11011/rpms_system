@@ -2,6 +2,9 @@
 require __DIR__.'/config.php';
 require_once __DIR__.'/includes/account_lifecycle.php';
 $user=api_require_login('admin');
+if(($_SERVER['REQUEST_METHOD']??'')==='GET' && ($_GET['action']??'')==='availability') {
+    json_out(['ok'=>true]+lifecycle_schema_availability(db()));
+}
 require_post_same_origin();
 try {
     $result=lifecycle_execute(db(),$user,json_body(true));

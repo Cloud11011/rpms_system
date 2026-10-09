@@ -44,6 +44,9 @@ let readinessFixture = false;
 let legacyAIFixture = false;
 let managementFailure = '';
 let academicRecord = null;
+let lifecycleRecords = null;
+let lifecycleGateAvailable = true;
+let lifecycleDeleteFailure = 0;
 let academicSaveError = false;
 let setupPendingFixture = false;
 let reviewFailure = 0;
@@ -179,9 +182,14 @@ function fixtureApi(file, action) {
   }
   if (file === 'notifications_api.php' && action === 'recipients_preview') return {ok:true, recipients:populated ? [{id:1,name:attack,email:'fixture@example.test'}, {id:2,name:'Second recipient',email:'second@example.test'}] : []};
   if (file === 'notifications_api.php') return { ok: true, notifications: populated ? [{ id: 1, subject: attack, type: 'Reminder', recipient_name: attack, recipient_email: 'fixture@example.test', status: 'Sent', created_at: '2026-09-24 08:00:00', message: attack, delivery_info: 'Fixture only' }] : [], total: populated ? 1 : 0, page: 1, scheduled: false, sent: 1 };
+  if (file === 'advisers_api.php' && lifecycleRecords && action==='list') return {ok:true,advisers:lifecycleRecords};
   if (file === 'advisers_api.php') return {ok:true,advisers:populated?[{id:1,name:attack,employeeId:'A-1',email:'fixture@example.test',department:'AMT',status:'Active',groups:['AMT-BSIT-Y2-2627-G01','AMT-BSIT-Y2-2627-G02']},{id:2,name:'New Adviser',employeeId:'A-2',email:'new@example.test',status:'Active',groups:[]}]:[]};
   if (file === 'students_api.php' && action === 'adviser_options') return {ok:true,advisers:[]};
   if (file === 'students_api.php' && action === 'save' && academicSaveError) return {ok:false,message:'Academic validation error '+attack};
+  if (file === 'account_lifecycle_api.php') return action==='availability'
+    ? {ok:true,available:lifecycleGateAvailable,verificationMode:'schema_scoped_shared_hosting',message:lifecycleGateAvailable?'Schema verification is valid. Each deletion still requires all account safety checks.':'Permanent deletion is disabled: schema verification evidence has expired. Repeat operator verification.'}
+    : lifecycleDeleteFailure ? {ok:false,message:'Protected Student history exists. Retain the account using Archive.'} : {ok:true,message:'Account permanently deleted.'};
+  if (file === 'students_api.php' && lifecycleRecords && action==='list') return {ok:true,students:lifecycleRecords};
   if (file === 'students_api.php' && academicRecord) return {ok:true,students:[academicRecord]};
   if (file === 'students_api.php') return {ok:true,students:populated?[{id:1,name:attack,research:attack,course:'Fixture Course',stage:'Stage 1',status:'On Track'}]:[]};
   if (file === 'documents_api.php' && role === 'adviser') return {ok:true,documents:populated?[{id:'fixture-doc',originalName:attack+'LongFileName'.repeat(15)+'.pdf',student:attack,studentId:1,documentType:'Research Protocol',stage:'Stage 1',uploadedAt:'2026-09-24',workflowState:reviewedStatus==='Approved'?'Ready for Formal RPMS Submission':(['Denied','Resubmission Requested'].includes(reviewedStatus)?'Needs Revision':'Pending Adviser Review'),reviewStatus:reviewedStatus||'Submitted',reviewRemarks:attack,versionNo:1,isCurrent:true,actions:{review:true}}]:[],counts:{}};
@@ -245,7 +253,7 @@ async function serve(req, res) {
       const html = fixtureTemplate(file);
       res.writeHead(200, { ...securityHeaders, 'Content-Type': 'text/html; charset=utf-8' });
       res.end(html);
-    } else if (/^(notifications|reports|stage_labels|ierb|audit|profile|documents|students|advisers|calendar_deadlines)_api\.php$/.test(file) || file === 'send_followup.php') {
+    } else if (/^(notifications|reports|stage_labels|ierb|audit|profile|documents|students|advisers|calendar_deadlines|account_lifecycle)_api\.php$/.test(file) || file === 'send_followup.php') {
       let body = '';
       for await (const chunk of req) body += chunk;
       requests.push({ file, action: url.searchParams.get('action'), query: Object.fromEntries(url.searchParams), method: req.method, body });
@@ -262,7 +270,9 @@ async function serve(req, res) {
         return;
       }
       const json = JSON.stringify(mockApi(file, url.searchParams.get('action'), url.searchParams));
-      res.writeHead(file==='documents_api.php' && url.searchParams.get('action')==='review' && reviewFailure ? reviewFailure : 200, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' });
+      const status=file==='account_lifecycle_api.php' && url.searchParams.get('action')!=='availability' && lifecycleDeleteFailure ? lifecycleDeleteFailure :
+        (file==='documents_api.php' && url.searchParams.get('action')==='review' && reviewFailure ? reviewFailure : 200);
+      res.writeHead(status, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' });
       res.end(json);
     } else if (/^assets\/(css|js|images)\/[A-Za-z0-9_.\/-]+$/.test(file) || file === 'assets/images/CEU FOOTER LOGO.png') {
       const absolute = path.resolve(root, file);
@@ -2015,15 +2025,15 @@ async function checkLifecyclePolish() {
       await command('Emulation.setDeviceMetricsOverride',{width,height,deviceScaleFactor:1,mobile:false});
       await measure(file,width,dark,' lifecycle '+viewer);
       const sample=await evaluateFunction(()=>{
-        const caption=document.querySelector('.prism-navigation-caption'),nav=document.querySelector('.portal-navbar'),main=document.querySelector('main');
+        const caption=document.querySelector('.prism-navigation-caption')||document.querySelector('.portal-brand'),nav=document.querySelector('.portal-navbar'),main=document.querySelector('main');
         const r=caption.getBoundingClientRect();
-        return {caption:caption.textContent,wordBreak:getComputedStyle(caption).wordBreak,overflowWrap:getComputedStyle(caption).overflowWrap,
+        return {caption:caption.classList.contains('portal-brand')?caption.title:caption.textContent,logoOnly:caption.classList.contains('portal-brand'),wordBreak:getComputedStyle(caption).wordBreak,overflowWrap:getComputedStyle(caption).overflowWrap,
           fits:!r.width||(r.left>=0&&r.right<=innerWidth),clears:!nav||nav.getBoundingClientRect().bottom<=main.getBoundingClientRect().top,
           footer:document.querySelector('.ceu-footer').textContent,
           portal:[...document.querySelectorAll('[data-prism-resources] a')].filter(a=>a.href==='https://ceu-ierb.wixsite.com/ierb').map(a=>({target:a.target,rel:a.rel}))};
       });
       samples.push({viewer,width,height,dark,...sample});
-      check(sample.caption===fullName&&sample.wordBreak==='normal'&&sample.overflowWrap==='normal'&&sample.fits,'Full PRISM caption fits '+viewer+' '+width+' '+dark,JSON.stringify(sample));
+      check(sample.caption===fullName&&sample.fits&&(sample.logoOnly||(sample.wordBreak==='normal'&&sample.overflowWrap==='normal')),'Full PRISM name remains visible or accessible '+viewer+' '+width+' '+dark,JSON.stringify(sample));
       check(sample.clears,'Header clears content '+viewer+' '+width+' '+dark);
       check(sample.footer.includes('Contact Us')&&!sample.footer.includes('Contact CEU Malolos'),'Footer contact heading '+viewer+' '+width);
       if(viewer!=='admin')check(sample.portal.length===1&&sample.portal[0].target==='_blank'&&sample.portal[0].rel.includes('noopener')&&sample.portal[0].rel.includes('noreferrer'),'Canonical IERB portal '+viewer+' '+width);
@@ -2070,6 +2080,100 @@ async function checkLifecyclePolish() {
   await evaluate('document.getElementById("cancelPermanentDelete").click()');academicRecord=null;
   check(errors.length===0,'No lifecycle UI exceptions',errors.join(' | '));
   fs.writeFileSync(path.join(dest,'ui-results.json'),JSON.stringify({checks,failures,errors,samples},null,2));
+}
+
+async function checkStudentLifecycle() {
+  const dest=path.join(root,'tests','lifecycle-results');fs.mkdirSync(dest,{recursive:true});
+  const matrix=[[1920,1080],[1366,768],[1024,768],[768,1024],[390,844],[375,812]];
+  const record=(id,name,archived=false)=>({id,studentId:'S'+id,name,email:'student'+id+'@example.invalid',stage:'Stage 1',status:'On Track',archivedAt:archived?'2026-10-01':null});
+  lifecycleRecords=[record(1,'Active normal Student'),record(2,'Active unused test Student'),record(3,'Archived unused test Student',true),record(4,'Archived protected Student',true),record(5,'Long Student Name '.repeat(10),true),{...record(6,'Long ID Student',true),studentId:'S'.repeat(100)}];
+  managementFixture='student';lifecycleGateAvailable=true;
+  const openRow=async index=>evaluate(`document.querySelectorAll('#recordRows tr')[${index}].querySelector('.lifecycle-danger').click()`);
+  const cancel=async()=>evaluate('document.getElementById("cancelPermanentDelete").click()');
+  for(const [width,height] of matrix) for(const dark of [false,true]) {
+    const label=width+'x'+height+' '+(dark?'dark':'light');
+    await navigate('admin_students.php',width,dark,'populated','admin');
+    await command('Emulation.setDeviceMetricsOverride',{width,height,deviceScaleFactor:1,mobile:false});
+    await waitFor('document.getElementById("permanentDeleteAvailability").textContent.includes("is valid")');
+    await measure('admin_students.php',width,dark,' Student lifecycle');
+    const actions=await evaluateFunction(()=>[...document.querySelectorAll('#recordRows tr')].map(row=>[...row.querySelectorAll('.lifecycle-action')].map(b=>{
+      const r=b.getBoundingClientRect(),s=getComputedStyle(b);return {w:r.width,h:r.height,x:r.x,y:r.y,title:b.title,label:b.getAttribute('aria-label'),disabled:b.disabled||b.getAttribute('aria-disabled')==='true',icon:!!b.querySelector('i[aria-hidden=true]'),fg:s.color,bg:s.backgroundColor};
+    })));
+    check(actions.length===6&&actions.every(row=>row.length===3&&row.every(b=>b.w===40&&b.h===40&&b.title&&b.label&&b.icon)),label+': equal labelled actions in every row',JSON.stringify(actions));
+    check(actions.every(row=>!row[0].disabled&&row.every(b=>b.x===row[0].x)&&Math.abs(row[1].y-row[0].y-46)<1&&Math.abs(row[2].y-row[1].y-46)<1),label+': aligned actions and visible Edit');
+    check(actions.slice(0,2).every(row=>!row[1].disabled&&row[2].disabled&&row[2].title.includes('Archive Student before'))&&actions.slice(2).every(row=>row[1].disabled&&!row[2].disabled),label+': archived-first states');
+    const lum=rgb=>rgb.match(/[\d.]+/g).slice(0,3).map(Number).map(x=>x/255).map(x=>x<=.04045?x/12.92:((x+.055)/1.055)**2.4).reduce((sum,x,i)=>sum+x*[.2126,.7152,.0722][i],0);
+    const contrast=(a,b)=>(Math.max(lum(a),lum(b))+.05)/(Math.min(lum(a),lum(b))+.05);
+    check(actions.every(row=>contrast(row[2].fg,row[2].bg)>=4.5),label+': enabled and disabled trash contrast');
+    const hoverPoint=await evaluateFunction(()=>{const b=document.querySelectorAll('#recordRows tr')[2].querySelector('.lifecycle-danger');b.scrollIntoView({behavior:'instant',block:'center',inline:'nearest'});const r=b.getBoundingClientRect();return {x:r.x+r.width/2,y:r.y+r.height/2};});
+    await command('Input.dispatchMouseEvent',{type:'mouseMoved',...hoverPoint});
+    await waitFor('getComputedStyle(document.querySelectorAll("#recordRows tr")[2].querySelector(".lifecycle-danger")).backgroundColor==="rgb(163, 29, 53)"');
+    const hover=await evaluateFunction(()=>{const s=getComputedStyle(document.querySelectorAll('#recordRows tr')[2].querySelector('.lifecycle-danger'));return {fg:s.color,bg:s.backgroundColor};});
+    check(hover.bg==='rgb(163, 29, 53)'&&contrast(hover.fg,hover.bg)>=4.5,label+': red hover state retains contrast',JSON.stringify(hover));
+    await command('Input.dispatchMouseEvent',{type:'mouseMoved',x:0,y:0});
+    await evaluate('document.querySelectorAll("#recordRows tr")[2].querySelector(".lifecycle-action").focus()');
+    for(const type of ['keyDown','keyUp'])await command('Input.dispatchKeyEvent',{type,key:'Tab',code:'Tab',windowsVirtualKeyCode:9});
+    check(await evaluateFunction(()=>document.activeElement.matches('.lifecycle-danger')&&getComputedStyle(document.activeElement).outlineStyle==='solid'),label+': destructive action keyboard focus is visible');
+    await openRow(0);check(await evaluate('!document.getElementById("permanentDeleteDialog").open'),label+': active Student cannot open deletion');
+    await openRow(2);check(await evaluate('document.getElementById("permanentDeleteDialog").open'),label+': archived Student opens confirmation');
+    const layout=await evaluateFunction(()=>{
+      const d=document.getElementById('permanentDeleteDialog'),r=d.getBoundingClientRect(),f=document.getElementById('permanentDeleteForm');
+      return {w:r.width,l:r.left,r:r.right,t:r.top,b:r.bottom,scroll:getComputedStyle(d).overflowY,
+        fields:[...f.querySelectorAll('.lifecycle-form-group')].map(g=>{const l=g.querySelector('label').getBoundingClientRect(),i=g.querySelector('input').getBoundingClientRect();return {gap:i.top-l.bottom,w:i.width,l:i.left,r:i.right};}),
+        checks:[...f.querySelectorAll('.lifecycle-check')].map(e=>({display:getComputedStyle(e).display,w:e.querySelector('input').getBoundingClientRect().width})),
+        toggle:f.querySelector('[data-lifecycle-password]').type,bg:getComputedStyle(f.querySelector('[type=submit]')).backgroundColor};
+    });
+    check(layout.l>=0&&layout.r<=width&&layout.t>=0&&layout.b<=height+1&&layout.w<=760&&['auto','scroll'].includes(layout.scroll)&&(width<1024||layout.w>=700),label+': bounded fluid scrollable modal',JSON.stringify(layout));
+    check(layout.fields.every(f=>f.gap>=8&&f.l>=layout.l&&f.r<=layout.r)&&Math.abs(layout.fields[0].w-layout.fields[1].w)<1&&layout.checks.every(c=>c.display==='flex'&&c.w===18),label+': stacked fields and aligned checks',JSON.stringify(layout));
+    check(layout.toggle==='button'&&layout.bg==='rgb(168, 37, 64)',label+': non-submitting eye and red destructive button');
+    const before=requests.filter(r=>r.file==='account_lifecycle_api.php'&&r.method==='POST').length;
+    await evaluateFunction(()=>{const f=document.getElementById('permanentDeleteForm');f.elements.currentPassword.value='Synthetic browser passphrase';f.querySelector('[data-lifecycle-password]').click();});
+    check(await evaluateFunction(()=>{const f=document.getElementById('permanentDeleteForm'),b=f.querySelector('[data-lifecycle-password]');return f.elements.currentPassword.type==='text'&&f.elements.currentPassword.value==='Synthetic browser passphrase'&&b.getAttribute('aria-label')==='Hide password'&&b.getAttribute('aria-pressed')==='true';}),label+': eye reveals without changing value');
+    await evaluate('document.querySelector("#permanentDeleteForm [data-lifecycle-password]").click()');
+    check(await evaluateFunction(()=>{const f=document.getElementById('permanentDeleteForm'),b=f.querySelector('[data-lifecycle-password]');return f.elements.currentPassword.type==='password'&&b.getAttribute('aria-label')==='Show password'&&b.getAttribute('aria-pressed')==='false';}),label+': eye hides reliably');
+    check(requests.filter(r=>r.file==='account_lifecycle_api.php'&&r.method==='POST').length===before,label+': eye never submits');
+    await evaluate('document.getElementById("permanentDeletePassword").focus()');
+    for(const type of ['keyDown','keyUp'])await command('Input.dispatchKeyEvent',{type,key:'Tab',code:'Tab',windowsVirtualKeyCode:9});
+    check(await evaluateFunction(()=>document.activeElement.matches('[data-lifecycle-password]')&&getComputedStyle(document.activeElement).outlineStyle==='solid'),label+': eye keyboard focus');
+    for(const type of ['keyDown','keyUp'])await command('Input.dispatchKeyEvent',{type,key:' ',code:'Space',windowsVirtualKeyCode:32});
+    check(await evaluate('document.getElementById("permanentDeletePassword").type==="text"'),label+': eye keyboard activation');
+    await cancel();
+    check(await evaluateFunction(()=>{const f=document.getElementById('permanentDeleteForm');return !document.getElementById('permanentDeleteDialog').open&&f.elements.currentPassword.value===''&&f.elements.currentPassword.type==='password'&&document.activeElement.matches('.lifecycle-danger');}),label+': Cancel clears password and restores focus');
+    for(const row of [5,4]) {
+      await openRow(row);
+      check(await evaluateFunction(()=>{const e=document.getElementById('permanentDeleteIdentity');return e.scrollWidth<=e.clientWidth+1;}),label+': long identity wraps '+row);
+      if(row===4&&!dark){const png=await command('Page.captureScreenshot',{format:'png'});fs.writeFileSync(path.join(dest,'student-delete-'+width+'x'+height+'.png'),Buffer.from(png.data,'base64'));}
+      await cancel();
+    }
+  }
+  lifecycleDeleteFailure=409;await openRow(3);
+  await evaluateFunction(()=>{const f=document.getElementById('permanentDeleteForm');f.elements.currentPassword.value='Synthetic browser passphrase';f.elements.confirmation.value='S4';f.elements.testRecord.checked=true;f.elements.confirmed.checked=true;f.querySelector('[type=submit]').click();});
+  await waitFor('document.getElementById("permanentDeleteResult").textContent.includes("Protected Student history")');
+  check(await evaluate('document.getElementById("permanentDeleteDialog").open&&document.getElementById("permanentDeletePassword").value===""'),'Backend protected-history 409 remains visible and clears password');
+  checkPayload('account_lifecycle_api.php',null,{accountType:'student',action:'permanent_delete',targetId:4,currentPassword:'Synthetic browser passphrase',confirmation:'S4',confirmed:true,testRecord:true},'Exact Student targeting/password/ID/acknowledgements');
+  await cancel();lifecycleDeleteFailure=0;await openRow(2);
+  const before=requests.filter(r=>r.file==='account_lifecycle_api.php'&&r.method==='POST').length;
+  await evaluateFunction(()=>{const f=document.getElementById('permanentDeleteForm');f.elements.currentPassword.value='Synthetic browser passphrase';f.elements.confirmation.value='S3';f.querySelector('[type=submit]').click();});
+  check(requests.filter(r=>r.file==='account_lifecycle_api.php'&&r.method==='POST').length===before,'Unchecked destructive acknowledgements prevent submission');
+  await evaluateFunction(()=>{const f=document.getElementById('permanentDeleteForm');f.elements.testRecord.checked=true;f.elements.confirmed.checked=true;f.querySelector('[type=submit]').click();});
+  await waitFor('!document.getElementById("permanentDeleteDialog").open');
+  checkPayload('account_lifecycle_api.php',null,{accountType:'student',action:'permanent_delete',targetId:3,currentPassword:'Synthetic browser passphrase',confirmation:'S3',confirmed:true,testRecord:true},'Successful destructive confirmation still submits');
+  lifecycleGateAvailable=false;await navigate('admin_students.php',1366,false,'populated','admin');
+  await waitFor('document.getElementById("permanentDeleteAvailability").textContent.includes("expired")');
+  check(await evaluate('[...document.querySelectorAll("#recordRows .lifecycle-danger")].every(e=>e.getAttribute("aria-disabled")==="true")'),'Invalid evidence disables every delete control');
+  await openRow(2);check(await evaluate('!document.getElementById("permanentDeleteDialog").open'),'Invalid gate cannot open deletion');
+  lifecycleGateAvailable=true;managementFixture='adviser';lifecycleRecords=[{id:200,name:'Archived unused Adviser',employeeId:'E200',status:'Inactive',email:'adviser@example.invalid',groups:[]}];
+  await navigate('admin_advisers.php',1024,false,'populated','admin');
+  await waitFor('document.getElementById("permanentDeleteAvailability").textContent.includes("is valid")');await openRow(0);
+  check(await evaluate('document.getElementById("permanentDeleteDialog").open&&document.getElementById("permanentDeleteConfirmationLabel").textContent.includes("Employee ID")'),'Adviser shares modal and keeps Employee ID confirmation');await cancel();
+  await navigate('account.php',390,false,'populated','admin');
+  await evaluate('document.querySelector(".lifecycle-destructive").open=true;document.querySelector("#adminDeleteForm [data-lifecycle-password]").click()');
+  check(await evaluate('document.getElementById("adminDeletePassword").type==="text"&&document.getElementById("lifecycle").dataset.userId==="1"'),'Admin self-only form shares password eye');
+  await navigate('admin_students.php',390,false,'populated','adviser');
+  check(await evaluate('!document.getElementById("permanentDeleteDialog")&&!document.querySelector(".lifecycle-danger")'),'Adviser viewing Students has no Admin lifecycle actions');
+  lifecycleRecords=null;managementFixture='student';
+  check(errors.length===0,'No Student lifecycle browser exceptions',errors.join(' | '));
+  fs.writeFileSync(path.join(dest,'student-delete-ui-results.json'),JSON.stringify({checks,failures,errors,viewports:matrix},null,2));
 }
 
 async function run() {
@@ -2120,7 +2224,8 @@ async function run() {
   await command('Log.enable');
   await command('Fetch.enable', { patterns: [{ urlPattern: '*' }] });
   await command('Browser.setDownloadBehavior', { behavior: 'deny' }, true);
-  if (process.argv.includes('--lifecycle-ui-only')) { await checkLifecyclePolish(); console.log(checks+' lifecycle UI checks; '+failures.length+' failures.'); for(const failure of failures)console.error('FAIL '+failure); if(failures.length)process.exitCode=1;return; }
+  if (process.argv.includes('--student-lifecycle-ui-only')) { await checkStudentLifecycle(); console.log(checks+' Student lifecycle UI checks; '+failures.length+' failures.'); for(const failure of failures)console.error('FAIL '+failure); if(failures.length)process.exitCode=1;return; }
+  if (process.argv.includes('--lifecycle-ui-only')) { await checkLifecyclePolish(); await checkStudentLifecycle(); console.log(checks+' lifecycle UI checks; '+failures.length+' failures.'); for(const failure of failures)console.error('FAIL '+failure); if(failures.length)process.exitCode=1;return; }
   if (process.argv.includes('--student-protocol-only')) {
     await checkStudentDashboardProtocol();await checkStudentPortal();check(errors.length===0,'No Student protocol browser exceptions',errors.join(' | '));
     console.log(`${checks} Student protocol/portal UI checks; ${failures.length} failures.`);for(const failure of failures)console.error('FAIL '+failure);if(failures.length)process.exitCode=1;return;

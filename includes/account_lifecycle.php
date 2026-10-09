@@ -216,6 +216,9 @@ function lifecycle_execute(PDO $pdo, array $actor, array $data): array
             'logout'=>$type==='admin','redirect'=>$type==='admin'?'login.php':null];
     } catch (Throwable $error) {
         if ($pdo->inTransaction()) $pdo->rollBack();
+        if($error instanceof PDOException && (int)($error->errorInfo[1]??0)===1451) {
+            throw new AccountLifecycleConflict('A database foreign-key dependency prevents permanent deletion. Retain the account using Archive.',0,$error);
+        }
         throw $error;
     } finally {
         if($schemaLock) {
