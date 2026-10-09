@@ -5,6 +5,7 @@ require_once __DIR__ . '/includes/pagination.php';
 require_once __DIR__ . '/includes/csv_export.php';
 require_once __DIR__ . '/includes/record_filters.php';
 require_once __DIR__ . '/workflow.php';
+require_once __DIR__ . '/includes/account_lifecycle.php';
 require_once __DIR__ . '/includes/academic_catalog.php';
 require_once __DIR__ . '/includes/research_groups.php';
 
@@ -217,6 +218,9 @@ if ($action === 'override') {
     $change = describe_progress_change($cur, $newStage, $newStatus);
     try {
         $pdo->beginTransaction();
+        $locked=$pdo->prepare('SELECT id FROM students WHERE id=? FOR UPDATE');$locked->execute([$id]);
+        if(!$locked->fetchColumn())throw new AccountLifecycleNotFound('Student record not found.');
+        purge_require_no_pending($pdo,'student',$id);
         $pdo->prepare('UPDATE students SET stage = :stage, status = :status, updated_at = NOW() WHERE id = :id')
             ->execute([':stage' => $newStage, ':status' => $newStatus, ':id' => $id]);
         record_history($pdo, $id, $newStage, $newStatus, 'ADMIN OVERRIDE - ' . $change . '. Reason: ' . $reason,
@@ -228,6 +232,7 @@ if ($action === 'override') {
             $pdo->rollBack();
         }
         log_api_error('ierb_override', $e->getMessage());
+        if($e instanceof AccountLifecycleConflict || $e instanceof AccountLifecycleNotFound)json_out(['ok'=>false,'message'=>$e->getMessage()],lifecycle_error_status($e));
         json_out(['ok' => false, 'message' => 'The override could not be saved. Nothing was changed.'], 500);
     }
 
@@ -305,6 +310,7 @@ if ($action === 'save') {
                 $pdo->rollBack();
                 json_out(['ok' => false, 'message' => 'Student record not found.'], 404);
             }
+            purge_require_no_pending($pdo,'student',$id);
             $identityBefore=lifecycle_identity_capture($pdo,$oldRow,'student');
             try {
                 $academic = academic_validate($data, $oldRow);
@@ -479,7 +485,7 @@ if ($action === 'delete') {
         archive_student($pdo, $user, $id);
     } catch (Throwable $e) {
         log_api_error('student_archive', 'The archive operation could not be completed.');
-        json_out(['ok' => false, 'message' => $e instanceof \InvalidArgumentException ? 'Student record not found.' : 'The student could not be archived.'], $e instanceof \InvalidArgumentException ? 404 : 500);
+        json_out(['ok' => false, 'message' => $e instanceof AccountLifecycleConflict ? $e->getMessage() : ($e instanceof AccountLifecycleNotFound || $e instanceof \InvalidArgumentException ? 'Student record not found.' : 'The student could not be archived.')], $e instanceof AccountLifecycleConflict ? 409 : ($e instanceof AccountLifecycleNotFound || $e instanceof \InvalidArgumentException ? 404 : 500));
     }
     json_out(['ok' => true, 'message' => 'Student archived and login deactivated. All historical records are retained.']);
 }

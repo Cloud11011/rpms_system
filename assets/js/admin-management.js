@@ -98,11 +98,25 @@
     sort.update({sortBy:sortOptions.map(([value,label])=>({value,label})),direction:[{value:'ASC',label:'Ascending'},{value:'DESC',label:'Descending'}]});
     sort.controls[0].options[0].textContent = 'Name (default)';
     sort.controls[1].options[0].textContent = 'Ascending (default)';
+    if (loggedInRole === 'admin') {
+        const lifecycleFilters=PrismUI.recordFilters(document.getElementById('recordFilters'), [['lifecycle','Lifecycle'],['retention','Retention status']]);
+        filters.controls.push(...lifecycleFilters.controls);
+        const baseQuery=filters.query, baseUpdate=filters.update;
+        filters.query=()=>({...baseQuery(),...lifecycleFilters.query()});
+        filters.update=options=>{baseUpdate(options);lifecycleFilters.update(options);};
+    }
     const filterControls = [...filters.controls,...sort.controls];
     const pager = PrismUI.recordPager(rowsEl.closest('table').parentElement, countEl, [searchInput,...filterControls], loadRecords);
+    const retentionUI=loggedInRole==='admin'?PrismRetentionAdmin.mount({
+        type:isAdviser?'adviser':'student', rows:rowsEl, getScope:()=>({q:searchInput.value.trim(),...filters.query()}),
+        getRecords:()=>records, getAvailability:()=>deletionAvailability, refresh:loadRecords,
+        openBulk:openBulkDelete, openRecovery,
+        reviewCleanup:async()=>{document.getElementById('recordFilters_lifecycle').value='archived';document.getElementById('recordFilters_retention').value='cleanup';pager.reset();await loadRecords();}
+    }):null;
     const dirty = PrismUI.dirtyForm(form);
     let requestSequence = 0;
     async function loadRecords() {
+        retentionUI?.syncScope();
         searchReload.cancel();
         const request = ++requestSequence;
         pager.loading();
@@ -115,6 +129,7 @@
             records = items;
             filters.update(data.filterOptions);
             pager.render({ ...data, total: data.total ?? records.length });
+            retentionUI?.onPage(data.total ?? records.length);
         } catch (e) {
             if (request !== requestSequence) return;
             records = [];
@@ -161,7 +176,7 @@
             countEl.textContent = 'Records unavailable';
             const row = document.createElement('tr');
             const cell = document.createElement('td');
-            cell.colSpan = isAdviser ? 6 : 7;
+            cell.colSpan = (isAdviser ? 6 : 7)+(retentionUI?1:0);
             cell.className = 'empty-state';
             const message = document.createElement('p');
             message.setAttribute('role', 'alert');
@@ -181,7 +196,7 @@
         }
         if (!filtered.length) {
             const tr = document.createElement('tr');
-            tr.innerHTML = `<td colspan="${isAdviser ? 6 : 7}" class="empty-state">No ${isAdviser ? 'adviser' : 'student'} records found.</td>`;
+            tr.innerHTML = `<td colspan="${(isAdviser ? 6 : 7)+(retentionUI?1:0)}" class="empty-state">No ${isAdviser ? 'adviser' : 'student'} records found.</td>`;
             rowsEl.appendChild(tr);
             return;
         }
@@ -225,7 +240,7 @@
             actions.className='lifecycle-actions';
             tr.querySelector('.row-actions').append(actions);
             const accountLabel=isAdviser?'Adviser':'Student';
-            const archived=isAdviser?record.status==='Inactive':!!record.archivedAt;
+            const archived=!!record.archivedAt;
             const editBtn = document.createElement('button');
             editBtn.type='button';
             editBtn.className = 'icon-btn lifecycle-action';
@@ -249,7 +264,7 @@
                 hardDelete.type='button';
                 hardDelete.className='icon-btn lifecycle-action lifecycle-danger';
                 const disabledReason=!archived?'Archive '+accountLabel+' before permanent deletion.':
-                    (!deletionAvailability.available?deletionAvailability.message:'');
+                    (!deletionAvailability.available?deletionAvailability.message:(record.lifecycle?.manualEligible?'':(record.lifecycle?.purgeBlockReason || 'Server eligibility must be checked.')));
                 hardDelete.title=disabledReason || 'Permanently Delete '+accountLabel;
                 hardDelete.setAttribute('aria-label','Permanently Delete '+accountLabel+(disabledReason?'. '+disabledReason:''));
                 // Keep blocked actions keyboard-focusable so their explanation is discoverable.
@@ -257,6 +272,19 @@
                 hardDelete.innerHTML='<i class="fa-solid fa-trash" aria-hidden="true"></i>';
                 hardDelete.addEventListener('click',()=>{if(!disabledReason)openPermanentDelete(record,hardDelete);});
                 actions.append(hardDelete);
+                if (archived) {
+                    const restore=document.createElement('button');restore.type='button';restore.className='icon-btn lifecycle-action';restore.title='Restore '+accountLabel;restore.setAttribute('aria-label',restore.title);restore.innerHTML='<i class="fa-solid fa-rotate-left" aria-hidden="true"></i>';restore.addEventListener('click',()=>retentionUI.singleAction(record,'restore',restore));actions.append(restore);
+                    const hold=document.createElement('button');hold.type='button';hold.className='icon-btn lifecycle-action';const held=record.lifecycle?.retentionHold;hold.title=(held?'Remove':'Place')+' Retention Hold';hold.setAttribute('aria-label',hold.title);hold.innerHTML='<i class="fa-solid fa-pause" aria-hidden="true"></i>';hold.addEventListener('click',()=>retentionUI.singleAction(record,held?'remove_hold':'hold',hold));actions.append(hold);
+                    if(record.lifecycle?.overrideAvailable) {
+                        const override=document.createElement('button');override.type='button';override.className='icon-btn lifecycle-action lifecycle-danger';override.title='Delete Now ? Override Grace Period';override.setAttribute('aria-label',override.title);override.setAttribute('aria-disabled',String(!deletionAvailability.available));override.innerHTML='<i class="fa-solid fa-clock" aria-hidden="true"></i>';override.addEventListener('click',()=>{if(deletionAvailability.available)openPermanentDelete(record,override,'grace_period_override');});actions.append(override);
+                    }
+                }
+                retentionUI.attachRow(tr,record);
+                if (archived) {
+                    const state=document.createElement('small');state.className='retention-state';const lc=record.lifecycle || {};
+                    state.textContent=lc.retentionHold?'Retention Hold':lc.unresolvedWorkflow?'Purge postponed ? Admin review required':lc.cleanupEligible?'Eligible for retention cleanup':lc.approachingRetention?'Approaching retention cleanup':lc.manualEligible?'Eligible for manual purge':lc.purgeBlockReason || 'Archived';
+                    tr.querySelector('td:not(.retention-select)').append(state);
+                }
             }
             rowsEl.appendChild(tr);
         });
@@ -303,6 +331,7 @@
             document.getElementById('isPrincipal').disabled = true;
         }
         if (isAdviser) {
+            document.getElementById('accountStatus').disabled=!!record;
             const department = document.getElementById('department');
             department.querySelector('[data-legacy]')?.remove();
             const value = record?.department || '';
@@ -323,46 +352,71 @@
     }
 
     async function deleteRecord(record) {
-        const answer = await PrismUI.confirm({
-            title:isAdviser ? 'Archive Adviser' : 'Archive Student',
-            icon:'fa-box-archive', tone:'danger', confirmText:'Archive',
-            message:isAdviser ? `Archive ${record.name} and deactivate their login? Adviser records and historical student assignments will be retained. Active students can be reassigned by RPMS.` : `Archive ${record.name} and deactivate their login? Student, IERB, documents, versions and submission history will be retained.`
-        });
-        if (!answer) return;
         try {
-            const data = await PrismUI.postJson(`${apiUrl}?action=delete`, { id: record.id });
-            await loadRecords();
-            PrismUI.toast(data.message || 'Record archived.', 'success');
-        } catch (e) {
-            PrismUI.toast(e.message, 'error');
-        }
+            const fresh=await PrismUI.request('account_lifecycle_api.php?'+new URLSearchParams({action:'account_state',accountType:isAdviser?'adviser':'student',targetId:record.id}));
+            const answer=await PrismUI.confirm({title:isAdviser?'Archive Adviser':'Archive Student',icon:'fa-box-archive',tone:'danger',confirmText:'Archive',
+                message:isAdviser?`This Adviser currently has ${fresh.assignedStudents} assigned Students. They will become Unassigned. Archive ${record.name}?`:`Archive ${record.name} and deactivate their login? This starts a 7-day grace period and a 6-month retention countdown. History stays available during archive.`});
+            if(!answer)return;
+            const data=await PrismUI.postJson('account_lifecycle_api.php',{action:'archive',accountType:isAdviser?'adviser':'student',targetId:record.id,expectedAssignedStudents:fresh.assignedStudents});
+            await loadRecords();PrismUI.toast(data.message,'success');
+        } catch(e) { PrismUI.toast(e.message,'error'); }
     }
 
     const permanentDialog=document.getElementById('permanentDeleteDialog');
     const permanentForm=document.getElementById('permanentDeleteForm');
-    let permanentRecord=null, permanentReturnFocus=null;
-    function openPermanentDelete(record,button) {
-        if(!deletionAvailability.available || !(isAdviser?record.status==='Inactive':record.archivedAt)) return;
-        permanentRecord=record; permanentReturnFocus=button; permanentForm.reset();
-        document.getElementById('permanentDeleteTitle').textContent=isAdviser?'Permanently Delete Adviser':'Permanently Delete Student';
-        document.getElementById('permanentDeleteIdentity').textContent=record.name+' - '+(isAdviser?record.employeeId:record.studentId);
-        document.getElementById('permanentDeleteConfirmationLabel').textContent='Type the exact '+(isAdviser?'Employee ID':'Student ID');
-        document.getElementById('permanentDeleteResult').textContent=''; permanentDialog.showModal();
+    let permanentRecord=null, permanentReturnFocus=null, permanentContext=null;
+    function preparePermanentDialog(button,title,identity,label,warning) {
+        permanentReturnFocus=button || document.activeElement;permanentForm.reset();
+        document.getElementById('permanentDeleteTitle').textContent=title;
+        document.getElementById('permanentDeleteIdentity').textContent=identity;
+        document.getElementById('permanentDeleteConfirmationLabel').textContent=label;
+        document.getElementById('permanentDeleteWarning').textContent=warning;
+        document.getElementById('permanentDeleteResult').textContent='';
+        const override=permanentContext?.action==='grace_period_override';
+        document.getElementById('permanentDeleteReasonGroup').hidden=!override;
+        permanentForm.elements.reason.required=override;
+        permanentForm.querySelector('[type="submit"]').textContent=permanentContext?.mode==='recovery'?'Run recovery':permanentContext?.mode==='bulk'?'Apply confirmed batch':'Permanently delete';
+        permanentDialog.showModal();
     }
-    function closePermanentDelete() { permanentDialog.close(); permanentForm.reset(); permanentRecord=null; permanentReturnFocus?.focus(); }
+    async function openPermanentDelete(record,button,action='permanent_delete') {
+        if(!deletionAvailability.available || !record.archivedAt)return;
+        try {
+            const fresh=await PrismUI.request('account_lifecycle_api.php?'+new URLSearchParams({action:'account_state',accountType:isAdviser?'adviser':'student',targetId:record.id}));
+            if(!(action==='grace_period_override'?fresh.lifecycle.overrideAvailable:fresh.lifecycle.manualEligible))throw new Error(fresh.lifecycle.purgeBlockReason || 'Purge is unavailable.');
+            permanentRecord=record;permanentContext={mode:'single',action};
+            preparePermanentDialog(button,action==='grace_period_override'?'Delete Now ? Override Grace Period':`Permanently Delete ${isAdviser?'Adviser':'Student'}`,
+                record.name+' ? '+(isAdviser?record.employeeId:record.studentId),'Type the exact '+(isAdviser?'Employee ID':'Student ID'),
+                isAdviser?'This permanently removes this Adviser account and credentials. Student assignments become Unassigned. Historical Adviser display attribution and workflow evidence may remain. This action cannot be undone.':'This permanently removes this Student account and applicable Student-specific PRISM records and uploaded files. This action cannot be undone.');
+        } catch(error) { PrismUI.toast(error.message,'error'); }
+    }
+    function openBulkDelete(preview,button) {
+        permanentRecord=null;permanentContext={mode:'bulk',preview};
+        preparePermanentDialog(button,'Confirm bulk lifecycle action',`${preview.selected} selected; ${preview.eligible} eligible; ${preview.skipped.length} skipped. ${preview.unassignedStudents} assigned Students will become Unassigned.`,
+            'Type: '+preview.phrase,preview.purge?'This permanently removes eligible accounts and applicable owned PRISM records and files. Historical aggregate reports and Adviser attribution may remain. This action cannot be undone.':'Each eligible account will be rechecked and updated independently. Review the selection and assignment impact before confirming.');
+        const result=document.getElementById('permanentDeleteResult');
+        result.textContent=preview.skipped.map(r=>r.identifier+' ? '+r.reason).join('\n');
+    }
+    function openRecovery(job,button) {
+        permanentRecord=null;permanentContext={mode:'recovery',job};
+        preparePermanentDialog(button,'Complete purge recovery',job.jobId,'Type: RECOVER '+job.jobId,
+            'Recovery checks the database commit evidence. Committed jobs finalize quarantined files; rolled-back jobs restore files to their original owned records.');
+    }
+    function closePermanentDelete() { permanentDialog.close();permanentForm.reset();permanentRecord=null;permanentContext=null;permanentReturnFocus?.focus(); }
     document.getElementById('cancelPermanentDelete')?.addEventListener('click',closePermanentDelete);
     permanentDialog?.addEventListener('cancel',event=>{event.preventDefault();closePermanentDelete();});
     permanentForm?.addEventListener('submit',async event=>{
-        event.preventDefault(); if(!permanentRecord)return;
-        const button=permanentForm.querySelector('[type="submit"]'),release=PrismUI.busy(button,'Deleting...'); if(!release)return;
+        event.preventDefault();if(!permanentContext)return;
+        const button=permanentForm.querySelector('[type="submit"]'),release=PrismUI.busy(button,'Processing...');if(!release)return;
         try {
-            const data=await PrismUI.postJson('account_lifecycle_api.php',{
-                accountType:isAdviser?'adviser':'student',action:'permanent_delete',targetId:permanentRecord.id,
-                currentPassword:permanentForm.elements.currentPassword.value,confirmation:permanentForm.elements.confirmation.value,
-                confirmed:permanentForm.elements.confirmed.checked,testRecord:permanentForm.elements.testRecord.checked
-            });
-            closePermanentDelete(); await loadRecords(); PrismUI.toast(data.message,'success');
-        } catch(error) { document.getElementById('permanentDeleteResult').textContent=error.message; permanentForm.elements.currentPassword.value=''; PrismLifecycleForms.resetPassword(permanentForm); }
+            const credentials={currentPassword:permanentForm.elements.currentPassword.value,confirmation:permanentForm.elements.confirmation.value,confirmed:permanentForm.elements.confirmed.checked};
+            let data;
+            if(permanentContext.mode==='bulk') data=await retentionUI.executeBulk(permanentContext.preview,credentials,text=>{document.getElementById('permanentDeleteResult').textContent=text;});
+            else if(permanentContext.mode==='recovery') {
+                if(credentials.confirmation!=='RECOVER '+permanentContext.job.jobId)throw new Error('Type the exact recovery phrase.');
+                data=await PrismUI.postJson('account_lifecycle_api.php',{action:'recover',jobId:permanentContext.job.jobId,...credentials});
+            } else data=await PrismUI.postJson('account_lifecycle_api.php',{accountType:isAdviser?'adviser':'student',action:permanentContext.action,targetId:permanentRecord.id,...credentials,reason:permanentForm.elements.reason.value.trim()});
+            closePermanentDelete();await loadRecords();await retentionUI.refreshSummary();PrismUI.toast(data.message || 'Lifecycle batch completed. Review committed outcomes below.',data.recoveryRequired?'info':'success');
+        } catch(error) { document.getElementById('permanentDeleteResult').textContent=error.message;permanentForm.elements.currentPassword.value='';PrismLifecycleForms.resetPassword(permanentForm);await retentionUI.refreshSummary(); }
         finally { release(); }
     });
 

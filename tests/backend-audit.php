@@ -123,6 +123,10 @@ class AuditStatement extends PDOStatement
     public function rowCount(): int { return 1; }
 }
 
+function purge_require_no_pending(PDO $pdo,string $type,int $id):void {
+    if(!$pdo->inTransaction())throw new RuntimeException('Recovery guard outside transaction');
+}
+
 // Extract declarations only: the config require and endpoint entry point never execute.
 $source = file_get_contents(dirname(__DIR__) . '/documents_api.php');
 $declarationsStart = strpos($source, 'function fetch_doc(');

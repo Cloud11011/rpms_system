@@ -89,7 +89,9 @@ if (($argv[1] ?? '') === '--case') {
             'before'=>$before,'after'=>$after,'studentsUnchanged'=>$studentBefore===$students,'writes'=>$GLOBALS['fixtureDb']->writes,
             'audit'=>$GLOBALS['audit'],'aiCalls'=>$GLOBALS['aiCalls'],'unexpected'=>$GLOBALS['response']?$output:'']);
     });
+    require_once __DIR__.'/retention-fixture-support.php';retention_fixture_support(__NAMESPACE__);
     $source = file_get_contents(__DIR__ . '/../documents_api.php');
+    $source = str_replace("require_once __DIR__ . '/includes/account_lifecycle.php';", '', $source);
     $source = preg_replace("~require(?:_once)? __DIR__ \\. '/(?:config|ai_helpers|workflow|includes/pagination|includes/office_container|includes/document_summary)\\.php';~", '', $source);
     eval('namespace ' . __NAMESPACE__ . '; use \\PDO; use \\Throwable; use \\RuntimeException; use \\DocumentSummaryError;' . preg_replace('/^<\?php\s*/','',$source));
     exit;

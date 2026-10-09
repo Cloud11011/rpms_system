@@ -2,6 +2,25 @@
 /** Final persistence guards. Locks are held only for database work, never provider calls. */
 final class StudentSnapshotConflict extends RuntimeException {}
 
+/** Late best-effort audits must not recreate Student-owned data after purge. Caller owns a transaction. */
+function audit_lock_live_student(PDO $pdo,array $context): bool
+{
+    if (!$pdo->inTransaction()) throw new LogicException('Audit persistence requires a transaction.');
+    $studentId=(int)($context['student_id']??0);$type=$context['entity_type']??'';$entity=$context['entity_id']??null;
+    if ($type==='student') $studentId=(int)$entity;
+    if (!$studentId && in_array($type,['document','report'],true) && $entity!==null) {
+        $table=$type==='document'?'documents':'reports';$owner=$type==='document'?'student_id':'owner_student_id';
+        $q=$pdo->prepare("SELECT $owner FROM $table WHERE id=?");$q->execute([(string)$entity]);$found=$q->fetch(PDO::FETCH_ASSOC);
+        if (!$found) return false;
+        $studentId=(int)$found[$owner];
+    }
+    if ($studentId) {
+        $q=$pdo->prepare('SELECT id FROM students WHERE id=? FOR UPDATE');$q->execute([$studentId]);
+        if (!$q->fetchColumn()) return false;
+    }
+    return true;
+}
+
 function student_snapshot_rows(PDO $pdo, array $ids): array
 {
     if (!$pdo->inTransaction()) throw new LogicException('Snapshot revalidation requires a transaction.');
@@ -61,6 +80,9 @@ function report_persist_snapshot(PDO $pdo, array $students, array $values, ?arra
             if($q->fetchAll(PDO::FETCH_ASSOC)!==$history) throw new StudentSnapshotConflict('Report history changed. Generate the report again.');
         }
         $pdo->prepare('INSERT INTO reports (id,title,type,filename,generated_by,generated_by_user_id) VALUES (:id,:title,:type,:file,:by,:uid)')->execute($values);
+        if (($values[':type']??'')==='Student Report' && count($students)===1) {
+            $pdo->prepare('UPDATE reports SET owner_student_id=? WHERE id=?')->execute([(int)$students[0]['id'],$values[':id']]);
+        }
         $pdo->commit();
     } catch(Throwable $error) {
         if($pdo->inTransaction()) $pdo->rollBack();

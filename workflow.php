@@ -118,8 +118,14 @@ function plural_days(int $n): string
  */
 function audit_log(array $actor, string $action, array $ctx = []): void
 {
+    $owned=false;$pdo=null;
     try {
-        db()->prepare('INSERT INTO activity_logs
+        $pdo=db();
+        if (!empty($ctx['student_id']) || in_array($ctx['entity_type']??'',['student','document','report'],true)) {
+            $owned=!$pdo->inTransaction();if($owned)$pdo->beginTransaction();
+            if (!audit_lock_live_student($pdo,$ctx)) {if($owned)$pdo->commit();return;}
+        }
+        $pdo->prepare('INSERT INTO activity_logs
             (user_email, action, details, actor_name, actor_role, entity_type, entity_id,
              student_id, reason, before_value, after_value, is_override)
             VALUES (:email,:action,:details,:name,:role,:etype,:eid,:sid,:reason,:before,:after,:ovr)')
@@ -137,7 +143,9 @@ function audit_log(array $actor, string $action, array $ctx = []): void
                 ':after'   => isset($ctx['after']) ? mb_substr((string)$ctx['after'], 0, 255) : null,
                 ':ovr'     => !empty($ctx['override']) ? 1 : 0,
             ]);
+        if($owned)$pdo->commit();
     } catch (Throwable $e) {
+        if($owned && $pdo?->inTransaction())$pdo->rollBack();
         if (function_exists('log_api_error')) {
             log_api_error('audit', $e->getMessage());
         }
@@ -187,25 +195,10 @@ function student_with_adviser(PDO $pdo, int $studentDbId): ?array
 /** Archive under the student lock, retaining every relationship and collected row. */
 function archive_student(PDO $pdo, array $actor, int $id): array
 {
-    if ($actor['role'] !== 'admin') throw new DomainException('Only RPMS administrators may archive students.');
-    $pdo->beginTransaction();
-    try {
-        $q = $pdo->prepare('SELECT * FROM students WHERE id = :id FOR UPDATE');
-        $q->execute([':id' => $id]); $before = $q->fetch();
-        if (!$before) throw new InvalidArgumentException('Student record not found.');
-        $pdo->prepare('UPDATE students SET archived_at = COALESCE(archived_at, NOW()) WHERE id = :id')->execute([':id' => $id]);
-        lifecycle_archive_login($pdo,$before,'student');
-        if (empty($before['archived_at'])) audit_log($actor, 'student_archived', [
-            'entity_type' => 'student', 'entity_id' => $id, 'student_id' => $id,
-            'before' => 'Active record', 'after' => 'Archived; login inactive',
-            'details' => 'Student, IERB, document versions and submission history retained.',
-        ]);
-        $pdo->commit();
-        return $before;
-    } catch (Throwable $e) {
-        if ($pdo->inTransaction()) $pdo->rollBack();
-        throw $e;
-    }
+    require_once __DIR__ . '/includes/account_lifecycle.php';
+    $before=student_with_adviser($pdo,$id);
+    retention_change($pdo,$actor,['accountType'=>'student','targetId'=>$id,'action'=>'archive']);
+    return $before ?? [];
 }
 
 // ---------------------------------------------------------------------

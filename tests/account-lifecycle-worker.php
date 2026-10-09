@@ -5,6 +5,10 @@ $fixture=json_decode($argv[1],true,512,JSON_THROW_ON_ERROR);
 if (!str_contains($fixture['dsn'],'dbname=hardening_test_lifecycle') || !is_dir($fixture['datadir'])) exit(1);
 $pdo=new PDO($fixture['dsn'],$fixture['dbUser']??'root',$fixture['password'],[PDO::ATTR_ERRMODE=>PDO::ERRMODE_EXCEPTION,PDO::ATTR_DEFAULT_FETCH_MODE=>PDO::FETCH_ASSOC]);
 if (realpath($pdo->query('SELECT @@datadir')->fetchColumn())!==realpath($fixture['datadir'])) exit(1);
+define('STORAGE_DIR',dirname(realpath($fixture['datadir'])).DIRECTORY_SEPARATOR.'storage');
+foreach ([STORAGE_DIR,STORAGE_DIR.DIRECTORY_SEPARATOR.'documents',STORAGE_DIR.DIRECTORY_SEPARATOR.'reports'] as $privateDir) {
+    if (!is_dir($privateDir) && !mkdir($privateDir,0700) && !is_dir($privateDir)) exit(1);
+}
 class LifecyclePausedStatement extends PDOStatement {
     protected function __construct(private array $fixture) {}
     public function fetchAll(int $mode=PDO::FETCH_DEFAULT,mixed ...$args): array {
@@ -15,10 +19,17 @@ class LifecyclePausedStatement extends PDOStatement {
             while(!file_exists($gate) && microtime(true)<$deadline) usleep(10000);
             if(!file_exists($gate)) throw new RuntimeException('Final persistence gate timed out');
         }
+        $retentionGate=!empty($this->fixture['retentionGate']) && in_array($this->queryString,['SELECT * FROM students WHERE id=? FOR UPDATE','SELECT * FROM advisers WHERE id=? FOR UPDATE'],true);
+        $assignmentGate=!empty($this->fixture['assignmentGate']) && $this->queryString==='SELECT id,status,archived_at FROM advisers WHERE id=? FOR UPDATE';
+        if ($retentionGate || $assignmentGate) {
+            $gate=$this->fixture[$assignmentGate?'assignmentGate':'retentionGate'];file_put_contents($gate.'.ready','locked');$deadline=microtime(true)+15;
+            while(!file_exists($gate)&&microtime(true)<$deadline)usleep(10000);
+            if(!file_exists($gate))throw new RuntimeException('Retention lock gate timed out');
+        }
         return $rows;
     }
 }
-if(!empty($fixture['finalGate'])) $pdo->setAttribute(PDO::ATTR_STATEMENT_CLASS,[LifecyclePausedStatement::class,[$fixture]]);
+if(!empty($fixture['finalGate']) || !empty($fixture['retentionGate']) || !empty($fixture['assignmentGate'])) $pdo->setAttribute(PDO::ATTR_STATEMENT_CLASS,[LifecyclePausedStatement::class,[$fixture]]);
 $pdo->exec("SET time_zone='+08:00'");
 if(isset($fixture['foreignKeyChecks'])) $pdo->exec('SET SESSION FOREIGN_KEY_CHECKS='.(int)$fixture['foreignKeyChecks']);
 $actor=$pdo->query('SELECT * FROM users WHERE id='.(int)$fixture['actor'])->fetch();
@@ -51,6 +62,11 @@ if (!empty($fixture['waitFile'])) {
     $deadline=microtime(true)+10;
     while(!file_exists($fixture['waitFile']) && microtime(true)<$deadline) usleep(10000);
 }
+if (($fixture['mode']??'')==='late_student_audit') {
+    require_once __DIR__.'/../workflow.php';
+    audit_log($actor,'ierb_note_added',['entity_type'=>'student','entity_id'=>100,'student_id'=>100,'details'=>'Synthetic late workflow data']);
+    json_out(['ok'=>true]);
+}
 if(($fixture['mode']??'')==='student_archive') {
     require_once __DIR__.'/../workflow.php';
     if(!empty($fixture['archiveAttempt'])) file_put_contents($fixture['archiveAttempt'].'.ready',(string)$pdo->query('SELECT CONNECTION_ID()')->fetchColumn());
@@ -74,6 +90,13 @@ session_save_path($fixture['datadir']); session_id('lifecycle'.bin2hex(random_by
 $_SESSION['user_id']=$actor['id'];
 if (in_array($fixture['mode']??'',['adviser_archive','adviser_save','student_save','profile_password'],true)) {
     require_once __DIR__.'/../security.php';
+    if ($fixture['mode']==='student_save') {
+        // Execute the real identity-sync and audit helpers without bootstrapping installed configuration.
+        $configSource=file_get_contents(__DIR__.'/../config.php');
+        $from=strpos($configSource,'function sync_student_login_identity(');$to=strpos($configSource,'function too_many_recent_failures(');
+        if ($from===false || $to===false || $to<=$from) throw new RuntimeException('Cannot extract Student save helpers');
+        eval(substr($configSource,$from,$to-$from));
+    }
     $_GET['action']=match($fixture['mode']) {'adviser_archive'=>'delete','profile_password'=>'change_password',default=>'save'};
     $file=match($fixture['mode']) {'student_save'=>'students_api.php','profile_password'=>'profile_api.php',default=>'advisers_api.php'};
     $source=file_get_contents(__DIR__.'/../'.$file);

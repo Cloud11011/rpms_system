@@ -8,12 +8,16 @@ function deliver_notification_email(PDO $pdo, int $id, string $email, string $su
 {
     // Immediate claimed delivery and cron share a mutex, including during lease recovery.
     $mutexName = 'prism_notification_' . $id;
-    if ($scheduled) {
+    {
         $mutex = $pdo->prepare('SELECT GET_LOCK(:name, 0)');
         $mutex->execute([':name'=>$mutexName]);
-        if ((int)$mutex->fetchColumn() !== 1) return ['ok'=>true, 'status'=>'Scheduled', 'message'=>'Delivery is handled by another worker.'];
+        if ((int)$mutex->fetchColumn() !== 1) return ['ok'=>true, 'status'=>'Skipped', 'message'=>'Delivery is locked by another worker or purge.'];
     }
     try {
+    $current=$pdo->prepare('SELECT status FROM notifications WHERE id=?'); $current->execute([$id]);
+    $currentStatus=$current->fetchColumn();
+    if ($currentStatus===false || $currentStatus==='Cancelled') return ['ok'=>true,'status'=>'Skipped','message'=>'Notification was removed or cancelled.'];
+    if (!$scheduled) $pdo->prepare('UPDATE notifications SET status="Sending",sending_started_at=NOW() WHERE id=?')->execute([$id]);
     try {
         $result = send_notification_email($email, $subject, $body);
     } catch (Throwable $e) {
@@ -35,7 +39,7 @@ function deliver_notification_email(PDO $pdo, int $id, string $email, string $su
     }
     return $result + ['status' => $status, 'message' => $info];
     } finally {
-        if ($scheduled) {
+        {
             $release = $pdo->prepare('SELECT RELEASE_LOCK(:name)');
             $release->execute([':name'=>$mutexName]);
         }

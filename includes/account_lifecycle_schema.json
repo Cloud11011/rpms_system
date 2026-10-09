@@ -1,6 +1,10 @@
 {
     "tables": [
         {
+            "TABLE_NAME": "account_purge_jobs",
+            "ENGINE": "InnoDB"
+        },
+        {
             "TABLE_NAME": "activity_logs",
             "ENGINE": "InnoDB"
         },
@@ -62,6 +66,96 @@
         }
     ],
     "columns": [
+        {
+            "TABLE_NAME": "account_purge_jobs",
+            "COLUMN_NAME": "id",
+            "COLUMN_TYPE": "char(32)",
+            "IS_NULLABLE": "NO",
+            "COLUMN_KEY": "PRI",
+            "EXTRA": "",
+            "COLUMN_DEFAULT": null
+        },
+        {
+            "TABLE_NAME": "account_purge_jobs",
+            "COLUMN_NAME": "account_type",
+            "COLUMN_TYPE": "varchar(20)",
+            "IS_NULLABLE": "NO",
+            "COLUMN_KEY": "",
+            "EXTRA": "",
+            "COLUMN_DEFAULT": null
+        },
+        {
+            "TABLE_NAME": "account_purge_jobs",
+            "COLUMN_NAME": "account_id",
+            "COLUMN_TYPE": "int(11)",
+            "IS_NULLABLE": "NO",
+            "COLUMN_KEY": "",
+            "EXTRA": "",
+            "COLUMN_DEFAULT": null
+        },
+        {
+            "TABLE_NAME": "account_purge_jobs",
+            "COLUMN_NAME": "identifier",
+            "COLUMN_TYPE": "varchar(100)",
+            "IS_NULLABLE": "NO",
+            "COLUMN_KEY": "",
+            "EXTRA": "",
+            "COLUMN_DEFAULT": null
+        },
+        {
+            "TABLE_NAME": "account_purge_jobs",
+            "COLUMN_NAME": "actor_id",
+            "COLUMN_TYPE": "int(11)",
+            "IS_NULLABLE": "NO",
+            "COLUMN_KEY": "",
+            "EXTRA": "",
+            "COLUMN_DEFAULT": null
+        },
+        {
+            "TABLE_NAME": "account_purge_jobs",
+            "COLUMN_NAME": "method",
+            "COLUMN_TYPE": "varchar(30)",
+            "IS_NULLABLE": "NO",
+            "COLUMN_KEY": "",
+            "EXTRA": "",
+            "COLUMN_DEFAULT": null
+        },
+        {
+            "TABLE_NAME": "account_purge_jobs",
+            "COLUMN_NAME": "status",
+            "COLUMN_TYPE": "varchar(30)",
+            "IS_NULLABLE": "NO",
+            "COLUMN_KEY": "MUL",
+            "EXTRA": "",
+            "COLUMN_DEFAULT": "'files_pending'"
+        },
+        {
+            "TABLE_NAME": "account_purge_jobs",
+            "COLUMN_NAME": "manifest_sha256",
+            "COLUMN_TYPE": "char(64)",
+            "IS_NULLABLE": "NO",
+            "COLUMN_KEY": "",
+            "EXTRA": "",
+            "COLUMN_DEFAULT": null
+        },
+        {
+            "TABLE_NAME": "account_purge_jobs",
+            "COLUMN_NAME": "created_at",
+            "COLUMN_TYPE": "datetime",
+            "IS_NULLABLE": "NO",
+            "COLUMN_KEY": "",
+            "EXTRA": "",
+            "COLUMN_DEFAULT": "current_timestamp()"
+        },
+        {
+            "TABLE_NAME": "account_purge_jobs",
+            "COLUMN_NAME": "completed_at",
+            "COLUMN_TYPE": "datetime",
+            "IS_NULLABLE": "YES",
+            "COLUMN_KEY": "",
+            "EXTRA": "",
+            "COLUMN_DEFAULT": "NULL"
+        },
         {
             "TABLE_NAME": "activity_logs",
             "COLUMN_NAME": "id",
@@ -130,7 +224,7 @@
             "COLUMN_NAME": "entity_type",
             "COLUMN_TYPE": "varchar(40)",
             "IS_NULLABLE": "YES",
-            "COLUMN_KEY": "",
+            "COLUMN_KEY": "MUL",
             "EXTRA": "",
             "COLUMN_DEFAULT": "NULL"
         },
@@ -148,7 +242,7 @@
             "COLUMN_NAME": "student_id",
             "COLUMN_TYPE": "int(11)",
             "IS_NULLABLE": "YES",
-            "COLUMN_KEY": "",
+            "COLUMN_KEY": "MUL",
             "EXTRA": "",
             "COLUMN_DEFAULT": "NULL"
         },
@@ -279,6 +373,78 @@
             "COLUMN_DEFAULT": "current_timestamp()"
         },
         {
+            "TABLE_NAME": "advisers",
+            "COLUMN_NAME": "archived_at",
+            "COLUMN_TYPE": "datetime",
+            "IS_NULLABLE": "YES",
+            "COLUMN_KEY": "MUL",
+            "EXTRA": "",
+            "COLUMN_DEFAULT": "NULL"
+        },
+        {
+            "TABLE_NAME": "advisers",
+            "COLUMN_NAME": "retention_hold",
+            "COLUMN_TYPE": "tinyint(1)",
+            "IS_NULLABLE": "NO",
+            "COLUMN_KEY": "",
+            "EXTRA": "",
+            "COLUMN_DEFAULT": "0"
+        },
+        {
+            "TABLE_NAME": "advisers",
+            "COLUMN_NAME": "retention_hold_at",
+            "COLUMN_TYPE": "datetime",
+            "IS_NULLABLE": "YES",
+            "COLUMN_KEY": "",
+            "EXTRA": "",
+            "COLUMN_DEFAULT": "NULL"
+        },
+        {
+            "TABLE_NAME": "advisers",
+            "COLUMN_NAME": "retention_hold_by",
+            "COLUMN_TYPE": "int(11)",
+            "IS_NULLABLE": "YES",
+            "COLUMN_KEY": "",
+            "EXTRA": "",
+            "COLUMN_DEFAULT": "NULL"
+        },
+        {
+            "TABLE_NAME": "advisers",
+            "COLUMN_NAME": "retention_hold_reason",
+            "COLUMN_TYPE": "varchar(500)",
+            "IS_NULLABLE": "YES",
+            "COLUMN_KEY": "",
+            "EXTRA": "",
+            "COLUMN_DEFAULT": "NULL"
+        },
+        {
+            "TABLE_NAME": "advisers",
+            "COLUMN_NAME": "purge_postponed_at",
+            "COLUMN_TYPE": "datetime",
+            "IS_NULLABLE": "YES",
+            "COLUMN_KEY": "",
+            "EXTRA": "",
+            "COLUMN_DEFAULT": "NULL"
+        },
+        {
+            "TABLE_NAME": "advisers",
+            "COLUMN_NAME": "purge_postponed_reason",
+            "COLUMN_TYPE": "varchar(255)",
+            "IS_NULLABLE": "YES",
+            "COLUMN_KEY": "",
+            "EXTRA": "",
+            "COLUMN_DEFAULT": "NULL"
+        },
+        {
+            "TABLE_NAME": "advisers",
+            "COLUMN_NAME": "restored_at",
+            "COLUMN_TYPE": "datetime",
+            "IS_NULLABLE": "YES",
+            "COLUMN_KEY": "",
+            "EXTRA": "",
+            "COLUMN_DEFAULT": "NULL"
+        },
+        {
             "TABLE_NAME": "ai_outputs",
             "COLUMN_NAME": "id",
             "COLUMN_TYPE": "varchar(40)",
@@ -356,6 +522,24 @@
             "COLUMN_TYPE": "datetime",
             "IS_NULLABLE": "YES",
             "COLUMN_KEY": "",
+            "EXTRA": "",
+            "COLUMN_DEFAULT": "NULL"
+        },
+        {
+            "TABLE_NAME": "ai_outputs",
+            "COLUMN_NAME": "owner_student_id",
+            "COLUMN_TYPE": "int(11)",
+            "IS_NULLABLE": "YES",
+            "COLUMN_KEY": "MUL",
+            "EXTRA": "",
+            "COLUMN_DEFAULT": "NULL"
+        },
+        {
+            "TABLE_NAME": "ai_outputs",
+            "COLUMN_NAME": "owner_document_id",
+            "COLUMN_TYPE": "varchar(40)",
+            "IS_NULLABLE": "YES",
+            "COLUMN_KEY": "MUL",
             "EXTRA": "",
             "COLUMN_DEFAULT": "NULL"
         },
@@ -439,6 +623,15 @@
             "COLUMN_KEY": "",
             "EXTRA": "on update current_timestamp()",
             "COLUMN_DEFAULT": "current_timestamp()"
+        },
+        {
+            "TABLE_NAME": "calendar_deadlines",
+            "COLUMN_NAME": "creator_name",
+            "COLUMN_TYPE": "varchar(190)",
+            "IS_NULLABLE": "YES",
+            "COLUMN_KEY": "",
+            "EXTRA": "",
+            "COLUMN_DEFAULT": "NULL"
         },
         {
             "TABLE_NAME": "calendar_deadline_groups",
@@ -535,7 +728,7 @@
             "COLUMN_NAME": "stored_name",
             "COLUMN_TYPE": "varchar(255)",
             "IS_NULLABLE": "NO",
-            "COLUMN_KEY": "",
+            "COLUMN_KEY": "MUL",
             "EXTRA": "",
             "COLUMN_DEFAULT": null
         },
@@ -598,7 +791,7 @@
             "COLUMN_NAME": "supersedes_id",
             "COLUMN_TYPE": "varchar(40)",
             "IS_NULLABLE": "YES",
-            "COLUMN_KEY": "",
+            "COLUMN_KEY": "MUL",
             "EXTRA": "",
             "COLUMN_DEFAULT": "NULL"
         },
@@ -832,7 +1025,7 @@
             "COLUMN_NAME": "recipient_type",
             "COLUMN_TYPE": "varchar(20)",
             "IS_NULLABLE": "NO",
-            "COLUMN_KEY": "",
+            "COLUMN_KEY": "MUL",
             "EXTRA": "",
             "COLUMN_DEFAULT": null
         },
@@ -1048,7 +1241,7 @@
             "COLUMN_NAME": "filename",
             "COLUMN_TYPE": "varchar(255)",
             "IS_NULLABLE": "NO",
-            "COLUMN_KEY": "",
+            "COLUMN_KEY": "MUL",
             "EXTRA": "",
             "COLUMN_DEFAULT": null
         },
@@ -1078,6 +1271,15 @@
             "COLUMN_KEY": "",
             "EXTRA": "",
             "COLUMN_DEFAULT": "current_timestamp()"
+        },
+        {
+            "TABLE_NAME": "reports",
+            "COLUMN_NAME": "owner_student_id",
+            "COLUMN_TYPE": "int(11)",
+            "IS_NULLABLE": "YES",
+            "COLUMN_KEY": "MUL",
+            "EXTRA": "",
+            "COLUMN_DEFAULT": "NULL"
         },
         {
             "TABLE_NAME": "schema_meta",
@@ -1318,6 +1520,69 @@
             "COLUMN_NAME": "archived_at",
             "COLUMN_TYPE": "datetime",
             "IS_NULLABLE": "YES",
+            "COLUMN_KEY": "MUL",
+            "EXTRA": "",
+            "COLUMN_DEFAULT": "NULL"
+        },
+        {
+            "TABLE_NAME": "students",
+            "COLUMN_NAME": "retention_hold",
+            "COLUMN_TYPE": "tinyint(1)",
+            "IS_NULLABLE": "NO",
+            "COLUMN_KEY": "",
+            "EXTRA": "",
+            "COLUMN_DEFAULT": "0"
+        },
+        {
+            "TABLE_NAME": "students",
+            "COLUMN_NAME": "retention_hold_at",
+            "COLUMN_TYPE": "datetime",
+            "IS_NULLABLE": "YES",
+            "COLUMN_KEY": "",
+            "EXTRA": "",
+            "COLUMN_DEFAULT": "NULL"
+        },
+        {
+            "TABLE_NAME": "students",
+            "COLUMN_NAME": "retention_hold_by",
+            "COLUMN_TYPE": "int(11)",
+            "IS_NULLABLE": "YES",
+            "COLUMN_KEY": "",
+            "EXTRA": "",
+            "COLUMN_DEFAULT": "NULL"
+        },
+        {
+            "TABLE_NAME": "students",
+            "COLUMN_NAME": "retention_hold_reason",
+            "COLUMN_TYPE": "varchar(500)",
+            "IS_NULLABLE": "YES",
+            "COLUMN_KEY": "",
+            "EXTRA": "",
+            "COLUMN_DEFAULT": "NULL"
+        },
+        {
+            "TABLE_NAME": "students",
+            "COLUMN_NAME": "purge_postponed_at",
+            "COLUMN_TYPE": "datetime",
+            "IS_NULLABLE": "YES",
+            "COLUMN_KEY": "",
+            "EXTRA": "",
+            "COLUMN_DEFAULT": "NULL"
+        },
+        {
+            "TABLE_NAME": "students",
+            "COLUMN_NAME": "purge_postponed_reason",
+            "COLUMN_TYPE": "varchar(255)",
+            "IS_NULLABLE": "YES",
+            "COLUMN_KEY": "",
+            "EXTRA": "",
+            "COLUMN_DEFAULT": "NULL"
+        },
+        {
+            "TABLE_NAME": "students",
+            "COLUMN_NAME": "restored_at",
+            "COLUMN_TYPE": "datetime",
+            "IS_NULLABLE": "YES",
             "COLUMN_KEY": "",
             "EXTRA": "",
             "COLUMN_DEFAULT": "NULL"
@@ -1415,11 +1680,83 @@
     ],
     "indexes": [
         {
+            "TABLE_NAME": "account_purge_jobs",
+            "INDEX_NAME": "PRIMARY",
+            "NON_UNIQUE": 0,
+            "SEQ_IN_INDEX": 1,
+            "COLUMN_NAME": "id",
+            "SUB_PART": null,
+            "INDEX_TYPE": "BTREE"
+        },
+        {
+            "TABLE_NAME": "account_purge_jobs",
+            "INDEX_NAME": "purge_job_status",
+            "NON_UNIQUE": 1,
+            "SEQ_IN_INDEX": 1,
+            "COLUMN_NAME": "status",
+            "SUB_PART": null,
+            "INDEX_TYPE": "BTREE"
+        },
+        {
+            "TABLE_NAME": "account_purge_jobs",
+            "INDEX_NAME": "purge_job_status",
+            "NON_UNIQUE": 1,
+            "SEQ_IN_INDEX": 2,
+            "COLUMN_NAME": "created_at",
+            "SUB_PART": null,
+            "INDEX_TYPE": "BTREE"
+        },
+        {
+            "TABLE_NAME": "activity_logs",
+            "INDEX_NAME": "lifecycle_entity",
+            "NON_UNIQUE": 1,
+            "SEQ_IN_INDEX": 1,
+            "COLUMN_NAME": "entity_type",
+            "SUB_PART": null,
+            "INDEX_TYPE": "BTREE"
+        },
+        {
+            "TABLE_NAME": "activity_logs",
+            "INDEX_NAME": "lifecycle_entity",
+            "NON_UNIQUE": 1,
+            "SEQ_IN_INDEX": 2,
+            "COLUMN_NAME": "entity_id",
+            "SUB_PART": null,
+            "INDEX_TYPE": "BTREE"
+        },
+        {
+            "TABLE_NAME": "activity_logs",
+            "INDEX_NAME": "lifecycle_student",
+            "NON_UNIQUE": 1,
+            "SEQ_IN_INDEX": 1,
+            "COLUMN_NAME": "student_id",
+            "SUB_PART": null,
+            "INDEX_TYPE": "BTREE"
+        },
+        {
             "TABLE_NAME": "activity_logs",
             "INDEX_NAME": "PRIMARY",
             "NON_UNIQUE": 0,
             "SEQ_IN_INDEX": 1,
             "COLUMN_NAME": "id",
+            "SUB_PART": null,
+            "INDEX_TYPE": "BTREE"
+        },
+        {
+            "TABLE_NAME": "advisers",
+            "INDEX_NAME": "adviser_archive_lifecycle",
+            "NON_UNIQUE": 1,
+            "SEQ_IN_INDEX": 1,
+            "COLUMN_NAME": "archived_at",
+            "SUB_PART": null,
+            "INDEX_TYPE": "BTREE"
+        },
+        {
+            "TABLE_NAME": "advisers",
+            "INDEX_NAME": "adviser_archive_lifecycle",
+            "NON_UNIQUE": 1,
+            "SEQ_IN_INDEX": 2,
+            "COLUMN_NAME": "retention_hold",
             "SUB_PART": null,
             "INDEX_TYPE": "BTREE"
         },
@@ -1456,6 +1793,24 @@
             "NON_UNIQUE": 1,
             "SEQ_IN_INDEX": 1,
             "COLUMN_NAME": "user_id",
+            "SUB_PART": null,
+            "INDEX_TYPE": "BTREE"
+        },
+        {
+            "TABLE_NAME": "ai_outputs",
+            "INDEX_NAME": "ai_owner_document",
+            "NON_UNIQUE": 1,
+            "SEQ_IN_INDEX": 1,
+            "COLUMN_NAME": "owner_document_id",
+            "SUB_PART": null,
+            "INDEX_TYPE": "BTREE"
+        },
+        {
+            "TABLE_NAME": "ai_outputs",
+            "INDEX_NAME": "ai_owner_student",
+            "NON_UNIQUE": 1,
+            "SEQ_IN_INDEX": 1,
+            "COLUMN_NAME": "owner_student_id",
             "SUB_PART": null,
             "INDEX_TYPE": "BTREE"
         },
@@ -1578,6 +1933,24 @@
         },
         {
             "TABLE_NAME": "documents",
+            "INDEX_NAME": "document_previous_version",
+            "NON_UNIQUE": 1,
+            "SEQ_IN_INDEX": 1,
+            "COLUMN_NAME": "supersedes_id",
+            "SUB_PART": null,
+            "INDEX_TYPE": "BTREE"
+        },
+        {
+            "TABLE_NAME": "documents",
+            "INDEX_NAME": "document_stored_file",
+            "NON_UNIQUE": 1,
+            "SEQ_IN_INDEX": 1,
+            "COLUMN_NAME": "stored_name",
+            "SUB_PART": null,
+            "INDEX_TYPE": "BTREE"
+        },
+        {
+            "TABLE_NAME": "documents",
             "INDEX_NAME": "PRIMARY",
             "NON_UNIQUE": 0,
             "SEQ_IN_INDEX": 1,
@@ -1609,6 +1982,24 @@
             "NON_UNIQUE": 1,
             "SEQ_IN_INDEX": 1,
             "COLUMN_NAME": "student_id",
+            "SUB_PART": null,
+            "INDEX_TYPE": "BTREE"
+        },
+        {
+            "TABLE_NAME": "notifications",
+            "INDEX_NAME": "notification_recipient",
+            "NON_UNIQUE": 1,
+            "SEQ_IN_INDEX": 1,
+            "COLUMN_NAME": "recipient_type",
+            "SUB_PART": null,
+            "INDEX_TYPE": "BTREE"
+        },
+        {
+            "TABLE_NAME": "notifications",
+            "INDEX_NAME": "notification_recipient",
+            "NON_UNIQUE": 1,
+            "SEQ_IN_INDEX": 2,
+            "COLUMN_NAME": "recipient_id",
             "SUB_PART": null,
             "INDEX_TYPE": "BTREE"
         },
@@ -1658,6 +2049,24 @@
             "INDEX_TYPE": "BTREE"
         },
         {
+            "TABLE_NAME": "reports",
+            "INDEX_NAME": "report_owner_student",
+            "NON_UNIQUE": 1,
+            "SEQ_IN_INDEX": 1,
+            "COLUMN_NAME": "owner_student_id",
+            "SUB_PART": null,
+            "INDEX_TYPE": "BTREE"
+        },
+        {
+            "TABLE_NAME": "reports",
+            "INDEX_NAME": "report_stored_file",
+            "NON_UNIQUE": 1,
+            "SEQ_IN_INDEX": 1,
+            "COLUMN_NAME": "filename",
+            "SUB_PART": null,
+            "INDEX_TYPE": "BTREE"
+        },
+        {
             "TABLE_NAME": "schema_meta",
             "INDEX_NAME": "PRIMARY",
             "NON_UNIQUE": 0,
@@ -1699,6 +2108,24 @@
             "NON_UNIQUE": 0,
             "SEQ_IN_INDEX": 1,
             "COLUMN_NAME": "id",
+            "SUB_PART": null,
+            "INDEX_TYPE": "BTREE"
+        },
+        {
+            "TABLE_NAME": "students",
+            "INDEX_NAME": "student_archive_lifecycle",
+            "NON_UNIQUE": 1,
+            "SEQ_IN_INDEX": 1,
+            "COLUMN_NAME": "archived_at",
+            "SUB_PART": null,
+            "INDEX_TYPE": "BTREE"
+        },
+        {
+            "TABLE_NAME": "students",
+            "INDEX_NAME": "student_archive_lifecycle",
+            "NON_UNIQUE": 1,
+            "SEQ_IN_INDEX": 2,
+            "COLUMN_NAME": "retention_hold",
             "SUB_PART": null,
             "INDEX_TYPE": "BTREE"
         },
@@ -1861,5 +2288,5 @@
         }
     ],
     "triggers": [],
-    "schema_version": "8"
+    "schema_version": "9"
 }

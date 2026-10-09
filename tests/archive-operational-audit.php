@@ -89,6 +89,7 @@ if (($argv[1]??'')==='--case') {
         }
     }
     if (!empty($case['empty'])) foreach (['documents','students','advisers'] as $table) $pdo->exec('DELETE FROM '.$table);
+    require_once __DIR__.'/retention-fixture-support.php';retention_fixture_support(__NAMESPACE__,true);
     $snapshot=[]; foreach (['students','advisers','documents','ierb_history','activity_logs'] as $table) $snapshot[$table]=$pdo->query('SELECT * FROM '.$table)->fetchAll();
     ob_start(); register_shutdown_function(function() use($pdo,$temp,$snapshot) {
         $body=ob_get_clean(); $pdf=''; foreach (glob($temp.'/*.pdf') as $file) { $pdf.=file_get_contents($file); unlink($file); } rmdir($temp);
@@ -96,6 +97,7 @@ if (($argv[1]??'')==='--case') {
         echo json_encode(['status'=>$GLOBALS['status'],'response'=>$GLOBALS['response']??null,'body'=>base64_encode($body),'headers'=>$GLOBALS['headers'],'audits'=>$GLOBALS['audits'],'provider'=>$GLOBALS['provider'],'notices'=>$GLOBALS['notices'],'pdf'=>$pdf,'unchanged'=>$after===$snapshot],JSON_INVALID_UTF8_SUBSTITUTE);
     });
     $s=file_get_contents(__DIR__.'/../'.$case['file']);
+    $s=str_replace(["require_once __DIR__.'/includes/account_lifecycle.php';","require_once __DIR__ . '/includes/account_lifecycle.php';"],'',$s);
     // Only known local bootstrap/include statements can be removed. No live config is ever evaluated.
     $s=preg_replace("~require(?:_once)? __DIR__ \\. '/(?:config|workflow|ai_helpers|includes/(?:pagination|record_filters|academic_catalog|research_groups|office_container|document_summary|notification_delivery|calendar_deadlines|csv_export))\\.php';~",'',$s);
     if (preg_match('/\b(?:require|include)(?:_once)?\s*(?:\(|[\'"$])/',$s)) throw new RuntimeException('Unexpected fixture dependency');

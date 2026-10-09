@@ -4,6 +4,7 @@ require __DIR__ . '/config.php';
 require_once __DIR__ . '/includes/pagination.php';
 require_once __DIR__ . '/ai_helpers.php';
 require_once __DIR__ . '/workflow.php';
+require_once __DIR__ . '/includes/account_lifecycle.php';
 require_once __DIR__ . '/includes/office_container.php';
 
 $user = api_require_login(['admin', 'adviser', 'student']);
@@ -56,6 +57,8 @@ function begin_document_write(PDO $pdo, array $document): void
         $student = $pdo->prepare('SELECT id FROM students WHERE id = :id FOR UPDATE');
         $student->execute([':id' => $document['student_id']]);
         $student->fetchColumn();
+        try { purge_require_no_pending($pdo,'student',(int)$document['student_id']); }
+        catch (AccountLifecycleConflict $e) { throw new DocumentWriteConflict($e->getMessage(),0,$e); }
     }
     $current = fetch_doc($pdo, (string)$document['id'], true);
     $fields = ['student_id', 'adviser_id', 'archived_at', 'is_current', 'supersedes_id', 'review_status',
@@ -324,6 +327,10 @@ if ($action === 'upload') {
         $studentLock = $pdo->prepare('SELECT id, full_name, stage, adviser_id, email, research_title, research_group, archived_at FROM students WHERE id = :id FOR UPDATE');
         $studentLock->execute([':id' => $studentDbId]);
         $currentStudent = $studentLock->fetch();
+        if ($currentStudent) {
+            try { purge_require_no_pending($pdo,'student',(int)$currentStudent['id']); }
+            catch (AccountLifecycleConflict $e) { throw new DocumentWriteConflict($e->getMessage(),0,$e); }
+        }
         if (!$currentStudent || !empty($currentStudent['archived_at'])
             || ($user['role'] === 'student' && strcasecmp((string)$currentStudent['email'], (string)$user['email']) !== 0)
             || ($user['role'] === 'adviser' && ((int)$currentStudent['adviser_id'] !== $viewerAdviserId || !empty($currentStudent['archived_at'])))) {

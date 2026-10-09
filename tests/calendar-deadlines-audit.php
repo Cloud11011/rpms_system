@@ -29,6 +29,9 @@ if (($argv[1] ?? '') === '--case') {
     $pdo->exec('ALTER TABLE students ADD COLUMN archived_at TEXT');
     $pdo->exec('CREATE TABLE users (id INTEGER PRIMARY KEY, role TEXT, email TEXT)');
     $pdo->exec("INSERT INTO users VALUES (10,'admin','admin@example.test'),(11,'adviser','adviser@example.test'),(99,'adviser','other@example.test')");
+    $pdo->exec("ALTER TABLE users ADD COLUMN status TEXT DEFAULT 'Active'");
+    $pdo->exec("ALTER TABLE users ADD COLUMN full_name TEXT DEFAULT 'Fixture Actor'");
+    $pdo->exec('ALTER TABLE calendar_deadlines ADD COLUMN creator_name TEXT');
     $pdo->exec('CREATE TABLE calendar_deadline_recipients (deadline_id INTEGER, student_id INTEGER, PRIMARY KEY(deadline_id,student_id))');
     foreach ($case['sql'] ?? [] as $sql) $pdo->exec($sql);
     $role = $case['role'] ?? 'admin';

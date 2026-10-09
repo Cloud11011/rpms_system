@@ -81,6 +81,23 @@ body.prism-workspace .lifecycle-form .lifecycle-danger[type=submit] {
 }
 body.prism-workspace .lifecycle-form .lifecycle-danger[type=submit]:hover:not(:disabled) { background:#861b32; }
 #permanentDeleteAvailability { margin:12px 0; line-height:1.5; overflow-wrap:anywhere; }
+.retention-toolbar,.retention-cleanup { padding:16px; margin:12px 0; border:1px solid var(--border-color); border-radius:8px; background:var(--card-bg); color:var(--text-primary); }
+.retention-toolbar { position:sticky; top:12px; z-index:10; }
+.retention-toolbar-actions { display:flex; flex-wrap:wrap; align-items:center; gap:10px; margin-top:10px; }
+.retention-toolbar-actions select,.retention-toolbar-actions input[type=text],.retention-results input { max-width:100%; min-width:0; padding:10px; color:var(--text-primary); background:var(--input-bg); border:1px solid var(--border-color); border-radius:6px; }
+.retention-selection-label { display:flex; gap:8px; align-items:center; }
+.retention-select input,.retention-selection-label input { width:20px; height:20px; accent-color:var(--accent-purple); }
+.retention-state { display:block; margin-top:8px; max-width:280px; line-height:1.5; overflow-wrap:anywhere; }
+.retention-results { max-height:320px; overflow:auto; overflow-wrap:anywhere; }
+.retention-results p { margin:8px 0; }
+.retention-recovery { display:flex; flex-wrap:wrap; gap:8px; margin-top:8px; }
+.retention-cleanup p { margin-bottom:12px; line-height:1.6; }
+.retention-cleanup button { margin:0 8px 8px 0; }
+.retention-select input:focus-visible,.retention-toolbar :is(button,input,select):focus-visible,.retention-cleanup button:focus-visible { outline:3px solid var(--accent-purple); outline-offset:3px; }
+.lifecycle-form textarea { width:100%; box-sizing:border-box; resize:vertical; padding:10px; color:var(--text-primary); background:var(--input-bg); border:1px solid var(--border-color); border-radius:7px; font:inherit; }
+#permanentDeleteResult { white-space:pre-line; }
+.lifecycle-form [hidden] { display:none!important; }
+@media(max-width:600px) { .retention-toolbar { position:static; } .retention-toolbar-actions { align-items:stretch; flex-direction:column; } .retention-toolbar-actions :is(button,select) { width:100%; } }
 @media(max-width:600px) {
     body.prism-workspace dialog.lifecycle-dialog { width:calc(100vw - 24px); padding:20px 16px; }
 }

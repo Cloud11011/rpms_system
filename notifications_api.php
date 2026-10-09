@@ -14,17 +14,17 @@ if ($action === 'list') {
     $scope = ' FROM notifications n';
     $params = [];
     if ($user['role'] === 'student') {
-        $scope .= ' WHERE n.recipient_email = :e';
+        $scope .= ' WHERE n.recipient_email = :e AND n.recipient_type <> "historical_adviser"';
         $params[':e'] = $user['email'];
     } elseif ($user['role'] === 'adviser') {
         $scope .= ' LEFT JOIN students s ON n.recipient_type = "student" AND n.recipient_id = s.id
             LEFT JOIN advisers a ON a.id = s.adviser_id
-            WHERE (n.recipient_email = :self)
+            WHERE (n.recipient_email = :self AND n.recipient_type <> "historical_adviser")
                OR (n.recipient_type = "student" AND a.email = :self AND s.archived_at IS NULL)';
         $params[':self'] = $user['email'];
     }
     if (isset($_GET['preview']) && !empty($_GET['personal'])) {
-        $scope = ' FROM notifications n WHERE n.recipient_email = :personal';
+        $scope = ' FROM notifications n WHERE n.recipient_email = :personal AND n.recipient_type <> "historical_adviser"';
         $params = [':personal' => $user['email']];
     }
     $count = $pdo->prepare('SELECT COUNT(*)' . $scope);
@@ -44,14 +44,14 @@ if ($action === 'mark_read') {
     $data = json_body();
     $id = (int)($data['id'] ?? 0);
     $stmt = $pdo->prepare('UPDATE notifications SET read_at = NOW()
-        WHERE id = :id AND recipient_email = :e');
+        WHERE id = :id AND recipient_email = :e AND recipient_type <> "historical_adviser"');
     $stmt->execute([':id' => $id, ':e' => $user['email']]);
     json_out(['ok' => true]);
 }
 
 if ($action === 'mark_all_read') {
     $pdo->prepare('UPDATE notifications SET read_at = NOW()
-        WHERE recipient_email = :e AND read_at IS NULL')->execute([':e' => $user['email']]);
+        WHERE recipient_email = :e AND recipient_type <> "historical_adviser" AND read_at IS NULL')->execute([':e' => $user['email']]);
     json_out(['ok' => true]);
 }
 

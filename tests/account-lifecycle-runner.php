@@ -5,7 +5,7 @@
  * Run: C:\xampp\php\php.exe tests/account-lifecycle-runner.php --lifecycle
  */
 if (PHP_SAPI !== 'cli') { http_response_code(404); exit; }
-if ($argc !== 2 || !in_array($argv[1], ['--lifecycle-metadata', '--lifecycle', '--lifecycle-remediation', '--lifecycle-shared-hosting'], true) || PHP_OS_FAMILY !== 'Windows') {
+if ($argc !== 2 || !in_array($argv[1], ['--lifecycle-metadata', '--lifecycle', '--lifecycle-remediation', '--lifecycle-shared-hosting', '--retention', '--retention-manifest'], true) || PHP_OS_FAMILY !== 'Windows') {
     fwrite(STDERR, "Requires Windows/XAMPP and --lifecycle or --lifecycle-metadata.\n");
     exit(1);
 }
@@ -31,7 +31,7 @@ $declarations = reset_migration_source($source, 'const SCHEMA_VERSION = ', "\nfu
 $setup = reset_migration_source($source, 'function send_account_setup_email(', "\nfunction json_body(");
 eval('namespace PrismResetMigrationSQL; use \PDO; use \RuntimeException; use \Throwable;'
     . 'const APP_BASE_URL = "https://prism.invalid";'
-    . 'function getenv(string $key): string|false { if (!empty($GLOBALS["denyMigration"])) return false; return ($key === "PRISM_ALLOW_SCHEMA_V6_MIGRATION" || ($key === "PRISM_ALLOW_SCHEMA_V7_MIGRATION" && !empty($GLOBALS["allowV7"])) || ($key === "PRISM_ALLOW_SCHEMA_V8_MIGRATION" && !empty($GLOBALS["allowV8"]))) ? "1" : false; }'
+    . 'function getenv(string $key): string|false { if (!empty($GLOBALS["denyMigration"])) return false; return ($key === "PRISM_ALLOW_SCHEMA_V6_MIGRATION" || ($key === "PRISM_ALLOW_SCHEMA_V7_MIGRATION" && !empty($GLOBALS["allowV7"])) || ($key === "PRISM_ALLOW_SCHEMA_V8_MIGRATION" && !empty($GLOBALS["allowV8"])) || ($key === "PRISM_ALLOW_SCHEMA_V9_MIGRATION" && !empty($GLOBALS["allowV9"]))) ? "1" : false; }'
     . 'function app_base_url_is_valid(): bool { return true; }'
     . 'function log_api_error(...$args): void { $GLOBALS["setupErrors"]++; }'
     . 'function send_notification_email(...$args): array { $GLOBALS["setupMailCalls"]++; return ["ok" => true, "channel" => "fixture"]; }'
@@ -87,7 +87,7 @@ try {
         'Connection must belong to the temporary instance');
     echo 'Temporary MariaDB version: ' . $pdo->query('SELECT VERSION()')->fetchColumn() . "\n";
 
-    require __DIR__.'/account-lifecycle-mysql.php';
+    require __DIR__.(str_starts_with($argv[1],'--retention')?'/account-retention-mysql.php':'/account-lifecycle-mysql.php');
 } catch (Throwable $error) {
     $failure = $error;
 } finally {

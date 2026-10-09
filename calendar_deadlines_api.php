@@ -58,8 +58,11 @@ try {
         $date = deadline_date($data['date'] ?? null);
         $pdo->beginTransaction();
         // Serialize creates for this actor; the lock is released by commit/rollback.
-        $creatorLock = $pdo->prepare('SELECT id FROM users WHERE id = :id FOR UPDATE');
-        $creatorLock->execute([':id' => $user['id']]); $creatorLock->fetchColumn();
+        $creatorLock = $pdo->prepare('SELECT id,status,role FROM users WHERE id = :id FOR UPDATE');
+        $creatorLock->execute([':id' => $user['id']]); $currentCreator=$creatorLock->fetch();
+        if (!$currentCreator || $currentCreator['status']!=='Active' || $currentCreator['role']!==$user['role']) {
+            throw new DomainException('Your account is no longer active.');
+        }
         [$target, $groups] = deadline_targets($pdo, $user, $data);
         sort($groups, SORT_STRING);
         $recent = $pdo->prepare("SELECT id FROM calendar_deadlines WHERE creator_user_id = :creator
@@ -77,9 +80,9 @@ try {
                     'message'=>'This official deadline was already created. No duplicate notification was queued.', 'delivery'=>null]);
             }
         }
-        $stmt = $pdo->prepare('INSERT INTO calendar_deadlines (creator_user_id, title, description, deadline_date, target_scope)
-            VALUES (:creator, :title, :description, :date, :scope)');
-        $stmt->execute([':creator' => $user['id'], ':title' => trim($title), ':description' => trim($description),
+        $stmt = $pdo->prepare('INSERT INTO calendar_deadlines (creator_user_id, creator_name, title, description, deadline_date, target_scope)
+            VALUES (:creator, :creator_name, :title, :description, :date, :scope)');
+        $stmt->execute([':creator' => $user['id'], ':creator_name'=>$user['full_name'], ':title' => trim($title), ':description' => trim($description),
             ':date' => $date, ':scope' => $target]);
         $id = (int)$pdo->lastInsertId();
         $stmt = $pdo->prepare('INSERT INTO calendar_deadline_groups (deadline_id, research_group) VALUES (:id, :group)');

@@ -44,9 +44,11 @@ class FixtureDb extends PDO
 }
 class FixtureStatement extends PDOStatement
 {
+    private array $bound=[];
     public function __construct(private FixtureDb $db, private string $sql) {}
     public function execute(?array $params = null): bool
     {
+        $this->bound=$params??[];
         $this->db->events[] = $this->sql;
         if (str_starts_with($this->sql, 'INSERT INTO notifications')) {
             if (!$this->db->transaction) throw new RuntimeException('Notification persistence outside transaction.');
@@ -54,6 +56,7 @@ class FixtureStatement extends PDOStatement
             return true;
         }
         if (str_starts_with($this->sql, 'UPDATE notifications')) {
+            if (str_contains($this->sql,'status="Sending"')) { $this->db->notifications[$params[0]][':status']='Sending';return true; }
             $this->db->notifications[$params[':id']] = array_replace($this->db->notifications[$params[':id']], $params);
             return true;
         }
@@ -96,6 +99,8 @@ class FixtureStatement extends PDOStatement
     }
     public function fetchColumn(int $column = 0): mixed
     {
+        if (str_contains($this->sql,'GET_LOCK')||str_contains($this->sql,'RELEASE_LOCK'))return 1;
+        if (str_starts_with($this->sql,'SELECT status FROM notifications'))return $this->db->notifications[$this->bound[0]][':status']??false;
         if (str_contains($this->sql, 'FROM advisers') || str_contains($this->sql, 'COALESCE(adviser_id')) return 2;
         if (str_starts_with($this->sql, 'SELECT email')) return $this->db->student['email'];
         if (str_starts_with($this->sql, 'SELECT full_name')) return $this->db->student['full_name'];
@@ -219,7 +224,9 @@ if (($argv[1] ?? '') === '--case') {
             'originChecks' => $GLOBALS['originChecks'], 'unexpected' => $unexpected]);
     });
     require_once __DIR__ . '/../includes/office_container.php';
+    require_once __DIR__.'/retention-fixture-support.php';retention_fixture_support(__NAMESPACE__);
     $source = file_get_contents(__DIR__ . '/../documents_api.php');
+    $source = str_replace("require_once __DIR__ . '/includes/account_lifecycle.php';", '', $source);
     $source = str_replace("require_once __DIR__ . '/includes/office_container.php';", '', $source);
     foreach (["require __DIR__ . '/config.php';", "require_once __DIR__ . '/ai_helpers.php';", "require_once __DIR__ . '/workflow.php';"] as $require) {
         $source = str_replace($require, '', $source, $count);

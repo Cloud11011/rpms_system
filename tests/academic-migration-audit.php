@@ -36,7 +36,7 @@ $GLOBALS['migrationFlag'] = false;
 foreach (['PrismAcademicMigrationCLI' => 'cli', 'PrismAcademicMigrationWeb' => 'fpm-fcgi'] as $namespace => $sapi) {
     eval('namespace ' . $namespace . '; use \\PDO; use \\RuntimeException; const PHP_SAPI = '
         . var_export($sapi, true) . '; function getenv(string $name): string|false {'
-        . 'if (in_array($name, ["PRISM_ALLOW_SCHEMA_V7_MIGRATION", "PRISM_ALLOW_SCHEMA_V8_MIGRATION"], true)) return false; if ($name !== "PRISM_ALLOW_SCHEMA_V6_MIGRATION") throw new RuntimeException("Unexpected environment read");'
+        . 'if (in_array($name, ["PRISM_ALLOW_SCHEMA_V7_MIGRATION", "PRISM_ALLOW_SCHEMA_V8_MIGRATION", "PRISM_ALLOW_SCHEMA_V9_MIGRATION"], true)) return false; if ($name !== "PRISM_ALLOW_SCHEMA_V6_MIGRATION") throw new RuntimeException("Unexpected environment read");'
         . 'return $GLOBALS["migrationFlag"]; } ' . $declarations);
 }
 
@@ -300,7 +300,7 @@ function check_academic_columns(MigrationFixturePDO $pdo, string $label): void
     }
 }
 
-migration_expect(8, PrismAcademicMigrationCLI\SCHEMA_VERSION, 'Current schema version remains v8; explicit v6 upgrades remain compatible');
+migration_expect(9, PrismAcademicMigrationCLI\SCHEMA_VERSION, 'Current schema version is v9; explicit v6 upgrades remain compatible');
 foreach ([null, '4', '5', '6'] as $version) {
     foreach ([['PrismAcademicMigrationCLI\\migrate', false], ['PrismAcademicMigrationWeb\\migrate', false],
               ['PrismAcademicMigrationWeb\\migrate', '1'], ['PrismAcademicMigrationCLI\\migrate', 'true']] as [$run, $flag]) {
@@ -314,10 +314,14 @@ foreach ([null, '4', '5', '6'] as $version) {
 }
 foreach (['PrismAcademicMigrationCLI\\migrate', 'PrismAcademicMigrationWeb\\migrate'] as $run) {
     $GLOBALS['migrationFlag'] = false;
-    $pdo = new MigrationFixturePDO('8');
+    $old = new MigrationFixturePDO('8');
+    try { $run($old); throw new RuntimeException('Unapproved v8 to v9 accepted'); }
+    catch (RuntimeException $error) { migration_expect(true,str_contains($error->getMessage(),'migration is pending'),'v8 now requires approved retention migration'); }
+    migration_expect([],migration_writes($old),'Refused v8 upgrade writes nothing');
+    $pdo = new MigrationFixturePDO('9');
     $run($pdo);
-    migration_expect([], migration_writes($pdo), 'Existing v8 is usable without migration approval');
-    migration_expect(0, $pdo->lockReleases, 'Existing v8 does not acquire migration lock');
+    migration_expect([], migration_writes($pdo), 'Existing v9 is usable without migration approval');
+    migration_expect(0, $pdo->lockReleases, 'Existing v9 does not acquire migration lock');
 }
 $GLOBALS['migrationFlag'] = '1';
 $run = 'PrismAcademicMigrationCLI\\migrate';

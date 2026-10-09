@@ -93,9 +93,11 @@ if (($argv[1] ?? '') === '--case') {
     require_once __DIR__ . '/../includes/research_groups.php';
     $pdo->exec('ALTER TABLE students ADD COLUMN archived_at TEXT');
     foreach ($case['fixtureSql'] ?? [] as $sql) $pdo->exec($sql);
+    require_once __DIR__.'/retention-fixture-support.php';retention_fixture_support(__NAMESPACE__,true);
     eval('namespace ' . __NAMESPACE__ . '; use \PDO; ' . preg_replace('/^<\?php\s*/','',\file_get_contents(__DIR__ . '/../includes/pagination.php')));
     eval('namespace ' . __NAMESPACE__ . '; use \PDO; ' . preg_replace('/^<\?php\s*/','',\file_get_contents(__DIR__ . '/../includes/record_filters.php')));
     $source = \file_get_contents(__DIR__ . '/../' . $case['file']);
+    $source=str_replace(["require_once __DIR__.'/includes/account_lifecycle.php';","require_once __DIR__ . '/includes/account_lifecycle.php';"],'',$source);
     $source = str_replace("require_once __DIR__ . '/includes/office_container.php';", '', $source);
     $source = str_replace("require_once __DIR__ . '/includes/document_summary.php';", '', $source);
     foreach (["require __DIR__ . '/config.php';", "require_once __DIR__ . '/workflow.php';", "require_once __DIR__ . '/ai_helpers.php';", "require_once __DIR__ . '/includes/academic_catalog.php';", "require_once __DIR__ . '/includes/notification_delivery.php';", "require_once __DIR__ . '/includes/research_groups.php';"] as $include) $source = str_replace($include, '', $source);

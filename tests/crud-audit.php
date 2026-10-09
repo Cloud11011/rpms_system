@@ -39,11 +39,13 @@ class FixtureStatement extends PDOStatement
                 throw $e;
             }
             $this->db->effects[] = $this->sql;
+            if(str_starts_with($this->sql,'INSERT INTO activity_logs'))$GLOBALS['audit'][]=['transactional_activity',$params];
         }
         return true;
     }
     public function fetch(int $mode = PDO::FETCH_DEFAULT, int $cursorOrientation = PDO::FETCH_ORI_NEXT, int $cursorOffset = 0): mixed
     {
+        if(str_starts_with($this->sql,'SELECT id,status,archived_at FROM advisers'))return ['id'=>7,'status'=>'Active','archived_at'=>null];
         if (str_contains($this->sql,'FROM documents')) return !empty($GLOBALS['case']['documents']) ? ['id'=>1] : false;
         if (!empty($GLOBALS['case']['create']) && str_contains($this->sql, 'FROM users')) return !empty($GLOBALS['case']['inactiveLogin']) ? ['id'=>22,'role'=>'student','status'=>'Inactive'] : false;
         return str_contains($this->sql, 'FOR UPDATE') && !empty($GLOBALS['case']['missing']) ? false : $GLOBALS['record'];
@@ -52,9 +54,16 @@ class FixtureStatement extends PDOStatement
     { if (str_contains($this->sql, 'SELECT v FROM schema_meta')) return 0;
         if (str_contains($this->sql, 'GET_LOCK') || str_contains($this->sql, 'RELEASE_LOCK')) return 1;
         return !empty($GLOBALS['case']['create']) && str_contains($this->sql, 'FROM users') ? false : 7; }
-    public function fetchAll(int $mode = PDO::FETCH_DEFAULT, mixed ...$args): array { return []; }
+    public function fetchAll(int $mode = PDO::FETCH_DEFAULT, mixed ...$args): array {
+        if(str_starts_with($this->sql,'SELECT id,status,archived_at FROM advisers'))return [['id'=>7,'status'=>'Active','archived_at'=>null]];
+        if(str_contains($this->sql,'INFORMATION_SCHEMA.TABLES'))return array_map(fn($t)=>['TABLE_NAME'=>$t,'ENGINE'=>'InnoDB'],['students','advisers','users','password_resets','activity_logs']);
+        if(str_starts_with($this->sql,'SELECT * FROM users WHERE id='))return [$GLOBALS['actor']+['status'=>'Active']];
+        if(str_starts_with($this->sql,'SELECT * FROM students WHERE id=')||str_starts_with($this->sql,'SELECT * FROM advisers WHERE id='))return !empty($GLOBALS['case']['missing'])?[]:[$GLOBALS['record']];
+        if(str_starts_with($this->sql,'SELECT DATE_ADD')||str_starts_with($this->sql,'SELECT datetime'))return [['unresolved_workflow'=>0]];
+        return [];
+    }
     // An unchanged MySQL UPDATE can affect zero rows without indicating a missing record.
-    public function rowCount(): int { return 0; }
+    public function rowCount(): int { return str_starts_with($this->sql,'INSERT')?1:0; }
 }
 function generate_temporary_password(): string { return 'FIXTURE-PROVISIONED-PASSWORD'; }
 // These CRUD mocks cover endpoint validation/atomicity; real ownership and provenance use MariaDB tests.
@@ -67,6 +76,10 @@ function lifecycle_archive_login(PDO $pdo,array $record,string $type): void {
     $pdo->prepare('UPDATE users SET status="Inactive" WHERE role=:role AND email=:email')->execute([':role'=>$type,':email'=>$record['email']]);
     $pdo->prepare('UPDATE password_resets SET used=1 WHERE user_id=:id')->execute([':id'=>11]);
 }
+// Ownership is independently verified with real MariaDB; this CRUD fixture supplies its owned login.
+function lifecycle_resolve_login(PDO $pdo,array $record,string $type,bool $allowAbsent=false):?array{return ['id'=>11,'role'=>$type,'email'=>$record['email'],'status'=>'Active'];}
+function lifecycle_rows(PDO $pdo,string $sql,array $params=[]):array{$q=$pdo->prepare($sql);$q->execute($params);return $q->fetchAll(PDO::FETCH_ASSOC);}
+function retention_table(string $type):string{return retention_type($type)==='student'?'students':'advisers';}
 function send_account_setup_email(...$args): array { return $GLOBALS['case']['delivery']; }
 function db(): PDO { return $GLOBALS['fixtureDb']; }
 function api_require_login($roles): array
@@ -100,10 +113,13 @@ if (($argv[1] ?? '') === '--case') {
         'email' => 'student@example.test', 'adviserId' => 7, 'stage' => !empty($case['progress']) ? 'Stage 2' : 'Stage 1',
         'status' => $case['file'] === 'advisers_api.php' ? 'Active' : 'On Track', 'department'=>!empty($case['create']) ? 'Accountancy / Management / Technology' : 'Legacy department'];
     $record = array_replace($record, $case['storedAcademic'] ?? []);
+    $record+=['employee_id'=>'AD-11','archived_at'=>null];
+    if($case['file']==='advisers_api.php')$record['status']='Active';
     if (in_array($case['file'], ['students_api.php', 'ierb_api.php'], true) && !empty($case['create']) && !array_key_exists('academicInput', $case)) {
         $payload += ['academicUnitKey' => 'amt', 'programKey' => 'bsit', 'yearLevel' => '2nd Year', 'academicYear' => '2026-2027'];
     }
     $payload = array_replace($payload, $case['academicInput'] ?? []);
+    if ($case['file'] === 'advisers_api.php' && ($case['action'] ?? 'save') === 'delete') $payload['expectedAssignedStudents'] = 0;
     if ($case['file'] === 'ierb_api.php' && !empty($case['create']) && empty($case['omitGroup'])
         && !array_key_exists('group', $payload) && !array_key_exists('groupId', $payload)) {
         $payload['groupId'] = '__create__';
@@ -128,11 +144,21 @@ if (($argv[1] ?? '') === '--case') {
             'audit' => $GLOBALS['audit'], 'errors' => $GLOBALS['errors'], 'notifications' => $GLOBALS['notifications'],
             'originChecks' => $GLOBALS['originChecks'], 'unexpected' => $unexpected]);
     });
-    $workflow = file_get_contents(__DIR__ . '/../workflow.php');
+    require_once __DIR__.'/retention-fixture-support.php';retention_fixture_support(__NAMESPACE__);
+    $retention=str_replace("\r\n","\n",file_get_contents(__DIR__.'/../includes/account_retention.php'));
+    foreach(['retention_type','retention_id','retention_unresolved_sql','retention_actor','retention_audit','retention_locked_record','retention_change'] as $function) {
+        $from=strpos($retention,'function '.$function.'(');$to=strpos($retention,"\n}\n",$from);
+        eval('namespace '.__NAMESPACE__.'; use \\PDO; use \\Throwable; use \\RuntimeException; use \\LogicException; use \\AccountLifecycleConflict; use \\AccountLifecycleForbidden; use \\AccountLifecycleNotFound; use \\AccountLifecycleValidation;'.substr($retention,$from,$to+2-$from));
+    }
+    $workflow = str_replace("\r\n","\n",file_get_contents(__DIR__ . '/../workflow.php'));
+    $studentFrom=strpos($workflow,'function student_with_adviser(');$studentTo=strpos($workflow,"\n}\n",$studentFrom);
+    eval('namespace '.__NAMESPACE__.'; use \\PDO;'.substr($workflow,$studentFrom,$studentTo+2-$studentFrom));
     $start = strpos($workflow, 'function archive_student(');
     $end = strpos($workflow, "\n}\n", $start);
-    eval('namespace ' . __NAMESPACE__ . '; use \PDO; use \Throwable; use \InvalidArgumentException; use \DomainException; ' . substr($workflow, $start, $end + 2 - $start));
+    $archive=str_replace("require_once __DIR__ . '/includes/account_lifecycle.php';",'',substr($workflow,$start,$end+2-$start));
+    eval('namespace ' . __NAMESPACE__ . '; use \PDO; use \Throwable; use \InvalidArgumentException; use \DomainException; ' . $archive);
     $source = file_get_contents(__DIR__ . '/../' . $case['file']);
+    $source=str_replace(["require_once __DIR__.'/includes/account_lifecycle.php';","require_once __DIR__ . '/includes/account_lifecycle.php';"],'',$source);
     $source = str_replace("require __DIR__ . '/config.php';", '', $source, $configIncludes);
     $source = str_replace("require_once __DIR__ . '/workflow.php';", '', $source, $workflowIncludes);
     if ($configIncludes !== 1 || $workflowIncludes !== 1) throw new RuntimeException('Unexpected bootstrap.');
@@ -145,7 +171,7 @@ if (($argv[1] ?? '') === '--case') {
     $source = str_replace("require_once __DIR__ . '/includes/csv_export.php';", '', $source);
     if (preg_match('/\b(?:require|include)(?:_once)?\b/', $source)) throw new RuntimeException('Unexpected endpoint include.');
     require_once __DIR__ . '/../includes/academic_catalog.php'; // Pure catalog, exact path only.
-    eval('namespace ' . __NAMESPACE__ . '; use \PDO; use \PDOException; use \Throwable; use \RuntimeException; use \DateTime; ' . preg_replace('/^<\?php\s*/', '', $source));
+    eval('namespace ' . __NAMESPACE__ . '; use \PDO; use \PDOException; use \Throwable; use \RuntimeException; use \DateTime; use \\AccountLifecycleConflict; use \\AccountLifecycleNotFound; ' . preg_replace('/^<\?php\s*/', '', $source));
     exit;
 }
 

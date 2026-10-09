@@ -186,7 +186,7 @@ function db(): PDO
 // Bump this whenever you add anything to migrate(). migrate() is skipped entirely on requests
 // where the stored version already matches, instead of running ~45 INFORMATION_SCHEMA/ALTER
 // checks on every single request.
-const SCHEMA_VERSION = 8;
+const SCHEMA_VERSION = 9;
 
 function migrate(PDO $pdo): void
 {
@@ -200,9 +200,11 @@ function migrate(PDO $pdo): void
         return;
     }
     // Keep the existing explicitly authorized v6 command compatible; v7 needs its own opt-in.
-    $targetVersion = getenv('PRISM_ALLOW_SCHEMA_V8_MIGRATION') === '1' ? 8
-        : (getenv('PRISM_ALLOW_SCHEMA_V7_MIGRATION') === '1' ? 7 : 6);
-    if (PHP_SAPI !== 'cli' || (getenv('PRISM_ALLOW_SCHEMA_V8_MIGRATION') !== '1'
+    $targetVersion = getenv('PRISM_ALLOW_SCHEMA_V9_MIGRATION') === '1' ? 9
+        : (getenv('PRISM_ALLOW_SCHEMA_V8_MIGRATION') === '1' ? 8
+        : (getenv('PRISM_ALLOW_SCHEMA_V7_MIGRATION') === '1' ? 7 : 6));
+    if (PHP_SAPI !== 'cli' || (getenv('PRISM_ALLOW_SCHEMA_V9_MIGRATION') !== '1'
+        && getenv('PRISM_ALLOW_SCHEMA_V8_MIGRATION') !== '1'
         && getenv('PRISM_ALLOW_SCHEMA_V7_MIGRATION') !== '1'
         && getenv('PRISM_ALLOW_SCHEMA_V6_MIGRATION') !== '1')) {
         throw new RuntimeException(
@@ -226,8 +228,9 @@ function migrate(PDO $pdo): void
                 migrate_schema($pdo); // Retain the v5 academic/reset-key upgrade for older databases.
             }
             if ($stored === false || (int)$stored < 6) migrate_schema_v6($pdo);
-            if ($targetVersion >= 7) migrate_schema_v7($pdo);
-            if ($targetVersion >= 8) migrate_schema_v8($pdo);
+            if ($targetVersion >= 7 && ($stored === false || (int)$stored < 7)) migrate_schema_v7($pdo);
+            if ($targetVersion >= 8 && ($stored === false || (int)$stored < 8)) migrate_schema_v8($pdo);
+            if ($targetVersion >= 9) migrate_schema_v9($pdo);
             $pdo->prepare("REPLACE INTO schema_meta (k, v) VALUES ('schema_version', :v)")
                 ->execute([':v' => (string)$targetVersion]);
         }
@@ -350,6 +353,82 @@ function migrate_schema_v8(PDO $pdo): void
     if (strcasecmp((string)$engine, 'InnoDB') !== 0 || $index !== 'student_id,deadline_id') {
         throw new RuntimeException('Incompatible deadline audience engine/index.');
     }
+}
+
+/** Additive retention state. No ownership inferred from names, titles or legacy source_ref. */
+function migration_v9_columns(): array
+{
+    $state = ['retention_hold'=>'TINYINT(1) NOT NULL DEFAULT 0', 'retention_hold_at'=>'DATETIME NULL',
+        'retention_hold_by'=>'INT NULL', 'retention_hold_reason'=>'VARCHAR(500) NULL',
+        'purge_postponed_at'=>'DATETIME NULL', 'purge_postponed_reason'=>'VARCHAR(255) NULL', 'restored_at'=>'DATETIME NULL'];
+    return ['students'=>$state, 'advisers'=>['archived_at'=>'DATETIME NULL']+$state,
+        'reports'=>['owner_student_id'=>'INT NULL'],
+        'ai_outputs'=>['owner_student_id'=>'INT NULL', 'owner_document_id'=>'VARCHAR(40) NULL'],
+        'calendar_deadlines'=>['creator_name'=>'VARCHAR(190) NULL']];
+}
+
+function migration_v9_indexes(): array
+{
+    return [['students','student_archive_lifecycle','archived_at,retention_hold'],
+        ['advisers','adviser_archive_lifecycle','archived_at,retention_hold'],
+        ['reports','report_owner_student','owner_student_id'],['reports','report_stored_file','filename'],
+        ['documents','document_stored_file','stored_name'],['documents','document_previous_version','supersedes_id'],
+        ['ai_outputs','ai_owner_student','owner_student_id'],['ai_outputs','ai_owner_document','owner_document_id'],
+        ['notifications','notification_recipient','recipient_type,recipient_id'],
+        ['activity_logs','lifecycle_entity','entity_type,entity_id'],['activity_logs','lifecycle_student','student_id']];
+}
+
+function migrate_schema_v9(PDO $pdo): void
+{
+    if ((int)$pdo->query('SELECT @@SESSION.foreign_key_checks')->fetchColumn() !== 1) {
+        throw new RuntimeException('Schema v9 requires foreign-key enforcement.');
+    }
+    foreach (migration_v9_columns() as $table=>$columns) foreach ($columns as $column=>$definition) {
+        add_column_if_missing($pdo,$table,$column,$definition);
+        $q=$pdo->prepare('SELECT COLUMN_TYPE, IS_NULLABLE, COLUMN_DEFAULT FROM INFORMATION_SCHEMA.COLUMNS
+            WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME=? AND COLUMN_NAME=?');
+        $q->execute([$table,$column]); $actual=$q->fetch(PDO::FETCH_ASSOC);
+        $type=strtolower(explode(' ',$definition)[0]);
+        // MariaDB displays signed INT as int(11); preserve that existing schema convention.
+        if ($type==='int') $type='int(11)';
+        if (!$actual || strtolower($actual['COLUMN_TYPE'])!==$type
+            || $actual['IS_NULLABLE']!==(str_contains($definition,'NOT NULL')?'NO':'YES')
+            || ($column==='retention_hold' && (string)$actual['COLUMN_DEFAULT']!=='0')) {
+            throw new RuntimeException('Incompatible v9 lifecycle column: '.$table.'.'.$column);
+        }
+    }
+    $pdo->exec("CREATE TABLE IF NOT EXISTS account_purge_jobs (
+        id CHAR(32) PRIMARY KEY, account_type VARCHAR(20) NOT NULL, account_id INT NOT NULL,
+        identifier VARCHAR(100) NOT NULL, actor_id INT NOT NULL, method VARCHAR(30) NOT NULL,
+        status VARCHAR(30) NOT NULL DEFAULT 'files_pending', manifest_sha256 CHAR(64) NOT NULL,
+        created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP, completed_at DATETIME NULL,
+        INDEX purge_job_status (status,created_at)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
+    foreach (migration_v9_indexes() as [$table,$index,$columns]) {
+        $q=$pdo->prepare('SELECT GROUP_CONCAT(COLUMN_NAME ORDER BY SEQ_IN_INDEX) FROM INFORMATION_SCHEMA.STATISTICS
+            WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME=? AND INDEX_NAME=? AND INDEX_TYPE=\'BTREE\' AND NON_UNIQUE=1 AND SUB_PART IS NULL'); $q->execute([$table,$index]);
+        $actual=$q->fetchColumn();
+        if ($actual===null) $pdo->exec("ALTER TABLE `$table` ADD INDEX `$index` ($columns)");
+        elseif ($actual!==$columns) throw new RuntimeException('Incompatible v9 index: '.$index);
+    }
+    $job=$pdo->query("SELECT ENGINE FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME='account_purge_jobs'")->fetchColumn();
+    $columns=$pdo->query("SELECT GROUP_CONCAT(COLUMN_NAME ORDER BY ORDINAL_POSITION) FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME='account_purge_jobs'")->fetchColumn();
+    if ($job!=='InnoDB' || $columns!=='id,account_type,account_id,identifier,actor_id,method,status,manifest_sha256,created_at,completed_at') {
+        throw new RuntimeException('Incompatible purge journal. Schema version was not advanced.');
+    }
+    $expected=['id'=>['char(32)','NO'], 'account_type'=>['varchar(20)','NO'], 'account_id'=>['int(11)','NO'],
+        'identifier'=>['varchar(100)','NO'], 'actor_id'=>['int(11)','NO'], 'method'=>['varchar(30)','NO'],
+        'status'=>['varchar(30)','NO'], 'manifest_sha256'=>['char(64)','NO'], 'created_at'=>['datetime','NO'], 'completed_at'=>['datetime','YES']];
+    foreach ($pdo->query("SELECT COLUMN_NAME,COLUMN_TYPE,IS_NULLABLE FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME='account_purge_jobs'") as $c) {
+        if (($expected[$c['COLUMN_NAME']]??null)!==[$c['COLUMN_TYPE'],$c['IS_NULLABLE']]) throw new RuntimeException('Incompatible purge journal column.');
+    }
+    $keys=$pdo->query("SELECT INDEX_NAME,GROUP_CONCAT(COLUMN_NAME ORDER BY SEQ_IN_INDEX) AS cols,MIN(NON_UNIQUE) AS non_unique
+        FROM INFORMATION_SCHEMA.STATISTICS WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME='account_purge_jobs' AND INDEX_TYPE='BTREE' AND SUB_PART IS NULL GROUP BY INDEX_NAME")->fetchAll(PDO::FETCH_ASSOC);
+    $actualKeys=[];foreach($keys as $key) $actualKeys[$key['INDEX_NAME']]=[$key['cols'],(int)$key['non_unique']];
+    if (($actualKeys['PRIMARY']??null)!==['id',0] || ($actualKeys['purge_job_status']??null)!==['status,created_at',1]) throw new RuntimeException('Incompatible purge journal indexes.');
+    // No dependable legacy Adviser archive date: start a new conservative retention clock.
+    $pdo->exec("UPDATE advisers SET archived_at=NOW() WHERE status='Inactive' AND archived_at IS NULL");
+    $pdo->exec('UPDATE calendar_deadlines d JOIN users u ON u.id=d.creator_user_id SET d.creator_name=u.full_name WHERE d.creator_name IS NULL');
 }
 
 function migrate_schema(PDO $pdo): void

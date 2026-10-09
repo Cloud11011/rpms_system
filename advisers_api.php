@@ -1,5 +1,6 @@
 <?php
 require __DIR__ . '/config.php';
+require_once __DIR__.'/includes/account_lifecycle.php';
 require_once __DIR__ . '/workflow.php';
 require_once __DIR__ . '/includes/pagination.php';
 require_once __DIR__ . '/includes/record_filters.php';
@@ -28,43 +29,16 @@ function row_to_adviser(array $r, array $groups = []): array
         'groups' => $groups,
         'status' => $r['status'],
         'createdAt' => $r['created_at'],
+        'archivedAt' => $r['archived_at'] ?? null,
+        'lifecycle' => retention_state($r),
+        'assignedStudents' => (int)($r['assigned_students'] ?? 0),
     ];
 }
 
 if ($action === 'list') {
-    $scope = 'FROM advisers a WHERE 1=1'; $params = [];
-    $departments = $pdo->query('SELECT DISTINCT department FROM advisers ORDER BY department')->fetchAll(PDO::FETCH_COLUMN);
-    $filterOptions = ['department'=>array_map(fn($v)=>['value'=>trim((string)$v) === '' ? '__blank__' : $v,'label'=>trim((string)$v) === '' ? 'Not recorded' : $v], $departments),
-        'status'=>[['value'=>'Active','label'=>'Active'],['value'=>'Inactive','label'=>'Inactive']],
-        'group'=>array_map(fn($v)=>['value'=>$v,'label'=>$v],research_group_options($pdo,$user))];
-    foreach (['department','status','group'] as $key) {
-        $value = $_GET[$key] ?? '';
-        if (!is_string($value) || ($value !== '' && !in_array($value,array_column($filterOptions[$key],'value'),true))) json_out(['ok'=>false,'message'=>'Invalid adviser filter.'],422);
-        if ($value === '') continue;
-        if ($key === 'group') {
-            $matchingIds = [];
-            foreach (research_groups_by_adviser($pdo) as $adviserId => $groups) {
-                if (in_array($value, $groups, true)) $matchingIds[] = (int)$adviserId;
-            }
-            $scope .= ' AND a.id IN (' . ($matchingIds ? implode(',', $matchingIds) : '0') . ')';
-            continue;
-        }
-        elseif ($value === '__blank__') { $scope .= " AND (a.$key IS NULL OR TRIM(a.$key)='')"; continue; }
-        else $scope .= " AND a.$key=:filter_$key";
-        $params[':filter_'.$key]=$value;
-    }
-    $q = prism_record_search($_GET);
-    if ($q !== '') {
-        $search = prism_search_clause(['a.full_name', 'a.employee_id', 'a.email', 'a.department'], $q, $params);
-        $matchingGroups = array_values(array_filter(research_group_options($pdo, $user), fn($group) => mb_strpos(mb_strtolower($group), mb_strtolower($q)) !== false));
-        if ($matchingGroups) {
-            $keys = [];
-            foreach ($matchingGroups as $i => $group) { $key = ':group' . $i; $keys[] = $key; $params[$key] = $group; }
-            $search .= ' OR EXISTS (SELECT 1 FROM students s WHERE s.adviser_id = a.id AND s.archived_at IS NULL AND s.research_group IN (' . implode(',', $keys) . '))';
-        }
-        $scope .= ' AND (' . $search . ')';
-    }
-    $page = prism_page_query($pdo, 'SELECT a.*', $scope, $params, prism_record_order($_GET,['name'=>'a.full_name','employeeId'=>'a.employee_id','email'=>'a.email','department'=>'a.department','status'=>'a.status'],'name','a.id ASC'), $_GET);
+    try { [$scope,$params,$filterOptions]=retention_list_scope($pdo,$user,'adviser',$_GET); }
+    catch (Throwable $e) { json_out(['ok'=>false,'message'=>$e->getMessage()],lifecycle_error_status($e)); }
+    $page = prism_page_query($pdo, 'SELECT a.*, '.retention_projection('adviser','a').', (SELECT COUNT(*) FROM students ls WHERE ls.adviser_id=a.id) AS assigned_students', $scope, $params, prism_record_order($_GET,['name'=>'a.full_name','employeeId'=>'a.employee_id','email'=>'a.email','department'=>'a.department','status'=>'a.status'],'name','a.id ASC'), $_GET);
     $rows = $page['rows']; unset($page['rows']);
     $groups = research_groups_by_adviser($pdo, array_column($rows, 'id'));
     json_out(['ok' => true, 'advisers' => array_map(fn($r) => row_to_adviser($r, $groups[(int)$r['id']] ?? []), $rows), 'filterOptions'=>$filterOptions] + $page);
@@ -114,6 +88,8 @@ if ($action === 'save') {
                 $pdo->rollBack();
                 json_out(['ok' => false, 'message' => 'Adviser record not found.'], 404);
             }
+            if ($status !== $before['status']) throw new AccountLifecycleConflict('Use Archive or Restore to change Adviser lifecycle.');
+            purge_require_no_pending($pdo,'adviser',$id);
             $identityBefore = lifecycle_identity_capture($pdo,$before,'adviser');
             if (!in_array($department, array_column(academic_catalog()['units'], 'label'), true)) {
                 if ($department !== trim((string)$before['department'])) {
@@ -133,10 +109,10 @@ if ($action === 'save') {
                         ':status' => $status, ':old' => $oldEmail]);
             }
         } else {
-            $stmt = $pdo->prepare('INSERT INTO advisers (employee_id, full_name, email, department, status)
-                VALUES (:eid,:name,:email,:dept,:status)');
+            $stmt = $pdo->prepare('INSERT INTO advisers (employee_id, full_name, email, department, status, archived_at)
+                VALUES (:eid,:name,:email,:dept,:status,CASE WHEN :archive_status="Inactive" THEN NOW() ELSE NULL END)');
             $stmt->execute([':eid' => $employeeId, ':name' => $name, ':email' => $email,
-                ':dept' => $department, ':status' => $status]);
+                ':dept' => $department, ':status' => $status, ':archive_status'=>$status]);
             $id = (int)$pdo->lastInsertId();
 
             $userStmt = $pdo->prepare('SELECT id, role, status FROM users WHERE email = :e OR username = :u LIMIT 1');
@@ -196,30 +172,9 @@ if ($action === 'save') {
 }
 
 if ($action === 'delete') {
-    $id = (int)($data['id'] ?? 0);
-    try {
-        $pdo->beginTransaction();
-        // Archive preserves every assignment; only the Adviser and confirmed login need locking.
-        $row = $pdo->prepare('SELECT * FROM advisers WHERE id = :id FOR UPDATE');
-        $row->execute([':id' => $id]);
-        $before = $row->fetch();
-        if (!$before) {
-            $pdo->rollBack();
-            json_out(['ok' => false, 'message' => 'Adviser record not found.'], 404);
-        }
-        $adviserEmail = (string)$before['email'];
-        lifecycle_archive_login($pdo,$before,'adviser');
-        $pdo->prepare("UPDATE advisers SET status = 'Inactive' WHERE id = :id")->execute([':id' => $id]);
-        $pdo->commit();
-    } catch (Throwable $e) {
-        if ($pdo->inTransaction()) $pdo->rollBack();
-        if ($e instanceof AccountLifecycleConflict) json_out(['ok'=>false,'message'=>$e->getMessage()],409);
-        json_out(['ok' => false, 'message' => 'The adviser could not be deactivated.'], 500);
-    }
-    audit_log($user, 'adviser_deactivated', ['entity_type'=>'adviser', 'entity_id'=>$id, 'before'=>'Existing adviser', 'after'=>'Inactive', 'details'=>'Adviser record, student assignments and history retained.']);
-    json_out(['ok' => true, 'message' => $adviserEmail !== ''
-        ? 'Adviser and associated login deactivated. Records and historical assignments are retained.'
-        : 'Adviser deactivated. Records and historical assignments are retained.']);
+    try { json_out(retention_change($pdo,$user,['accountType'=>'adviser','targetId'=>$data['id']??null,'action'=>'archive',
+        'expectedAssignedStudents'=>$data['expectedAssignedStudents']??null])); }
+    catch (Throwable $e) { json_out(['ok'=>false,'message'=>lifecycle_error_status($e)<500?$e->getMessage():'Adviser archive failed safely.'],lifecycle_error_status($e)); }
 }
 
 json_out(['ok' => false, 'message' => 'Unknown action.'], 400);

@@ -46,3 +46,13 @@ storage/auth_rate_limits/
 !/tests/account-lifecycle-shared-hosting.php
 !/tests/notification-delivery-audit.php
 !/tests/research-group-audit.php
+!/tests/account-retention-mysql.php
+!/tests/account-retention-migration.php
+!/tests/account-retention-extended.php
+!/tests/account-retention-concurrency.php
+!/tests/account-retention-verification.php
+!/tests/account-retention-http.php
+!/tests/account-retention-upload-worker.php
+!/tests/account-retention-ui.cjs
+!/tests/retention-fixture-support.php
+storage/.purge/

@@ -134,7 +134,14 @@ function fixtureTemplate(file) {
   return rendered.stdout;
 }
 
+const retentionUIAudit=require('./account-retention-ui.cjs');
+function retentionMockApi(file,action) { return retentionUIAudit.mockApi(file,action,requests.findLast(r=>r.file===file)); }
+function retentionMockList(file,query) { return retentionUIAudit.mockList(file,query); }
+async function checkRetentionRedesign() {
+  await retentionUIAudit.run({check,evaluate,waitFor,navigate,command,keyPress,setManagement:value=>{managementFixture=value;},getRequests:()=>requests,errors});
+}
 function fixtureApi(file, action) {
+  if (process.argv.includes('--retention-only')) { const response=retentionMockApi(file,action);if(response)return response; }
   if (file === 'documents_api.php' && action === 'summarize') {
     if (summaryProvider === 'error') return {ok:false,message:'No extractable text was found. This appears to be a scanned/image-only PDF. '+attack};
     summaryStored='Purpose: University research review. '+attack+'\nEthics: Informed consent is planned.';
@@ -208,6 +215,7 @@ function fixtureApi(file, action) {
 }
 
 function mockApi(file, action, query = new URLSearchParams()) {
+  if (process.argv.includes('--retention-only') && ['students_api.php','advisers_api.php'].includes(file) && action==='list') return retentionMockList(file,query);
   const data = fixtureApi(file,action);
   if(!data.ok) return data;
   if(file==='ierb_api.php' && action==='history') {
@@ -2224,6 +2232,7 @@ async function run() {
   await command('Log.enable');
   await command('Fetch.enable', { patterns: [{ urlPattern: '*' }] });
   await command('Browser.setDownloadBehavior', { behavior: 'deny' }, true);
+  if (process.argv.includes('--retention-only')) { await checkRetentionRedesign();console.log(checks+' retention browser checks; '+failures.length+' failures.');for(const failure of failures)console.error('FAIL '+failure);if(failures.length)process.exitCode=1;return; }
   if (process.argv.includes('--student-lifecycle-ui-only')) { await checkStudentLifecycle(); console.log(checks+' Student lifecycle UI checks; '+failures.length+' failures.'); for(const failure of failures)console.error('FAIL '+failure); if(failures.length)process.exitCode=1;return; }
   if (process.argv.includes('--lifecycle-ui-only')) { await checkLifecyclePolish(); await checkStudentLifecycle(); console.log(checks+' lifecycle UI checks; '+failures.length+' failures.'); for(const failure of failures)console.error('FAIL '+failure); if(failures.length)process.exitCode=1;return; }
   if (process.argv.includes('--student-protocol-only')) {

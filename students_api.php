@@ -1,5 +1,6 @@
 <?php
 require __DIR__ . '/config.php';
+require_once __DIR__.'/includes/account_lifecycle.php';
 require_once __DIR__ . '/includes/pagination.php';
 require_once __DIR__ . '/includes/record_filters.php';
 require_once __DIR__ . '/workflow.php';
@@ -52,6 +53,7 @@ function row_to_student(array $r): array
         'createdAt' => $r['created_at'],
         'updatedAt' => $r['updated_at'],
         'archivedAt' => $r['archived_at'] ?? null,
+        'lifecycle' => retention_state($r),
     ];
 }
 
@@ -70,12 +72,17 @@ if ($action === 'list' || $action === 'options') {
         json_out(['ok' => true, 'students' => array_map(fn($r) => ['id' => (int)$r['id'], 'studentId' => $r['student_id'],
             'name' => $r['full_name'], 'protocolCode' => $r['protocol_code'], 'stage' => $r['stage']], $stmt->fetchAll())]);
     }
+    if ($user['role']==='admin') {
+        try { [$scope,$params,$filterOptions]=retention_list_scope($pdo,$user,'student',$_GET); }
+        catch (Throwable $e) { json_out(['ok'=>false,'message'=>$e->getMessage()],lifecycle_error_status($e)); }
+    } else {
     $filterOptions = prism_student_filter_options($pdo, $scope, $params);
     prism_apply_student_filters($scope, $params, $_GET, $filterOptions);
     $q = prism_record_search($_GET);
     if ($q !== '') $scope .= ' AND ' . prism_search_clause(['s.full_name', 's.student_id', 's.email', 's.research_title', 's.research_group', 'f.full_name'], $q, $params);
+    }
     $order = prism_record_order($_GET, ['name'=>'s.full_name','studentId'=>'s.student_id','email'=>'s.email','group'=>'s.research_group','adviser'=>'f.full_name','stage'=>'s.stage','status'=>'s.status','academicYear'=>'s.academic_year'], 'name', 's.id ASC');
-    $page = prism_page_query($pdo, 'SELECT s.*, f.full_name AS adviser_name', $scope, $params, $order, $_GET);
+    $page = prism_page_query($pdo, 'SELECT s.*, f.full_name AS adviser_name, '.retention_projection('student','s'), $scope, $params, $order, $_GET);
     $rows = $page['rows']; unset($page['rows']);
     json_out(['ok' => true, 'students' => array_map('row_to_student', $rows), 'filterOptions'=>$filterOptions] + $page);
 }
@@ -183,6 +190,10 @@ if ($action === 'save') {
     $progressChangeText = '';
     try {
         $pdo->beginTransaction();
+        if ($adviserId !== null) {
+            $lockedAdviser=lifecycle_rows($pdo,'SELECT id,status,archived_at FROM advisers WHERE id=? FOR UPDATE',[$adviserId]);
+            if (!$lockedAdviser || $lockedAdviser[0]['status']!=='Active' || $lockedAdviser[0]['archived_at']!==null) throw new AccountLifecycleConflict('Selected Adviser is no longer Active; choose Unassigned or an active Adviser.');
+        }
         if ($id > 0) {
             $existing = $pdo->prepare('SELECT * FROM students WHERE id = :id FOR UPDATE');
             $existing->execute([':id' => $id]);
@@ -196,6 +207,7 @@ if ($action === 'save') {
                 $pdo->rollBack();
                 json_out(['ok' => false, 'message' => 'You can only manage students assigned to you.'], 403);
             }
+            purge_require_no_pending($pdo,'student',$id);
             $identityBefore = lifecycle_identity_capture($pdo,$before,'student');
             if ($adviserEdit) {
                 $studentId = (string)$before['student_id'];
@@ -362,7 +374,7 @@ if ($action === 'delete') {
         archive_student($pdo, $user, $id);
     } catch (Throwable $e) {
         log_api_error('student_archive', 'The archive operation could not be completed.');
-        json_out(['ok' => false, 'message' => $e instanceof AccountLifecycleConflict ? $e->getMessage() : ($e instanceof \InvalidArgumentException ? 'Student record not found.' : 'The student could not be archived.')], $e instanceof AccountLifecycleConflict ? 409 : ($e instanceof \InvalidArgumentException ? 404 : 500));
+        json_out(['ok' => false, 'message' => $e instanceof AccountLifecycleConflict ? $e->getMessage() : ($e instanceof AccountLifecycleNotFound || $e instanceof \InvalidArgumentException ? 'Student record not found.' : 'The student could not be archived.')], $e instanceof AccountLifecycleConflict ? 409 : ($e instanceof AccountLifecycleNotFound || $e instanceof \InvalidArgumentException ? 404 : 500));
     }
     json_out(['ok' => true, 'message' => 'Student archived and login deactivated. All historical records are retained.']);
 }
