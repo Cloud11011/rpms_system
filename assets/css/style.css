@@ -572,3 +572,235 @@ button:hover{
     }
 
 }
+
+/* Final Login/Register design. Other authentication pages keep their existing styles. */
+body.unified-login{
+    height:auto;
+    min-height:100vh;
+    min-height:100svh;
+    overflow:auto;
+}
+
+.unified-login .background-overlay{
+    height:auto;
+    min-height:100vh;
+    min-height:100svh;
+    padding:24px 16px;
+    background:linear-gradient(rgba(12,14,63,.45),rgba(238,18,128,.20));
+}
+
+.unified-login .login-card,
+.unified-login .register-card{
+    width:100%;
+    max-width:430px;
+    flex-shrink:0;
+    padding:30px 30px 35px;
+    border-radius:25px;
+    background:rgba(255,255,255,.96);
+    box-shadow:0 15px 40px rgba(0,0,0,.25);
+    -webkit-backdrop-filter:blur(10px);
+    backdrop-filter:blur(10px);
+    color:#222222;
+}
+
+.unified-login .logo-container{
+    margin-bottom:18px;
+}
+
+.unified-login .logo-main{
+    display:block;
+    width:220px;
+    max-width:100%;
+    height:auto;
+    /* Compensate for the original logo's transparent square canvas. */
+    margin:-60px 0 -76px;
+}
+
+.unified-login .prism-branding{
+    margin:0 0 24px;
+    color:#222222;
+}
+
+.unified-login .prism-branding h1{
+    margin:0 0 7px;
+    color:#222222;
+    font-size:22px;
+    font-weight:700;
+    line-height:1.3;
+}
+
+.unified-login .prism-branding h1 span{
+    display:inline-block;
+    color:#DE4B9E;
+    background:none;
+    -webkit-text-fill-color:currentColor;
+}
+
+@supports ((-webkit-background-clip:text) or (background-clip:text)){
+    .unified-login .prism-branding h1 span{
+        background:linear-gradient(90deg,#DE4B9E 0%,#BC65B3 50%,#8585C7 100%);
+        -webkit-background-clip:text;
+        background-clip:text;
+        -webkit-text-fill-color:transparent;
+    }
+}
+
+.unified-login .prism-branding p{
+    margin:3px 0;
+    color:#666666;
+    font-size:12px;
+    line-height:1.5;
+}
+
+.unified-login .prism-branding strong{
+    color:#0C0E3F;
+    font-size:14px;
+    font-weight:600;
+}
+
+.unified-login .register-card h2{
+    margin:0 0 8px;
+    color:#222222;
+    font-size:20px;
+    line-height:1.4;
+}
+
+.unified-login .register-card .subtitle{
+    margin-bottom:24px;
+    color:#555555;
+    font-size:13px;
+    line-height:1.5;
+}
+
+.unified-login .register-card form{
+    margin-top:0;
+}
+
+.unified-login .input-group{
+    margin-bottom:16px;
+}
+
+.unified-login .input-group > i{
+    color:#888888;
+}
+
+.unified-login .input-group input{
+    height:50px;
+    border:1px solid transparent;
+    border-radius:50px;
+    background:#F3F3F3;
+    color:#222222;
+    padding:0 48px;
+    font-size:13px;
+    transition:border-color .2s ease,background-color .2s ease;
+}
+
+.unified-login .input-group input::placeholder{
+    color:#777777;
+    opacity:1;
+}
+
+.unified-login .input-group input:hover,
+.unified-login .input-group input:focus,
+.unified-login .input-group input:focus-visible{
+    border-color:#EE1280;
+}
+
+.unified-login .input-group input:focus{
+    background:#F3F3F3;
+    outline:2px solid rgba(238,18,128,.25);
+    outline-offset:2px;
+}
+
+.unified-login .input-group .toggle-password{
+    width:44px;
+    height:44px;
+    right:5px;
+    margin:0;
+    padding:0;
+    border:0;
+    background:transparent;
+    color:#888888;
+    font-size:15px;
+}
+
+.unified-login .input-group .toggle-password:hover{
+    background:transparent;
+    color:#EE1280;
+}
+
+.unified-login .form-options{
+    justify-content:flex-end;
+    margin-bottom:24px;
+}
+
+.unified-login .form-options a,
+.unified-login .register-text a{
+    color:#EE1280;
+}
+
+.unified-login button[type="submit"]{
+    width:100%;
+    height:52px;
+    margin-top:0;
+    border:0;
+    border-radius:50px;
+    background:#0C0E3F;
+    color:#FFFFFF;
+    font-size:15px;
+    font-weight:600;
+    transition:background-color .2s ease;
+}
+
+.unified-login button[type="submit"]:hover{
+    background:#EE1280;
+}
+
+.unified-login button:focus-visible,
+.unified-login a:focus-visible{
+    outline:2px solid #EE1280;
+    outline-offset:3px;
+}
+
+.unified-login .register-text{
+    margin-top:20px;
+    color:#555555;
+    font-size:13px;
+    line-height:1.5;
+}
+
+.unified-login .register-text a{
+    font-weight:700;
+}
+
+.unified-login .login-account-note{
+    max-width:310px;
+    margin:14px auto 0;
+    color:#888888;
+    font-size:12.5px;
+    line-height:1.5;
+    text-align:center;
+}
+
+.unified-login .error-message,
+.unified-login .success-message{
+    overflow-wrap:anywhere;
+}
+
+@media(max-width:480px){
+    .unified-login .login-card,
+    .unified-login .register-card{
+        padding:30px 25px;
+    }
+
+    .unified-login .prism-branding h1{
+        font-size:20px;
+    }
+}
+
+@media(max-width:360px){
+    .unified-login .prism-branding h1,
+    .unified-login .register-card h2{
+        font-size:18px;
+    }
+}

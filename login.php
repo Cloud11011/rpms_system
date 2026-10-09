@@ -30,7 +30,7 @@ unset($_SESSION['error'], $_SESSION['success']);
 
 </head>
 
-<body>
+<body class="unified-login">
 
 <div class="background-overlay">
 
@@ -59,19 +59,20 @@ unset($_SESSION['error'], $_SESSION['success']);
             <div class="input-group">
                 <i class="fa-solid fa-lock"></i>
                 <input type="password" name="password" id="password" placeholder="Password" autocomplete="current-password" required>
-                <span class="toggle-password"><i class="fa-solid fa-eye" id="togglePassword"></i></span>
+                <button type="button" class="toggle-password" aria-label="Show password" aria-controls="password" aria-pressed="false"><i class="fa-solid fa-eye" id="togglePassword" aria-hidden="true"></i></button>
             </div>
 
             <div class="form-options">
                 <a href="forgot_password.php">Forgot Password?</a>
             </div>
 
-            <button type="submit">LOGIN</button>
+            <button type="submit">Log in</button>
 
             <div class="register-text">
-                RPMS staff without an account &mdash; <a href="register.php">Register</a>.
-                Research advisers and students are given their login by the RPMS office.
+                RPMS staff without an account? <a href="register.php">Register</a>
             </div>
+
+            <p class="login-account-note">Research advisers and students are given their login by the RPMS office.</p>
 
         </form>
 

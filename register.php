@@ -18,7 +18,7 @@
 
 </head>
 
-<body>
+<body class="unified-login">
 
 <div class="background-overlay">
 
@@ -45,7 +45,7 @@
 
         <?php if (ADMIN_REGISTRATION_CODE === ''): ?>
         <div class="error-message">RPMS staff self-registration is currently disabled. Ask an existing RPMS administrator to create your account or enable the private registration code.</div>
-        <div class="register-text"><a href="login.php">Back to login</a></div>
+        <div class="register-text"><a href="login.php">Login</a></div>
         <?php else: ?>
         <form action="register_process.php" method="POST">
 
@@ -82,7 +82,7 @@
                 <input
                     type="text"
                     name="fullname"
-                    placeholder="Full Name"
+                    placeholder="Enter your full name"
                     maxlength="190"
                     required>
 
@@ -109,17 +109,17 @@
                     type="password"
                     name="password"
                     id="password"
-                    placeholder="Password (8+ characters)"
+                    placeholder="Password (12+ characters)"
                     minlength="12"
                     maxlength="200"
                     autocomplete="new-password"
                     required>
 
-                <span class="toggle-password">
+                <button type="button" class="toggle-password" aria-label="Show password" aria-controls="password" aria-pressed="false">
 
-                    <i class="fa-solid fa-eye" id="togglePassword"></i>
+                    <i class="fa-solid fa-eye" id="togglePassword" aria-hidden="true"></i>
 
-                </span>
+                </button>
 
             </div>
 
@@ -137,17 +137,17 @@
                     autocomplete="new-password"
                     required>
 
-                <span class="toggle-password">
+                <button type="button" class="toggle-password" aria-label="Show confirm password" aria-controls="confirmPassword" aria-pressed="false">
 
-                    <i class="fa-solid fa-eye" id="toggleConfirmPassword"></i>
+                    <i class="fa-solid fa-eye" id="toggleConfirmPassword" aria-hidden="true"></i>
 
-                </span>
+                </button>
 
             </div>
 
             <button type="submit">
 
-                REGISTER
+                Register
 
             </button>
 
@@ -158,10 +158,6 @@
                 <a href="login.php">Login</a>
 
             </div>
-
-            <a class="back-to-roles" href="login.php">
-                <i class="fa-solid fa-arrow-left"></i> Back
-            </a>
 
         </form>
         <?php endif; ?>

@@ -5,7 +5,9 @@ function togglePassword(inputId, iconId){
 
     if(input && icon){
 
-        icon.addEventListener("click", function(){
+        const control = icon.closest(".toggle-password") || icon;
+
+        control.addEventListener("click", function(){
 
             if(input.type === "password"){
 
@@ -19,6 +21,13 @@ function togglePassword(inputId, iconId){
 
             }
 
+            if(control.tagName === "BUTTON"){
+                const visible = input.type === "text";
+                const label = inputId === "confirmPassword" ? "confirm password" : "password";
+                control.setAttribute("aria-label", (visible ? "Hide " : "Show ") + label);
+                control.setAttribute("aria-pressed", String(visible));
+            }
+
         });
 
     }
@@ -27,4 +36,3 @@ function togglePassword(inputId, iconId){
 
 togglePassword("password","togglePassword");
 togglePassword("confirmPassword","toggleConfirmPassword");
-
