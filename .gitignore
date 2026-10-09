@@ -59,6 +59,7 @@ storage/auth_rate_limits/
 !/tests/account-onboarding-remediation-http.php
 !/tests/account-onboarding-mysql.php
 !/tests/account-onboarding-migration.php
+!/tests/account-hostinger-fk-migration.php
 !/tests/account-onboarding-concurrency.php
 !/tests/account-onboarding-ui.cjs
 !/tests/academic-api-audit.php

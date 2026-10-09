@@ -23,13 +23,84 @@ BEGIN
         SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT='Foreign-key enforcement required';
     END IF;
     SELECT GET_LOCK('prism_migrate',30) INTO got_lock;
-    IF got_lock<>1 THEN SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT='Migration lock unavailable'; END IF;
+    IF COALESCE(got_lock,0)<>1 THEN SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT='Migration lock unavailable'; END IF;
     IF COALESCE((SELECT v FROM schema_meta WHERE k='schema_version'),'') NOT IN ('8','9') THEN
         SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT='Verified schema v8 or v9 prerequisite required';
     END IF;
     IF (SELECT COUNT(*) FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_SCHEMA=DATABASE()
         AND TABLE_NAME IN ('users','students','advisers','documents','ierb_history','password_resets','reports','ai_outputs','notifications','activity_logs','calendar_deadlines','calendar_deadline_recipients','calendar_deadline_groups','schema_meta','stage_labels') AND ENGINE='InnoDB')<>15 THEN
         SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT='Expected fifteen InnoDB application tables required';
+    END IF;
+    -- Normalize only the four reviewed Hostinger v8 FK names, under prism_migrate.
+    -- Preflight ALL mappings before any FK DDL; missing/duplicate/unknown/composite shapes refuse.
+    IF (SELECT COUNT(*) FROM INFORMATION_SCHEMA.KEY_COLUMN_USAGE k WHERE BINARY k.TABLE_SCHEMA=DATABASE() AND BINARY k.TABLE_NAME='calendar_deadlines' AND k.REFERENCED_TABLE_NAME IS NOT NULL
+          AND (BINARY k.CONSTRAINT_NAME IN ('1','calendar_deadlines_ibfk_1') OR BINARY k.COLUMN_NAME='creator_user_id'))<>1
+        OR (SELECT COUNT(*) FROM INFORMATION_SCHEMA.KEY_COLUMN_USAGE k
+            LEFT JOIN INFORMATION_SCHEMA.REFERENTIAL_CONSTRAINTS r
+              ON r.CONSTRAINT_SCHEMA=k.CONSTRAINT_SCHEMA AND r.TABLE_NAME=k.TABLE_NAME AND r.CONSTRAINT_NAME=k.CONSTRAINT_NAME
+            WHERE BINARY k.TABLE_SCHEMA=DATABASE() AND BINARY k.TABLE_NAME='calendar_deadlines' AND k.REFERENCED_TABLE_NAME IS NOT NULL
+          AND (BINARY k.CONSTRAINT_NAME IN ('1','calendar_deadlines_ibfk_1') OR BINARY k.COLUMN_NAME='creator_user_id')
+              AND BINARY k.CONSTRAINT_NAME IN ('1','calendar_deadlines_ibfk_1') AND BINARY k.COLUMN_NAME='creator_user_id' AND k.ORDINAL_POSITION=1
+              AND BINARY k.REFERENCED_TABLE_SCHEMA=DATABASE() AND BINARY k.REFERENCED_TABLE_NAME='users' AND BINARY k.REFERENCED_COLUMN_NAME='id'
+              AND BINARY r.UPDATE_RULE='RESTRICT' AND BINARY r.DELETE_RULE='SET NULL')<>1 THEN
+        SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT='Incompatible v9 legacy FK: calendar_deadlines.creator_user_id';
+    END IF;
+    IF (SELECT COUNT(*) FROM INFORMATION_SCHEMA.KEY_COLUMN_USAGE k WHERE BINARY k.TABLE_SCHEMA=DATABASE() AND BINARY k.TABLE_NAME='calendar_deadline_groups' AND k.REFERENCED_TABLE_NAME IS NOT NULL
+          AND (BINARY k.CONSTRAINT_NAME IN ('1','calendar_deadline_groups_ibfk_1') OR BINARY k.COLUMN_NAME='deadline_id'))<>1
+        OR (SELECT COUNT(*) FROM INFORMATION_SCHEMA.KEY_COLUMN_USAGE k
+            LEFT JOIN INFORMATION_SCHEMA.REFERENTIAL_CONSTRAINTS r
+              ON r.CONSTRAINT_SCHEMA=k.CONSTRAINT_SCHEMA AND r.TABLE_NAME=k.TABLE_NAME AND r.CONSTRAINT_NAME=k.CONSTRAINT_NAME
+            WHERE BINARY k.TABLE_SCHEMA=DATABASE() AND BINARY k.TABLE_NAME='calendar_deadline_groups' AND k.REFERENCED_TABLE_NAME IS NOT NULL
+          AND (BINARY k.CONSTRAINT_NAME IN ('1','calendar_deadline_groups_ibfk_1') OR BINARY k.COLUMN_NAME='deadline_id')
+              AND BINARY k.CONSTRAINT_NAME IN ('1','calendar_deadline_groups_ibfk_1') AND BINARY k.COLUMN_NAME='deadline_id' AND k.ORDINAL_POSITION=1
+              AND BINARY k.REFERENCED_TABLE_SCHEMA=DATABASE() AND BINARY k.REFERENCED_TABLE_NAME='calendar_deadlines' AND BINARY k.REFERENCED_COLUMN_NAME='id'
+              AND BINARY r.UPDATE_RULE='RESTRICT' AND BINARY r.DELETE_RULE='CASCADE')<>1 THEN
+        SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT='Incompatible v9 legacy FK: calendar_deadline_groups.deadline_id';
+    END IF;
+    IF (SELECT COUNT(*) FROM INFORMATION_SCHEMA.KEY_COLUMN_USAGE k WHERE BINARY k.TABLE_SCHEMA=DATABASE() AND BINARY k.TABLE_NAME='calendar_deadline_recipients' AND k.REFERENCED_TABLE_NAME IS NOT NULL
+          AND (BINARY k.CONSTRAINT_NAME IN ('fk_deadline_recipient_deadline','calendar_deadline_recipients_ibfk_1') OR BINARY k.COLUMN_NAME='deadline_id'))<>1
+        OR (SELECT COUNT(*) FROM INFORMATION_SCHEMA.KEY_COLUMN_USAGE k
+            LEFT JOIN INFORMATION_SCHEMA.REFERENTIAL_CONSTRAINTS r
+              ON r.CONSTRAINT_SCHEMA=k.CONSTRAINT_SCHEMA AND r.TABLE_NAME=k.TABLE_NAME AND r.CONSTRAINT_NAME=k.CONSTRAINT_NAME
+            WHERE BINARY k.TABLE_SCHEMA=DATABASE() AND BINARY k.TABLE_NAME='calendar_deadline_recipients' AND k.REFERENCED_TABLE_NAME IS NOT NULL
+          AND (BINARY k.CONSTRAINT_NAME IN ('fk_deadline_recipient_deadline','calendar_deadline_recipients_ibfk_1') OR BINARY k.COLUMN_NAME='deadline_id')
+              AND BINARY k.CONSTRAINT_NAME IN ('fk_deadline_recipient_deadline','calendar_deadline_recipients_ibfk_1') AND BINARY k.COLUMN_NAME='deadline_id' AND k.ORDINAL_POSITION=1
+              AND BINARY k.REFERENCED_TABLE_SCHEMA=DATABASE() AND BINARY k.REFERENCED_TABLE_NAME='calendar_deadlines' AND BINARY k.REFERENCED_COLUMN_NAME='id'
+              AND BINARY r.UPDATE_RULE='RESTRICT' AND BINARY r.DELETE_RULE='CASCADE')<>1 THEN
+        SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT='Incompatible v9 legacy FK: calendar_deadline_recipients.deadline_id';
+    END IF;
+    IF (SELECT COUNT(*) FROM INFORMATION_SCHEMA.KEY_COLUMN_USAGE k WHERE BINARY k.TABLE_SCHEMA=DATABASE() AND BINARY k.TABLE_NAME='calendar_deadline_recipients' AND k.REFERENCED_TABLE_NAME IS NOT NULL
+          AND (BINARY k.CONSTRAINT_NAME IN ('fk_deadline_recipient_student','calendar_deadline_recipients_ibfk_2') OR BINARY k.COLUMN_NAME='student_id'))<>1
+        OR (SELECT COUNT(*) FROM INFORMATION_SCHEMA.KEY_COLUMN_USAGE k
+            LEFT JOIN INFORMATION_SCHEMA.REFERENTIAL_CONSTRAINTS r
+              ON r.CONSTRAINT_SCHEMA=k.CONSTRAINT_SCHEMA AND r.TABLE_NAME=k.TABLE_NAME AND r.CONSTRAINT_NAME=k.CONSTRAINT_NAME
+            WHERE BINARY k.TABLE_SCHEMA=DATABASE() AND BINARY k.TABLE_NAME='calendar_deadline_recipients' AND k.REFERENCED_TABLE_NAME IS NOT NULL
+          AND (BINARY k.CONSTRAINT_NAME IN ('fk_deadline_recipient_student','calendar_deadline_recipients_ibfk_2') OR BINARY k.COLUMN_NAME='student_id')
+              AND BINARY k.CONSTRAINT_NAME IN ('fk_deadline_recipient_student','calendar_deadline_recipients_ibfk_2') AND BINARY k.COLUMN_NAME='student_id' AND k.ORDINAL_POSITION=1
+              AND BINARY k.REFERENCED_TABLE_SCHEMA=DATABASE() AND BINARY k.REFERENCED_TABLE_NAME='students' AND BINARY k.REFERENCED_COLUMN_NAME='id'
+              AND BINARY r.UPDATE_RULE='RESTRICT' AND BINARY r.DELETE_RULE='RESTRICT')<>1 THEN
+        SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT='Incompatible v9 legacy FK: calendar_deadline_recipients.student_id';
+    END IF;
+    -- Static, quoted identifiers only. A single ALTER drops/recreates each FK without an intermediate gap.
+    IF EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.KEY_COLUMN_USAGE WHERE TABLE_SCHEMA=DATABASE()
+        AND TABLE_NAME='calendar_deadlines' AND CONSTRAINT_NAME='1' AND REFERENCED_TABLE_NAME IS NOT NULL) THEN
+        ALTER TABLE `calendar_deadlines` DROP FOREIGN KEY `1`, ADD CONSTRAINT `calendar_deadlines_ibfk_1`
+            FOREIGN KEY (`creator_user_id`) REFERENCES `users` (`id`) ON UPDATE RESTRICT ON DELETE SET NULL;
+    END IF;
+    IF EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.KEY_COLUMN_USAGE WHERE TABLE_SCHEMA=DATABASE()
+        AND TABLE_NAME='calendar_deadline_groups' AND CONSTRAINT_NAME='1' AND REFERENCED_TABLE_NAME IS NOT NULL) THEN
+        ALTER TABLE `calendar_deadline_groups` DROP FOREIGN KEY `1`, ADD CONSTRAINT `calendar_deadline_groups_ibfk_1`
+            FOREIGN KEY (`deadline_id`) REFERENCES `calendar_deadlines` (`id`) ON UPDATE RESTRICT ON DELETE CASCADE;
+    END IF;
+    IF EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.KEY_COLUMN_USAGE WHERE TABLE_SCHEMA=DATABASE()
+        AND TABLE_NAME='calendar_deadline_recipients' AND CONSTRAINT_NAME='fk_deadline_recipient_deadline' AND REFERENCED_TABLE_NAME IS NOT NULL) THEN
+        ALTER TABLE `calendar_deadline_recipients` DROP FOREIGN KEY `fk_deadline_recipient_deadline`, ADD CONSTRAINT `calendar_deadline_recipients_ibfk_1`
+            FOREIGN KEY (`deadline_id`) REFERENCES `calendar_deadlines` (`id`) ON UPDATE RESTRICT ON DELETE CASCADE;
+    END IF;
+    IF EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.KEY_COLUMN_USAGE WHERE TABLE_SCHEMA=DATABASE()
+        AND TABLE_NAME='calendar_deadline_recipients' AND CONSTRAINT_NAME='fk_deadline_recipient_student' AND REFERENCED_TABLE_NAME IS NOT NULL) THEN
+        ALTER TABLE `calendar_deadline_recipients` DROP FOREIGN KEY `fk_deadline_recipient_student`, ADD CONSTRAINT `calendar_deadline_recipients_ibfk_2`
+            FOREIGN KEY (`student_id`) REFERENCES `students` (`id`) ON UPDATE RESTRICT ON DELETE RESTRICT;
     END IF;
     ALTER TABLE `students` ADD COLUMN IF NOT EXISTS `retention_hold` TINYINT(1) NOT NULL DEFAULT 0;
     ALTER TABLE `students` ADD COLUMN IF NOT EXISTS `retention_hold_at` DATETIME NULL;

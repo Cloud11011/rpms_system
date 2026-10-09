@@ -340,5 +340,6 @@ require __DIR__.'/account-retention-concurrency.php';
 require __DIR__.'/account-retention-verification.php';
 require __DIR__.'/account-retention-http.php';
 require __DIR__.'/account-onboarding-migration.php';
+require __DIR__.'/account-hostinger-fk-migration.php';
 require __DIR__.'/account-onboarding-mysql.php';
 require __DIR__.'/account-onboarding-concurrency.php';

@@ -439,11 +439,62 @@ function migration_v9_verify(PDO $pdo): void
     }
 }
 
+/** Only these known v8 FK names may be normalized; final verification stays exact. */
+function migration_v9_legacy_foreign_keys(): array
+{
+    return [
+        ['calendar_deadlines','creator_user_id','1','calendar_deadlines_ibfk_1','users','id','RESTRICT','SET NULL'],
+        ['calendar_deadline_groups','deadline_id','1','calendar_deadline_groups_ibfk_1','calendar_deadlines','id','RESTRICT','CASCADE'],
+        ['calendar_deadline_recipients','deadline_id','fk_deadline_recipient_deadline','calendar_deadline_recipients_ibfk_1','calendar_deadlines','id','RESTRICT','CASCADE'],
+        ['calendar_deadline_recipients','student_id','fk_deadline_recipient_student','calendar_deadline_recipients_ibfk_2','students','id','RESTRICT','RESTRICT'],
+    ];
+}
+
+function migration_v9_normalize_foreign_keys(PDO $pdo): void
+{
+    $schema=(string)$pdo->query('SELECT DATABASE()')->fetchColumn();
+    $q=$pdo->prepare('SELECT k.TABLE_SCHEMA,k.TABLE_NAME,k.COLUMN_NAME,k.CONSTRAINT_NAME,k.ORDINAL_POSITION,
+        k.REFERENCED_TABLE_SCHEMA,k.REFERENCED_TABLE_NAME,k.REFERENCED_COLUMN_NAME,r.UPDATE_RULE,r.DELETE_RULE
+        FROM INFORMATION_SCHEMA.KEY_COLUMN_USAGE k LEFT JOIN INFORMATION_SCHEMA.REFERENTIAL_CONSTRAINTS r
+          ON r.CONSTRAINT_SCHEMA=k.CONSTRAINT_SCHEMA AND r.TABLE_NAME=k.TABLE_NAME AND r.CONSTRAINT_NAME=k.CONSTRAINT_NAME
+        WHERE k.TABLE_SCHEMA=DATABASE() AND k.TABLE_NAME=? AND k.REFERENCED_TABLE_NAME IS NOT NULL
+          AND (k.CONSTRAINT_NAME IN (?,?) OR k.COLUMN_NAME=?) ORDER BY k.CONSTRAINT_NAME,k.ORDINAL_POSITION');
+    $pending=[];
+    // Preflight every relationship before changing any FK, including composite/duplicate shapes.
+    foreach(migration_v9_legacy_foreign_keys() as $mapping) {
+        [$table,$column,$legacy,$canonical,$parent,$target,$update,$delete]=$mapping;
+        $q->execute([$table,$legacy,$canonical,$column]); $rows=$q->fetchAll(PDO::FETCH_ASSOC);
+        $row=$rows[0]??[]; $name=(string)($row['CONSTRAINT_NAME']??'');
+        if(count($rows)!==1 || !in_array($name,[$legacy,$canonical],true)
+            || [$row['TABLE_SCHEMA']??null,$row['TABLE_NAME']??null,$row['COLUMN_NAME']??null,(string)($row['ORDINAL_POSITION']??''),
+                $row['REFERENCED_TABLE_SCHEMA']??null,$row['REFERENCED_TABLE_NAME']??null,$row['REFERENCED_COLUMN_NAME']??null,
+                $row['UPDATE_RULE']??null,$row['DELETE_RULE']??null]!==[$schema,$table,$column,'1',$schema,$parent,$target,$update,$delete]) {
+            throw new RuntimeException('Incompatible v9 legacy foreign key: '.$table.'.'.$column.'. Schema version was not advanced.');
+        }
+        if($name===$legacy) $pending[]=$mapping;
+    }
+    if(!$pending) return;
+    if((int)$pdo->query("SELECT COALESCE(IS_USED_LOCK('prism_migrate')=CONNECTION_ID(),0)")->fetchColumn()!==1
+        || (int)$pdo->query('SELECT @@SESSION.foreign_key_checks')->fetchColumn()!==1) {
+        throw new RuntimeException('Legacy FK normalization requires the migration lock and foreign-key enforcement.');
+    }
+    foreach($pending as [$table,$column,$legacy,$canonical,$parent,$target,$update,$delete]) {
+        // Identifiers/rules are migration constants, never request values. One ALTER avoids a drop/add gap.
+        $pdo->exec("ALTER TABLE `$table` DROP FOREIGN KEY `$legacy`, ADD CONSTRAINT `$canonical`
+            FOREIGN KEY (`$column`) REFERENCES `$parent` (`$target`) ON UPDATE $update ON DELETE $delete");
+        $q->execute([$table,$legacy,$canonical,$column]); $rows=$q->fetchAll(PDO::FETCH_ASSOC);
+        if(count($rows)!==1 || $rows[0]['CONSTRAINT_NAME']!==$canonical) {
+            throw new RuntimeException('Legacy FK normalization did not produce the canonical constraint.');
+        }
+    }
+}
+
 function migrate_schema_v9(PDO $pdo): void
 {
     if ((int)$pdo->query('SELECT @@SESSION.foreign_key_checks')->fetchColumn() !== 1) {
         throw new RuntimeException('Schema v9 requires foreign-key enforcement.');
     }
+    migration_v9_normalize_foreign_keys($pdo);
     foreach (migration_v9_columns() as $table=>$columns) foreach ($columns as $column=>$definition) {
         add_column_if_missing($pdo,$table,$column,$definition);
         $q=$pdo->prepare('SELECT COLUMN_TYPE, IS_NULLABLE, COLUMN_DEFAULT FROM INFORMATION_SCHEMA.COLUMNS

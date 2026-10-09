@@ -5,7 +5,7 @@
  * Run: C:\xampp\php\php.exe tests/account-lifecycle-runner.php --lifecycle
  */
 if (PHP_SAPI !== 'cli') { http_response_code(404); exit; }
-if ($argc !== 2 || !in_array($argv[1], ['--lifecycle-metadata', '--lifecycle', '--lifecycle-remediation', '--lifecycle-shared-hosting', '--retention', '--retention-manifest'], true) || PHP_OS_FAMILY !== 'Windows') {
+if (!in_array($argc,[2,4],true) || ($argc===4 && $argv[2]!=='--mariadb-bin') || !in_array($argv[1], ['--lifecycle-metadata', '--lifecycle', '--lifecycle-remediation', '--lifecycle-shared-hosting', '--retention', '--retention-manifest', '--hostinger-fk-migration', '--hostinger-fk-retries', '--hostinger-fk-guards'], true) || PHP_OS_FAMILY !== 'Windows') {
     fwrite(STDERR, "Requires Windows/XAMPP and --lifecycle or --lifecycle-metadata.\n");
     exit(1);
 }
@@ -41,6 +41,12 @@ $GLOBALS['setupErrors'] = 0;
 $GLOBALS['setupMailCalls'] = 0;
 
 $bin = dirname(PHP_BINARY, 2) . '/mysql/bin/';
+// Optional portable binaries still start a fresh private datadir/port with the same ownership checks.
+if($argc===4) {
+    $resolvedBin=realpath($argv[3]);
+    if($resolvedBin===false) throw new RuntimeException('Portable MariaDB binary directory not found.');
+    $bin=rtrim($resolvedBin,'\\/').'/';
+}
 if (!is_file($bin . 'mysql_install_db.exe') || !is_file($bin . 'mysqld.exe')) {
     throw new RuntimeException('XAMPP MariaDB binaries not found.');
 }
@@ -66,7 +72,7 @@ try {
     if (proc_close($install) !== 0) throw new RuntimeException('Temporary MariaDB initialization failed.');
     $descriptors = [0 => ['pipe', 'r'], 1 => ['file', $root . '/server.log', 'a'], 2 => ['file', $root . '/server.log', 'a']];
     $server = proc_open([$bin . 'mysqld.exe', '--no-defaults', '--basedir=' . dirname($bin),
-        '--datadir=' . $datadir, '--bind-address=127.0.0.1', '--port=' . $port, '--skip-log-bin',
+        '--datadir=' . $datadir, '--tmpdir=' . $root, '--bind-address=127.0.0.1', '--port=' . $port, '--skip-log-bin',
         '--innodb-buffer-pool-size=32M', '--pid-file=' . $root . '/server.pid'],
         $descriptors, $pipes, $root, null, ['bypass_shell' => true, 'create_new_console' => false]);
     if (!is_resource($server)) throw new RuntimeException('Cannot start temporary MariaDB.');
@@ -88,7 +94,13 @@ try {
         'Connection must belong to the temporary instance');
     echo 'Temporary MariaDB version: ' . $pdo->query('SELECT VERSION()')->fetchColumn() . "\n";
 
-    require __DIR__.(str_starts_with($argv[1],'--retention')?'/account-retention-mysql.php':'/account-lifecycle-mysql.php');
+    if(in_array($argv[1],['--hostinger-fk-migration','--hostinger-fk-retries','--hostinger-fk-guards'],true)) {
+        require_once __DIR__.'/../includes/account_lifecycle.php';
+        $GLOBALS['allowV7']=$GLOBALS['allowV8']=true;
+        require __DIR__.'/account-hostinger-fk-migration.php';
+    } else {
+        require __DIR__.(str_starts_with($argv[1],'--retention')?'/account-retention-mysql.php':'/account-lifecycle-mysql.php');
+    }
 } catch (Throwable $error) {
     $failure = $error;
 } finally {
@@ -119,6 +131,6 @@ try {
     }
 }
 if ($failure) {
-    fwrite(STDERR, 'FAIL: ' . $failure->getMessage() . "\n");
+    fwrite(STDERR, 'FAIL: ' . $failure->getMessage() . (isset($GLOBALS['hostingerFkContext'])?' [FK fixture '.$GLOBALS['hostingerFkContext'].']':'') . "\n");
     exit(1);
 }
