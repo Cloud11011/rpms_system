@@ -16,6 +16,13 @@ function retention_id(mixed $id): int
 }
 function retention_table(string $type): string { return retention_type($type)==='student'?'students':'advisers'; }
 
+/** Empty institutional IDs require a genuine email confirmation, never a made-up ID. */
+function retention_identifier(array $r,string $type,bool $audit=false): string
+{
+    $identifier=(string)($r[$type==='student'?'student_id':'employee_id']??'');
+    return $identifier!==''?$identifier:($audit?$type.' account #'.(int)$r['id']:(string)$r['email']);
+}
+
 /** Actual open workflow, not historical activity. Used identically in lists and execution. */
 function retention_unresolved_sql(string $type,string $alias): string
 {
@@ -97,19 +104,20 @@ function retention_change(PDO $pdo,array $actor,array $data,?array $authorizedSc
     if (!is_string($reason) || mb_strlen($reason)>500) throw new AccountLifecycleValidation('Reason must be 500 characters or fewer.');
     if ($pdo->inTransaction()) throw new LogicException('Lifecycle owns its transaction.');
     $engines=lifecycle_rows($pdo,"SELECT TABLE_NAME,ENGINE FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_SCHEMA=DATABASE()
-        AND TABLE_NAME IN ('students','advisers','users','password_resets','activity_logs')");
-    if (count($engines)!==5 || array_filter($engines,fn($t)=>$t['ENGINE']!=='InnoDB')) throw new AccountLifecycleConflict('Lifecycle changes require transactional account, assignment, token and audit tables.');
+        AND TABLE_NAME IN ('students','advisers','users','password_resets','account_invitations','activity_logs')");
+    if (count($engines)!==6 || array_filter($engines,fn($t)=>$t['ENGINE']!=='InnoDB')) throw new AccountLifecycleConflict('Lifecycle changes require transactional account, assignment, token and audit tables.');
     $pdo->beginTransaction();
     try {
         $actor=retention_actor($pdo,$actor); $r=retention_locked_record($pdo,$type,$id);
         if ($authorizedScope!==null && !retention_scope_rows($pdo,$actor,$type,$authorizedScope,[$id])) throw new AccountLifecycleConflict('Account left the selected filter scope.');
         purge_require_no_pending($pdo,$type,$id);
-        $table=retention_table($type); $identifier=$r[$type==='student'?'student_id':'employee_id']; $impact=0;
+        $table=retention_table($type); $identifier=retention_identifier($r,$type,true); $impact=0;
         if ($action==='archive') {
             $login=lifecycle_resolve_login($pdo,$r,$type,true);
             if ($login) {
                 $pdo->prepare('UPDATE users SET status="Inactive" WHERE id=?')->execute([$login['id']]);
                 $pdo->prepare('UPDATE password_resets SET used=1 WHERE user_id=?')->execute([$login['id']]);
+                $pdo->prepare('UPDATE account_invitations SET token_hash=NULL,expires_at=NULL WHERE user_id=?')->execute([$login['id']]);
             }
             if ($type==='adviser') {
                 $assigned=lifecycle_rows($pdo,'SELECT id FROM students WHERE adviser_id=? ORDER BY id FOR UPDATE',[$id]);
@@ -137,7 +145,13 @@ function retention_change(PDO $pdo,array $actor,array $data,?array $authorizedSc
                     ->execute([password_hash(bin2hex(random_bytes(32)),PASSWORD_DEFAULT),$login['id']]);
                 $pdo->prepare('DELETE FROM password_resets WHERE user_id=?')->execute([$login['id']]);
                 $token=bin2hex(random_bytes(32));
-                $pdo->prepare('INSERT INTO password_resets (user_id,token,expires_at) VALUES (?,?,DATE_ADD(NOW(),INTERVAL 24 HOUR))')
+                $invitation=lifecycle_rows($pdo,'SELECT * FROM account_invitations WHERE user_id=? FOR UPDATE',[$login['id']]);
+                $pendingSetup=$invitation && $invitation[0]['accepted_at']===null && $r['profile_completed_at']===null;
+                if ($pendingSetup) {
+                    $pdo->prepare('UPDATE users SET must_change_password=0 WHERE id=?')->execute([$login['id']]);
+                    $pdo->prepare('UPDATE account_invitations SET token_hash=?,expires_at=DATE_ADD(NOW(),INTERVAL 1 HOUR),last_sent_at=NOW() WHERE user_id=?')
+                        ->execute([hash('sha256',$token),$login['id']]);
+                } else $pdo->prepare('INSERT INTO password_resets (user_id,token,expires_at) VALUES (?,?,DATE_ADD(NOW(),INTERVAL 24 HOUR))')
                     ->execute([$login['id'],'sha256:'.hash('sha256',$token)]);
                 $pdo->prepare("UPDATE $table SET archived_at=NULL,retention_hold=0,retention_hold_at=NULL,retention_hold_by=NULL,
                     retention_hold_reason=NULL,purge_postponed_at=NULL,purge_postponed_reason=NULL,restored_at=NOW()".
@@ -156,7 +170,8 @@ function retention_change(PDO $pdo,array $actor,array $data,?array $authorizedSc
         if (isset($token)) {
             // Setup token is shown once to the authorized Admin; never stored plaintext in audit/job.
             $result['setupToken']=$token;
-            $result['setupLink']=(defined('APP_BASE_URL')?rtrim(APP_BASE_URL,'/').'/':'').'reset_password.php?token='.rawurlencode($token);
+            $result['setupLink']=(defined('APP_BASE_URL')?rtrim(APP_BASE_URL,'/').'/':'').(!empty($pendingSetup)?'account_setup.php#':'reset_password.php?token=').rawurlencode($token);
+            $result['setupExpiresHours']=!empty($pendingSetup)?1:24;
         }
         return $result;
     } catch(Throwable $error) { if ($pdo->inTransaction()) $pdo->rollBack(); throw $error; }
@@ -164,7 +179,7 @@ function retention_change(PDO $pdo,array $actor,array $data,?array $authorizedSc
 
 function retention_require_eligible(array $record,string $method): void
 {
-    if (empty($record['archived_at']) || (isset($record['employee_id']) && strcasecmp($record['status'],'Inactive')!==0)) {
+    if (empty($record['archived_at']) || (array_key_exists('employee_id',$record) && strcasecmp($record['status'],'Inactive')!==0)) {
         throw new AccountLifecycleConflict('Archive first. Active accounts cannot be permanently purged.');
     }
     if (!empty($record['retention_hold'])) throw new AccountLifecycleConflict('Retention Hold blocks every purge method.');
@@ -256,7 +271,7 @@ function retention_delete_ids(PDO $pdo,string $table,array $ids): void
 
 function retention_purge_mutate(PDO $pdo,array $actor,array $r,string $type,?array $login,array $plan,string $method,string $job,string $hash,?string $reason,?string $bulkKey=null): void
 {
-    $id=(int)$r['id']; $identifier=$r[$type==='student'?'student_id':'employee_id'];
+    $id=(int)$r['id']; $identifier=retention_identifier($r,$type,true);
     if ($type==='student') {
         $pdo->prepare('DELETE FROM ai_outputs WHERE owner_student_id=?')->execute([$id]);
         foreach (array_chunk(array_column($plan['documents'],'id'),200) as $ids) {
@@ -288,6 +303,11 @@ function retention_purge_mutate(PDO $pdo,array $actor,array $r,string $type,?arr
             }
         }
     } else {
+        if (empty($r['employee_id']) && $r['profile_completed_at']===null) {
+            // Never-completed Advisers cannot own operational attribution. Remove their setup/login history.
+            $pdo->prepare('DELETE FROM activity_logs WHERE (entity_type="adviser" AND entity_id=?) OR user_email=?')
+                ->execute([(string)$id,$r['email']]);
+        }
         lifecycle_rows($pdo,'SELECT id FROM students WHERE adviser_id=? ORDER BY id FOR UPDATE',[$id]);
         $pdo->prepare('UPDATE students SET adviser_id=NULL WHERE adviser_id=?')->execute([$id]);
         foreach ($plan['notifications'] as $n) $pdo->prepare('UPDATE notifications SET recipient_id=NULL,recipient_type="historical_adviser",
@@ -301,6 +321,7 @@ function retention_purge_mutate(PDO $pdo,array $actor,array $r,string $type,?arr
         if ($type==='student') $pdo->prepare('DELETE FROM activity_logs WHERE entity_type="user" AND entity_id=?')->execute([(string)$login['id']]);
         else $pdo->prepare('UPDATE activity_logs SET entity_id=NULL WHERE entity_type="user" AND entity_id=?')->execute([(string)$login['id']]);
         $pdo->prepare('DELETE FROM password_resets WHERE user_id=?')->execute([$login['id']]);
+        $pdo->prepare('DELETE FROM account_invitations WHERE user_id=?')->execute([$login['id']]);
     }
     $pdo->prepare('DELETE FROM '.retention_table($type).' WHERE id=?')->execute([$id]);
     if ($login) $pdo->prepare('DELETE FROM users WHERE id=? AND role=?')->execute([$login['id'],$type]);
@@ -315,7 +336,7 @@ function retention_purge(PDO $pdo,array $actor,array $data,?array $authorizedSco
     $type=retention_type($data['accountType']??null); $id=retention_id($data['targetId']??null);
     $method=match($data['action']??''){ 'permanent_delete'=>'manual','grace_period_override'=>'grace_period_override','retention_cleanup'=>'retention_cleanup',default=>throw new AccountLifecycleValidation('Invalid purge method.')};
     if (!is_string($data['currentPassword']??null) || strlen($data['currentPassword'])>200
-        || !is_string($data['confirmation']??null) || strlen($data['confirmation'])>100 || ($data['confirmed']??false)!==true) {
+        || !is_string($data['confirmation']??null) || strlen($data['confirmation'])>190 || ($data['confirmed']??false)!==true) {
         throw new AccountLifecycleValidation('Current Admin password, exact identifier and irreversible acknowledgement are required.');
     }
     $reason=$data['reason']??null;
@@ -330,7 +351,7 @@ function retention_purge(PDO $pdo,array $actor,array $data,?array $authorizedSco
         $pdo->beginTransaction(); $actor=retention_actor($pdo,$actor,$data['currentPassword']);
         $r=retention_locked_record($pdo,$type,$id);
         if ($authorizedScope!==null && !retention_scope_rows($pdo,$actor,$type,$authorizedScope,[$id])) throw new AccountLifecycleConflict('Account left the selected filter scope.');
-        if ($data['confirmation']!==$r[$type==='student'?'student_id':'employee_id']) throw new AccountLifecycleValidation('Type the exact '.($type==='student'?'Student ID':'Employee ID').' to confirm.');
+        if ($data['confirmation']!==retention_identifier($r,$type)) throw new AccountLifecycleValidation('Type the exact institutional ID, or invited email for a Pending account without an ID, to confirm.');
         purge_require_no_pending($pdo,$type,$id);
         retention_require_eligible($r,$method);
         $login=lifecycle_resolve_login($pdo,$r,$type,true);
@@ -408,7 +429,7 @@ function retention_recover(PDO $pdo,array $actor,array $data): array
             }
             purge_files_restore($job,$manifest);
             retention_audit($pdo,$actor,$manifest['type'].'_purge_rollback_recovered',$manifest['type'],$manifest['id'],
-                $r[$manifest['type']==='student'?'student_id':'employee_id'],'Files restored');
+                retention_identifier($r,$manifest['type'],true),'Files restored');
             $pdo->commit();
         }
         return ['ok'=>true,'logout'=>false,'message'=>'Recovery completed.','jobId'=>$job];

@@ -14,8 +14,8 @@ reset_migration_expect('9',$metadata['schema_version'],'v8→v9 migration');
 reset_migration_expect(true,(bool)$pdo->query('SELECT archived_at FROM advisers WHERE id=99')->fetchColumn(),'Legacy inactive Adviser gets conservative new date');
 $before=lifecycle_schema_inventory($pdo); PrismResetMigrationSQL\migrate_schema_v9($pdo);
 reset_migration_expect($before,lifecycle_schema_inventory($pdo),'v9 retry-safe schema');
-reset_migration_expect(10,count($metadata['foreign_keys']),'No new cascades/FKs');
-reset_migration_expect(16,count($metadata['tables']),'Only recovery job table added');
+reset_migration_expect(12,count($metadata['foreign_keys']),'Invitation ownership and inviter FKs; existing FKs preserved');
+reset_migration_expect(17,count($metadata['tables']),'Recovery journal and shared invitation table added');
 if ($argv[1]==='--retention-manifest') {
     file_put_contents(__DIR__.'/../includes/account_lifecycle_schema.json',json_encode($metadata,JSON_PRETTY_PRINT|JSON_UNESCAPED_SLASHES)."\n");
     echo 'PASS: additive v9 manifest from isolated MariaDB; '.$GLOBALS['checks']." assertions.\n";
@@ -32,7 +32,7 @@ mkdir(STORAGE_DIR); mkdir(STORAGE_DIR.DIRECTORY_SEPARATOR.'documents'); mkdir(ST
 $pdo->exec("SET time_zone='+08:00'");
 $fixturePassword='Synthetic retention passphrase'; $fixtureHash=password_hash($fixturePassword,PASSWORD_DEFAULT);
 function db(): PDO { return $GLOBALS['pdo']; }
-function log_api_error(...$args): void { throw new RuntimeException('Unexpected test API error'); }
+function log_api_error(...$args): void { if(($args[0]??'')==='account_invitation') { $GLOBALS['invitationErrors']=($GLOBALS['invitationErrors']??0)+1; return; } throw new RuntimeException('Unexpected test API error'); }
 require_once __DIR__.'/../workflow.php';
 function retention_test_reset(): void {
     $pdo=db();
@@ -45,6 +45,8 @@ function retention_test_reset(): void {
     }
     $pdo->exec("INSERT INTO advisers (id,employee_id,full_name,email,status,user_id,archived_at) VALUES (200,'E200','Adviser One','adviser@example.invalid','Inactive',200,DATE_SUB(NOW(),INTERVAL 7 DAY))");
     $pdo->exec("INSERT INTO students (id,student_id,full_name,email,user_id,archived_at) VALUES (100,'S100','Student One','student@example.invalid',100,DATE_SUB(NOW(),INTERVAL 7 DAY))");
+    $pdo->exec('UPDATE students SET profile_completed_at=created_at');
+    $pdo->exec('UPDATE advisers SET profile_completed_at=created_at');
     $_SESSION=[];
 }
 function retention_test_actor(int $id=1): array { return db()->query('SELECT * FROM users WHERE id='.$id)->fetch(); }
@@ -337,3 +339,6 @@ require __DIR__.'/account-retention-extended.php';
 require __DIR__.'/account-retention-concurrency.php';
 require __DIR__.'/account-retention-verification.php';
 require __DIR__.'/account-retention-http.php';
+require __DIR__.'/account-onboarding-migration.php';
+require __DIR__.'/account-onboarding-mysql.php';
+require __DIR__.'/account-onboarding-concurrency.php';

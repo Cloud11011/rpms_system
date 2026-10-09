@@ -344,7 +344,7 @@ function student_document_counts(PDO $pdo, ?array $studentIds = null): array
 function students_needing_attention(PDO $pdo, array $user): array
 {
     $sql = 'SELECT s.*, a.full_name AS adviser_name FROM students s
-            LEFT JOIN advisers a ON a.id = s.adviser_id WHERE s.archived_at IS NULL AND s.stage <> :done';
+            LEFT JOIN advisers a ON a.id = s.adviser_id WHERE s.archived_at IS NULL AND s.profile_completed_at IS NOT NULL AND s.stage <> :done';
     $params = [':done' => 'Completed'];
     if ($user['role'] === 'adviser') {
         $sql .= ' AND a.email = :e';

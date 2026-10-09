@@ -10,7 +10,8 @@ if ($token !== '') {
     $stmt->execute(reset_token_parameters($token));
     $tokenRow = $stmt->fetch();
 }
-$tokenValid = $tokenRow && !$tokenRow['used'] && strtotime($tokenRow['expires_at']) > time();
+$tokenValid = $tokenRow && !$tokenRow['used'] && strtotime($tokenRow['expires_at']) > time()
+    && !onboarding_requires_invitation_setup(db(),(int)$tokenRow['user_id']);
 if (!$tokenValid) {
     $_SESSION['error'] = 'This password reset link is invalid or has expired. Please request a new one.';
 }

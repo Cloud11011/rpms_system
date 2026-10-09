@@ -148,7 +148,7 @@ $r=endpoint(['file'=>'documents_api.php','action'=>'upload','role'=>'student']);
 $r=endpoint(['file'=>'ierb_api.php','action'=>'needs_attention']);verify(!in_array(3,array_column($r['response']['students'],'id'),true),'Attention excludes C');
 // Execute the real initial dashboard SQL against the same A/B/C fixture through a dedicated child.
 $source=file_get_contents(__DIR__.'/../dashboard.php');preg_match_all('/\$([a-z_]+) = \(int\)\$pdo->query\(([^\n]+)\)->fetchColumn\(\);/',$source,$matches,PREG_SET_ORDER);
-$pdo=new PDO('sqlite::memory:');$pdo->exec("CREATE TABLE students (archived_at TEXT,status TEXT,stage TEXT); INSERT INTO students VALUES (NULL,'Pending','Stage 1'),(NULL,'On Track','Completed'),('2026-10-02','Pending','Stage 1')");
+$pdo=new PDO('sqlite::memory:');$pdo->exec("CREATE TABLE students (archived_at TEXT,status TEXT,stage TEXT,profile_completed_at TEXT DEFAULT '2026-01-01'); INSERT INTO students (archived_at,status,stage) VALUES (NULL,'Pending','Stage 1'),(NULL,'On Track','Completed'),('2026-10-02','Pending','Stage 1')");
 $values=[];foreach($matches as $m) $values[$m[1]]=(int)$pdo->query(eval('return '.$m[2].';'))->fetchColumn();
 verify($values===['total_researchers'=>2,'pending_ierb'=>1,'approved_ethics'=>1,'delayed_submissions'=>0],'Initial dashboard counters use two active records');
 echo "PASS: $checks real SQL archive/operational endpoint assertions; historical records preserved.\n";

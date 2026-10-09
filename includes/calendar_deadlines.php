@@ -61,7 +61,7 @@ function deadline_scope(PDO $pdo, array $user, bool $manage = false): array
 /** Original recipients are captured in the canonical creation transaction. */
 function deadline_snapshot_recipients(PDO $pdo, array $user, int $id, string $target, array $groups): void
 {
-    $sql = 'SELECT s.id FROM students s LEFT JOIN advisers a ON a.id = s.adviser_id WHERE s.archived_at IS NULL';
+    $sql = 'SELECT s.id FROM students s LEFT JOIN advisers a ON a.id = s.adviser_id WHERE s.archived_at IS NULL AND s.profile_completed_at IS NOT NULL';
     $params = [];
     if ($user['role'] === 'adviser') { $sql .= ' AND a.email = :adviser'; $params[':adviser'] = $user['email']; }
     if ($target === 'groups') {
@@ -118,7 +118,7 @@ function deadline_notify(PDO $pdo, array $user, array $deadline, array $groups):
     try {
         $stmt = $pdo->prepare('SELECT s.id, s.email, s.full_name FROM students s
             JOIN calendar_deadline_recipients r ON r.student_id = s.id
-            WHERE r.deadline_id = :id AND s.archived_at IS NULL');
+            WHERE r.deadline_id = :id AND s.archived_at IS NULL AND s.profile_completed_at IS NOT NULL');
         $stmt->execute([':id' => $deadline['id']]);
         $seen = [];
         while ($student = $stmt->fetch()) {

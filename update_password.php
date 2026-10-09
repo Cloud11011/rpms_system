@@ -19,16 +19,19 @@ try {
     $owner->execute(reset_token_parameters($token));
     $ownerId = $owner->fetchColumn();
     $pdo->beginTransaction();
+    $firstSetup = false;
     if ($ownerId) {
         // Match the lock order used for reset issuance and signed-in password changes.
         $lock = $pdo->prepare('SELECT id FROM users WHERE id = :id FOR UPDATE');
         $lock->execute([':id' => $ownerId]);
         $lock->fetchColumn();
+        $firstSetup = onboarding_requires_invitation_setup($pdo,(int)$ownerId,true);
     }
     $stmt = $pdo->prepare('SELECT * FROM password_resets WHERE (token = :hashed OR token = :legacy) AND used = 0 AND expires_at > NOW() LIMIT 1 FOR UPDATE');
     $stmt->execute(reset_token_parameters($token));
     $row = $stmt->fetch();
-    $valid = (bool)$row;
+    // Refuse old/reset credentials as well as new issuance during invitation setup.
+    $valid = (bool)$row && !$firstSetup;
 
     if (!$valid) {
         if ($pdo->inTransaction()) $pdo->rollBack();

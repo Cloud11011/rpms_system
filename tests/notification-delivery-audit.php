@@ -80,6 +80,8 @@ function reset_fixture(): void
     db()->exec("INSERT INTO users VALUES (3, 'admin@example.test', 'Admin', 'admin', 'Active'),
         (4, 'inactive@example.test', 'Inactive', 'admin', 'Inactive'), (5, 'other@example.test', 'Other', 'student', 'Active')");
     db()->exec('ALTER TABLE students ADD COLUMN archived_at TEXT');
+    foreach(['students','advisers'] as $table) db()->exec("ALTER TABLE $table ADD COLUMN profile_completed_at TEXT DEFAULT '2026-01-01 00:00:00'");
+    db()->exec('ALTER TABLE advisers ADD COLUMN archived_at TEXT');
     $GLOBALS['emails'] = $GLOBALS['errors'] = [];
     $GLOBALS['mode'] = 'gmail_api';
     $GLOBALS['overlap'] = false;

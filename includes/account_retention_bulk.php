@@ -18,7 +18,7 @@ function retention_list_scope(PDO $pdo,array $actor,string $type,array $query): 
     retention_type($type);
     $allowed=$type==='student'?['academicUnitKey','programKey','academicYear','yearLevel','group','adviserId','stage','status','course','protocol']:
         ['department','status','group'];
-    $allowed=array_merge($allowed,['lifecycle','retention','q']);
+    $allowed=array_merge($allowed,['lifecycle','retention','profile','q']);
     $filters=[];
     foreach ($allowed as $key) {
         $v=$query[$key]??'';
@@ -56,6 +56,9 @@ function retention_list_scope(PDO $pdo,array $actor,string $type,array $query): 
         }
     }
     $options+=retention_filter_options();
+    $options['profile']=[['value'=>'pending','label'=>'Pending Profile'],['value'=>'complete','label'=>'Complete Profile']];
+    if (!in_array($filters['profile'],['','pending','complete'],true)) throw new AccountLifecycleValidation('Invalid profile filter.');
+    if ($filters['profile']!=='') $scope.=" AND $a.profile_completed_at IS ".($filters['profile']==='pending'?'NULL':'NOT NULL');
     if (!in_array($filters['lifecycle'],['','all','active','archived'],true)
         || !in_array($filters['retention'],array_merge([''],array_column($options['retention'],'value')),true)) {
         throw new AccountLifecycleValidation('Invalid retention filter.');
@@ -150,10 +153,10 @@ function retention_preview_data(array $rows,string $action,string $type): array
     $eligible=[]; $skipped=[]; $impact=0; $fingerprints=[]; $states=[];
     foreach ($rows as $r) {
         $reason=retention_bulk_eligibility($r,$action); $id=(int)$r['id'];
-        $fingerprints[$id]=hash('sha256',json_encode([$id,$r[$type==='student'?'student_id':'employee_id'],$r['archived_at'],(int)$r['retention_hold'],(int)$r['unresolved_workflow'],(int)($r['assigned_students']??0),$r['full_name'],$r['email']],JSON_THROW_ON_ERROR));
-        $states[$id]=['identifier'=>$r[$type==='student'?'student_id':'employee_id'],'fingerprint'=>$fingerprints[$id],
+        $fingerprints[$id]=hash('sha256',json_encode([$id,retention_identifier($r,$type),$r['archived_at'],(int)$r['retention_hold'],(int)$r['unresolved_workflow'],(int)($r['assigned_students']??0),$r['full_name'],$r['email'],$r['profile_completed_at']],JSON_THROW_ON_ERROR));
+        $states[$id]=['identifier'=>retention_identifier($r,$type),'fingerprint'=>$fingerprints[$id],
             'reason'=>$reason,'impact'=>$type==='adviser'&&$action==='archive'?(int)$r['assigned_students']:0];
-        if ($reason!=='') $skipped[]=['id'=>$id,'identifier'=>$r[$type==='student'?'student_id':'employee_id'],'reason'=>$reason];
+        if ($reason!=='') $skipped[]=['id'=>$id,'identifier'=>retention_identifier($r,$type),'reason'=>$reason];
         else { $eligible[]=$id; if ($type==='adviser' && $action==='archive') $impact+=(int)$r['assigned_students']; }
     }
     return ['selected'=>count($rows),'eligible'=>count($eligible),'eligibleIds'=>$eligible,'skipped'=>$skipped,
@@ -257,7 +260,7 @@ function retention_bulk_execute_locked(PDO $pdo,array $actor,array $data): array
     foreach (array_slice($remaining,0,max(0,25-($job['cursor']-$cursor))) as $id) {
         // Leave headroom for session/result persistence on shared-hosting request limits.
         if ($job['cursor']>$cursor && microtime(true)-$started>=10) break;
-        $row=$byId[$id]; $identifier=$row[$job['type']==='student'?'student_id':'employee_id'];
+        $row=$byId[$id]; $identifier=retention_identifier($row,$job['type']);
         $skip=retention_bulk_eligibility($row,$job['action']);
         if ($skip!=='') $result=['id'=>$id,'identifier'=>$identifier,'outcome'=>'skipped','reason'=>$skip];
         else {

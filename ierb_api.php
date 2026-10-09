@@ -302,6 +302,10 @@ if ($action === 'save') {
     $setupDelivery = null;
     try {
         $pdo->beginTransaction();
+        if ($id===0) {
+            onboarding_email_available($pdo,$email);
+            onboarding_id_available($pdo,$studentIdCode,'student',0,0);
+        }
         if ($id > 0) {
             $old = $pdo->prepare('SELECT * FROM students WHERE id = :id FOR UPDATE');
             $old->execute([':id' => $id]);
@@ -310,6 +314,7 @@ if ($action === 'save') {
                 $pdo->rollBack();
                 json_out(['ok' => false, 'message' => 'Student record not found.'], 404);
             }
+            if (array_key_exists('profile_completed_at',$oldRow) && $oldRow['profile_completed_at']===null) throw new AccountLifecycleConflict('Pending identities must complete secure onboarding before record editing.');
             purge_require_no_pending($pdo,'student',$id);
             $identityBefore=lifecycle_identity_capture($pdo,$oldRow,'student');
             try {
@@ -404,6 +409,7 @@ if ($action === 'save') {
             ':req' => $requirements, ':sub' => $submissionDate,
             ':actor' => $user['full_name'] . ($override ? ' (Admin Override)' : ''),
         ]);
+        if (!isset($identityBefore)) $pdo->prepare('UPDATE students SET profile_completed_at=NOW() WHERE id=?')->execute([$id]);
         $identityRow=$pdo->prepare('SELECT * FROM students WHERE id=:id FOR UPDATE');
         $identityRow->execute([':id'=>$id]);
         lifecycle_identity_persist($pdo,$user,'student',$identityBefore??null,lifecycle_identity_capture($pdo,$identityRow->fetch(),'student'));

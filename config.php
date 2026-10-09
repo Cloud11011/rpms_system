@@ -19,6 +19,7 @@ require_once __DIR__ . '/security.php';
 require_once __DIR__ . '/includes/assets.php';
 require_once __DIR__ . '/includes/email_format.php';
 require_once __DIR__ . '/auth_rate_limit.php';
+require_once __DIR__ . '/includes/account_onboarding.php';
 install_application_security();
 
 if (session_status() !== PHP_SESSION_ACTIVE) {
@@ -361,7 +362,7 @@ function migration_v9_columns(): array
     $state = ['retention_hold'=>'TINYINT(1) NOT NULL DEFAULT 0', 'retention_hold_at'=>'DATETIME NULL',
         'retention_hold_by'=>'INT NULL', 'retention_hold_reason'=>'VARCHAR(500) NULL',
         'purge_postponed_at'=>'DATETIME NULL', 'purge_postponed_reason'=>'VARCHAR(255) NULL', 'restored_at'=>'DATETIME NULL'];
-    return ['students'=>$state, 'advisers'=>['archived_at'=>'DATETIME NULL']+$state,
+    return ['students'=>$state+['profile_completed_at'=>'DATETIME NULL'], 'advisers'=>['archived_at'=>'DATETIME NULL']+$state+['profile_completed_at'=>'DATETIME NULL'],
         'reports'=>['owner_student_id'=>'INT NULL'],
         'ai_outputs'=>['owner_student_id'=>'INT NULL', 'owner_document_id'=>'VARCHAR(40) NULL'],
         'calendar_deadlines'=>['creator_name'=>'VARCHAR(190) NULL']];
@@ -375,7 +376,67 @@ function migration_v9_indexes(): array
         ['documents','document_stored_file','stored_name'],['documents','document_previous_version','supersedes_id'],
         ['ai_outputs','ai_owner_student','owner_student_id'],['ai_outputs','ai_owner_document','owner_document_id'],
         ['notifications','notification_recipient','recipient_type,recipient_id'],
-        ['activity_logs','lifecycle_entity','entity_type,entity_id'],['activity_logs','lifecycle_student','student_id']];
+        ['activity_logs','lifecycle_entity','entity_type,entity_id'],['activity_logs','lifecycle_student','student_id'],
+        ['students','student_profile_completion','profile_completed_at'],['advisers','adviser_profile_completion','profile_completed_at']];
+}
+
+function migration_v9_invitation_ddl(): string
+{
+    return "CREATE TABLE IF NOT EXISTS account_invitations (
+        user_id INT NOT NULL PRIMARY KEY,
+        invited_by_user_id INT NULL,
+        token_hash CHAR(64) NULL UNIQUE,
+        expires_at DATETIME NULL,
+        accepted_at DATETIME NULL,
+        last_sent_at DATETIME NOT NULL,
+        created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        CONSTRAINT invitation_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+        CONSTRAINT invitation_inviter FOREIGN KEY (invited_by_user_id) REFERENCES users(id) ON DELETE SET NULL
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4";
+}
+
+/** Deterministic legacy identity backfill; legacy academic values stay under existing preservation rules. */
+function migration_v9_backfill_sql(string $role): string
+{
+    if (!in_array($role,['student','adviser'],true)) throw new RuntimeException('Invalid backfill role.');
+    $table=$role==='student'?'students':'advisers'; $field=$role==='student'?'student_id':'employee_id';
+    $other=$role==='student'?'advisers':'students';
+    return "UPDATE $table p JOIN users u ON u.email=p.email AND u.role='$role'
+        SET p.profile_completed_at=p.created_at
+        WHERE p.profile_completed_at IS NULL AND TRIM(p.$field)<>'' AND TRIM(p.full_name)<>''
+          AND TRIM(p.email)<>'' AND p.email LIKE '%_@_%._%'
+          AND u.username=p.$field AND u.ref_id=p.$field AND u.full_name=p.full_name
+          AND (p.user_id IS NULL OR p.user_id=u.id)
+          AND NOT EXISTS (SELECT 1 FROM $table sibling WHERE sibling.id<>p.id AND sibling.user_id=u.id)
+          AND NOT EXISTS (SELECT 1 FROM $other o WHERE o.email=p.email OR o.user_id=u.id)
+          AND NOT EXISTS (SELECT 1 FROM account_invitations i WHERE i.user_id=u.id)";
+}
+
+/** Use the reviewed inventory as the final prerequisite, with a projected version before stamping. */
+function migration_v9_verify(PDO $pdo): void
+{
+    $expected=json_decode(file_get_contents(__DIR__.'/includes/account_lifecycle_schema.json'),true,512,JSON_THROW_ON_ERROR);
+    $queries=[
+        'tables'=>'SELECT TABLE_NAME,ENGINE FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_SCHEMA=DATABASE() ORDER BY TABLE_NAME',
+        'columns'=>'SELECT TABLE_NAME,COLUMN_NAME,COLUMN_TYPE,IS_NULLABLE,COLUMN_KEY,EXTRA,COLUMN_DEFAULT FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA=DATABASE() ORDER BY TABLE_NAME,ORDINAL_POSITION',
+        'indexes'=>'SELECT TABLE_NAME,INDEX_NAME,NON_UNIQUE,SEQ_IN_INDEX,COLUMN_NAME,SUB_PART,INDEX_TYPE FROM INFORMATION_SCHEMA.STATISTICS WHERE TABLE_SCHEMA=DATABASE() ORDER BY TABLE_NAME,INDEX_NAME,SEQ_IN_INDEX',
+        'foreign_keys'=>'SELECT k.TABLE_SCHEMA,k.TABLE_NAME,k.COLUMN_NAME,k.CONSTRAINT_NAME,k.REFERENCED_TABLE_SCHEMA,k.REFERENCED_TABLE_NAME,k.REFERENCED_COLUMN_NAME,r.UPDATE_RULE,r.DELETE_RULE
+            FROM INFORMATION_SCHEMA.KEY_COLUMN_USAGE k JOIN INFORMATION_SCHEMA.REFERENTIAL_CONSTRAINTS r ON r.CONSTRAINT_SCHEMA=k.CONSTRAINT_SCHEMA AND r.CONSTRAINT_NAME=k.CONSTRAINT_NAME AND r.TABLE_NAME=k.TABLE_NAME
+            WHERE (k.TABLE_SCHEMA=DATABASE() OR k.REFERENCED_TABLE_SCHEMA=DATABASE()) AND k.REFERENCED_TABLE_NAME IS NOT NULL ORDER BY k.TABLE_SCHEMA,k.TABLE_NAME,k.CONSTRAINT_NAME,k.ORDINAL_POSITION',
+        'triggers'=>'SELECT TRIGGER_NAME,EVENT_OBJECT_TABLE FROM INFORMATION_SCHEMA.TRIGGERS WHERE TRIGGER_SCHEMA=DATABASE() ORDER BY TRIGGER_NAME'];
+    $actual=[]; foreach($queries as $key=>$sql) $actual[$key]=$pdo->query($sql)->fetchAll(PDO::FETCH_ASSOC);
+    $schema=$pdo->query('SELECT DATABASE()')->fetchColumn();
+    foreach($actual['foreign_keys'] as &$fk) foreach(['TABLE_SCHEMA','REFERENCED_TABLE_SCHEMA'] as $field) {
+        $fk[$field]=$fk[$field]===$schema?'{PRISM}':'{EXTERNAL}:'.$fk[$field];
+    }
+    unset($fk); $actual['schema_version']='9';
+    foreach($expected as $key=>$value) if(json_encode($actual[$key]??null,JSON_NUMERIC_CHECK)!==json_encode($value,JSON_NUMERIC_CHECK)) {
+        $detail='';
+        if(is_array($value)) foreach($value as $i=>$row) if(json_encode($row,JSON_NUMERIC_CHECK)!==json_encode($actual[$key][$i]??null,JSON_NUMERIC_CHECK)) {
+            $detail=' Expected '.json_encode($row).'; found '.json_encode($actual[$key][$i]??null).'.'; break;
+        }
+        throw new RuntimeException('Final combined v9 inventory mismatch: '.$key.'. Schema version was not advanced.'.$detail);
+    }
 }
 
 function migrate_schema_v9(PDO $pdo): void
@@ -429,6 +490,22 @@ function migrate_schema_v9(PDO $pdo): void
     // No dependable legacy Adviser archive date: start a new conservative retention clock.
     $pdo->exec("UPDATE advisers SET archived_at=NOW() WHERE status='Inactive' AND archived_at IS NULL");
     $pdo->exec('UPDATE calendar_deadlines d JOIN users u ON u.id=d.creator_user_id SET d.creator_name=u.full_name WHERE d.creator_name IS NULL');
+    foreach (['users'=>['username'=>100,'full_name'=>190], 'students'=>['student_id'=>100,'full_name'=>190],
+        'advisers'=>['employee_id'=>100,'full_name'=>190]] as $table=>$fields) foreach($fields as $field=>$length) {
+        $q=$pdo->prepare('SELECT COLUMN_TYPE FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME=? AND COLUMN_NAME=?');
+        $q->execute([$table,$field]);
+        if ($q->fetchColumn()!=="varchar($length)") throw new RuntimeException('Incompatible invitation identity column.');
+        $pdo->exec("ALTER TABLE `$table` MODIFY `$field` VARCHAR($length) NULL");
+    }
+    $pdo->exec(migration_v9_invitation_ddl());
+    // Validate before backfill so malformed tables can never influence completion classification.
+    migration_v9_verify($pdo);
+    $pdo->beginTransaction();
+    try {
+        foreach(['student','adviser'] as $role) $pdo->exec(migration_v9_backfill_sql($role));
+        $pdo->commit();
+    } catch(Throwable $e) { if($pdo->inTransaction()) $pdo->rollBack(); throw $e; }
+    migration_v9_verify($pdo);
 }
 
 function migrate_schema(PDO $pdo): void
@@ -1030,6 +1107,11 @@ function require_login($roles = null): array
             exit;
         }
     }
+    if (in_array($user['role'],['student','adviser'],true)
+        && !in_array($currentScript,['complete_profile.php','change_password_required.php','logout.php'],true)
+        && !onboarding_complete(db(),$user)) {
+        header('Location: complete_profile.php'); exit;
+    }
     return $user;
 }
 
@@ -1059,6 +1141,12 @@ function api_require_login($roles = null): array
         http_response_code(403);
         echo json_encode(['ok' => false, 'message' => 'You are not authorized to perform this action.']);
         exit;
+    }
+    $script=basename($_SERVER['SCRIPT_NAME']??'');
+    $pendingAllowed=$script==='account_invitation_api.php' && in_array($_GET['action']??'', ['me','complete'],true);
+    $pendingAllowed=$pendingAllowed || ($script==='profile_api.php' && in_array($_GET['action']??'', ['me','change_password'],true));
+    if (in_array($user['role'],['student','adviser'],true) && !$pendingAllowed && !onboarding_complete(db(),$user)) {
+        json_out(['ok'=>false,'code'=>'profile_completion_required','message'=>'Complete your PRISM profile before using the workspace.'],403);
     }
     return $user;
 }

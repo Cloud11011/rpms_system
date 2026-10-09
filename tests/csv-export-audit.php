@@ -16,7 +16,7 @@ function csv_rows(array $r): array {
 }
 foreach (['=','+','-','@',"\t","\r"] as $prefix) verify(csv_safe($prefix.'value')==="'".$prefix.'value','Formula prefix protected');
 verify(csv_safe(null)===''&&csv_safe('Café')==='Café','Empty and Unicode preserved');
-foreach (['students'=>[19,3,'student_records_exported'],'advisers'=>[9,2,'adviser_records_exported'],'documents'=>[26,1,'document_records_exported']] as $type=>[$columns,$count,$event]) {
+foreach (['students'=>[20,3,'student_records_exported'],'advisers'=>[10,2,'adviser_records_exported'],'documents'=>[26,1,'document_records_exported']] as $type=>[$columns,$count,$event]) {
     $r=endpoint(['file'=>'data_exports_api.php','action'=>$type]);$rows=csv_rows($r);
     verify($r['status']===200&&count($rows)===1+$count&&count($rows[0])===$columns,'Authorized full export and column count '.$type);
     verify(in_array('Content-Type: text/csv; charset=UTF-8',$r['headers'],true)&&in_array('Cache-Control: no-store',$r['headers'],true),'Correct CSV/cache headers');

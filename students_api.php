@@ -30,6 +30,8 @@ function row_to_student(array $r): array
 {
     return [
         'id' => (int)$r['id'],
+        'profileStatus' => ($r['profile_completed_at'] ?? null) === null ? 'Pending' : 'Complete',
+        'profileCompletedAt' => $r['profile_completed_at'] ?? null,
         'studentId' => $r['student_id'],
         'name' => $r['full_name'],
         'email' => $r['email'],
@@ -66,7 +68,7 @@ if ($action === 'list' || $action === 'options') {
     if ($action === 'options') {
         $activeOnly = $_GET['activeOnly'] ?? '0';
         if (!in_array($activeOnly, ['0', '1'], true)) json_out(['ok'=>false, 'message'=>'Invalid student scope.'], 422);
-        if ($activeOnly === '1') $scope .= ' AND s.archived_at IS NULL';
+        if ($activeOnly === '1') $scope .= ' AND s.archived_at IS NULL AND s.profile_completed_at IS NOT NULL';
         $stmt = $pdo->prepare('SELECT s.id, s.student_id, s.full_name, s.protocol_code, s.stage ' . $scope . ' ORDER BY s.full_name, s.id');
         $stmt->execute($params);
         json_out(['ok' => true, 'students' => array_map(fn($r) => ['id' => (int)$r['id'], 'studentId' => $r['student_id'],
@@ -88,7 +90,7 @@ if ($action === 'list' || $action === 'options') {
 }
 
 if ($action === 'adviser_options') {
-    $rows = $pdo->query('SELECT id, full_name FROM advisers WHERE status = "Active" ORDER BY full_name')->fetchAll();
+    $rows = $pdo->query('SELECT id, full_name FROM advisers WHERE status = "Active" AND profile_completed_at IS NOT NULL AND archived_at IS NULL ORDER BY full_name')->fetchAll();
     json_out(['ok' => true, 'advisers' => $rows]);
 }
 
@@ -111,7 +113,7 @@ if ($action === 'save') {
     $email = strtolower(trim((string)($data['email'] ?? '')));
     $research = trim((string)($data['research'] ?? ''));
     $group = trim((string)($data['group'] ?? ''));
-    $adviserId = !empty($data['adviserId']) ? (int)$data['adviserId'] : null;
+    $adviserId = $data['adviserId'] ?? null;
     $stage = trim((string)($data['stage'] ?? 'Stage 1'));
     $status = trim((string)($data['status'] ?? 'On Track'));
     $requirementsProvided = array_key_exists('requirements', $data);
@@ -164,13 +166,6 @@ if ($action === 'save') {
     if (!in_array($status, $validStatuses, true)) {
         json_out(['ok' => false, 'message' => 'Invalid status.'], 422);
     }
-    if ($adviserId !== null) {
-        $adviserCheck = $pdo->prepare('SELECT id FROM advisers WHERE id = :id');
-        $adviserCheck->execute([':id' => $adviserId]);
-        if (!$adviserCheck->fetch()) {
-            json_out(['ok' => false, 'message' => 'Selected adviser was not found.'], 422);
-        }
-    }
     if ($id === 0) {
         // Creating a new student: the email/ID must not already belong to a
         // login of a DIFFERENT role, or the auto-provisioned account below
@@ -190,10 +185,11 @@ if ($action === 'save') {
     $progressChangeText = '';
     try {
         $pdo->beginTransaction();
-        if ($adviserId !== null) {
-            $lockedAdviser=lifecycle_rows($pdo,'SELECT id,status,archived_at FROM advisers WHERE id=? FOR UPDATE',[$adviserId]);
-            if (!$lockedAdviser || $lockedAdviser[0]['status']!=='Active' || $lockedAdviser[0]['archived_at']!==null) throw new AccountLifecycleConflict('Selected Adviser is no longer Active; choose Unassigned or an active Adviser.');
+        if ($id===0) {
+            onboarding_email_available($pdo,$email);
+            onboarding_id_available($pdo,$studentId,'student',0,0);
         }
+        $adviserId=onboarding_active_adviser($pdo,$adviserId);
         if ($id > 0) {
             $existing = $pdo->prepare('SELECT * FROM students WHERE id = :id FOR UPDATE');
             $existing->execute([':id' => $id]);
@@ -207,6 +203,7 @@ if ($action === 'save') {
                 $pdo->rollBack();
                 json_out(['ok' => false, 'message' => 'You can only manage students assigned to you.'], 403);
             }
+            if (array_key_exists('profile_completed_at',$before) && $before['profile_completed_at']===null) throw new AccountLifecycleConflict('Pending identities must complete secure onboarding before record editing.');
             purge_require_no_pending($pdo,'student',$id);
             $identityBefore = lifecycle_identity_capture($pdo,$before,'student');
             if ($adviserEdit) {
@@ -329,6 +326,7 @@ if ($action === 'save') {
                 ':note' => 'Record created by RPMS.', ':req' => ($requirements ?? ''), ':actor' => $user['full_name'],
             ]);
         }
+        if (!isset($identityBefore)) $pdo->prepare('UPDATE students SET profile_completed_at=NOW() WHERE id=?')->execute([$id]);
         $identityRow=$pdo->prepare('SELECT * FROM students WHERE id=:id FOR UPDATE');
         $identityRow->execute([':id'=>$id]);
         lifecycle_identity_persist($pdo,$user,'student',$identityBefore??null,lifecycle_identity_capture($pdo,$identityRow->fetch(),'student'));
@@ -338,6 +336,7 @@ if ($action === 'save') {
         if ($pdo->inTransaction()) $pdo->rollBack();
         research_group_release($pdo);
         if ($e instanceof AccountLifecycleConflict) json_out(['ok'=>false,'message'=>$e->getMessage()],409);
+        if ($e instanceof AccountLifecycleValidation) json_out(['ok'=>false,'message'=>$e->getMessage()],422);
         $driverCode = $e instanceof PDOException ? (int)($e->errorInfo[1] ?? 0) : 0;
         if ($driverCode === 1452) {
             json_out(['ok' => false, 'message' => 'The selected adviser is invalid.'], 422);

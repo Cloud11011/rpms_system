@@ -57,6 +57,7 @@ if (strlen($password) > 200) {
 }
 
 $pdo = db();
+try { onboarding_email_available($pdo,$email); } catch(AccountLifecycleConflict $e) { back_with_error($e->getMessage()); }
 
 $check = $pdo->prepare('SELECT id FROM users WHERE username = :u OR email = :e');
 $check->execute([':u' => $username, ':e' => $email]);

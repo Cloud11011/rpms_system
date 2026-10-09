@@ -3,6 +3,9 @@ namespace PrismPolishAudit;
 use RuntimeException;
 if (PHP_SAPI !== 'cli') { http_response_code(404); exit; }
 function current_user(): array { return $GLOBALS['fixtureUser']; }
+// These pre-existing routing cases represent completed profiles; Pending routing is
+// exercised through the actual service and central guard in the isolated HTTP suite.
+function onboarding_complete(object $pdo,array $user): bool { return $user['profile_completed_at']!==null; }
 function header(string $value): void { $GLOBALS['headers'][] = $value; }
 function session_regenerate_id(bool $delete): bool { $GLOBALS['regenerated'] = $delete; return true; }
 function require_post_same_origin(): void {}
@@ -17,7 +20,7 @@ function db(): object { return new class {
 }; }
 if (($argv[1] ?? '') === '--login') {
     $case = json_decode($argv[2], true);
-    $fixtureUser = ['id' => 1, 'role' => $case['role'], 'status' => 'Active', 'full_name' => 'Fixture',
+    $fixtureUser = ['profile_completed_at'=>'2026-09-30 00:00:00','id' => 1, 'role' => $case['role'], 'status' => 'Active', 'full_name' => 'Fixture',
         'email' => 'fixture@example.test', 'username' => 'fixture', 'ref_id' => 'S1',
         'password_hash' => password_hash('fixture-password', PASSWORD_DEFAULT), 'must_change_password' => $case['mustChange']];
     $_POST = ['email' => 'fixture@example.test', 'password' => $case['badPassword'] ? 'incorrect' : 'fixture-password'];

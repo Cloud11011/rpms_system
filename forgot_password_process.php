@@ -40,10 +40,12 @@ if ($user) {
         $lock = $pdo->prepare('SELECT id FROM users WHERE id = :id FOR UPDATE');
         $lock->execute([':id' => $user['id']]);
         $exists = $lock->fetchColumn();
+        // First-time setup keeps its own purpose-bound credential; do not issue a reset.
+        $firstSetup = $exists && onboarding_requires_invitation_setup($pdo,(int)$user['id'],true);
         $recent = $pdo->prepare('SELECT id FROM password_resets
             WHERE user_id = :u AND created_at > DATE_SUB(NOW(), INTERVAL 5 MINUTE) LIMIT 1 FOR UPDATE');
         $recent->execute([':u' => $user['id']]);
-        if ($exists && !$recent->fetchColumn()) {
+        if ($exists && !$firstSetup && !$recent->fetchColumn()) {
             $token = bin2hex(random_bytes(32));
             $expires = date('Y-m-d H:i:s', time() + 3600);
             $pdo->prepare('UPDATE password_resets SET used = 1 WHERE user_id = :u AND used = 0')

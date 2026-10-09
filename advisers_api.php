@@ -22,6 +22,8 @@ function row_to_adviser(array $r, array $groups = []): array
 {
     return [
         'id' => (int)$r['id'],
+        'profileStatus' => ($r['profile_completed_at'] ?? null) === null ? 'Pending' : 'Complete',
+        'profileCompletedAt' => $r['profile_completed_at'] ?? null,
         'employeeId' => $r['employee_id'],
         'name' => $r['full_name'],
         'email' => $r['email'],
@@ -80,6 +82,10 @@ if ($action === 'save') {
     $setupDelivery = null;
     try {
         $pdo->beginTransaction();
+        if ($id===0) {
+            onboarding_email_available($pdo,$email);
+            onboarding_id_available($pdo,$employeeId,'adviser',0,0);
+        }
         if ($id > 0) {
             $beforeStmt = $pdo->prepare('SELECT * FROM advisers WHERE id = :id FOR UPDATE');
             $beforeStmt->execute([':id' => $id]);
@@ -89,6 +95,7 @@ if ($action === 'save') {
                 json_out(['ok' => false, 'message' => 'Adviser record not found.'], 404);
             }
             if ($status !== $before['status']) throw new AccountLifecycleConflict('Use Archive or Restore to change Adviser lifecycle.');
+            if (array_key_exists('profile_completed_at',$before) && $before['profile_completed_at']===null) throw new AccountLifecycleConflict('Pending identities must complete secure onboarding before record editing.');
             purge_require_no_pending($pdo,'adviser',$id);
             $identityBefore = lifecycle_identity_capture($pdo,$before,'adviser');
             if (!in_array($department, array_column(academic_catalog()['units'], 'label'), true)) {
@@ -144,6 +151,7 @@ if ($action === 'save') {
                 }
             }
         }
+        if (!isset($identityBefore)) $pdo->prepare('UPDATE advisers SET profile_completed_at=NOW() WHERE id=?')->execute([$id]);
         $identityRow=$pdo->prepare('SELECT * FROM advisers WHERE id=:id FOR UPDATE');
         $identityRow->execute([':id'=>$id]);
         lifecycle_identity_persist($pdo,$user,'adviser',$identityBefore??null,lifecycle_identity_capture($pdo,$identityRow->fetch(),'adviser'));

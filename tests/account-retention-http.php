@@ -2,7 +2,7 @@
 /** Actual login/session/origin/API behavior in a disposable application copy. */
 $httpRoot=$root.'/retention-http';mkdir($httpRoot);mkdir($httpRoot.'/includes');mkdir($httpRoot.'/sessions');
 foreach (['config.php','security.php','auth_rate_limit.php','workflow.php','account_lifecycle_api.php','login_process.php','profile_api.php',
-    'students_api.php','advisers_api.php','documents_api.php','ai_helpers.php','update_password.php','notifications_api.php','data_exports_api.php','ierb_api.php'] as $file) copy(__DIR__.'/../'.$file,$httpRoot.'/'.$file);
+    'send_followup.php','account_invitation_api.php','account_setup.php','complete_profile.php','index.php','calendar_deadlines_api.php','reports_api.php','students_api.php','advisers_api.php','documents_api.php','ai_helpers.php','forgot_password_process.php','forgot_password.php','reset_password.php','update_password.php','notifications_api.php','data_exports_api.php','ierb_api.php'] as $file) copy(__DIR__.'/../'.$file,$httpRoot.'/'.$file);
 foreach (glob(__DIR__.'/../includes/*') as $file) if (is_file($file)&&in_array(pathinfo($file,PATHINFO_EXTENSION),['php','json'],true)) copy($file,$httpRoot.'/includes/'.basename($file));
 $sock=stream_socket_server('tcp://127.0.0.1:0',$errno,$error);$httpPort=(int)substr(strrchr(stream_socket_get_name($sock,false),':'),1);fclose($sock);
 $httpBase='http://127.0.0.1:'.$httpPort;
@@ -26,7 +26,7 @@ function retention_http_request(string $path,mixed $data,string &$cookie,array $
     $body=file_get_contents($httpBase.'/'.$path,false,$context);$responseHeaders=$http_response_header??[];
     preg_match('~HTTP/\S+ (\d+)~',$responseHeaders[0]??'',$m);$status=(int)($m[1]??0);
     foreach($responseHeaders as $header)if(preg_match('/^Set-Cookie: (PHPSESSID=[^;]*)/i',$header,$m))$cookie=$m[1];
-    return ['status'=>$status,'data'=>json_decode($body,true),'body'=>$body];
+    return ['status'=>$status,'data'=>json_decode($body,true),'body'=>$body,'headers'=>$responseHeaders];
 }
 function retention_http_login(int $id): string {
     $cookie='';$r=retention_http_request('login_process.php',['email'=>retention_test_actor($id)['email'],'password'=>$GLOBALS['fixturePassword']],$cookie,['form'=>true]);
@@ -183,5 +183,6 @@ try {
     reset_migration_expect(false,str_contains($csv['body'],'E200')||str_contains($csv['body'],'Adviser One'),'Purged Adviser absent from current export/workload');
     reset_migration_expect(404,retention_http_request('students_api.php?action=delete',['id'=>999999],$cookie)['status'],'Legacy Student archive endpoint missing target still 404');
     reset_migration_expect(404,retention_http_request('ierb_api.php?action=delete',['id'=>999999],$cookie)['status'],'IERB archive endpoint missing target still 404');
+    require __DIR__.'/account-onboarding-http.php';
 } finally { proc_terminate($httpProcess);proc_close($httpProcess); }
 echo 'PASS: actual isolated HTTP checks '.($GLOBALS['checks']-$httpStart).'; cumulative '.$GLOBALS['checks'].".\n";

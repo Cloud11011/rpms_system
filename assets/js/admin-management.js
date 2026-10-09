@@ -99,7 +99,7 @@
     sort.controls[0].options[0].textContent = 'Name (default)';
     sort.controls[1].options[0].textContent = 'Ascending (default)';
     if (loggedInRole === 'admin') {
-        const lifecycleFilters=PrismUI.recordFilters(document.getElementById('recordFilters'), [['lifecycle','Lifecycle'],['retention','Retention status']]);
+        const lifecycleFilters=PrismUI.recordFilters(document.getElementById('recordFilters'), [['lifecycle','Lifecycle'],['retention','Retention status'],['profile','Profile status']]);
         filters.controls.push(...lifecycleFilters.controls);
         const baseQuery=filters.query, baseUpdate=filters.update;
         filters.query=()=>({...baseQuery(),...lifecycleFilters.query()});
@@ -113,6 +113,7 @@
         openBulk:openBulkDelete, openRecovery,
         reviewCleanup:async()=>{document.getElementById('recordFilters_lifecycle').value='archived';document.getElementById('recordFilters_retention').value='cleanup';pager.reset();await loadRecords();}
     }):null;
+    const invitationUI=PrismInvitations.mount({type:isAdviser?'adviser':'student',role:loggedInRole,refresh:loadRecords});
     const dirty = PrismUI.dirtyForm(form);
     let requestSequence = 0;
     async function loadRecords() {
@@ -205,8 +206,8 @@
             const tr = document.createElement('tr');
             if (isAdviser) {
                 tr.innerHTML = `
-                    <td><strong>${escapeHtml(record.name)}</strong>${record.archivedAt ? ' <span class="prism-badge">Archived</span>' : ''}<br><small>${escapeHtml(record.email)}</small></td>
-                    <td>${escapeHtml(record.employeeId)}</td>
+                    <td><strong>${escapeHtml(record.name || 'Profile incomplete')}</strong>${record.profileStatus==='Pending'?' <span class="prism-badge">Pending Profile</span>':''}${record.archivedAt ? ' <span class="prism-badge">Archived</span>' : ''}<br><small>${escapeHtml(record.email)}</small></td>
+                    <td>${escapeHtml(record.employeeId || '—')}</td>
                     <td>${escapeHtml(record.department || 'N/A')}</td>
                     <td class="adviser-groups"></td>
                     <td>${PrismUI.badge(record.status)}</td>
@@ -217,11 +218,11 @@
                     : '<span class="muted">Not yet assigned</span>';
                 const piBadge = record.isPrincipalInvestigator ? ' <span class="pi-badge" title="Principal Investigator">PI</span>' : '';
                 tr.innerHTML = `
-                    <td><strong>${escapeHtml(record.name)}</strong>${record.archivedAt ? ' <span class="prism-badge">Archived</span>' : ''}<br><small>${escapeHtml(record.email)}</small></td>
-                    <td>${escapeHtml(record.studentId)}</td>
+                    <td><strong>${escapeHtml(record.name || 'Profile incomplete')}</strong>${record.profileStatus==='Pending'?' <span class="prism-badge">Pending Profile</span>':''}${record.archivedAt ? ' <span class="prism-badge">Archived</span>' : ''}<br><small>${escapeHtml(record.email)}</small></td>
+                    <td>${escapeHtml(record.studentId || '—')}</td>
                     <td>${escapeHtml(record.research || 'Not set')}<br><small>${escapeHtml(record.group || 'No group')}</small></td>
                     <td>${escapeHtml(record.adviserName || 'Unassigned')}</td>
-                    <td><span class="stage-tag" title="${escapeHtml(record.stage)}">${escapeHtml(record.stageLabel || labelForStage(record.stage))}</span> ${PrismUI.badge(record.status)}</td>
+                    <td>${record.profileStatus==='Pending'?'Complete profile first':`<span class="stage-tag" title="${escapeHtml(record.stage)}">${escapeHtml(record.stageLabel || labelForStage(record.stage))}</span> ${PrismUI.badge(record.status)}`}</td>
                     <td>${protocolBadge}${piBadge}</td>
                     <td class="row-actions"></td>`;
             }
@@ -257,7 +258,8 @@
             delBtn.setAttribute('aria-label',delBtn.title);
             delBtn.innerHTML = '<i class="fa-solid fa-box-archive" aria-hidden="true"></i>';
             delBtn.addEventListener('click', e => PrismUI.runAction(e.currentTarget,'Processing...',() => deleteRecord(record)));
-            actions.append(editBtn);
+            if(record.profileStatus!=='Pending') actions.append(editBtn);
+            invitationUI.addActions(actions,record);
             if (loggedInRole === 'admin') {
                 actions.append(delBtn);
                 const hardDelete=document.createElement('button');
@@ -385,7 +387,7 @@
             if(!(action==='grace_period_override'?fresh.lifecycle.overrideAvailable:fresh.lifecycle.manualEligible))throw new Error(fresh.lifecycle.purgeBlockReason || 'Purge is unavailable.');
             permanentRecord=record;permanentContext={mode:'single',action};
             preparePermanentDialog(button,action==='grace_period_override'?'Delete Now ? Override Grace Period':`Permanently Delete ${isAdviser?'Adviser':'Student'}`,
-                record.name+' ? '+(isAdviser?record.employeeId:record.studentId),'Type the exact '+(isAdviser?'Employee ID':'Student ID'),
+                (record.name || 'Profile incomplete')+' — '+((isAdviser?record.employeeId:record.studentId) || record.email),'Type the exact '+((isAdviser?record.employeeId:record.studentId)?(isAdviser?'Employee ID':'Student ID'):'invited email'),
                 isAdviser?'This permanently removes this Adviser account and credentials. Student assignments become Unassigned. Historical Adviser display attribution and workflow evidence may remain. This action cannot be undone.':'This permanently removes this Student account and applicable Student-specific PRISM records and uploaded files. This action cannot be undone.');
         } catch(error) { PrismUI.toast(error.message,'error'); }
     }

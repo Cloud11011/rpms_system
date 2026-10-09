@@ -50,7 +50,7 @@ function notification_lock_recipients(PDO $pdo, array $recipients): array
     foreach($recipients as $r) {
         if(!in_array($r['type'],['student','adviser'],true)) { $valid[]=$r; continue; }
         $current=($r['type']==='student'?$students:$advisers)[(int)$r['id']]??null;
-        if(!$current || ($r['type']==='student'?!empty($current['archived_at']):strcasecmp($current['status'],'Active')!==0)) continue;
+        if(!$current || empty($current['profile_completed_at']) || ($r['type']==='student'?!empty($current['archived_at']):strcasecmp($current['status'],'Active')!==0)) continue;
         if((string)($r['email']??'')!==(string)($current['email']??'') || (string)$r['name']!==(string)$current['full_name']) continue;
         foreach(['research_group','adviser_id'] as $field) if(array_key_exists($field,$r) && (string)$r[$field] !== (string)$current[$field]) continue 2;
         $valid[]=$r;
@@ -66,7 +66,7 @@ function report_persist_snapshot(PDO $pdo, array $students, array $values, ?arra
         $current=student_snapshot_rows($pdo,array_column($students,'id'));
         foreach($students as $student) {
             $row=$current[(int)$student['id']]??null;
-            if(!$row || !empty($row['archived_at'])) throw new StudentSnapshotConflict('Report membership changed. Generate the report again.');
+            if(!$row || empty($row['profile_completed_at']) || !empty($row['archived_at'])) throw new StudentSnapshotConflict('Report membership changed. Generate the report again.');
             foreach($student as $key=>$value) {
                 if($key==='adviser_name') continue;
                 if(!array_key_exists($key,$row) || ($value===null)!==($row[$key]===null) || (string)$value!==(string)$row[$key]) {

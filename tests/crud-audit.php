@@ -25,9 +25,11 @@ class FixtureDb extends PDO
 }
 class FixtureStatement extends PDOStatement
 {
+    private array $params=[];
     public function __construct(private FixtureDb $db, private string $sql) {}
     public function execute(?array $params = null): bool
     {
+        $this->params=$params??[];
         $this->db->queries[] = $this->sql;
         if (str_contains($this->sql, 'FOR UPDATE') && !$this->db->transaction) throw new RuntimeException('Lock outside transaction.');
         if (preg_match('/^(UPDATE|DELETE|INSERT)/', $this->sql)) {
@@ -45,6 +47,7 @@ class FixtureStatement extends PDOStatement
     }
     public function fetch(int $mode = PDO::FETCH_DEFAULT, int $cursorOrientation = PDO::FETCH_ORI_NEXT, int $cursorOffset = 0): mixed
     {
+        if(str_starts_with($this->sql,'SELECT id FROM users WHERE email=? LIMIT 1') && !empty($GLOBALS['case']['inactiveLogin']))return [['id'=>22]];
         if(str_starts_with($this->sql,'SELECT id,status,archived_at FROM advisers'))return ['id'=>7,'status'=>'Active','archived_at'=>null];
         if (str_contains($this->sql,'FROM documents')) return !empty($GLOBALS['case']['documents']) ? ['id'=>1] : false;
         if (!empty($GLOBALS['case']['create']) && str_contains($this->sql, 'FROM users')) return !empty($GLOBALS['case']['inactiveLogin']) ? ['id'=>22,'role'=>'student','status'=>'Inactive'] : false;
@@ -55,8 +58,12 @@ class FixtureStatement extends PDOStatement
         if (str_contains($this->sql, 'GET_LOCK') || str_contains($this->sql, 'RELEASE_LOCK')) return 1;
         return !empty($GLOBALS['case']['create']) && str_contains($this->sql, 'FROM users') ? false : 7; }
     public function fetchAll(int $mode = PDO::FETCH_DEFAULT, mixed ...$args): array {
+        if(str_starts_with($this->sql,'SELECT * FROM advisers WHERE id=? FOR UPDATE') && ($this->params[0]??null)===7)return [$GLOBALS['fixtureAdviser']];
+        if(str_starts_with($this->sql,'SELECT id FROM users WHERE email=:email OR username=:identifier'))return [['id'=>$GLOBALS['fixtureAdviserLogin']['id']]];
+        if(str_starts_with($this->sql,'SELECT * FROM users WHERE id IN ('))return [$GLOBALS['fixtureAdviserLogin']];
+        if(str_starts_with($this->sql,'SELECT id FROM users WHERE email=? LIMIT 1') && !empty($GLOBALS['case']['inactiveLogin']))return [['id'=>22]];
         if(str_starts_with($this->sql,'SELECT id,status,archived_at FROM advisers'))return [['id'=>7,'status'=>'Active','archived_at'=>null]];
-        if(str_contains($this->sql,'INFORMATION_SCHEMA.TABLES'))return array_map(fn($t)=>['TABLE_NAME'=>$t,'ENGINE'=>'InnoDB'],['students','advisers','users','password_resets','activity_logs']);
+        if(str_contains($this->sql,'INFORMATION_SCHEMA.TABLES'))return array_map(fn($t)=>['TABLE_NAME'=>$t,'ENGINE'=>'InnoDB'],['students','advisers','users','password_resets','account_invitations','activity_logs']);
         if(str_starts_with($this->sql,'SELECT * FROM users WHERE id='))return [$GLOBALS['actor']+['status'=>'Active']];
         if(str_starts_with($this->sql,'SELECT * FROM students WHERE id=')||str_starts_with($this->sql,'SELECT * FROM advisers WHERE id='))return !empty($GLOBALS['case']['missing'])?[]:[$GLOBALS['record']];
         if(str_starts_with($this->sql,'SELECT DATE_ADD')||str_starts_with($this->sql,'SELECT datetime'))return [['unresolved_workflow'=>0]];
@@ -106,6 +113,11 @@ if (($argv[1] ?? '') === '--case') {
     if (!in_array($case['file'], ['students_api.php', 'advisers_api.php', 'ierb_api.php'], true)) throw new RuntimeException('Unexpected endpoint.');
     $fixtureDb = new FixtureDb();
     $actor = ['id' => 3, 'role' => $case['role'] ?? 'admin', 'email' => 'actor@example.test', 'full_name' => 'Fixture Actor'];
+    $fixtureAdviser=['id'=>7,'employee_id'=>'AD-7','full_name'=>$actor['role']==='adviser'?$actor['full_name']:'Fixture Adviser',
+        'email'=>$actor['role']==='adviser'?$actor['email']:'adviser@example.test','user_id'=>$actor['role']==='adviser'?3:7,
+        'status'=>'Active','archived_at'=>null,'profile_completed_at'=>'2026-09-30 00:00:00'];
+    $fixtureAdviserLogin=['id'=>$fixtureAdviser['user_id'],'role'=>'adviser','email'=>$fixtureAdviser['email'],
+        'username'=>'AD-7','ref_id'=>'AD-7','full_name'=>$fixtureAdviser['full_name'],'status'=>'Active'];
     $record = ['id' => 11, 'email' => 'student@example.test', 'adviser_id' => !empty($case['reassigned']) ? 8 : 7,
         'stage' => 'Stage 1', 'status' => 'On Track', 'protocol_code' => 'FIXTURE', 'is_principal_investigator' => 1,
         'course' => 'Fixture Course', 'requirements' => 'Fixture requirements', 'student_id' => 'ST-11', 'full_name' => 'Fixture Student', 'department'=>'Legacy department'];
@@ -220,7 +232,7 @@ foreach (['students_api.php', 'advisers_api.php', 'ierb_api.php'] as $file) {
 $crafted = ['studentId'=>'CHANGED','name'=>'Changed Name','email'=>'changed@example.com','adviserId'=>999,'stage'=>'Completed','status'=>'arbitrary','protocolCode'=>'ABC','isPrincipalInvestigator'=>true,'research'=>'Updated research','requirements'=>'Updated requirements'];
 $cases[]=['file'=>'students_api.php','name'=>'Adviser crafted edit keeps locked identity/admin values','role'=>'adviser','academicInput'=>$crafted,'storedAcademic'=>['stage'=>'Completed','status'=>'Delayed'],'expectedStatus'=>200,'lockedIdentity'=>true];
 $cases[]=['file'=>'students_api.php','name'=>'Adviser creates own student with safe defaults and setup','role'=>'adviser','create'=>true,'academicInput'=>$crafted+['academicUnitKey'=>'amt','programKey'=>'bsit','yearLevel'=>'2nd Year','academicYear'=>'2026-2027'],'expectedStatus'=>200,'safeCreation'=>true,'delivery'=>['ok'=>true,'channel'=>'gmail_api'],'pending'=>false];
-$cases[]=['file'=>'students_api.php','name'=>'Adviser creation reactivates student login and sends setup','role'=>'adviser','create'=>true,'inactiveLogin'=>true,'academicInput'=>$crafted+['academicUnitKey'=>'amt','programKey'=>'bsit','yearLevel'=>'2nd Year','academicYear'=>'2026-2027'],'expectedStatus'=>200,'safeCreation'=>true,'delivery'=>['ok'=>true,'channel'=>'gmail_api'],'pending'=>false];
+$cases[]=['file'=>'students_api.php','name'=>'Archived login collision requires Restore; creation cannot reactivate','role'=>'adviser','create'=>true,'inactiveLogin'=>true,'academicInput'=>$crafted+['academicUnitKey'=>'amt','programKey'=>'bsit','yearLevel'=>'2nd Year','academicYear'=>'2026-2027'],'expectedStatus'=>409,'noWrites'=>true];
 foreach(['students_api.php','ierb_api.php'] as $file) {
     $cases[]=compact('file')+['name'=>"$file archives with documents",'action'=>'delete','documents'=>true,'expectedStatus'=>200,'message'=>'historical records are retained'];
     $cases[]=compact('file')+['name'=>"$file student cannot delete",'action'=>'delete','role'=>'student','expectedStatus'=>403,'noWrites'=>true,'roleDenied'=>$file==='students_api.php'];
@@ -260,7 +272,9 @@ foreach ($cases as $case) {
             $params=$result['writes'][0]['params'];
             $pass=$pass&&$params[':adv']===7&&$params[':stage']==='Stage 1'&&$params[':status']==='On Track'&&$params[':pcode']===null&&$params[':pi']===0&&$params[':sid']==='CHANGED'&&$params[':name']==='Changed Name'&&$params[':req']==='Updated requirements';
         }
-        if (!empty($case['inactiveLogin'])) $pass=$pass && (bool)array_filter($result['writes'],fn($write)=>str_contains($write['sql'],"status='Active'") && str_contains($write['sql'],'must_change_password=1') && $write['params'][':id']===22);
+        // Superseded pre-v9 expectation: creation used to reactivate login 22 and send setup.
+        // Final v9 requires explicit Restore; prove no reactivation or other writes occur.
+        if (!empty($case['inactiveLogin'])) $pass=$pass && !$result['writes'] && $result['status']===409;
         if (!empty($case['reassigned'])) $pass = $pass && (bool)array_filter($result['queries'], fn($sql) => str_contains($sql, 'FROM students') && str_contains($sql, 'FOR UPDATE'));
         if (isset($case['departmentExpected'])) $pass=$pass && $result['writes'][0]['params'][':dept']===$case['departmentExpected'];
     }

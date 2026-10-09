@@ -93,14 +93,15 @@
         }
         async function showSetup(data) {
             if(data.setupLink)await PrismUI.confirm({title:'Restored account password setup',icon:'fa-key',confirmText:'I copied the link',
-                message:'Give this one-time setup link to the account holder securely. It expires after 24 hours.',
+                message:'Give this one-time setup link to the account holder securely. Use it promptly; invitation links expire after one hour and recovery links after 24 hours.',
                 extraHtml:'<label>Setup link<input readonly value="'+PrismUI.esc(data.setupLink)+'"></label>'});
         }
         async function singleAction(record,name,button) {
             return PrismUI.runAction(button,'Processing…',async()=>{
                 try {
+                    const label=record.name || record.email;
                     const answer=await PrismUI.confirm({title:name==='restore'?'Restore account':name==='hold'?'Place Retention Hold':'Remove Retention Hold',
-                        message:name==='restore'?`Restore ${record.name}? This cancels the retention clock and starts fresh password setup. Adviser assignments remain Unassigned.`:name==='hold'?`Place ${record.name} on Retention Hold? All purge methods will be blocked.`:`Remove the Retention Hold for ${record.name}? Server eligibility rules still apply.`,
+                        message:name==='restore'?`Restore ${label}? This cancels the retention clock and starts fresh password setup. Adviser assignments remain Unassigned.`:name==='hold'?`Place ${label} on Retention Hold? All purge methods will be blocked.`:`Remove the Retention Hold for ${label}? Server eligibility rules still apply.`,
                         confirmText:'Confirm',...(name==='hold'?{reasonLabel:'Hold reason (optional)'}:{})});
                     if(!answer)return;
                     const data=await PrismUI.postJson(api,{action:name,accountType:options.type,targetId:record.id,reason:answer.reason || ''});
@@ -134,7 +135,7 @@
             attachRow(row,record) {
                 const cell=document.createElement('td');cell.className='retention-select';
                 const box=document.createElement('input');box.type='checkbox';box.dataset.retentionId=record.id;box.checked=getIds().has(record.id);
-                box.setAttribute('aria-label','Select '+(record.studentId || record.employeeId)+' — '+record.name);
+                box.setAttribute('aria-label','Select '+(record.studentId || record.employeeId || record.email)+' — '+(record.name || 'Profile incomplete'));
                 box.addEventListener('change',()=>{if(allIds){allIds.forEach(id=>selected.add(id));allIds=null;selectionToken=null;}if(box.checked)selected.add(record.id);else selected.delete(record.id);update();});
                 cell.append(box);row.prepend(cell);
             }};

@@ -15,7 +15,7 @@ catch(PDOException $e) {reset_migration_expect('45000',$e->getCode(),'Manual mig
 reset_migration_expect('8',$pdo->query("SELECT v FROM schema_meta WHERE k='schema_version'")->fetchColumn(),'Unconfirmed script leaves v8');
 reset_migration_expect($manualBefore,$pdo->query('SELECT * FROM students')->fetchAll(),'Unconfirmed script preserves data');
 $enabled=str_replace(["'REPLACE_WITH_EXACT_DATABASE_NAME'",'SET @PRISM_V9_BACKUP_AND_STAGING_VERIFIED = 0'],["'retention_manual'",'SET @PRISM_V9_BACKUP_AND_STAGING_VERIFIED = 1'],$manual);
-retention_manual_run($pdo,$enabled);lifecycle_compare_schema($pdo);
+retention_manual_run($pdo,$enabled); lifecycle_compare_schema($pdo);
 reset_migration_expect('9',$pdo->query("SELECT v FROM schema_meta WHERE k='schema_version'")->fetchColumn(),'Exact manual script advances v9');
 $after=$pdo->query('SELECT * FROM students')->fetchAll();
 foreach($manualBefore[0] as $key=>$value) reset_migration_expect($value,$after[0][$key],'Manual preserves Student '.$key);

@@ -61,6 +61,7 @@ class FixtureStatement
     }
     public function fetchColumn(): int|false
     {
+        if (str_contains($this->sql,'FROM account_invitations')) return !empty($GLOBALS['case']['unacceptedInvitation']) ? 1 : false;
         if (str_contains($this->sql, 'created_at >')) return !empty($GLOBALS['case']['recent']) ? 1 : false;
         if (str_contains($this->sql, 'FROM password_resets')) return $this->resetMatches() ? 1 : false;
         return !empty($GLOBALS['case']['unknown']) ? false : 1;
@@ -71,6 +72,7 @@ class FixtureStatement
         return empty($GLOBALS['case']['invalidToken']) && !$row['used'] && strtotime($row['expires_at']) > time()
             && in_array($row['token'], [$this->params[':hashed'] ?? null, $this->params[':legacy'] ?? null], true);
     }
+    public function fetchAll(): array { return str_contains($this->sql,'FROM users') && empty($GLOBALS['case']['unknown']) ? [['id'=>1]] : []; }
     public function rowCount(): int { return empty($GLOBALS['case']['conflict']) ? 1 : 0; }
 }
 function fixture_step(string $step): void
@@ -174,6 +176,13 @@ if (($argv[1] ?? '') === '--case') {
     });
     $allowed = ['login_process.php', 'forgot_password_process.php', 'update_password.php', 'profile_api.php', 'reset_password.php', 'register_process.php'];
     if (!in_array($case['file'], $allowed, true)) throw new \RuntimeException('Unexpected endpoint.');
+    require_once __DIR__.'/../includes/account_identity.php';
+    $onboardingSource=str_replace("\r\n","\n",file_get_contents(__DIR__.'/../includes/account_onboarding.php'));
+    $from=strpos($onboardingSource,'function onboarding_email_available(');$to=strpos($onboardingSource,"\n}\n",$from);
+    $helper=str_replace('PDO $pdo','FixtureDb $pdo',substr($onboardingSource,$from,$to+2-$from));
+    $from=strpos($onboardingSource,'function onboarding_requires_invitation_setup(');$to=strpos($onboardingSource,"\n}\n",$from);
+    $helper.=str_replace('PDO $pdo','FixtureDb $pdo',substr($onboardingSource,$from,$to+2-$from));
+    eval('namespace '.__NAMESPACE__.'; use \AccountLifecycleConflict; function lifecycle_rows(FixtureDb $pdo,string $sql,array $params=[]):array{$q=$pdo->prepare($sql);$q->execute($params);return $q->fetchAll();}'.$helper);
     $source = file_get_contents(__DIR__ . '/../' . $case['file']);
     $source = str_replace("require __DIR__ . '/config.php';", '', $source, $includes);
     $source = str_replace("require_once __DIR__ . '/workflow.php';", '', $source);
@@ -193,6 +202,8 @@ $cases = [
     ['name' => 'Recent reset link survives repeated requests', 'file' => 'forgot_password_process.php', 'recent' => true, 'mail' => 0, 'issued' => 0, 'invalidations' => 0],
     ['name' => 'A new reset issues one link and one message', 'file' => 'forgot_password_process.php', 'mail' => 1, 'issued' => 1, 'invalidations' => 1],
     ['name' => 'Unknown email retains generic confirmation', 'file' => 'forgot_password_process.php', 'unknown' => true, 'mail' => 0, 'issued' => 0, 'invalidations' => 0],
+    ['name' => 'Unaccepted invitation retains generic response without reset or mail', 'file'=>'forgot_password_process.php', 'unacceptedInvitation'=>true, 'mail'=>0, 'issued'=>0, 'invalidations'=>0],
+    ['name' => 'Accepted Pending account retains ordinary recovery', 'file'=>'forgot_password_process.php', 'acceptedInvitation'=>true, 'mail'=>1, 'issued'=>1, 'invalidations'=>1],
     ['name' => 'Cross-site reset requests cannot send mail', 'file' => 'forgot_password_process.php', 'crossSite' => true, 'blocked' => true],
     ['name' => 'Password change refreshes its own credential binding', 'file' => 'profile_api.php', 'binding' => true, 'rotations' => 1, 'status' => 200, 'invalidations' => 1],
     ['name' => 'Concurrent credential changes cannot be overwritten', 'file' => 'profile_api.php', 'conflict' => true, 'status' => 409, 'invalidations' => 0],
@@ -203,6 +214,9 @@ $cases = [
     ['name' => 'Expired reset link makes no changes', 'file' => 'update_password.php', 'invalidToken' => true,
         'invalidations' => 0, 'passwordChanged' => false, 'commits' => 0, 'rollbacks' => 1, 'location' => 'Location: forgot_password.php'],
     ['name' => 'Cross-site password reset is rejected', 'file' => 'update_password.php', 'crossSite' => true, 'blocked' => true],
+    ['name'=>'Unaccepted invitation refuses previously issued reset credential', 'file'=>'update_password.php','unacceptedInvitation'=>true,
+        'passwordChanged'=>false,'invalidations'=>0,'commits'=>0,'rollbacks'=>1,'location'=>'Location: forgot_password.php'],
+    ['name'=>'Unaccepted invitation hides ordinary reset form','file'=>'reset_password.php','unacceptedInvitation'=>true,'passwordChanged'=>false,'hiddenResetForm'=>true],
 ];
 // Origin-only fallback must work with the production HTTPS host and fail closed otherwise.
 $httpsReset = ['file' => 'update_password.php', 'server' => ['HTTP_HOST' => 'rpmsceu.online',
@@ -302,6 +316,7 @@ foreach ($cases as $case) {
     }
     if (!empty($case['prismBranding'])) $passed = $passed && str_contains($data['rendered'],
         '<img src="assets/images/prismlogo1.png" class="logo-main" alt="PRISM logo">');
+    if (!empty($case['hiddenResetForm'])) $passed=$passed && str_contains($data['rendered'],'style="display:none"');
     if (!$passed) {
         fwrite(STDERR, 'FAIL: ' . $case['name'] . "\n" . $error . $output . "\n");
         exit(1);

@@ -75,6 +75,14 @@ const labelsForScenario = () => scenario === 'long-labels'
   ? Object.fromEntries(stages.map(key => [key, 'LongStageLabel'.repeat(13)]))
   : labels;
 
+function fixtureOnboarding(file) {
+  let source=fs.readFileSync(path.join(root,file),'utf8').replace("require __DIR__.'/config.php';",'');
+  assert(!/\b(?:require|include)(?:_once)?\s*(?:\(|["'$])/i.test(source),'No unexpected onboarding include');
+  const catalog=fs.readFileSync(path.join(root,'includes/academic_catalog.php'),'utf8');
+  const stub=`<?php function require_login($roles){return ['role'=>'${role==='adviser'?'adviser':'student'}','email'=>'${'a'.repeat(150)}@example.invalid'];} function asset_url($path){return $path;} function db(){return null;} function onboarding_complete($db,$u){return false;} function onboarding_accept(...$args){} function consume_auth_attempt(...$args){return true;} ?>`;
+  const rendered=spawnSync(php, ['-d','display_errors=stderr'],{cwd:root,input:stub+catalog+'?>'+source,encoding:'utf8',windowsHide:true});
+  assert.equal(rendered.status,0,rendered.stderr);assert.equal(rendered.stderr,'');return rendered.stdout;
+}
 function fixtureTemplate(file) {
   const wrapperFile = Object.hasOwn(pageWrappers, file) ? file : null;
   if (wrapperFile) file = pageWrappers[wrapperFile];
@@ -134,6 +142,7 @@ function fixtureTemplate(file) {
   return rendered.stdout;
 }
 
+const onboardingUIAudit=require('./account-onboarding-ui.cjs');
 const retentionUIAudit=require('./account-retention-ui.cjs');
 function retentionMockApi(file,action) { return retentionUIAudit.mockApi(file,action,requests.findLast(r=>r.file===file)); }
 function retentionMockList(file,query) { return retentionUIAudit.mockList(file,query); }
@@ -141,6 +150,7 @@ async function checkRetentionRedesign() {
   await retentionUIAudit.run({check,evaluate,waitFor,navigate,command,keyPress,setManagement:value=>{managementFixture=value;},getRequests:()=>requests,errors});
 }
 function fixtureApi(file, action) {
+  if(process.argv.includes('--onboarding-only')) {const data=onboardingUIAudit.mockApi(file,action,requests.findLast(r=>r.file===file));if(data)return data;}
   if (process.argv.includes('--retention-only')) { const response=retentionMockApi(file,action);if(response)return response; }
   if (file === 'documents_api.php' && action === 'summarize') {
     if (summaryProvider === 'error') return {ok:false,message:'No extractable text was found. This appears to be a scanned/image-only PDF. '+attack};
@@ -216,6 +226,7 @@ function fixtureApi(file, action) {
 
 function mockApi(file, action, query = new URLSearchParams()) {
   if (process.argv.includes('--retention-only') && ['students_api.php','advisers_api.php'].includes(file) && action==='list') return retentionMockList(file,query);
+  if(process.argv.includes('--onboarding-only') && ['students_api.php','advisers_api.php'].includes(file) && action==='list')return onboardingUIAudit.mockList(file,query);
   const data = fixtureApi(file,action);
   if(!data.ok) return data;
   if(file==='ierb_api.php' && action==='history') {
@@ -257,11 +268,15 @@ async function serve(req, res) {
   try {
     const url = new URL(req.url, origin);
     const file = decodeURIComponent(url.pathname.slice(1));
-    if (pages.includes(file) || extraPages.includes(file) || Object.hasOwn(pageWrappers, file)) {
+    if (['complete_profile.php','account_setup.php'].includes(file)) {
+      let body='';for await(const chunk of req)body+=chunk;
+      requests.push({file,action:null,query:Object.fromEntries(url.searchParams),method:req.method,body});
+      res.writeHead(200,{...securityHeaders,'Content-Type':'text/html; charset=utf-8'});res.end(fixtureOnboarding(file));
+    } else if (pages.includes(file) || extraPages.includes(file) || Object.hasOwn(pageWrappers, file)) {
       const html = fixtureTemplate(file);
       res.writeHead(200, { ...securityHeaders, 'Content-Type': 'text/html; charset=utf-8' });
       res.end(html);
-    } else if (/^(notifications|reports|stage_labels|ierb|audit|profile|documents|students|advisers|calendar_deadlines|account_lifecycle)_api\.php$/.test(file) || file === 'send_followup.php') {
+    } else if (/^(notifications|reports|stage_labels|ierb|audit|profile|documents|students|advisers|calendar_deadlines|account_lifecycle|account_invitation)_api\.php$/.test(file) || file === 'send_followup.php') {
       let body = '';
       for await (const chunk of req) body += chunk;
       requests.push({ file, action: url.searchParams.get('action'), query: Object.fromEntries(url.searchParams), method: req.method, body });
@@ -283,6 +298,7 @@ async function serve(req, res) {
       res.writeHead(status, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' });
       res.end(json);
     } else if (/^assets\/(css|js|images)\/[A-Za-z0-9_.\/-]+$/.test(file) || file === 'assets/images/CEU FOOTER LOGO.png') {
+      if(file==='assets/js/onboarding.js'&&onboardingUIAudit.isScriptUnavailable()){res.writeHead(200,{'Content-Type':'application/javascript'});res.end('');return;}
       const absolute = path.resolve(root, file);
       assert(absolute.startsWith(path.join(root, 'assets') + path.sep));
       const types = { '.css': 'text/css', '.js': 'application/javascript', '.png': 'image/png', '.svg': 'image/svg+xml', '.jpg': 'image/jpeg', '.webp': 'image/webp' };
@@ -333,7 +349,7 @@ function checkPayload(file, action, expected, label) {
     JSON.stringify({ method: request?.method, payload }));
 }
 
-async function navigate(file, width, dark, data = 'empty', viewer = 'admin') {
+async function navigate(file, width, dark, data = 'empty', viewer = 'admin', scriptsDisabled = false) {
   scenario = data;
   role = viewer;
   if(file==='research_adviser.php') reviewedStatus=null;
@@ -341,12 +357,12 @@ async function navigate(file, width, dark, data = 'empty', viewer = 'admin') {
   await command('Emulation.setDeviceMetricsOverride', { width, height: 1000, deviceScaleFactor: 1, mobile: false });
   await command('Page.navigate', { url: `${origin}/${file}?fixture=${Date.now()}` });
   file = pageWrappers[file] || file;
-  const ready = { 'admin_notifications.php': '#noticeHistory > *', 'admin_ai.php': '#aiHistory > *', 'ierbprog.php': '#stageChart > *', 'account.php': '#activityList > *', 'dashboard.php':'#ierbMonitorBody > *', 'research_adviser.php':'#adviserQueue > *', 'role_portal.php':'#studentDashboardState', 'admin_people.php':'#recordRows > *', 'documents.php':'#documentsTableBody > *', 'reports.php':'#reportTableBody > *', 'calendar.php':'#monthGrid > *', 'data_export.php':'.data-export-card' }[file];
+  const ready = { 'admin_notifications.php': '#noticeHistory > *', 'admin_ai.php': '#aiHistory > *', 'ierbprog.php': '#stageChart > *', 'account.php': '#activityList > *', 'dashboard.php':'#ierbMonitorBody > *', 'research_adviser.php':'#adviserQueue > *', 'role_portal.php':'#studentDashboardState', 'admin_people.php':'#recordRows > *', 'documents.php':'#documentsTableBody > *', 'reports.php':'#reportTableBody > *', 'calendar.php':'#monthGrid > *', 'data_export.php':'.data-export-card','complete_profile.php':'#completeProfileForm','account_setup.php':'[name=token]' }[file];
   await waitFor(`document.readyState === 'complete' && !!document.querySelector(${JSON.stringify(ready)})`,process.argv.includes('--visual-only')?300:100);
   if (file === 'role_portal.php') await waitFor('document.getElementById("studentDashboardState").getAttribute("aria-busy")==="false"');
   if (file === 'research_adviser.php') await waitFor('document.getElementById("adviserQueue").getAttribute("aria-busy")==="false"');
   if (file === 'admin_ai.php' && role === 'admin' && data !== 'error') await waitFor('document.querySelectorAll("#stageLabelEditor input").length === 6');
-  await evaluate(`document.documentElement.classList.toggle('dark-theme', ${dark}); new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)))`);
+  await evaluate(`document.documentElement.classList.toggle('dark-theme', ${dark})${scriptsDisabled ? '' : '; new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)))'}`);
 }
 
 async function measure(file, width, dark, suffix = '') {
@@ -2232,6 +2248,7 @@ async function run() {
   await command('Log.enable');
   await command('Fetch.enable', { patterns: [{ urlPattern: '*' }] });
   await command('Browser.setDownloadBehavior', { behavior: 'deny' }, true);
+  if(process.argv.includes('--onboarding-only')) {await onboardingUIAudit.run({check,evaluate,waitFor,navigate,command,keyPress,setManagement:value=>{managementFixture=value;},getRequests:()=>requests,errors});console.log(checks+' onboarding browser checks; '+failures.length+' failures.');for(const failure of failures)console.error('FAIL '+failure);if(failures.length)process.exitCode=1;return;}
   if (process.argv.includes('--retention-only')) { await checkRetentionRedesign();console.log(checks+' retention browser checks; '+failures.length+' failures.');for(const failure of failures)console.error('FAIL '+failure);if(failures.length)process.exitCode=1;return; }
   if (process.argv.includes('--student-lifecycle-ui-only')) { await checkStudentLifecycle(); console.log(checks+' Student lifecycle UI checks; '+failures.length+' failures.'); for(const failure of failures)console.error('FAIL '+failure); if(failures.length)process.exitCode=1;return; }
   if (process.argv.includes('--lifecycle-ui-only')) { await checkLifecyclePolish(); await checkStudentLifecycle(); console.log(checks+' lifecycle UI checks; '+failures.length+' failures.'); for(const failure of failures)console.error('FAIL '+failure); if(failures.length)process.exitCode=1;return; }

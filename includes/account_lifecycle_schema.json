@@ -1,6 +1,10 @@
 {
     "tables": [
         {
+            "TABLE_NAME": "account_invitations",
+            "ENGINE": "InnoDB"
+        },
+        {
             "TABLE_NAME": "account_purge_jobs",
             "ENGINE": "InnoDB"
         },
@@ -66,6 +70,69 @@
         }
     ],
     "columns": [
+        {
+            "TABLE_NAME": "account_invitations",
+            "COLUMN_NAME": "user_id",
+            "COLUMN_TYPE": "int(11)",
+            "IS_NULLABLE": "NO",
+            "COLUMN_KEY": "PRI",
+            "EXTRA": "",
+            "COLUMN_DEFAULT": null
+        },
+        {
+            "TABLE_NAME": "account_invitations",
+            "COLUMN_NAME": "invited_by_user_id",
+            "COLUMN_TYPE": "int(11)",
+            "IS_NULLABLE": "YES",
+            "COLUMN_KEY": "MUL",
+            "EXTRA": "",
+            "COLUMN_DEFAULT": "NULL"
+        },
+        {
+            "TABLE_NAME": "account_invitations",
+            "COLUMN_NAME": "token_hash",
+            "COLUMN_TYPE": "char(64)",
+            "IS_NULLABLE": "YES",
+            "COLUMN_KEY": "UNI",
+            "EXTRA": "",
+            "COLUMN_DEFAULT": "NULL"
+        },
+        {
+            "TABLE_NAME": "account_invitations",
+            "COLUMN_NAME": "expires_at",
+            "COLUMN_TYPE": "datetime",
+            "IS_NULLABLE": "YES",
+            "COLUMN_KEY": "",
+            "EXTRA": "",
+            "COLUMN_DEFAULT": "NULL"
+        },
+        {
+            "TABLE_NAME": "account_invitations",
+            "COLUMN_NAME": "accepted_at",
+            "COLUMN_TYPE": "datetime",
+            "IS_NULLABLE": "YES",
+            "COLUMN_KEY": "",
+            "EXTRA": "",
+            "COLUMN_DEFAULT": "NULL"
+        },
+        {
+            "TABLE_NAME": "account_invitations",
+            "COLUMN_NAME": "last_sent_at",
+            "COLUMN_TYPE": "datetime",
+            "IS_NULLABLE": "NO",
+            "COLUMN_KEY": "",
+            "EXTRA": "",
+            "COLUMN_DEFAULT": null
+        },
+        {
+            "TABLE_NAME": "account_invitations",
+            "COLUMN_NAME": "created_at",
+            "COLUMN_TYPE": "datetime",
+            "IS_NULLABLE": "NO",
+            "COLUMN_KEY": "",
+            "EXTRA": "",
+            "COLUMN_DEFAULT": "current_timestamp()"
+        },
         {
             "TABLE_NAME": "account_purge_jobs",
             "COLUMN_NAME": "id",
@@ -295,19 +362,19 @@
             "TABLE_NAME": "advisers",
             "COLUMN_NAME": "employee_id",
             "COLUMN_TYPE": "varchar(100)",
-            "IS_NULLABLE": "NO",
+            "IS_NULLABLE": "YES",
             "COLUMN_KEY": "UNI",
             "EXTRA": "",
-            "COLUMN_DEFAULT": null
+            "COLUMN_DEFAULT": "NULL"
         },
         {
             "TABLE_NAME": "advisers",
             "COLUMN_NAME": "full_name",
             "COLUMN_TYPE": "varchar(190)",
-            "IS_NULLABLE": "NO",
+            "IS_NULLABLE": "YES",
             "COLUMN_KEY": "",
             "EXTRA": "",
-            "COLUMN_DEFAULT": null
+            "COLUMN_DEFAULT": "NULL"
         },
         {
             "TABLE_NAME": "advisers",
@@ -441,6 +508,15 @@
             "COLUMN_TYPE": "datetime",
             "IS_NULLABLE": "YES",
             "COLUMN_KEY": "",
+            "EXTRA": "",
+            "COLUMN_DEFAULT": "NULL"
+        },
+        {
+            "TABLE_NAME": "advisers",
+            "COLUMN_NAME": "profile_completed_at",
+            "COLUMN_TYPE": "datetime",
+            "IS_NULLABLE": "YES",
+            "COLUMN_KEY": "MUL",
             "EXTRA": "",
             "COLUMN_DEFAULT": "NULL"
         },
@@ -1339,19 +1415,19 @@
             "TABLE_NAME": "students",
             "COLUMN_NAME": "student_id",
             "COLUMN_TYPE": "varchar(100)",
-            "IS_NULLABLE": "NO",
+            "IS_NULLABLE": "YES",
             "COLUMN_KEY": "UNI",
             "EXTRA": "",
-            "COLUMN_DEFAULT": null
+            "COLUMN_DEFAULT": "NULL"
         },
         {
             "TABLE_NAME": "students",
             "COLUMN_NAME": "full_name",
             "COLUMN_TYPE": "varchar(190)",
-            "IS_NULLABLE": "NO",
+            "IS_NULLABLE": "YES",
             "COLUMN_KEY": "",
             "EXTRA": "",
-            "COLUMN_DEFAULT": null
+            "COLUMN_DEFAULT": "NULL"
         },
         {
             "TABLE_NAME": "students",
@@ -1588,6 +1664,15 @@
             "COLUMN_DEFAULT": "NULL"
         },
         {
+            "TABLE_NAME": "students",
+            "COLUMN_NAME": "profile_completed_at",
+            "COLUMN_TYPE": "datetime",
+            "IS_NULLABLE": "YES",
+            "COLUMN_KEY": "MUL",
+            "EXTRA": "",
+            "COLUMN_DEFAULT": "NULL"
+        },
+        {
             "TABLE_NAME": "users",
             "COLUMN_NAME": "id",
             "COLUMN_TYPE": "int(11)",
@@ -1600,10 +1685,10 @@
             "TABLE_NAME": "users",
             "COLUMN_NAME": "username",
             "COLUMN_TYPE": "varchar(100)",
-            "IS_NULLABLE": "NO",
+            "IS_NULLABLE": "YES",
             "COLUMN_KEY": "UNI",
             "EXTRA": "",
-            "COLUMN_DEFAULT": null
+            "COLUMN_DEFAULT": "NULL"
         },
         {
             "TABLE_NAME": "users",
@@ -1627,10 +1712,10 @@
             "TABLE_NAME": "users",
             "COLUMN_NAME": "full_name",
             "COLUMN_TYPE": "varchar(190)",
-            "IS_NULLABLE": "NO",
+            "IS_NULLABLE": "YES",
             "COLUMN_KEY": "",
             "EXTRA": "",
-            "COLUMN_DEFAULT": null
+            "COLUMN_DEFAULT": "NULL"
         },
         {
             "TABLE_NAME": "users",
@@ -1679,6 +1764,33 @@
         }
     ],
     "indexes": [
+        {
+            "TABLE_NAME": "account_invitations",
+            "INDEX_NAME": "invitation_inviter",
+            "NON_UNIQUE": 1,
+            "SEQ_IN_INDEX": 1,
+            "COLUMN_NAME": "invited_by_user_id",
+            "SUB_PART": null,
+            "INDEX_TYPE": "BTREE"
+        },
+        {
+            "TABLE_NAME": "account_invitations",
+            "INDEX_NAME": "PRIMARY",
+            "NON_UNIQUE": 0,
+            "SEQ_IN_INDEX": 1,
+            "COLUMN_NAME": "user_id",
+            "SUB_PART": null,
+            "INDEX_TYPE": "BTREE"
+        },
+        {
+            "TABLE_NAME": "account_invitations",
+            "INDEX_NAME": "token_hash",
+            "NON_UNIQUE": 0,
+            "SEQ_IN_INDEX": 1,
+            "COLUMN_NAME": "token_hash",
+            "SUB_PART": null,
+            "INDEX_TYPE": "BTREE"
+        },
         {
             "TABLE_NAME": "account_purge_jobs",
             "INDEX_NAME": "PRIMARY",
@@ -1757,6 +1869,15 @@
             "NON_UNIQUE": 1,
             "SEQ_IN_INDEX": 2,
             "COLUMN_NAME": "retention_hold",
+            "SUB_PART": null,
+            "INDEX_TYPE": "BTREE"
+        },
+        {
+            "TABLE_NAME": "advisers",
+            "INDEX_NAME": "adviser_profile_completion",
+            "NON_UNIQUE": 1,
+            "SEQ_IN_INDEX": 1,
+            "COLUMN_NAME": "profile_completed_at",
             "SUB_PART": null,
             "INDEX_TYPE": "BTREE"
         },
@@ -2140,6 +2261,15 @@
         },
         {
             "TABLE_NAME": "students",
+            "INDEX_NAME": "student_profile_completion",
+            "NON_UNIQUE": 1,
+            "SEQ_IN_INDEX": 1,
+            "COLUMN_NAME": "profile_completed_at",
+            "SUB_PART": null,
+            "INDEX_TYPE": "BTREE"
+        },
+        {
+            "TABLE_NAME": "students",
             "INDEX_NAME": "user_id",
             "NON_UNIQUE": 1,
             "SEQ_IN_INDEX": 1,
@@ -2176,6 +2306,28 @@
         }
     ],
     "foreign_keys": [
+        {
+            "TABLE_SCHEMA": "{PRISM}",
+            "TABLE_NAME": "account_invitations",
+            "COLUMN_NAME": "invited_by_user_id",
+            "CONSTRAINT_NAME": "invitation_inviter",
+            "REFERENCED_TABLE_SCHEMA": "{PRISM}",
+            "REFERENCED_TABLE_NAME": "users",
+            "REFERENCED_COLUMN_NAME": "id",
+            "UPDATE_RULE": "RESTRICT",
+            "DELETE_RULE": "SET NULL"
+        },
+        {
+            "TABLE_SCHEMA": "{PRISM}",
+            "TABLE_NAME": "account_invitations",
+            "COLUMN_NAME": "user_id",
+            "CONSTRAINT_NAME": "invitation_user",
+            "REFERENCED_TABLE_SCHEMA": "{PRISM}",
+            "REFERENCED_TABLE_NAME": "users",
+            "REFERENCED_COLUMN_NAME": "id",
+            "UPDATE_RULE": "RESTRICT",
+            "DELETE_RULE": "CASCADE"
+        },
         {
             "TABLE_SCHEMA": "{PRISM}",
             "TABLE_NAME": "advisers",

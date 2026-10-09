@@ -52,6 +52,11 @@ if (($argv[1] ?? '') === '--case') {
         if (!empty($GLOBALS['case']['mailThrow'])) throw new RuntimeException('Transport failed');
         return ['ok'=>empty($GLOBALS['case']['mailFail']), 'channel'=>'fixture', 'message'=>'Synthetic delivery'];
     }
+    require_once __DIR__.'/../includes/account_onboarding.php';
+    foreach(['students','advisers'] as $table) { $pdo->exec("ALTER TABLE $table ADD COLUMN profile_completed_at TEXT DEFAULT '2026-01-01 00:00:00'"); $pdo->exec("ALTER TABLE $table ADD COLUMN user_id INTEGER"); if($table==='advisers')$pdo->exec('ALTER TABLE advisers ADD COLUMN archived_at TEXT'); }
+    $pdo->exec('ALTER TABLE advisers ADD COLUMN employee_id TEXT');
+    $pdo->exec('ALTER TABLE students ADD COLUMN student_id TEXT');
+    $pdo->exec("ALTER TABLE advisers ADD COLUMN status TEXT DEFAULT 'Active'");
     require __DIR__.'/../security.php';
     $config=file_get_contents(__DIR__.'/../config.php');
     eval(function_source($config,'api_require_login').function_source($config,'require_post_same_origin'));

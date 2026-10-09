@@ -44,5 +44,5 @@ function prism_student_scope(array $user): array
 function prism_operational_student_scope(array $user): array
 {
     [$scope, $params] = prism_student_scope($user);
-    return [$scope . ' AND s.archived_at IS NULL', $params];
+    return [$scope . ' AND s.archived_at IS NULL AND s.profile_completed_at IS NOT NULL', $params];
 }

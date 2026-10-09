@@ -28,6 +28,7 @@ function reset_migration_source(string $source, string $start, string $end): str
 }
 $source = str_replace("\r\n", "\n", file_get_contents(dirname(__DIR__) . '/config.php'));
 $declarations = reset_migration_source($source, 'const SCHEMA_VERSION = ', "\nfunction seed(");
+$declarations=str_replace('__DIR__',var_export(dirname(__DIR__),true),$declarations);
 $setup = reset_migration_source($source, 'function send_account_setup_email(', "\nfunction json_body(");
 eval('namespace PrismResetMigrationSQL; use \PDO; use \RuntimeException; use \Throwable;'
     . 'const APP_BASE_URL = "https://prism.invalid";'

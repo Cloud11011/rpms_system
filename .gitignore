@@ -55,4 +55,11 @@ storage/auth_rate_limits/
 !/tests/account-retention-upload-worker.php
 !/tests/account-retention-ui.cjs
 !/tests/retention-fixture-support.php
+!/tests/account-onboarding-http.php
+!/tests/account-onboarding-remediation-http.php
+!/tests/account-onboarding-mysql.php
+!/tests/account-onboarding-migration.php
+!/tests/account-onboarding-concurrency.php
+!/tests/account-onboarding-ui.cjs
+!/tests/academic-api-audit.php
 storage/.purge/

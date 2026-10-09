@@ -29,29 +29,29 @@ $stamp = date('Ymd_His');
 if ($action === 'students') {
     $rows = $pdo->query('SELECT s.student_id,s.full_name,s.email,s.academic_unit_key,s.program_key,s.course,
         s.year_level,s.academic_year,s.research_title,s.research_group,a.full_name AS adviser_name,
-        s.stage,s.status,s.requirements,s.protocol_code,s.is_principal_investigator,s.archived_at,s.created_at,s.updated_at
+        s.stage,s.status,s.requirements,s.protocol_code,s.is_principal_investigator,s.archived_at,s.profile_completed_at,s.created_at,s.updated_at
         FROM students s LEFT JOIN advisers a ON a.id=s.adviser_id ORDER BY s.full_name,s.id');
     $count = prism_stream_csv('prism_student_records_'.$stamp.'.csv',
         ['Student ID','Full Name','Email','Academic Unit / Department','Program / Course','Year Level','Academic Year',
          'Research Title','Research Group','Assigned Adviser','IERB Stage','IERB Status','Pending Requirements','Protocol Code',
-         'Principal Investigator','Record Status','Archived At','Created Date','Updated Date'], $rows,
+         'Principal Investigator','Record Status','Archived At','Created Date','Updated Date','Profile Status'], $rows,
         static fn($r) => [$r['student_id'],$r['full_name'],$r['email'],$unit($r['academic_unit_key']),$program($r),
             $r['year_level'],$r['academic_year'],$r['research_title'],$r['research_group'],$r['adviser_name'],
             $r['stage'],$r['status'],$r['requirements'],$r['protocol_code'],!empty($r['is_principal_investigator'])?'Yes':'No',
-            empty($r['archived_at'])?'Active':'Archived',$r['archived_at'],$r['created_at'],$r['updated_at']]);
+            empty($r['archived_at'])?'Active':'Archived',$r['archived_at'],$r['created_at'],$r['updated_at'],$r['profile_completed_at']===null?'Pending':'Complete']);
     $event = 'student_records_exported';
 } elseif ($action === 'advisers') {
     $groups = research_groups_by_adviser($pdo);
     // A single aggregate join counts active assignments without per-adviser queries.
-    $rows = $pdo->query('SELECT a.id,a.employee_id,a.full_name,a.email,a.department,a.status,a.created_at,a.updated_at,
+    $rows = $pdo->query('SELECT a.id,a.employee_id,a.full_name,a.email,a.department,a.status,a.profile_completed_at,a.created_at,a.updated_at,
         COALESCE(assigned.total,0) AS active_students FROM advisers a LEFT JOIN
-        (SELECT adviser_id,COUNT(*) AS total FROM students WHERE archived_at IS NULL GROUP BY adviser_id) assigned
+        (SELECT adviser_id,COUNT(*) AS total FROM students WHERE archived_at IS NULL AND profile_completed_at IS NOT NULL GROUP BY adviser_id) assigned
         ON assigned.adviser_id=a.id ORDER BY a.full_name,a.id');
     $count = prism_stream_csv('prism_adviser_records_'.$stamp.'.csv',
         ['Employee ID','Full Name','Email','Academic Unit / Department','Account Status','Currently Assigned Research Groups',
-         'Active Assigned Student Count','Created Date','Updated Date'], $rows,
+         'Active Assigned Student Count','Created Date','Updated Date','Profile Status'], $rows,
         static fn($r) => [$r['employee_id'],$r['full_name'],$r['email'],$unit($r['department']),$r['status'],
-            implode(' | ', $groups[(int)$r['id']] ?? []),$r['active_students'],$r['created_at'],$r['updated_at']]);
+            implode(' | ', $groups[(int)$r['id']] ?? []),$r['active_students'],$r['created_at'],$r['updated_at'],$r['profile_completed_at']===null?'Pending':'Complete']);
     $event = 'adviser_records_exported';
 } else {
     // Explicit metadata allowlist: no storage names, paths, credentials or summary/document text.

@@ -20,7 +20,7 @@ if ($action === 'list') {
         $scope .= ' LEFT JOIN students s ON n.recipient_type = "student" AND n.recipient_id = s.id
             LEFT JOIN advisers a ON a.id = s.adviser_id
             WHERE (n.recipient_email = :self AND n.recipient_type <> "historical_adviser")
-               OR (n.recipient_type = "student" AND a.email = :self AND s.archived_at IS NULL)';
+               OR (n.recipient_type = "student" AND a.email = :self AND s.archived_at IS NULL AND s.profile_completed_at IS NOT NULL)';
         $params[':self'] = $user['email'];
     }
     if (isset($_GET['preview']) && !empty($_GET['personal'])) {
@@ -163,7 +163,7 @@ function resolve_recipients(PDO $pdo, array $user, string $audience, string $gro
         }
         $sql = 'SELECT s.id, s.full_name, s.email, s.research_group, s.adviser_id
             FROM students s JOIN advisers a ON a.id = s.adviser_id
-            WHERE a.email = :adv AND s.archived_at IS NULL';
+            WHERE a.email = :adv AND s.archived_at IS NULL AND s.profile_completed_at IS NOT NULL';
         $params = [':adv' => $user['email']];
         if ($audience === 'Specific Research Group') {
             if ($group === '') return [];
@@ -179,7 +179,7 @@ function resolve_recipients(PDO $pdo, array $user, string $audience, string $gro
     }
 
     if (in_array($audience, ['All Students', 'Students and Advisers', 'Specific Research Group'], true)) {
-        $sql = 'SELECT id, full_name, email, research_group FROM students WHERE archived_at IS NULL';
+        $sql = 'SELECT id, full_name, email, research_group FROM students WHERE archived_at IS NULL AND profile_completed_at IS NOT NULL';
         $params = [];
         if ($audience === 'Specific Research Group') {
             if ($group === '') return [];
@@ -193,7 +193,7 @@ function resolve_recipients(PDO $pdo, array $user, string $audience, string $gro
         }
     }
     if (in_array($audience, ['All Advisers', 'Students and Advisers'], true)) {
-        foreach ($pdo->query('SELECT id, full_name, email FROM advisers WHERE status = "Active"')->fetchAll() as $f) {
+        foreach ($pdo->query('SELECT id, full_name, email FROM advisers WHERE status = "Active" AND profile_completed_at IS NOT NULL AND archived_at IS NULL')->fetchAll() as $f) {
             $recipients[] = ['type' => 'adviser', 'id' => $f['id'], 'name' => $f['full_name'], 'email' => $f['email']];
         }
     }

@@ -12,7 +12,7 @@ if (in_array($action, ['ai_report', 'generate', 'delete'], true)) {
 /** Current active institution-wide report records, optionally filtered by stage. The endpoint is admin-only. */
 function report_students(PDO $pdo, string $stage = ''): array
 {
-    $where = ['s.archived_at IS NULL'];
+    $where = ['s.archived_at IS NULL AND s.profile_completed_at IS NOT NULL'];
     $params = [];
     if ($stage !== '') {
         $where[] = 's.stage = :stage';
@@ -444,7 +444,7 @@ if ($action === 'generate') {
     if ($type === 'Student Report') {
         $studentDbId = (int)($data['studentId'] ?? 0);
         $stmt = $pdo->prepare('SELECT s.*, f.full_name AS adviser_name FROM students s
-            LEFT JOIN advisers f ON f.id = s.adviser_id WHERE s.id = :id AND s.archived_at IS NULL');
+            LEFT JOIN advisers f ON f.id = s.adviser_id WHERE s.id = :id AND s.archived_at IS NULL AND s.profile_completed_at IS NOT NULL');
         $stmt->execute([':id' => $studentDbId]);
         $s = $stmt->fetch();
         if (!$s) {

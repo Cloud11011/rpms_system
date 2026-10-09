@@ -20,7 +20,7 @@ class LifecyclePausedStatement extends PDOStatement {
             if(!file_exists($gate)) throw new RuntimeException('Final persistence gate timed out');
         }
         $retentionGate=!empty($this->fixture['retentionGate']) && in_array($this->queryString,['SELECT * FROM students WHERE id=? FOR UPDATE','SELECT * FROM advisers WHERE id=? FOR UPDATE'],true);
-        $assignmentGate=!empty($this->fixture['assignmentGate']) && $this->queryString==='SELECT id,status,archived_at FROM advisers WHERE id=? FOR UPDATE';
+        $assignmentGate=!empty($this->fixture['assignmentGate']) && $this->queryString==='SELECT * FROM advisers WHERE id=? FOR UPDATE';
         if ($retentionGate || $assignmentGate) {
             $gate=$this->fixture[$assignmentGate?'assignmentGate':'retentionGate'];file_put_contents($gate.'.ready','locked');$deadline=microtime(true)+15;
             while(!file_exists($gate)&&microtime(true)<$deadline)usleep(10000);
@@ -34,6 +34,7 @@ $pdo->exec("SET time_zone='+08:00'");
 if(isset($fixture['foreignKeyChecks'])) $pdo->exec('SET SESSION FOREIGN_KEY_CHECKS='.(int)$fixture['foreignKeyChecks']);
 $actor=$pdo->query('SELECT * FROM users WHERE id='.(int)$fixture['actor'])->fetch();
 require __DIR__.'/../includes/account_lifecycle.php';
+require_once __DIR__.'/../includes/account_onboarding.php';
 define('PRISM_HARD_DELETE_SCHEMA_VERIFIED',($fixture['verified']??true)===true);
 if(empty($fixture['omitVerification'])) define('PRISM_HARD_DELETE_VERIFICATION',$fixture['verification']??[]);
 define('STAGE_SEQUENCE',['Stage 1','Stage 2','Stage 3','Stage 4','Stage 5','Completed']);
@@ -61,6 +62,22 @@ if (!empty($fixture['waitFile'])) {
     file_put_contents($fixture['waitFile'].'.ready','ready');
     $deadline=microtime(true)+10;
     while(!file_exists($fixture['waitFile']) && microtime(true)<$deadline) usleep(10000);
+}
+if(str_starts_with($fixture['mode']??'', 'onboarding_')) {
+    require_once __DIR__.'/../includes/account_onboarding.php';
+    define('APP_BASE_URL','https://prism.invalid');
+    function app_base_url_is_valid(): bool { return true; }
+    function new_password_is_valid(string $value): bool { return strlen($value)>=12 && strlen($value)<=200; }
+    function send_notification_email(...$args): array { return ['ok'=>true]; }
+    try {
+        $result=match($fixture['mode']) {
+            'onboarding_invite'=>onboarding_invite($pdo,$actor,$fixture['data']),
+            'onboarding_finish'=>onboarding_finish($pdo,$actor,$fixture['data']),
+            'onboarding_resend'=>onboarding_resend($pdo,$actor,$fixture['data']),
+            'onboarding_assign'=>onboarding_assign($pdo,$actor,$fixture['data']),
+            'onboarding_accept'=>(function()use($pdo,$fixture){onboarding_accept($pdo,$fixture['data']);return ['ok'=>true];})()
+        }; json_out($result);
+    } catch(Throwable $e) {json_out(['ok'=>false,'message'=>lifecycle_error_status($e)<500?$e->getMessage():'Safe concurrent refusal'],lifecycle_error_status($e));}
 }
 if (($fixture['mode']??'')==='late_student_audit') {
     require_once __DIR__.'/../workflow.php';
