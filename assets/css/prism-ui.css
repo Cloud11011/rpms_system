@@ -1096,3 +1096,34 @@ button:disabled,
 .prism-record-filters { display: flex; flex-wrap: wrap; gap: 10px; margin: 12px 0 18px; }
 .prism-record-filters label { display: flex; flex: 1 1 160px; flex-direction: column; gap: 5px; min-width: 0; color: var(--text-secondary); font-size:var(--prism-font-label); }
 .prism-record-filters select { width: 100%; max-width: 100%; min-width: 0; min-height: 40px; padding: 8px; border: 1px solid var(--border-color); border-radius: 8px; background: var(--card-bg); color: var(--text-primary); font: inherit; }
+
+/* Batch 3 secondary controls stay in page flow at every viewport size. */
+.prism-filter-disclosure { min-width: 0; max-width: 100%; }
+.prism-filter-disclosure:has(> button[aria-expanded="true"]) { flex: 1 1 100%; width: 100%; }
+.prism-filter-panel { padding: 12px; border: 1px solid var(--prism-border); border-radius: 10px; background: var(--prism-surface); margin-bottom: 0; }
+.prism-filter-panel[hidden], .prism-group-selector[hidden], .prism-group-choices label[hidden], .prism-filter-notice[hidden] { display: none !important; }
+.prism-filter-panel label { flex: 1 1 180px; max-width: 100%; }
+.prism-filter-clear, .prism-filter-notice { flex: 1 1 100%; }
+.prism-filter-notice { margin: 0; color: var(--prism-muted); font-size: var(--prism-font-body); }
+.prism-filter-disclosure button, .prism-group-selector button { transition: background-color 160ms ease, border-color 160ms ease; }
+.prism-filter-disclosure :focus-visible, .prism-group-selector :focus-visible { outline: 2px solid var(--prism-focus); outline-offset: 2px; }
+.prism-group-selector { min-width: 0; padding: 12px; border: 1px solid var(--prism-border); border-radius: 10px; background: var(--prism-surface); color: var(--prism-text); }
+.prism-group-selector legend { color: var(--prism-text); font-weight: 600; }
+.prism-group-selector input[type="search"] { width: 100%; min-width: 0; min-height: 42px; padding: 8px; border: 1px solid var(--prism-border); border-radius: 8px; background: var(--prism-surface-2); color: var(--prism-text); font: inherit; }
+.prism-group-choices { height: 180px; overflow-y: auto; margin: 8px 0; border-block: 1px solid var(--prism-border); }
+.prism-group-choices label { display: flex; align-items: center; gap: 10px; min-height: 44px; margin: 0; padding: 6px; overflow-wrap: anywhere; color: var(--prism-text); }
+.prism-group-choices input[type="checkbox"] { width: 18px; height: 18px; min-height: 18px; max-height: 18px; padding: 0; flex: 0 0 18px; accent-color: var(--prism-info-fg); }
+.retention-select input[type="checkbox"], .retention-selection-label input[type="checkbox"] { min-height: 20px; max-height: 20px; padding: 0; }
+.prism-group-selector small, #inviteDomainHint { display: block; color: var(--prism-muted); line-height: 1.5; overflow-wrap: anywhere; }
+.prism-field-error { color: var(--prism-danger-fg); font-size: var(--prism-font-body); line-height: 1.5; }
+#inviteEmail[aria-invalid="true"] { border-color: var(--prism-danger-fg); background: var(--prism-danger-bg); }
+.prism-cancel-summary { margin: 12px 0; overflow-wrap: anywhere; }
+.prism-cancel-summary dt { font-weight: 600; color: var(--prism-text); }
+.prism-cancel-summary dd { margin: 4px 0 12px; color: var(--prism-muted); }
+@media (max-width: 600px) {
+  .prism-filter-panel label { flex-basis: 100%; }
+  .prism-filter-disclosure { width: 100%; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .prism-filter-disclosure button, .prism-group-selector button { transition: none; }
+}

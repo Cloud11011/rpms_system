@@ -4,7 +4,7 @@ function prism_student_filter_options(PDO $pdo, string $scope, array $params): a
 {
     $columns = ['academicUnitKey'=>'s.academic_unit_key', 'programKey'=>'s.program_key',
         'academicYear'=>'s.academic_year', 'yearLevel'=>'s.year_level', 'group'=>'s.research_group',
-        'stage'=>'s.stage', 'status'=>'s.status'];
+        'stage'=>'s.stage', 'status'=>'s.status', 'course'=>'s.course'];
     $catalog = academic_catalog(); $options = [];
     foreach ($columns as $key => $column) {
         $stmt = $pdo->prepare("SELECT DISTINCT $column AS value $scope ORDER BY value");
@@ -28,9 +28,53 @@ function prism_student_filter_options(PDO $pdo, string $scope, array $params): a
     return $options;
 }
 
+/** Catalog dependencies supplement (never replace) authorized, stored-value options. */
+function prism_validate_student_filter_dependencies(array $query, array $options): void
+{
+    foreach (['academicUnitKey','programKey','yearLevel','course'] as $key) {
+        $value = $query[$key] ?? '';
+        if (!is_string($value) || mb_strlen($value, 'UTF-8') > 250) {
+            throw new \InvalidArgumentException('Invalid record filter.');
+        }
+        $value = trim($value);
+        if ($value !== '' && !in_array($value, array_column($options[$key] ?? [], 'value'), true)) {
+            throw new \InvalidArgumentException('Choose a filter from the permitted records.');
+        }
+    }
+    $unit = trim($query['academicUnitKey'] ?? '');
+    $key = trim($query['programKey'] ?? '');
+    $year = trim($query['yearLevel'] ?? '');
+    $catalog = academic_catalog();
+    $program = $catalog['programs'][$key] ?? null;
+    // Blank program records remain locatable in every recorded unit. Unmapped legacy
+    // programs remain available with All units / Not recorded, without inventing a map.
+    if ($unit !== '' && $key !== '' && $key !== '__blank__') {
+        $valid = $unit === '__blank__' ? (!$program || $program['unit'] === null)
+            : ($program && $program['unit'] === $unit);
+        if (!$valid) throw new \InvalidArgumentException('The program does not belong to the selected academic unit.');
+    }
+    if ($program && $year !== '' && $year !== '__blank__'
+        && !in_array($year, academic_year_levels($key), true)) {
+        throw new \InvalidArgumentException('Choose a year level allowed for the selected program.');
+    }
+    $course = trim($query['course'] ?? '');
+    if ($course !== '' && $course !== '__blank__') {
+        $matches = array_filter($catalog['programs'], fn($p) => $p['label'] === $course);
+        if ($unit !== '' && $unit !== '__blank__'
+            && !array_filter($matches, fn($p) => $p['unit'] === $unit)) {
+            throw new \InvalidArgumentException('The course does not belong to the selected academic unit.');
+        }
+        if ($program && $program['label'] !== $course) {
+            throw new \InvalidArgumentException('The course does not match the selected program.');
+        }
+    }
+}
+
 /** Values must belong to the authorized options; filtering cannot replace authorization. */
 function prism_apply_student_filters(string &$scope, array &$params, array $query, array $options): void
 {
+    try { prism_validate_student_filter_dependencies($query, $options); }
+    catch (\InvalidArgumentException $e) { json_out(['ok'=>false,'message'=>$e->getMessage()], 422); }
     $columns = ['academicUnitKey'=>'s.academic_unit_key', 'programKey'=>'s.program_key',
         'academicYear'=>'s.academic_year', 'yearLevel'=>'s.year_level', 'group'=>'s.research_group',
         'adviserId'=>'s.adviser_id', 'stage'=>'s.stage', 'status'=>'s.status', 'course'=>'s.course'];
@@ -39,8 +83,7 @@ function prism_apply_student_filters(string &$scope, array &$params, array $quer
         if (!is_string($value) || mb_strlen($value, 'UTF-8') > 250) json_out(['ok'=>false,'message'=>'Invalid record filter.'], 422);
         $value = trim($value);
         if ($value === '') continue;
-        // The established course filter is bound literally, including legacy course labels.
-        if ($key !== 'course' && !in_array($value, array_column($options[$key], 'value'), true)) {
+        if (!in_array($value, array_column($options[$key], 'value'), true)) {
             json_out(['ok'=>false,'message'=>'Choose a filter from the permitted records.'], 422);
         }
         if ($value === '__blank__') $scope .= " AND ($column IS NULL OR TRIM($column) = '')";

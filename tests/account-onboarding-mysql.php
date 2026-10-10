@@ -3,6 +3,7 @@
 require_once __DIR__.'/../includes/account_onboarding.php';
 $onboardingStart=$GLOBALS['checks'];
 if (!defined('APP_BASE_URL')) define('APP_BASE_URL','https://prism.invalid');
+if (!defined('ALLOWED_EMAIL_DOMAINS')) define('ALLOWED_EMAIL_DOMAINS',['example.invalid']);
 function app_base_url_is_valid(): bool { return true; }
 function is_allowed_email_domain(string $email): bool { return str_ends_with($email,'@example.invalid'); }
 function new_password_is_valid(string $password): bool { return strlen($password)>=12 && strlen($password)<=200; }

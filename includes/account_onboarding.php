@@ -116,6 +116,18 @@ function onboarding_requires_invitation_setup(PDO $pdo,int $uid,bool $lock=false
     return $q->fetchColumn()!==false;
 }
 
+function onboarding_invitation_domains(): array
+{
+    return array_values(array_unique(array_filter(array_map(fn($domain) => strtolower(trim($domain)), ALLOWED_EMAIL_DOMAINS))));
+}
+
+/** Invitation-only exact policy; registration and existing account rules stay unchanged. */
+function onboarding_invitation_email_allowed(string $email): bool
+{
+    $at = strrpos($email, '@');
+    return $at !== false && in_array(strtolower(substr($email, $at + 1)), onboarding_invitation_domains(), true);
+}
+
 /** Commit before email: provider failure can never cause duplicate creation. */
 function onboarding_invite(PDO $pdo, array $actor, array $data): array
 {
@@ -124,7 +136,7 @@ function onboarding_invite(PDO $pdo, array $actor, array $data): array
     onboarding_allow_fields($data,$actor['role']==='admin' && $role==='student'
         ?['action','accountType','email','adviserId']:['action','accountType','email']);
     $email=strtolower(onboarding_text($data['email']??null,'Email',190));
-    if (!filter_var($email,FILTER_VALIDATE_EMAIL) || !is_allowed_email_domain($email)) {
+    if (!filter_var($email,FILTER_VALIDATE_EMAIL) || !onboarding_invitation_email_allowed($email)) {
         throw new AccountLifecycleValidation('Use a valid institutional email address.');
     }
     $token=bin2hex(random_bytes(32));

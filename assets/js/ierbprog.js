@@ -33,7 +33,13 @@
     sort.update({sortBy:[['name','Name'],['studentId','Student ID'],['stage','IERB stage'],['status','Status'],['academicYear','Academic year'],['group','Research group']].map(([value,label])=>({value,label})),direction:[{value:'ASC',label:'Ascending'},{value:'DESC',label:'Descending'}]});
     sort.controls[0].options[0].textContent='Name (default)';sort.controls[1].options[0].textContent='Ascending (default)';
     const filterControls = [...filters.controls,...sort.controls];
-    const pager = PrismUI.recordPager(tableBody.closest('table').parentElement, recordCount, [ierbSearch,...filterControls], loadRecords);
+    // Move the existing stage/status filters with their labels; primary actions stay visible.
+    [stageFilter,statusFilter].forEach(control => {
+        document.getElementById('ierbMoreFilters').append(control.closest('label'));
+    });
+    document.querySelector('.ierb-filters').remove();
+    const pager = PrismUI.recordPager(tableBody.closest('table').parentElement, recordCount, [ierbSearch,...filterControls], loadRecords,
+        {host:document.getElementById('ierbMoreFilters'),toolbar:document.querySelector('.ierb-controls')});
     let recordRequestSequence = 0;
     let loadError = '';
     const STAGES = ['Stage 1', 'Stage 2', 'Stage 3', 'Stage 4', 'Stage 5', 'Completed'];
@@ -48,6 +54,7 @@
     });
 
     async function loadRecords() {
+        filters.reconcile();
         searchReload.cancel();
         const requestSequence = ++recordRequestSequence;
         loadError = '';

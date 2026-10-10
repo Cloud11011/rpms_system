@@ -119,7 +119,11 @@ function renderCourseView(){courseView.replaceChildren();const groups=new Map();
 function render(){renderFilters();renderTypeManager();renderTable();renderFolders();renderCourseView()}
 function openModal(m){m.classList.add('show');m.setAttribute('aria-hidden','false')}function closeModal(m){m.classList.remove('show');m.setAttribute('aria-hidden','true');if(m===summaryModal){const focus=summaryReturnFocus?.isConnected?summaryReturnFocus:body.querySelector('[data-summary]');focus?.focus()}}
 function toast(message,type='success'){PrismUI.toast(message,type)}
-const pager=PrismUI.recordPager(document.getElementById('documentsCourseView'),document.getElementById('documentCount'),[search,typeFilter,courseFilter,yearFilter,sortSelect].filter(Boolean),load);
+const filterPanel=document.createElement('div');filterPanel.id='documentFilters';filterPanel.className='prism-record-filters';
+document.querySelector('.document-actions').prepend(filterPanel);
+[[typeFilter,'Document type'],[courseFilter,'Course'],[yearFilter,'Upload year'],[sortSelect,'Sort by']].forEach(([control,text])=>{if(!control)return;const label=document.createElement('label');label.textContent=text;label.append(control);filterPanel.append(label);});
+const pager=PrismUI.recordPager(document.getElementById('documentsCourseView'),document.getElementById('documentCount'),[search,typeFilter,courseFilter,yearFilter,sortSelect].filter(Boolean),load,
+    {host:filterPanel,toolbar:document.querySelector('.document-actions')});
 async function load(){
     const sequence=++loadSequence;pager.loading();body.setAttribute('aria-busy','true');
     const qs=new URLSearchParams({action:'list',page:pager.page,q:search.value.trim(),type:typeFilter.value,course:courseFilter.value,year:yearFilter.value,sort:sortSelect?.value||'newest'});

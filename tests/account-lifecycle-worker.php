@@ -58,6 +58,7 @@ function json_out(array $data,int $status=200): never {
 }
 function log_api_error(...$args): void { throw new RuntimeException('Unexpected test API error'); }
 function is_allowed_email_domain(string $email): bool { return str_ends_with($email,'@example.invalid'); }
+if (!defined('ALLOWED_EMAIL_DOMAINS')) define('ALLOWED_EMAIL_DOMAINS',['example.invalid']);
 if (!empty($fixture['waitFile'])) {
     file_put_contents($fixture['waitFile'].'.ready','ready');
     $deadline=microtime(true)+10;

@@ -133,6 +133,8 @@ function fixtureTemplate(file) {
     function require_login($roles) { return ['id'=>1, 'email'=>'fixture@example.test', 'full_name'=>'UI Audit Fixture', 'role'=>'${role}', 'ref_id'=>'FIXTURE', 'username'=>'fixture']; }
     function db() { return new class { function query($sql) { return new class { function fetchColumn() { return 0; } }; } }; }
     function stage_labels_map() { return json_decode('${JSON.stringify(labelsForScenario())}', true); }
+    const ALLOWED_EMAIL_DOMAINS = ['example.invalid', 'example.test'];
+    ${fs.readFileSync(path.join(root,'includes/account_onboarding.php'),'utf8').match(/function onboarding_invitation_domains\(\): array\s*\{[\s\S]*?\n\}/)[0]}
     ?>`;
   const rendered = spawnSync(php, ['-d', 'display_errors=stderr'], {
     input: stub + isolated, cwd: root, encoding: 'utf8', windowsHide: true,
@@ -152,6 +154,7 @@ async function checkRetentionRedesign() {
 function fixtureApi(file, action) {
   if(process.argv.includes('--onboarding-only')) {const data=onboardingUIAudit.mockApi(file,action,requests.findLast(r=>r.file===file));if(data)return data;}
   if (process.argv.includes('--retention-only')) { const response=retentionMockApi(file,action);if(response)return response; }
+  if (process.argv.includes('--batch3-only')) { const response=require('./v10-batch3-ui.cjs').mockApi(file,action,requests.findLast(r=>r.file===file),role);if(response)return response; }
   if (file === 'documents_api.php' && action === 'summarize') {
     if (summaryProvider === 'error') return {ok:false,message:'No extractable text was found. This appears to be a scanned/image-only PDF. '+attack};
     summaryStored='Purpose: University research review. '+attack+'\nEthics: Informed consent is planned.';
@@ -350,13 +353,13 @@ function checkPayload(file, action, expected, label) {
     JSON.stringify({ method: request?.method, payload }));
 }
 
-async function navigate(file, width, dark, data = 'empty', viewer = 'admin', scriptsDisabled = false) {
+async function navigate(file, width, dark, data = 'empty', viewer = 'admin', scriptsDisabled = false, filterQuery = '') {
   scenario = data;
   role = viewer;
   if(file==='research_adviser.php') reviewedStatus=null;
   if(file==='role_portal.php') studentSubmitted=false;
   await command('Emulation.setDeviceMetricsOverride', { width, height: 1000, deviceScaleFactor: 1, mobile: false });
-  await command('Page.navigate', { url: `${origin}/${file}?fixture=${Date.now()}` });
+  await command('Page.navigate', { url: `${origin}/${file}?fixture=${Date.now()}${filterQuery}` });
   file = pageWrappers[file] || file;
   const ready = { 'admin_notifications.php': '#noticeHistory > *', 'admin_ai.php': '#aiHistory > *', 'ierbprog.php': '#stageChart > *', 'account.php': '#activityList > *', 'dashboard.php':'#ierbMonitorBody > *', 'research_adviser.php':'#adviserQueue > *', 'role_portal.php':'#studentDashboardState', 'admin_people.php':'#recordRows > *', 'documents.php':'#documentsTableBody > *', 'reports.php':'#reportTableBody > *', 'calendar.php':'#monthGrid > *', 'data_export.php':'.data-export-card','complete_profile.php':'#completeProfileForm','account_setup.php':'[name=token]' }[file];
   await waitFor(`document.readyState === 'complete' && !!document.querySelector(${JSON.stringify(ready)})`,process.argv.includes('--visual-only')?300:100);
@@ -837,7 +840,7 @@ async function checkTonightPolish() {
   check(await evaluate('document.getElementById("noticeGroup").tagName==="SELECT" && document.getElementById("noticeGroup").disabled && document.getElementById("noticeGroup").textContent.includes("No standardized")'), 'Empty group selector has no free-text fallback');
   academicRecord = {id:1,studentId:'S1',name:'Fixture Student',email:'fixture@example.test',group:'Legacy group',course:'Legacy course',stage:'Stage 1',status:'On Track'};
   await navigate('admin_people.php',1280,false,'populated');
-  await evaluate('document.querySelector("#recordRows button[title=Edit]").click()');
+  await evaluate('document.querySelector("#recordRows button[title^=Edit]").click()');
   check(await evaluate('document.getElementById("group").tagName==="SELECT" && document.getElementById("group").value==="Legacy group"'), 'Legacy group is preserved in a selector');
   await evaluateFunction(()=>{
     for(const [id,value] of Object.entries({academicUnit:'amt',course:'bsit',yearLevel:'2nd Year',academicYear:'2026-2027'})) {
@@ -1256,7 +1259,7 @@ async function checkAcademicManagement() {
   for (const empty of [null,'']) {
     academicRecord={...base,course:attack,academicUnitKey:empty,programKey:empty,yearLevel:empty,academicYear:empty};
     await navigate('admin_people.php',375,true,'populated');
-    await evaluate('document.querySelector("#recordRows button[title=Edit]").click()');
+    await evaluate('document.querySelector("#recordRows button[title^=Edit]").click()');
     check(await evaluateFunction(attack=>document.getElementById('academicSummary').textContent.includes(attack) && !document.getElementById('studentAcademicFields').querySelector('img,script'),attack),'Legacy course displayed literally');
     await evaluate('document.getElementById("recordForm").requestSubmit()');
     await waitFor('document.getElementById("recordModal").style.display === "none"');
@@ -1265,7 +1268,7 @@ async function checkAcademicManagement() {
   }
   academicRecord={...base,course:'BS in Information Technology',academicUnitKey:'amt',programKey:'bsit',yearLevel:'2nd Year',academicYear:'2026-2027'};
   await navigate('admin_people.php',768,false,'populated','adviser');
-  await evaluate('document.querySelector("#recordRows button[title=Edit]").click()');
+  await evaluate('document.querySelector("#recordRows button[title^=Edit]").click()');
   check(await evaluate('["academicUnit","course","yearLevel","academicYear"].map(id=>document.getElementById(id).value).join("|") === "amt|bsit|2nd Year|2026-2027"'),'Edit preselects complete academic tuple');
   await select('academicUnit','nursing');
   check(await evaluate('!document.getElementById("recordForm").checkValidity()'), 'Changed incomplete tuple fails client validation');
@@ -1899,7 +1902,7 @@ async function checkAlignment() {
   try {
     await navigate('admin_people.php',375,true,'populated');
     check(await evaluate('document.querySelectorAll(".adviser-group-chip").length===2 && document.getElementById("recordRows").textContent.includes("No assigned research groups")'),'Adviser groups render as read-only chips and explicit empty state');
-    await evaluate('document.querySelector(\'#recordRows button[title="Edit"]\').click()');
+    await evaluate('document.querySelector(\'#recordRows button[title^="Edit"]\').click()');
     check(await evaluate('!document.getElementById("groups") && document.getElementById("recordName").value'), 'Adviser edit has no free-text group field');
     await evaluate('document.getElementById("recordForm").requestSubmit()');
     await waitFor('document.getElementById("recordModal").style.display==="none"');
@@ -1961,7 +1964,7 @@ async function checkFinalRegression() {
     await navigate('admin_advisers.php',375,true,'populated');
     await evaluate('document.getElementById("addRecord").click()');
     check(await evaluate("document.getElementById('department').tagName==='SELECT' && document.getElementById('department').options.length===8 && [...document.getElementById('department').options].some(o=>o.value==='Nursing')"),'New adviser uses authoritative catalog dropdown');
-    await evaluate('document.getElementById("cancelRecord").click();document.querySelector("#recordRows [title=Edit]").click()');
+    await evaluate('document.getElementById("cancelRecord").click();document.querySelector("#recordRows [title=" + JSON.stringify("Edit Adviser") + "]").click()');
     check(await evaluate("document.getElementById('department').value==='AMT' && document.getElementById('department').selectedOptions[0].textContent.includes('legacy')"),'Legacy adviser department remains visible and selected');
   } finally {managementFixture='student';}
   await navigate('dashboard.php',1280,false,'populated');
@@ -2002,7 +2005,7 @@ async function checkReadiness() {
     check(await evaluate('document.documentElement.scrollWidth<=innerWidth+1'),file+' mobile layout');
   }
   managementFixture='student';await navigate('admin_students.php',1280,false,'populated','adviser');
-  await evaluate("document.querySelector('#recordRows button[title=Edit]').click()");
+  await evaluate("document.querySelector('#recordRows button[title^=Edit]').click()");
   check(await evaluate("['recordName','accountId','recordEmail'].every(id=>document.getElementById(id)?.readOnly)"),'Adviser edit identity read-only');
   check(await evaluate("document.getElementById('stage').disabled && document.getElementById('recordStatus').disabled && document.getElementById('protocolCode').readOnly && document.getElementById('isPrincipal').disabled"),'Adviser administrative fields read-only');
   check(await evaluate("(()=>{const e=new Event('beforeunload',{cancelable:true});window.dispatchEvent(e);return !e.defaultPrevented})()"),'Untouched edit has no unload warning');
@@ -2253,6 +2256,8 @@ async function run() {
   await command('Browser.setDownloadBehavior', { behavior: 'deny' }, true);
   if(process.argv.includes('--resources-only')) {checkInstitutionalPartialBoundary();await checkInstitutionalComponents();check(errors.length===0,'No resource browser exceptions',errors.join(' | '));console.log(checks+' resource browser checks; '+failures.length+' failures.');for(const f of failures)console.error('FAIL '+f);if(failures.length)process.exitCode=1;return;}
   if(process.argv.includes('--batch2-only')) {await require('./v10-batch2-ui.cjs').run({check,evaluate,waitFor,navigate,command,keyPress,errors,getRequests:()=>requests,setDelay:value=>{apiDelay=value;}});console.log(checks+' batch 2 browser checks; '+failures.length+' failures.');for(const f of failures)console.error('FAIL '+f);if(failures.length)process.exitCode=1;return;}
+  if(process.argv.includes('--batch3-only')) {await require('./v10-batch3-ui.cjs').run({check,evaluate,waitFor,navigate,command,keyPress,errors,getRequests:()=>requests,setDelay:value=>{apiDelay=value;},setManagement:value=>{managementFixture=value;}});console.log(checks+' batch 3 browser checks; '+failures.length+' failures.');for(const f of failures)console.error('FAIL '+f);if(failures.length)process.exitCode=1;return;}
+  if(process.argv.includes('--academic-only')) {await checkAcademicManagement();await checkAcademicIerb();await checkAcademicDisplay();check(errors.length===0,'No academic browser exceptions',errors.join(' | '));console.log(checks+' academic browser checks; '+failures.length+' failures.');for(const f of failures)console.error('FAIL '+f);if(failures.length)process.exitCode=1;return;}
   if(process.argv.includes('--batch1-only')) {await require('./v10-batch1-ui.cjs').run({check,evaluate,waitFor,navigate,command,keyPress,errors,getRequests:()=>requests});await checkDashboard();console.log(checks+' batch 1 browser checks; '+failures.length+' failures.');for(const f of failures)console.error('FAIL '+f);if(failures.length)process.exitCode=1;return;}
   if(process.argv.includes('--onboarding-only')) {await onboardingUIAudit.run({check,evaluate,waitFor,navigate,command,keyPress,setManagement:value=>{managementFixture=value;},getRequests:()=>requests,errors});console.log(checks+' onboarding browser checks; '+failures.length+' failures.');for(const failure of failures)console.error('FAIL '+failure);if(failures.length)process.exitCode=1;return;}
   if (process.argv.includes('--retention-only')) { await checkRetentionRedesign();console.log(checks+' retention browser checks; '+failures.length+' failures.');for(const failure of failures)console.error('FAIL '+failure);if(failures.length)process.exitCode=1;return; }
@@ -2299,8 +2304,8 @@ async function run() {
     managementFixture='student';
     academicRecord={id:1,studentId:'S1',name:'Synthetic Student',email:'student@example.test',group:'AMT-BSIT-Y2-2627-G01',course:'BS in Information Technology',academicUnitKey:'amt',programKey:'bsit',yearLevel:'2nd Year',academicYear:'2026-2027',adviserId:999,adviserName:'Retired Fixture',stage:'Stage 1',status:'On Track'};
     await navigate('admin_students.php',1280,false,'populated','admin');
-    await waitFor('!!document.querySelector("#recordRows button[title=Edit]")');
-    await evaluate('document.querySelector("#recordRows button[title=Edit]").click()');
+    await waitFor('!!document.querySelector("#recordRows button[title^=Edit]")');
+    await evaluate('document.querySelector("#recordRows button[title^=Edit]").click()');
     check(await evaluateFunction(()=>document.getElementById('adviser').value==='999'&&[...document.getElementById('adviser').options].some(option=>option.value==='999'&&option.textContent.includes('retained assignment'))),'Editing a Student preserves an existing inactive Adviser assignment');
     academicRecord=null;
     console.log(checks+' final polish browser checks; '+failures.length+' failures.');

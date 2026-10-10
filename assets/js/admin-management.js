@@ -106,7 +106,8 @@
         filters.update=options=>{baseUpdate(options);lifecycleFilters.update(options);};
     }
     const filterControls = [...filters.controls,...sort.controls];
-    const pager = PrismUI.recordPager(rowsEl.closest('table').parentElement, countEl, [searchInput,...filterControls], loadRecords);
+    const pager = PrismUI.recordPager(rowsEl.closest('table').parentElement, countEl, [searchInput,...filterControls], loadRecords,
+        {host:document.getElementById('recordFilters'),toolbar:document.querySelector('.management-controls')});
     const retentionUI=loggedInRole==='admin'?PrismRetentionAdmin.mount({
         type:isAdviser?'adviser':'student', rows:rowsEl, getScope:()=>({q:searchInput.value.trim(),...filters.query()}),
         getRecords:()=>records, getAvailability:()=>deletionAvailability, refresh:loadRecords,
@@ -117,6 +118,7 @@
     const dirty = PrismUI.dirtyForm(form);
     let requestSequence = 0;
     async function loadRecords() {
+        filters.reconcile();
         retentionUI?.syncScope();
         searchReload.cancel();
         const request = ++requestSequence;

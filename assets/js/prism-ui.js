@@ -216,7 +216,7 @@
         (o.extraHtml || '') +
         (o.reasonLabel ? '<label for="prismReason">' + esc(o.reasonLabel) + '</label><textarea id="prismReason" maxlength="500"></textarea>' : '') +
         '<div class="prism-field-error" role="alert"></div>' +
-        '<div class="prism-dialog-actions"><button type="button" class="prism-btn is-secondary" data-act="cancel">Cancel</button>' +
+        '<div class="prism-dialog-actions"><button type="button" class="prism-btn is-secondary" data-act="cancel">' + esc(o.cancelText || 'Cancel') + '</button>' +
         '<button type="button" class="prism-btn is-' + tone + '" data-act="ok">' + esc(o.confirmText || 'Confirm') + '</button></div>'
       );
       m.dialog.setAttribute('aria-labelledby', 'prismDlgTitle');
@@ -240,7 +240,7 @@
         m.close();
         resolve({ reason: reason, values: values });
       });
-      (reasonBox || m.dialog.querySelector('select') || m.dialog.querySelector('[data-act="ok"]')).focus();
+      (reasonBox || m.dialog.querySelector('select') || m.dialog.querySelector(o.focusCancel ? '[data-act="cancel"]' : '[data-act="ok"]')).focus();
     });
   }
 
@@ -645,6 +645,11 @@
   }
 
   function recordFilters(host, definitions) {
+    const catalog = root.PRISM_ACADEMIC_CATALOG;
+    const restored = new URLSearchParams(root.location.search);
+    const choices = {};
+    const notice = document.createElement('p');
+    notice.className = 'prism-filter-notice'; notice.setAttribute('role', 'status'); notice.hidden = true;
     const fields = definitions.map(([key, label, existing]) => {
       const select = existing || document.createElement('select');
       if (!existing) {
@@ -654,19 +659,85 @@
         select.append(new Option('All ' + label, ''));
         wrapper.append(select); host.append(wrapper);
       }
+      if (restored.has(key)) {
+        const value = restored.get(key);
+        if (value && ![...select.options].some(option => option.value === value)) select.add(new Option(value, value));
+        select.value = value;
+      }
       return {key, select};
     });
+    const field = key => fields.find(item => item.key === key)?.select;
+    function permitted(key, value) {
+      const unit = field('academicUnitKey')?.value || '';
+      const program = catalog?.programs[field('programKey')?.value];
+      if (key === 'programKey' && unit && value !== '__blank__') {
+        const entry = catalog?.programs[value];
+        return unit === '__blank__' ? (!entry || entry.unit === null) : entry?.unit === unit;
+      }
+      if (key === 'yearLevel' && program && value !== '__blank__') {
+        const levels = program.level === 'undergraduate'
+          ? Array.from({length: program.duration}, (_, i) => `${i + 1}${['st','nd','rd'][i] || 'th'} Year`) : [];
+        return levels.includes(value);
+      }
+      return true;
+    }
+    function reconcile() {
+      const cleared = [];
+      fields.forEach(({key,select}) => {
+        if (catalog && select.value && !permitted(key, select.value)) { select.value = ''; cleared.push(key === 'programKey' ? 'Program' : 'Year level'); }
+        if (!choices[key]) return;
+        const selected = select.value, first = select.options[0].textContent;
+        const entries = choices[key].filter(option => !catalog || permitted(key, option.value));
+        select.replaceChildren(new Option(first, ''));
+        entries.forEach(option => select.add(new Option(option.label, option.value)));
+        // Retain unavailable independent filters explicitly so a reload cannot broaden scope.
+        if (selected && !entries.some(option => option.value === selected)) select.add(new Option(selected + ' (unavailable)', selected));
+        select.value = selected;
+      });
+      if (cleared.length) { notice.textContent = cleared.join(' and ') + ' cleared to match the selected academic filters.'; notice.hidden = false; }
+    }
+    if (field('academicUnitKey')) {
+      host.append(notice);
+      ['academicUnitKey','programKey'].forEach(key => field(key)?.addEventListener('change', reconcile));
+      reconcile();
+    }
     return {
       controls: fields.map(field => field.select),
+      reconcile,
       query: () => Object.fromEntries(fields.map(({key,select}) => [key,select.value])),
-      update: options => fields.forEach(({key,select}) => {
-        if (!options?.[key]) return;
-        const selected = select.value, first = select.options[0].textContent;
-        select.replaceChildren(new Option(first,''));
-        options[key].forEach(option => select.add(new Option(option.label,option.value)));
-        select.value = selected;
-      })
+      update: options => { fields.forEach(({key}) => { if (options?.[key]) choices[key] = options[key]; }); reconcile(); host.dispatchEvent(new Event('prism:filters-updated')); }
     };
+  }
+
+  /** Inline disclosure stays in normal page flow and never traps keyboard focus. */
+  function filtersDisclosure(host, controls, reload, toolbar) {
+    const wrap = document.createElement('div'); wrap.className = 'prism-filter-disclosure';
+    const trigger = document.createElement('button'); trigger.type = 'button'; trigger.className = 'prism-btn';
+    trigger.setAttribute('aria-expanded', 'false'); trigger.setAttribute('aria-controls', host.id);
+    host.classList.add('prism-filter-panel'); host.hidden = true;
+    const clear = document.createElement('button'); clear.type = 'button'; clear.className = 'prism-btn prism-filter-clear'; clear.textContent = 'Clear Filters';
+    host.append(clear);
+    host.before(wrap); wrap.append(trigger, host);
+    if (toolbar) toolbar.append(wrap);
+    const defaults = new Map(controls.map(control => [control, control.tagName === 'SELECT' ? control.options[0]?.value || '' : '']));
+    function update() {
+      const active = controls.filter(control => control.tagName === 'SELECT' && control.value !== defaults.get(control)).length;
+      trigger.textContent = 'Filters & Sort' + (active ? ' (' + active + ')' : '');
+      clear.disabled = !controls.some(control => control.value !== defaults.get(control));
+    }
+    function close() { host.hidden = true; trigger.setAttribute('aria-expanded', 'false'); }
+    trigger.addEventListener('click', () => { host.hidden = !host.hidden; trigger.setAttribute('aria-expanded', String(!host.hidden)); });
+    wrap.addEventListener('keydown', event => { if (event.key === 'Escape' && !host.hidden) { event.preventDefault(); event.stopPropagation(); close(); trigger.focus(); } });
+    clear.addEventListener('click', () => {
+      controls.forEach(control => { control.value = defaults.get(control); });
+      host.querySelectorAll('.prism-filter-notice').forEach(notice => { notice.hidden = true; });
+      host.dispatchEvent(new Event('prism:filters-cleared')); update(); reload();
+    });
+    controls.forEach(control => control.addEventListener('change', update));
+    controls.filter(control => control.tagName === 'INPUT').forEach(control => control.addEventListener('input', update));
+    host.addEventListener('prism:filters-updated', update);
+    update();
+    return { update, trigger };
   }
 
   // Small helpers shared by the touched record pages.
@@ -685,7 +756,7 @@
   }
 
   function dirtyForm(form) {
-    const fields = () => [...form.querySelectorAll('input,select,textarea')].filter(field => !field.disabled && !field.readOnly && field.type !== 'hidden');
+    const fields = () => [...form.querySelectorAll('input,select,textarea')].filter(field => !field.disabled && !field.readOnly && field.type !== 'hidden' && !field.hasAttribute('data-prism-ignore-dirty'));
     const value = field => field.type === 'checkbox' || field.type === 'radio' ? field.checked : field.value;
     let changed = false, baseline;
     const clean = () => { changed = false; baseline = new Map(fields().map(field => [field,value(field)])); };
@@ -695,7 +766,8 @@
     form.addEventListener('change', mark);
     const warn = event => { if (changed) { event.preventDefault(); event.returnValue = ''; } };
     root.addEventListener('beforeunload', warn);
-    return { clean: clean, dispose: () => { root.removeEventListener('beforeunload', warn); form.removeEventListener('input',mark); form.removeEventListener('change',mark); } };
+    return { clean: clean, trackFields: () => { fields().forEach(field => { if (!baseline.has(field)) baseline.set(field,value(field)); }); mark(); },
+      dispose: () => { root.removeEventListener('beforeunload', warn); form.removeEventListener('input',mark); form.removeEventListener('change',mark); } };
   }
 
   function clearFilters(controls, reload) {
@@ -711,13 +783,19 @@
     }
   }
 
-  function recordPager(anchor, count, controls, load) {
+  function recordPager(anchor, count, controls, load, disclosure) {
     const pager = document.createElement('nav');
     pager.className = 'prism-pagination';
     pager.setAttribute('aria-label', 'Record pages');
     anchor.insertAdjacentElement('afterend', pager);
     let page = 1;
-    clearFilters(controls, () => { page = 1; load(); });
+    if (disclosure) {
+      filtersDisclosure(disclosure.host, controls, () => { page = 1; load(); }, disclosure.toolbar);
+      // Search remains primary and has its own clear affordance, including keyboard support.
+      controls.filter(control => control.tagName === 'INPUT').forEach(control => {
+        if (control.type !== 'checkbox') control.type = 'search';
+      });
+    } else clearFilters(controls, () => { page = 1; load(); });
     return {
       get page() { return page; },
       reset: () => { page = 1; },
@@ -743,7 +821,7 @@
 
   const api = {
     badge: badge, badgeElement: badgeElement, docMini: docMini, emptyState: emptyState, tip: tip, toast: toast,
-    confirm: confirmDialog, request: request, handleSessionExpiry: handleSessionExpiry, debounce: debounce, recordFilters: recordFilters, postJson: postJson, esc: esc, pagination: pagination, busy: busy, runAction: runAction, dirtyForm: dirtyForm, recordPager: recordPager, clearFilters: clearFilters,
+    confirm: confirmDialog, request: request, handleSessionExpiry: handleSessionExpiry, debounce: debounce, recordFilters: recordFilters, filtersDisclosure: filtersDisclosure, postJson: postJson, esc: esc, pagination: pagination, busy: busy, runAction: runAction, dirtyForm: dirtyForm, recordPager: recordPager, clearFilters: clearFilters,
     submitToRpms: submitToRpms, overrideStudent: overrideStudent, overrideDocument: overrideDocument, showVersions: showVersions,
     enhanceTable: enhanceTable, tableFilter: tableFilter, hint: hint,
     mountStudentWorkflow: mountStudentWorkflow, mountNeedsAttention: mountNeedsAttention, init: init,

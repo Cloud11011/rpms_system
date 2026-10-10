@@ -46,7 +46,10 @@ $loggedInRole = $_SESSION['account_type'] ?? 'admin';
 <script src="<?php echo htmlspecialchars(asset_url('assets/js/script.js'), ENT_QUOTES, 'UTF-8'); ?>"></script>
 <script src="<?php echo htmlspecialchars(asset_url('assets/js/lifecycle-forms.js'), ENT_QUOTES, 'UTF-8'); ?>"></script>
 <?php endif; ?>
-<dialog id="inviteDialog" class="prism-dialog lifecycle-dialog" aria-labelledby="inviteTitle"><form id="inviteForm" class="account-form lifecycle-form"><h2 id="inviteTitle">Invite account</h2><p>The invited person establishes a password and completes their own profile.</p><label for="inviteEmail">Institutional email (required)</label><input id="inviteEmail" type="email" autocomplete="email" maxlength="190" required>
+<script>window.PRISM_INVITATION_DOMAINS = <?php echo json_encode(onboarding_invitation_domains(), JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT); ?>;</script>
+<dialog id="inviteDialog" class="prism-dialog lifecycle-dialog" aria-labelledby="inviteTitle"><form id="inviteForm" class="account-form lifecycle-form"><h2 id="inviteTitle">Invite account</h2><p>The invited person establishes a password and completes their own profile.</p><label for="inviteEmail">Institutional email (required)</label><input id="inviteEmail" type="email" autocomplete="email" maxlength="190" required aria-describedby="inviteDomainHint inviteEmailError">
+<small id="inviteDomainHint">Allowed domains: <?php echo htmlspecialchars(implode(', ', array_map(fn($domain) => '@' . $domain, onboarding_invitation_domains())), ENT_QUOTES, 'UTF-8'); ?></small>
+<p id="inviteEmailError" class="prism-field-error" aria-live="polite"></p>
 <?php if(!$isAdviser && $loggedInRole==='admin'): ?><label for="inviteAdviser">Adviser (optional)</label><select id="inviteAdviser"><option value="">Unassigned</option></select><?php endif; ?>
 <p id="inviteResult" role="alert" aria-live="polite" tabindex="-1"></p><div class="management-actions"><button id="cancelInvite" type="button">Cancel</button><button type="submit" class="management-primary">Send invitation</button></div></form></dialog>
 <script src="<?php echo htmlspecialchars(asset_url('assets/js/invitations.js'), ENT_QUOTES, 'UTF-8'); ?>"></script>
