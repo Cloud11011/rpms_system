@@ -37,7 +37,7 @@ if (!$tokenValid) {
 
 </head>
 
-<body>
+<body class="unified-login">
 
 <div class="background-overlay">
 
@@ -94,11 +94,7 @@ if (!$tokenValid) {
                 minlength="12"
                 required>
 
-                <span class="toggle-password">
-
-                    <i class="fa-solid fa-eye" id="togglePassword"></i>
-
-                </span>
+                <button type="button" class="toggle-password" aria-label="Show password" data-password-label="password" aria-controls="password" aria-pressed="false"><i class="fa-solid fa-eye" id="togglePassword" aria-hidden="true"></i></button>
 
             </div>
 
@@ -115,11 +111,7 @@ if (!$tokenValid) {
                 minlength="12"
                 required>
 
-                <span class="toggle-password">
-
-                    <i class="fa-solid fa-eye" id="toggleConfirmPassword"></i>
-
-                </span>
+                <button type="button" class="toggle-password" aria-label="Show confirm password" data-password-label="confirm password" aria-controls="confirmPassword" aria-pressed="false"><i class="fa-solid fa-eye" id="toggleConfirmPassword" aria-hidden="true"></i></button>
 
             </div>
 

@@ -110,6 +110,12 @@ document.addEventListener('DOMContentLoaded', () => {
         return Number.isNaN(date.getTime()) ? String(value) : date.toLocaleString('en-PH');
     }
 
+    // Delivery diagnostics stay in storage; the interface uses the recorded status.
+    function deliveryStatus(notification) {
+        return ['Sent', 'Scheduled', 'Failed', 'Logged', 'Cancelled', 'Queued', 'Sending'].includes(notification.status)
+            ? notification.status : 'Status not recorded';
+    }
+
     function showNoticeDetail(notification) {
         document.getElementById('notificationDetailTitle').textContent = notification.subject || notification.type || 'Notification';
         const metadata = document.getElementById('notificationDetailMeta');
@@ -136,7 +142,7 @@ document.addEventListener('DOMContentLoaded', () => {
             metadata.append(term, description);
         });
         document.getElementById('notificationDetailMessage').textContent = notification.message || '';
-        document.getElementById('notificationDetailDelivery').textContent = notification.delivery_info || 'No delivery information recorded.';
+        document.getElementById('notificationDetailDelivery').textContent = deliveryStatus(notification);
         if (!detailDialog.open) detailDialog.showModal();
     }
     function syncScheduleUi() {
@@ -192,7 +198,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 card.append(heading, metadata, content);
                 if (n.delivery_info) {
                     const delivery = document.createElement('small');
-                    delivery.textContent = n.delivery_info;
+                    delivery.textContent = deliveryStatus(n);
                     card.appendChild(delivery);
                 }
                 const detailButton = document.createElement('button');

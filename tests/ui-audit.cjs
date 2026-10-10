@@ -198,7 +198,7 @@ function fixtureApi(file, action) {
       [file === 'audit_api.php' ? 'entries' : 'notifications']:rows};
   }
   if (file === 'notifications_api.php' && action === 'recipients_preview') return {ok:true, recipients:populated ? [{id:1,name:attack,email:'fixture@example.test'}, {id:2,name:'Second recipient',email:'second@example.test'}] : []};
-  if (file === 'notifications_api.php') return { ok: true, notifications: populated ? [{ id: 1, subject: attack, type: 'Reminder', recipient_name: attack, recipient_email: 'fixture@example.test', status: 'Sent', created_at: '2026-09-24 08:00:00', message: attack, delivery_info: 'Fixture only' }] : [], total: populated ? 1 : 0, page: 1, scheduled: false, sent: 1 };
+  if (file === 'notifications_api.php') return { ok: true, notifications: populated ? [{ id: 1, subject: attack, type: 'Reminder', recipient_name: attack, recipient_email: 'fixture@example.test', status: 'Sent', created_at: '2026-09-24 08:00:00', message: attack, delivery_info: 'Email delivered via the Gmail API.' }] : [], total: populated ? 1 : 0, page: 1, scheduled: false, sent: 1 };
   if (file === 'advisers_api.php' && lifecycleRecords && action==='list') return {ok:true,advisers:lifecycleRecords};
   if (file === 'advisers_api.php') return {ok:true,advisers:populated?[{id:1,name:attack,employeeId:'A-1',email:'fixture@example.test',department:'AMT',status:'Active',groups:['AMT-BSIT-Y2-2627-G01','AMT-BSIT-Y2-2627-G02']},{id:2,name:'New Adviser',employeeId:'A-2',email:'new@example.test',status:'Active',groups:[]}]:[]};
   if (file === 'students_api.php' && action === 'adviser_options') return {ok:true,advisers:[]};
@@ -575,7 +575,7 @@ async function checkDuplicateLogoutControls() {
         for (const dark of [false,true]) {
           await navigate(file,width,dark,'empty',viewer);
           const label = `${viewer} ${file} ${width}px ${dark ? 'dark' : 'light'} logout`;
-          check(await evaluate(`document.querySelectorAll('a[href="logout.php"]').length === 1 && !!document.querySelector('.prism-sidebar a[href="logout.php"],.portal-navbar a[href="logout.php"]')`), label + ': exactly one canonical logout');
+          check(await evaluate(`document.querySelectorAll('a[href="logout.php"]').length === 1 && !!document.querySelector('.prism-account-links a[href="logout.php"]')`), label + ': exactly one canonical logout');
           for (const expanded of [false,true]) {
             await evaluateFunction(expanded => {
               const toggle = document.getElementById('prismSidebarToggle');
@@ -585,7 +585,8 @@ async function checkDuplicateLogoutControls() {
                 return;
               }
               if ((toggle.getAttribute('aria-expanded') === 'true') !== expanded) toggle.click();
-              if (expanded) document.getElementById('profileToggle')?.click();
+              const account=document.querySelector('[data-prism-account-toggle]');
+              if(account?.getAttribute('aria-expanded')!=='true')account?.click();
             }, expanded);
             check(await evaluate(`(() => {
               const links = [...document.querySelectorAll('a[href="logout.php"]')];
@@ -593,8 +594,8 @@ async function checkDuplicateLogoutControls() {
               return links.length === 1 && box.width > 0 && box.height >= 40 && box.right <= innerWidth && !links[0].closest('[hidden],[inert]');
             })()`), label + `: visible accessible action with navigation ${expanded ? 'expanded' : 'collapsed'}`);
             check(await evaluate(`(() => {
-              const menu = document.getElementById('profileMenu');
-              return !menu || ['account.php#profile','account.php#security','account.php#activity'].every(href => menu.querySelector('a[href="'+href+'"]')) && !menu.querySelector('a[href="logout.php"]') && !menu.querySelector('hr');
+              const menu = document.getElementById('prismAccountLinks');
+              return !!menu && ['account.php','account.php#activity','logout.php'].every(href => menu.querySelector('a[href="'+href+'"]')) && menu.querySelectorAll('a[href="logout.php"]').length===1 && !menu.querySelector('hr');
             })()`), label + ': profile items preserved without duplicate/logout divider');
           }
           await evaluate(`(() => {
@@ -942,7 +943,7 @@ async function checkNotificationComposer() {
         const d=document.getElementById('notificationDetail'), r=d.getBoundingClientRect();
         return r.left>=0 && r.right<=innerWidth && d.scrollWidth<=d.clientWidth+1 && !d.querySelector('img')
           && document.getElementById('notificationDetailMessage').textContent===attack
-          && d.textContent.includes('fixture@example.test') && d.textContent.includes('Fixture only');
+          && d.textContent.includes('fixture@example.test') && document.getElementById('notificationDetailDelivery').textContent==='Sent' && !d.textContent.includes('Gmail API');
       }, attack), `Notifications ${width}px ${dark?'dark':'light'}: full details fit and remain text`);
       await keyPress('Escape','Escape',27);
       check(await evaluate('!document.getElementById("notificationDetail").open && document.activeElement.matches("[data-notice-detail]")'), 'Notification details Escape restores trigger focus');
@@ -1391,8 +1392,9 @@ async function checkInstitutionalComponents() {
   const viewers = [['dashboard.php','admin'], ['research_adviser.php','adviser'], ['role_portal.php','student']];
   const screenshotDirectory = process.env.PRISM_TEST_SCREENSHOTS === '1'
     ? fs.mkdtempSync(path.join(os.tmpdir(), 'prism-institutional-ui-')) : null;
-  for (const width of [375,768,1024,1280,1600]) for (const dark of [false,true]) for (const [file,viewer] of viewers) {
+  for (const [width,height] of [[1920,1080],[1366,768],[1024,768],[768,1024],[390,844],[375,812],[1280,1000],[1600,1000]]) for (const dark of [false,true]) for (const [file,viewer] of viewers) {
     await navigate(file,width,dark,'populated',viewer);
+    await command('Emulation.setDeviceMetricsOverride',{width,height,deviceScaleFactor:1,mobile:width<500});
     const label = file + ' ' + width + 'px ' + (dark ? 'dark' : 'light') + ' institutional';
     const initial = await evaluateFunction(() => {
       const footer=document.querySelector('.ceu-footer'), resources=document.querySelector('[data-prism-resources]');
@@ -1403,7 +1405,7 @@ async function checkInstitutionalComponents() {
           !!resources?.closest('main') && !resources.closest('form,dialog') && !footer.closest('form,dialog') &&
           !!(resources.compareDocumentPosition(footer) & Node.DOCUMENT_POSITION_FOLLOWING),
         static:!document.querySelector('.ceu-footer :is(form,input,button,script),[data-prism-resources] :is(form,input,button,script,[data-go],[data-page])'),
-        closed:[...resources.querySelectorAll('details.prism-resource')].length===2 && [...resources.querySelectorAll('details')].every(e=>!e.open),
+        closed:[...resources.querySelectorAll('details.prism-resource')].length===3 && [...resources.querySelectorAll('details')].every(e=>!e.open),
         unique:ids.length===new Set(ids).size,
         contacts:footer.textContent.includes('Km. 44 McArthur Highway') && footer.textContent.includes('City of Malolos, Bulacan, Philippines') &&
           footer.querySelector('a[href="tel:+63447916359"]')?.textContent==='(044) 791-6359' &&
@@ -1419,7 +1421,7 @@ async function checkInstitutionalComponents() {
     const writesBefore=requests.filter(r=>r.method==='POST').length;
     for (const [type,src,w,h,count] of [
       ['sdg','assets/images/sdg.webp',2048,1448,17],
-      ['agenda','assets/images/research-matrix.webp',612,786,6],
+      ['agenda','assets/images/research-agenda-2023-2028.png',677,650,6],
     ]) {
       await evaluateFunction(type=>{
         const summary=document.querySelector('[data-resource="'+type+'"] > summary');
@@ -2248,6 +2250,8 @@ async function run() {
   await command('Log.enable');
   await command('Fetch.enable', { patterns: [{ urlPattern: '*' }] });
   await command('Browser.setDownloadBehavior', { behavior: 'deny' }, true);
+  if(process.argv.includes('--resources-only')) {checkInstitutionalPartialBoundary();await checkInstitutionalComponents();check(errors.length===0,'No resource browser exceptions',errors.join(' | '));console.log(checks+' resource browser checks; '+failures.length+' failures.');for(const f of failures)console.error('FAIL '+f);if(failures.length)process.exitCode=1;return;}
+  if(process.argv.includes('--batch1-only')) {await require('./v10-batch1-ui.cjs').run({check,evaluate,waitFor,navigate,command,keyPress,errors,getRequests:()=>requests});await checkDashboard();console.log(checks+' batch 1 browser checks; '+failures.length+' failures.');for(const f of failures)console.error('FAIL '+f);if(failures.length)process.exitCode=1;return;}
   if(process.argv.includes('--onboarding-only')) {await onboardingUIAudit.run({check,evaluate,waitFor,navigate,command,keyPress,setManagement:value=>{managementFixture=value;},getRequests:()=>requests,errors});console.log(checks+' onboarding browser checks; '+failures.length+' failures.');for(const failure of failures)console.error('FAIL '+failure);if(failures.length)process.exitCode=1;return;}
   if (process.argv.includes('--retention-only')) { await checkRetentionRedesign();console.log(checks+' retention browser checks; '+failures.length+' failures.');for(const failure of failures)console.error('FAIL '+failure);if(failures.length)process.exitCode=1;return; }
   if (process.argv.includes('--student-lifecycle-ui-only')) { await checkStudentLifecycle(); console.log(checks+' Student lifecycle UI checks; '+failures.length+' failures.'); for(const failure of failures)console.error('FAIL '+failure); if(failures.length)process.exitCode=1;return; }

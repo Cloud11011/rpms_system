@@ -20,6 +20,7 @@ storage/auth_rate_limits/
 !/tests/alignment-audit.php
 !/tests/tonight-polish-audit.php
 !/tests/ui-audit.cjs
+!/tests/v10-batch1-ui.cjs
 !/tests/run-final-regression.py
 !/tests/fixtures/
 /tests/fixtures/*

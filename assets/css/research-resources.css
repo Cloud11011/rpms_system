@@ -13,6 +13,11 @@
 .prism-research-resources .prism-resource { min-width:0; border:1px solid var(--border-color); border-radius:12px; background:var(--card-bg); }
 .prism-research-resources .prism-resource > summary { padding:18px 20px; border-radius:11px; cursor:pointer; font-size:var(--prism-font-subheading); line-height:1.6; color:var(--text-primary); }
 .prism-research-resources .prism-resource > summary::marker { color:var(--text-primary); }
+.prism-research-resources .prism-resource > summary { transition:background-color 160ms ease; }
+.prism-research-resources .prism-resource > summary:hover { background:var(--bg-color); }
+.prism-research-resources .prism-resource-open { transition:color 160ms ease; }
+.prism-research-resources .prism-resource-open:hover { color:var(--accent-pink); }
+@media(prefers-reduced-motion:reduce) { .prism-research-resources .prism-resource > summary, .prism-research-resources .prism-resource-open { transition:none; } }
 .prism-research-resources .prism-resource-title { font-weight:600; }
 .prism-research-resources .prism-resource-subtitle { display:block; margin-top:4px; color:var(--text-secondary); font-size:var(--prism-font-meta); }
 .prism-research-resources :is(summary,a):focus-visible { outline:3px solid var(--text-primary); outline-offset:3px; }

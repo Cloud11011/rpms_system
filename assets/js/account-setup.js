@@ -4,4 +4,6 @@
     const token=location.hash.slice(1),field=document.querySelector('[name="token"]');
     if(field && /^[a-f0-9]{64}$/.test(token))field.value=token;
     if(location.hash)history.replaceState(null,'',location.pathname);
+    togglePassword('setupPassword', 'toggleSetupPassword');
+    togglePassword('setupConfirm', 'toggleSetupConfirm');
 })();

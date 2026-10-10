@@ -10,3 +10,10 @@
 .protocol-code-card i{font-size:22px}
 .protocol-code-card span{display:block;font:600 var(--prism-font-meta) Montserrat;text-transform:uppercase;opacity:.85}
 .protocol-code-card strong{display:block;margin-top:3px;font-size:16px;letter-spacing:.5px}
+
+/* Separate document controls, including when the responsive table becomes cards. */
+.student-document-actions { display:flex; align-items:stretch; flex-wrap:wrap; gap:8px; }
+body.student-dashboard-page .student-document-actions .action-btn { display:inline-flex; align-items:center; justify-content:center; min-height:42px; margin:0; padding:10px 14px; text-decoration:none; font:600 var(--prism-font-body)/1.4 Montserrat,sans-serif; color:var(--text-primary); background:var(--card-bg); border:1px solid var(--border-color); border-radius:10px; transition:background-color 160ms ease,border-color 160ms ease; }
+body.student-dashboard-page .student-document-actions .action-btn:hover { background:var(--bg-color); border-color:var(--accent-pink); }
+body.student-dashboard-page .student-document-actions .action-btn:focus-visible { outline:2px solid var(--accent-pink); outline-offset:3px; }
+@media(prefers-reduced-motion:reduce) { body.student-dashboard-page .student-document-actions .action-btn { transition:none; } }

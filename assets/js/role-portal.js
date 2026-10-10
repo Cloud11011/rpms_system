@@ -53,9 +53,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const PAGES = {
         dashboard: ['Dashboard', 'Your research and IERB progress at a glance.'],
-        progress: ['IERB Progress', 'View official stages, requirements, deadlines, and remarks.'],
+        progress: ['IERB Progress', ''],
         submit: ['Document Submission', 'Upload requirements for RPMS/IERB review.'],
-        documents: ['My Documents', 'View and manage your submission history.'],
+        documents: ['My Documents', ''],
         notifications: ['Notifications', 'Stay updated on reviews, reminders, and follow-ups.'],
         calendar: ['Calendar', ''],
         profile: ['Profile', 'Manage your permitted personal and account information.'],
@@ -250,8 +250,8 @@ document.addEventListener('DOMContentLoaded', () => {
             <td>${fmt(d.uploadedAt)}</td>
             <td>${PrismUI.badge(d.workflowState || d.reviewStatus, { small: true })}${d.rpmsSubmittedAt ? `<small>Submitted: ${esc(fmt(d.rpmsSubmittedAt))}</small>` : ''}</td>
             <td>${esc(d.reviewRemarks || (d.workflowState === 'Submitted to RPMS' ? 'Formally submitted to RPMS' : 'No reviewer remarks yet'))}</td>
-            <td><a class="action-btn" href="documents_api.php?action=file&id=${encodeURIComponent(d.id)}" target="_blank" rel="noopener">Preview</a>
-                <a class="action-btn" href="documents_api.php?action=file&download=1&id=${encodeURIComponent(d.id)}">Download</a>${d.actions?.submitToRpms ? `<button type="button" class="action-btn" data-formal-submit="${esc(d.id)}">Submit to RPMS</button>` : ''}</td>
+            <td><div class="student-document-actions"><a class="action-btn" href="documents_api.php?action=file&id=${encodeURIComponent(d.id)}" target="_blank" rel="noopener">Preview</a>
+                <a class="action-btn" href="documents_api.php?action=file&download=1&id=${encodeURIComponent(d.id)}">Download</a>${d.actions?.submitToRpms ? `<button type="button" class="action-btn" data-formal-submit="${esc(d.id)}">Submit to RPMS</button>` : ''}</div></td>
         </tr>`).join('') || `<tr><td colspan="6">${empty('No documents match this view.')}</td></tr>`;
     }
 

@@ -31,7 +31,7 @@ $user_email = $authUser['email'];
 <?php if ($authUser['role'] === 'admin'): ?></aside><?php else: ?></header><?php endif; ?>
     <main class="main-content management-page">
         <header class="topbar">
-            <div><h1>AI Progress Reports</h1><p>Generate a focused summary or a full progress report. If the AI service is unavailable, PRISM uses its built-in local summarizer.</p></div>
+            <div><h1>AI Progress Reports</h1></div>
             <div class="top-controls"><button type="button" class="theme-toggle" id="themeToggle" title="Toggle light or dark theme" aria-label="Toggle light or dark theme"><i class="fa-solid fa-sun light-icon" aria-hidden="true"></i><i class="fa-solid fa-moon dark-icon" aria-hidden="true"></i></button></div>
         </header>
 

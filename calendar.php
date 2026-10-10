@@ -42,7 +42,6 @@ $profile_img = 'assets/images/default-avatar.svg';
         <header class="topbar">
             <div class="calendar-heading">
                 <h1>Personal Calendar</h1>
-                <p>Click a date to add and manage personal reminders. Personal reminders are stored only in this browser. Official deadlines appear below.</p>
             </div>
             <div class="top-controls">
                 <button class="today-button" id="todayButton">Today</button>
@@ -50,6 +49,7 @@ $profile_img = 'assets/images/default-avatar.svg';
             </div>
         </header>
 
+        <p class="calendar-instructions">Click a date to add and manage personal reminders. Personal reminders are stored only in this browser. Official deadlines appear below.</p>
         <section class="calendar-layout">
             <div class="full-calendar-card">
                 <div class="calendar-toolbar">

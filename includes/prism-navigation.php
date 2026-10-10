@@ -78,9 +78,9 @@ $prismNavGroups = [
 </ul></section>
 <?php endforeach; ?>
 </nav>
-<div class="prism-sidebar-utilities"><a class="prism-nav-home" href="account.php#security" aria-label="Settings"><i class="fa-solid fa-gear" aria-hidden="true"></i><span>Settings</span></a><a class="prism-nav-home" href="logout.php" aria-label="Log out"><i class="fa-solid fa-right-from-bracket" aria-hidden="true"></i><span>Log out</span></a></div>
+<div class="prism-sidebar-utilities"><a class="prism-nav-home" href="account.php#security" aria-label="Settings"><i class="fa-solid fa-gear" aria-hidden="true"></i><span>Settings</span></a></div>
 <div class="prism-account-menu" data-prism-admin-account>
 <button class="portal-profile-btn" data-prism-account-toggle type="button" aria-expanded="false" aria-controls="prismAccountLinks" aria-label="Admin account menu"><img src="assets/images/default-avatar.svg" alt=""><span><strong><?= $prismNavEscape($authUser['full_name'] ?? '') ?></strong><small>RPMS Admin</small></span><i class="fa-solid fa-chevron-down" aria-hidden="true"></i></button>
-<div class="prism-account-links" id="prismAccountLinks" hidden><a href="account.php">My account</a><a href="account.php#activity">Activity logs</a></div>
+<div class="prism-account-links" id="prismAccountLinks" hidden><a href="account.php">My account</a><a href="account.php#activity">Activity logs</a><a href="logout.php">Log Out</a></div>
 </div>
 <?php endif; ?>

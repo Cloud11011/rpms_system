@@ -36,7 +36,7 @@ $profile_img = 'assets/images/default-avatar.svg';
 
     <main class="main-content ierb-page">
         <header class="topbar">
-            <div class="ierb-heading"><h1>IERB Progress</h1><p>Monitor research submissions, requirements, stages, and follow-ups.</p></div>
+            <div class="ierb-heading"><h1>IERB Progress</h1></div>
             <div class="top-controls"><button type="button" class="theme-toggle" id="themeToggle" title="Toggle light or dark theme" aria-label="Toggle light or dark theme"><i class="fa-solid fa-sun light-icon" aria-hidden="true"></i><i class="fa-solid fa-moon dark-icon" aria-hidden="true"></i></button></div>
         </header>
 

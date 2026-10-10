@@ -191,7 +191,7 @@ try {
 <option value="high-to-low">Progress: High to low</option>
 <option value="low-to-high">Progress: Low to high</option>
 </select>
-<a class="btn-secondary-sm prism-link-btn" href="ierb_api.php?action=export_csv" title="Download the student progress list as a CSV file"><i class="fa-solid fa-file-arrow-down"></i> Export CSV</a>
+<a class="prism-btn is-secondary" href="ierb_api.php?action=export_csv" title="Download the student progress list as a CSV file"><i class="fa-solid fa-file-arrow-down"></i> Export CSV</a>
 </div>
 </div>
 <div class="dashboard-table-scroll" tabindex="0" role="region" aria-label="IERB progress records"><table class="data-table">

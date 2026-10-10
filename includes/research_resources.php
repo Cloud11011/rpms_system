@@ -8,7 +8,7 @@ if (realpath($_SERVER['SCRIPT_FILENAME'] ?? '') === __FILE__
 }
 ?>
 <section class="prism-research-resources" data-prism-resources aria-labelledby="prismResourcesTitle">
-    <header class="prism-resources-heading"><h2 id="prismResourcesTitle">Research resources</h2><p>Browse the Sustainable Development Goals, CEU Malolos Research Agenda, and official IERB resources.</p></header>
+    <header class="prism-resources-heading"><h2 id="prismResourcesTitle">Research resources</h2></header>
     <div class="prism-resource-grid">
         <details class="prism-resource" data-resource="sdg">
             <summary><span class="prism-resource-title">Sustainable Development Goals</span><span class="prism-resource-subtitle">17 global goals</span></summary>
@@ -30,10 +30,10 @@ if (realpath($_SERVER['SCRIPT_FILENAME'] ?? '') === __FILE__
             <summary><span class="prism-resource-title">Research Agenda</span><span class="prism-resource-subtitle">CEU Malolos &middot; 2023&ndash;2028</span></summary>
             <div class="prism-resource-content">
                 <figure>
-                    <div class="prism-resource-image"><img src="assets/images/research-matrix.webp" alt="CEU Malolos Research Agenda 2023–2028: six research clusters and their Sustainable Development Goal mappings, also listed below." width="612" height="786" loading="lazy" decoding="async"></div>
+                    <div class="prism-resource-image"><img src="assets/images/research-agenda-2023-2028.png" alt="Official CEU Malolos RPMS Research Agenda 2023&ndash;2028: six research clusters, Sustainable Development Goal mappings and NUHRA 2023&ndash;2028 themes." width="677" height="650" loading="lazy" decoding="async"></div>
                     <figcaption>CEU Malolos &middot; Research Agenda 2023&ndash;2028</figcaption>
                 </figure>
-                <a class="prism-resource-open" data-resource-open href="assets/images/research-matrix.webp" target="_blank" rel="noopener noreferrer">Open Research Agenda image at full size <span>(new tab)</span></a>
+                <a class="prism-resource-open" data-resource-open href="assets/images/research-agenda-2023-2028.png" target="_blank" rel="noopener noreferrer">Open Research Agenda image at full size <span>(new tab)</span></a>
                 <div class="prism-resource-transcript">
                     <h3>Research clusters and SDGs</h3>
                     <ol>
@@ -47,9 +47,12 @@ if (realpath($_SERVER['SCRIPT_FILENAME'] ?? '') === __FILE__
                 </div>
             </div>
         </details>
-        <article class="prism-resource prism-resource-portal">
-            <h3><a href="https://ceu-ierb.wixsite.com/ierb" target="_blank" rel="noopener noreferrer">CEU IERB Portal <i class="fa-solid fa-arrow-up-right-from-square" aria-hidden="true"></i><span class="prism-resource-subtitle">Opens in a new tab</span></a></h3>
-            <p>Visit the CEU Institutional Ethics Review Board portal for official IERB information and resources.</p>
-        </article>
+        <details class="prism-resource" data-resource="ierb">
+            <summary><span class="prism-resource-title">IERB Portal</span></summary>
+            <div class="prism-resource-content">
+                <p>Visit the CEU Institutional Ethics Review Board portal for official IERB information and resources.</p>
+                <a class="prism-resource-open" href="https://ceu-ierb.wixsite.com/ierb" target="_blank" rel="noopener noreferrer">Open CEU IERB Portal <span>(new tab)</span></a>
+            </div>
+        </details>
     </div>
 </section>

@@ -19,7 +19,7 @@ $authUser = require_login('admin');
 <div class="container"><aside class="sidebar prism-sidebar">
 <?php $prismCurrentPage='data_export.php'; require __DIR__ . '/includes/prism-navigation.php'; ?>
 </aside><main class="main-content">
-<header class="topbar"><div><h1>Data Export</h1><p>Export administrative records for offline review, reporting, analysis, and record preservation.</p></div>
+<header class="topbar"><div><h1>Data Export</h1></div>
 <div class="top-controls"><button type="button" class="theme-toggle" id="themeToggle" aria-label="Toggle light or dark theme" title="Toggle light or dark theme"><i class="fa-solid fa-sun light-icon" aria-hidden="true"></i><i class="fa-solid fa-moon dark-icon" aria-hidden="true"></i></button></div></header>
 <div class="data-export-grid">
 <?php foreach ([
@@ -29,7 +29,7 @@ $authUser = require_login('admin');
     ['documents','Document Records','Document metadata, including historical records and earlier versions.']
 ] as [$type,$label,$description]): ?>
 <section class="panel data-export-card"><h2><?= $label ?></h2><p><?= $description ?></p>
-<a class="prism-btn is-primary" href="data_exports_api.php?action=<?= $type ?>"><i class="fa-solid fa-file-csv" aria-hidden="true"></i> Download <?= $label ?> CSV</a></section>
+<a class="prism-btn is-secondary" href="data_exports_api.php?action=<?= $type ?>"><i class="fa-solid fa-file-csv" aria-hidden="true"></i> Download <?= $label ?> CSV</a></section>
 <?php endforeach; ?>
 </div><p class="data-export-note">CSV exports support administrative review. Server and database backups remain the recovery mechanism.</p>
 <?php require __DIR__ . '/includes/ceu_footer.php'; ?>

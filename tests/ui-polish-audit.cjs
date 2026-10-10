@@ -170,7 +170,7 @@ function fixtureApi(file, action) {
       [file === 'audit_api.php' ? 'entries' : 'notifications']:rows};
   }
   if (file === 'notifications_api.php' && action === 'recipients_preview') return {ok:true, recipients:populated ? [{id:1,name:attack,email:'fixture@example.test'}, {id:2,name:'Second recipient',email:'second@example.test'}] : []};
-  if (file === 'notifications_api.php') return { ok: true, notifications: populated ? [{ id: 1, subject: attack, type: 'Reminder', recipient_name: attack, recipient_email: 'fixture@example.test', status: 'Sent', created_at: '2026-09-24 08:00:00', message: attack, delivery_info: 'Fixture only' }] : [], total: populated ? 1 : 0, page: 1, scheduled: false, sent: 1 };
+  if (file === 'notifications_api.php') return { ok: true, notifications: populated ? [{ id: 1, subject: attack, type: 'Reminder', recipient_name: attack, recipient_email: 'fixture@example.test', status: 'Sent', created_at: '2026-09-24 08:00:00', message: attack, delivery_info: 'Email delivered via the Gmail API.' }] : [], total: populated ? 1 : 0, page: 1, scheduled: false, sent: 1 };
   if (file === 'advisers_api.php') return {ok:true,advisers:populated?[{id:1,name:attack,employeeId:'A-1',email:'fixture@example.test',department:'AMT',status:'Active',groups:['AMT-BSIT-Y2-2627-G01','AMT-BSIT-Y2-2627-G02']},{id:2,name:'New Adviser',employeeId:'A-2',email:'new@example.test',status:'Active',groups:[]}]:[]};
   if (file === 'students_api.php' && action === 'adviser_options') return {ok:true,advisers:[]};
   if (file === 'students_api.php' && action === 'save' && academicSaveError) return {ok:false,message:'Academic validation error '+attack};
@@ -531,7 +531,7 @@ async function checkDuplicateLogoutControls() {
         for (const dark of [false,true]) {
           await navigate(file,width,dark,'empty',viewer);
           const label = `${viewer} ${file} ${width}px ${dark ? 'dark' : 'light'} logout`;
-          check(await evaluate(`document.querySelectorAll('a[href="logout.php"]').length === 1 && !!document.querySelector('.prism-sidebar a[href="logout.php"],.portal-navbar a[href="logout.php"]')`), label + ': exactly one canonical logout');
+          check(await evaluate(`document.querySelectorAll('a[href="logout.php"]').length === 1 && !!document.querySelector('.prism-account-links a[href="logout.php"]')`), label + ': exactly one canonical logout');
           for (const expanded of [false,true]) {
             await evaluateFunction(expanded => {
               const toggle = document.getElementById('prismSidebarToggle');
@@ -541,7 +541,8 @@ async function checkDuplicateLogoutControls() {
                 return;
               }
               if ((toggle.getAttribute('aria-expanded') === 'true') !== expanded) toggle.click();
-              if (expanded) document.getElementById('profileToggle')?.click();
+              const account=document.querySelector('[data-prism-account-toggle]');
+              if(account?.getAttribute('aria-expanded')!=='true')account?.click();
             }, expanded);
             check(await evaluate(`(() => {
               const links = [...document.querySelectorAll('a[href="logout.php"]')];
@@ -549,8 +550,8 @@ async function checkDuplicateLogoutControls() {
               return links.length === 1 && box.width > 0 && box.height >= 40 && box.right <= innerWidth && !links[0].closest('[hidden],[inert]');
             })()`), label + `: visible accessible action with navigation ${expanded ? 'expanded' : 'collapsed'}`);
             check(await evaluate(`(() => {
-              const menu = document.getElementById('profileMenu');
-              return !menu || ['account.php#profile','account.php#security','account.php#activity'].every(href => menu.querySelector('a[href="'+href+'"]')) && !menu.querySelector('a[href="logout.php"]') && !menu.querySelector('hr');
+              const menu = document.getElementById('prismAccountLinks');
+              return !!menu && ['account.php','account.php#activity','logout.php'].every(href => menu.querySelector('a[href="'+href+'"]')) && menu.querySelectorAll('a[href="logout.php"]').length===1 && !menu.querySelector('hr');
             })()`), label + ': profile items preserved without duplicate/logout divider');
           }
           await evaluate(`(() => {
@@ -848,7 +849,7 @@ async function checkNotificationComposer() {
         const d=document.getElementById('notificationDetail'), r=d.getBoundingClientRect();
         return r.left>=0 && r.right<=innerWidth && d.scrollWidth<=d.clientWidth+1 && !d.querySelector('img')
           && document.getElementById('notificationDetailMessage').textContent===attack
-          && d.textContent.includes('fixture@example.test') && d.textContent.includes('Fixture only');
+          && d.textContent.includes('fixture@example.test') && document.getElementById('notificationDetailDelivery').textContent==='Sent' && !d.textContent.includes('Gmail API');
       }, attack), `Notifications ${width}px ${dark?'dark':'light'}: full details fit and remain text`);
       await keyPress('Escape','Escape',27);
       check(await evaluate('!document.getElementById("notificationDetail").open && document.activeElement.matches("[data-notice-detail]")'), 'Notification details Escape restores trigger focus');
@@ -1309,7 +1310,7 @@ async function checkInstitutionalComponents() {
           !!resources?.closest('main') && !resources.closest('form,dialog') && !footer.closest('form,dialog') &&
           !!(resources.compareDocumentPosition(footer) & Node.DOCUMENT_POSITION_FOLLOWING),
         static:!document.querySelector('.ceu-footer :is(form,input,button,script),[data-prism-resources] :is(form,input,button,script,[data-go],[data-page])'),
-        closed:[...resources.querySelectorAll('details.prism-resource')].length===2 && [...resources.querySelectorAll('details')].every(e=>!e.open),
+        closed:[...resources.querySelectorAll('details.prism-resource')].length===3 && [...resources.querySelectorAll('details')].every(e=>!e.open),
         unique:ids.length===new Set(ids).size,
         contacts:footer.textContent.includes('Km. 44 McArthur Highway') && footer.textContent.includes('City of Malolos, Bulacan, Philippines') &&
           footer.querySelector('a[href="tel:+63447916359"]')?.textContent==='(044) 791-6359' &&
@@ -1325,7 +1326,7 @@ async function checkInstitutionalComponents() {
     const writesBefore=requests.filter(r=>r.method==='POST').length;
     for (const [type,src,w,h,count] of [
       ['sdg','assets/images/sdg.webp',2048,1448,17],
-      ['agenda','assets/images/research-matrix.webp',612,786,6],
+      ['agenda','assets/images/research-agenda-2023-2028.png',677,650,6],
     ]) {
       await evaluateFunction(type=>{
         const summary=document.querySelector('[data-resource="'+type+'"] > summary');
@@ -1727,7 +1728,11 @@ async function run() {
       const request = message.params;
         const visualAsset = process.argv.includes('--visual-only') && /^https:\/\/(fonts\.googleapis\.com|fonts\.gstatic\.com|cdnjs\.cloudflare\.com)\//.test(request.request.url);
         const allowed = visualAsset || request.request.url.startsWith(origin + '/') || /^(data:|about:)/.test(request.request.url);
-      void command(allowed ? 'Fetch.continueRequest' : 'Fetch.fulfillRequest', allowed ? { requestId: request.requestId } : { requestId: request.requestId, responseCode: 200, body: '' }).catch(e => errors.push(String(e)));
+      void command(allowed ? 'Fetch.continueRequest' : 'Fetch.fulfillRequest', allowed ? { requestId: request.requestId } : { requestId: request.requestId, responseCode: 200, body: '' }).catch(e => {
+        // Navigation may cancel a paused request before Chrome receives its reply.
+        // Match the canonical harness; retain every other protocol/application error.
+        if (e.message !== 'Invalid InterceptionId.') errors.push(String(e));
+      });
     }
   });
   const target = await command('Target.createTarget', { url: 'about:blank' }, true);

@@ -40,7 +40,9 @@
 .adviser-document-meta dd, .adviser-profile-details dd { margin:0; font-size:var(--prism-font-body); line-height:1.6; white-space:pre-wrap; }
 .adviser-document-meta { grid-template-columns:repeat(2,minmax(0,1fr)); }
 .adviser-document-remarks { white-space:pre-wrap; font-size:var(--prism-font-body); line-height:1.6; color:var(--text-secondary); }
-.adviser-document-actions { display:flex; gap:8px; flex-wrap:wrap; }
+.adviser-document-actions { display:flex; align-items:stretch; gap:8px; flex-wrap:wrap; }
+.adviser-document-actions .adviser-button { flex:1 1 150px; min-height:44px; margin:0; transition:background-color 160ms ease,border-color 160ms ease; }
+.adviser-document-actions .adviser-button:hover { background:var(--bg-color); border-color:var(--accent-pink); }
 .adviser-notice { min-width:0; padding:14px 0; border-top:1px solid var(--border-color); }
 .adviser-notice h3 { font-size:var(--prism-font-subheading); line-height:1.6; }
 .adviser-notice p { margin-top:7px; font-size:var(--prism-font-body); line-height:1.6; white-space:pre-wrap; }

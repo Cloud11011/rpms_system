@@ -109,3 +109,6 @@ html.dark-theme .portal-profile-dropdown{background:rgba(24,26,38,.98)}
   .portal-nav-links button{padding:9px 11px!important}
   .portal-profile-btn,.portal-help,.portal-notification{min-width:40px;min-height:40px}
 }
+/* Preserve horizontal and mobile navigation scrolling without visual chrome. */
+.portal-nav-links { scrollbar-width:none; -ms-overflow-style:none; }
+.portal-nav-links::-webkit-scrollbar { display:none; }

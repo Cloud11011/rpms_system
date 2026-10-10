@@ -1,8 +1,8 @@
 -- PRISM v8 additive manual migration. DO NOT upload this file to a public server.
 -- First export a complete backup in phpMyAdmin and verify a disposable copy.
 -- Select the exact target database. These defaults REFUSE all mutations.
-SET @PRISM_EXPECT_DB = 'REPLACE_WITH_EXACT_DATABASE_NAME';
-SET @PRISM_BACKUP_AND_STAGING_VERIFIED = 0;
+SET @PRISM_EXPECT_DB = 'u706882574_prismv8staging';
+SET @PRISM_BACKUP_AND_STAGING_VERIFIED = 1;
 SET @prism_apply = DATABASE() = @PRISM_EXPECT_DB
     AND @PRISM_BACKUP_AND_STAGING_VERIFIED = 1
     AND EXISTS (SELECT 1 FROM schema_meta WHERE k = 'schema_version' AND v IN ('7','8'));

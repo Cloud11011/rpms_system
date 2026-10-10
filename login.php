@@ -46,7 +46,7 @@ unset($_SESSION['error'], $_SESSION['success']);
             <p>Centro Escolar University - Malolos <span aria-hidden="true">&bull;</span> RPMS</p>
         </div>
 
-        <?php if ($loginError): ?><div class="error-message"><?php echo htmlspecialchars($loginError, ENT_QUOTES, 'UTF-8'); ?></div><?php endif; ?>
+        <?php if ($loginError): ?><div class="error-message<?= $loginError === 'Your session expired due to inactivity. Please sign in again.' ? ' session-expiry-notice' : '' ?>"><?php echo htmlspecialchars($loginError, ENT_QUOTES, 'UTF-8'); ?></div><?php endif; ?>
         <?php if ($loginSuccess): ?><div class="success-message"><?php echo htmlspecialchars($loginSuccess, ENT_QUOTES, 'UTF-8'); ?></div><?php endif; ?>
 
         <form action="login_process.php" method="POST">
@@ -68,11 +68,7 @@ unset($_SESSION['error'], $_SESSION['success']);
 
             <button type="submit">Log in</button>
 
-            <div class="register-text">
-                RPMS staff without an account? <a href="register.php">Register</a>
-            </div>
-
-            <p class="login-account-note">Research advisers and students are given their login by the RPMS office.</p>
+            <p class="login-account-note">Students and research advisers receive their PRISM account access from RPMS.</p>
 
         </form>
 

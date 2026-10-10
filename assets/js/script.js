@@ -23,7 +23,7 @@ function togglePassword(inputId, iconId){
 
             if(control.tagName === "BUTTON"){
                 const visible = input.type === "text";
-                const label = inputId === "confirmPassword" ? "confirm password" : "password";
+                const label = control.dataset.passwordLabel || (inputId.toLowerCase().includes('confirm') ? "confirm password" : "password");
                 control.setAttribute("aria-label", (visible ? "Hide " : "Show ") + label);
                 control.setAttribute("aria-pressed", String(visible));
             }

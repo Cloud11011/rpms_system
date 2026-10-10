@@ -31,7 +31,7 @@ $landing = $user['role'] === 'admin' ? 'dashboard.php' : ($user['role'] === 'adv
 
 </head>
 
-<body>
+<body class="unified-login">
 
 <div class="background-overlay">
 
@@ -64,7 +64,7 @@ $landing = $user['role'] === 'admin' ? 'dashboard.php' : ($user['role'] === 'adv
                     placeholder="Current (temporary) password"
                     required>
 
-                <span class="toggle-password"><i class="fa-solid fa-eye" id="toggleCurrentPassword"></i></span>
+                <button type="button" class="toggle-password" aria-label="Show current password" data-password-label="current password" aria-controls="currentPassword" aria-pressed="false"><i class="fa-solid fa-eye" id="toggleCurrentPassword" aria-hidden="true"></i></button>
 
             </div>
 
@@ -81,7 +81,7 @@ $landing = $user['role'] === 'admin' ? 'dashboard.php' : ($user['role'] === 'adv
                     autocomplete="new-password"
                     required>
 
-                <span class="toggle-password"><i class="fa-solid fa-eye" id="toggleNewPassword"></i></span>
+                <button type="button" class="toggle-password" aria-label="Show new password" data-password-label="new password" aria-controls="newPassword" aria-pressed="false"><i class="fa-solid fa-eye" id="toggleNewPassword" aria-hidden="true"></i></button>
 
             </div>
 
@@ -98,7 +98,7 @@ $landing = $user['role'] === 'admin' ? 'dashboard.php' : ($user['role'] === 'adv
                     autocomplete="new-password"
                     required>
 
-                <span class="toggle-password"><i class="fa-solid fa-eye" id="toggleConfirmNewPassword"></i></span>
+                <button type="button" class="toggle-password" aria-label="Show confirm password" data-password-label="confirm password" aria-controls="confirmPassword" aria-pressed="false"><i class="fa-solid fa-eye" id="toggleConfirmNewPassword" aria-hidden="true"></i></button>
 
             </div>
 

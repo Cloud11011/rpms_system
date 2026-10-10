@@ -40,3 +40,7 @@
  .prism-sidebar .sidebar-profile .profile-info { display:block; }
 }
 @media(prefers-reduced-motion:reduce) { .prism-sidebar * { transition:none; } }
+
+/* Keep navigation scrollable with wheel, keyboard and touch. */
+.sidebar.prism-sidebar { scrollbar-width:none; -ms-overflow-style:none; }
+.sidebar.prism-sidebar::-webkit-scrollbar { display:none; }

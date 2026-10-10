@@ -109,3 +109,4 @@
 
 /* Keep official dates discoverable when mobile hides personal text previews. */
 @media (max-width:600px) { .calendar-day.has-official-deadline::after { content: ""; position: absolute; top: 4px; right: 4px; width: 6px; height: 6px; border-radius: 50%; background: var(--accent-pink); } }
+.calendar-instructions { margin:0 0 18px; color:var(--text-secondary); font-size:var(--prism-font-body); line-height:1.6; }

@@ -31,7 +31,11 @@
 .dashboard-page .data-table td { overflow-wrap:normal; word-break:normal; }
 .dashboard-page .data-table td:first-child { overflow-wrap:anywhere; }
 .dashboard-page .pipeline-steps { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:10px; }
-.dashboard-page .step-item { min-width:0; }
+.dashboard-page .step-item { min-width:0; display:flex; flex-direction:column; gap:12px; padding:18px 16px; border:1px solid var(--border-color); border-top:3px solid var(--accent-purple); border-radius:12px; background:var(--card-bg); }
+.dashboard-page .step-item.delayed { border-left-color:var(--border-color); border-top-color:#c67822; }
+.dashboard-page .step-item.approved { border-left-color:var(--border-color); border-top-color:#319052; }
+.dashboard-page .step-item span { color:var(--text-secondary); font-size:var(--prism-font-body); line-height:1.5; }
+.dashboard-page .step-item strong { margin-top:auto; color:var(--text-primary); font-size:var(--prism-font-subheading); line-height:1.4; }
 .dashboard-page .step-item strong { overflow-wrap:anywhere; }
 .dashboard-page .recent-ai-reports a { display:flex; align-items:center; gap:8px; color:inherit; text-decoration:none; width:100%; }
 .dashboard-page :is(a,button,input,select,[tabindex]):focus-visible { outline:2px solid var(--accent-pink); outline-offset:3px; }

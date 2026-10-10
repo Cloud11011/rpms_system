@@ -158,7 +158,8 @@ body.portal-shell .adviser-review-table caption { text-align:left; padding:8px 0
 body.portal-shell .adviser-review-table td { vertical-align:top; }
 body.portal-shell .adviser-review-table .adviser-document { display:table-cell; border:0; border-bottom:1px solid var(--prism-border); border-radius:0; background:transparent; min-width:230px; }
 body.portal-shell .adviser-document h3 { margin-bottom:10px; }
-body.portal-shell .adviser-document-actions { min-width:140px; }
+body.portal-shell .adviser-document-actions { display:grid; grid-template-columns:minmax(0,1fr); grid-auto-rows:1fr; min-width:180px; gap:8px; }
+body.portal-shell .adviser-document-actions .adviser-button { width:100%; min-height:44px; }
 body.portal-shell .prism-resubmission-note p { margin-bottom:12px; color:var(--prism-muted); font-size:var(--prism-font-meta); }
 body.portal-shell .dashboard-calendar-weekdays span { font-size:var(--prism-font-meta); }
 body.portal-shell .dashboard-calendar-day { min-height:38px; font-size:var(--prism-font-body); }
@@ -289,3 +290,11 @@ body.prism-workspace .notification-detail-meta dd:not(:last-child) { margin-bott
 @media(max-width:600px) {
     body.prism-workspace :is(.management-actions,.ierb-modal-actions,.document-modal-actions,.adviser-dialog-actions,.form-actions) > button { flex:1 1 120px; }
 }
+/* Navigation remains scrollable; only its scrollbar is hidden. */
+body.prism-workspace .portal-nav-links { scrollbar-width:none; -ms-overflow-style:none; }
+body.prism-workspace .portal-nav-links::-webkit-scrollbar { display:none; }
+
+/* Enabled CSV actions use the shared secondary-action palette in both themes. */
+body.prism-workspace :is(#exportExcel,.header-actions a[href*="action=export_csv"],.data-export-card .prism-btn) { color:var(--text-primary); background:var(--card-bg); border:1px solid var(--border-color); opacity:1; min-height:42px; transition:border-color 160ms ease; }
+body.prism-workspace :is(#exportExcel,.header-actions a[href*="action=export_csv"],.data-export-card .prism-btn):hover { background:var(--bg-color); border-color:var(--accent-pink); }
+@media(prefers-reduced-motion:reduce) { body.prism-workspace :is(#exportExcel,.header-actions a[href*="action=export_csv"],.data-export-card .prism-btn,.adviser-document-actions .adviser-button) { transition:none; } }

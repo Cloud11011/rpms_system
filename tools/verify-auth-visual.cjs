@@ -43,7 +43,7 @@ function render(file, options = {}) {
   const setup = `<?php
     require_once '${path.join(root,'includes/assets.php').replaceAll('\\','/')}';
     $_SESSION = json_decode(base64_decode('${Buffer.from(JSON.stringify(flash)).toString('base64')}'), true);
-    $_GET = [];
+    $_GET = ${options.expired ? "['expired'=>1]" : '[]'};
     const ADMIN_REGISTRATION_CODE = '${options.disabled ? '' : 'isolated-fixture-code'}';
     function current_user() { return ${file === 'change_password_required.php' ? "['must_change_password'=>1,'role'=>'admin']" : 'null'}; }
     function allowed_email_domains_hint() { return '@ceu.edu.ph, @mls.ceu.edu.ph, @gmail.com'; }
@@ -65,7 +65,7 @@ function serve(req, res) {
       return;
     }
     if (['login.php','register.php','forgot_password.php','reset_password.php','change_password_required.php'].includes(file)) {
-      let html = render(file, {disabled:url.searchParams.has('disabled'),flash:url.searchParams.has('flash'),original:url.searchParams.has('original')});
+      let html = render(file, {disabled:url.searchParams.has('disabled'),flash:url.searchParams.has('flash'),expired:url.searchParams.has('expired'),original:url.searchParams.has('original')});
       if (url.searchParams.has('baseline')) html = html.replace(/href="assets\/css\/style\.css[^\"]*"/, 'href="assets/css/style.baseline.css"');
       res.writeHead(200, {'Content-Type':'text/html; charset=utf-8'}); res.end(html); return;
     }
@@ -132,7 +132,7 @@ function measurements() {
     heading:rect(heading),headingColor:getComputedStyle(heading).color,punctuation,
     gradient:brand?getComputedStyle(brand).backgroundImage:null,gradientClip:brand?getComputedStyle(brand).backgroundClip:null,
     subtitle:document.querySelector('.prism-branding strong')?style('.prism-branding strong','color'):null,
-    helper:style('.register-text','color'),note:document.querySelector('.login-account-note')?style('.login-account-note','color'):null,
+    helper:document.querySelector('.register-text')?style('.register-text','color'):null,note:document.querySelector('.login-account-note')?style('.login-account-note','color'):null,
     button:submit?rect(submit):null,buttonColor:submit?getComputedStyle(submit).backgroundColor:null,
     fields:fields.map(input=>({rect:rect(input),height:getComputedStyle(input).height,background:getComputedStyle(input).backgroundColor,border:getComputedStyle(input).borderColor,active:input.matches(':focus, :hover')})),
     icons:[...document.querySelectorAll('.input-group > i,.toggle-password')].map(icon=>getComputedStyle(icon).color),
@@ -159,13 +159,14 @@ async function checkPage(file, width, height, disabled = false) {
   check(m.logoLoaded && m.logo.width===220 && Math.abs(m.logo.x+m.logo.width/2-m.viewport.availableWidth/2)<1,label+': original centered logo');
   check(m.logoCanvasBottom<m.heading.y,label+': visible logo does not collide with title');
   check(m.heading.right<=m.card.right && m.heading.x>=m.card.x,label+': heading fits');
-  check(m.headingColor==='rgb(34, 34, 34)' && m.helper==='rgb(85, 85, 85)',label+': heading/helper colors');
+  check(m.headingColor==='rgb(34, 34, 34)' && (file==='login.php'?m.helper===null:m.helper==='rgb(85, 85, 85)'),label+': heading/helper colors');
   if(file==='login.php') {
     check(m.gradient==='linear-gradient(90deg, rgb(222, 75, 158) 0%, rgb(188, 101, 179) 50%, rgb(133, 133, 199) 100%)'&&m.gradientClip==='text',label+': pink-purple-lavender word gradient');
     check(m.punctuation.right<=m.card.right && m.subtitle==='rgb(12, 14, 63)' && m.note==='rgb(136, 136, 136)',label+': punctuation/subtitle/note');
     check(await evaluate('document.querySelector(".form-options a").getAttribute("href")==="forgot_password.php"'),label+': real password recovery link');
   }
-  check(await evaluate('!document.querySelector(".back-to-roles") && !/Back/.test(document.querySelector(".register-text").textContent)'),label+': no Back action');
+  check(await evaluate('!document.querySelector(".back-to-roles") && !/Back/.test(document.querySelector(".register-text")?.textContent || "")'),label+': no Back action');
+  if(file==='login.php')check(await evaluate('!document.querySelector("a[href=\\"register.php\\"]") && !document.querySelector(".register-text")'),label+': no public Register CTA');
   if(disabled) {
     check(await evaluate('!document.querySelector("form") && document.querySelector(".register-text a").textContent==="Login" && document.querySelector(".register-text a").getAttribute("href")==="login.php"'),label+': disabled registration Login navigation');
   } else {
@@ -273,10 +274,34 @@ async function run() {
     await navigate(file+'?baseline=1',1366,768);const before=await evaluate(sharedStyleSnapshot);
     await navigate(file,1366,768);const after=await evaluate(sharedStyleSnapshot);
     fs.writeFileSync(path.join(output,file.replace('.php','')+'-style-comparison.json'),JSON.stringify({before,after},null,2));
-    check(JSON.stringify(before)===JSON.stringify(after),file+': computed shared styles unchanged');
+    if(file==='forgot_password.php')check(JSON.stringify(before)===JSON.stringify(after),file+': computed shared styles unchanged');
+    else {
+      check(await evaluate('document.body.classList.contains("unified-login") && getComputedStyle(document.querySelector("button[type=submit]")).backgroundColor==="rgb(12, 14, 63)"'),file+': shared Login visual treatment');
+      check(await evaluate('[...document.querySelectorAll(".toggle-password")].every(e=>e.tagName==="BUTTON" && e.type==="button" && !!e.getAttribute("aria-controls") && e.getAttribute("aria-label").startsWith("Show "))'),file+': accessible standard eye buttons');
+    }
     if(file==='reset_password.php') {
       await evaluate('document.getElementById("togglePassword").click()');
       check(await evaluate('document.getElementById("password").type==="text"'),file+': legacy password toggle still works');
+    }
+  }
+  for(const [width,height] of viewports) {
+    await navigate('login.php?expired=1',width,height);
+    const expired=await evaluate(()=>{const e=document.querySelector('.error-message'),s=getComputedStyle(e);return {text:e.textContent,font:parseFloat(s.fontSize),line:parseFloat(s.lineHeight)/parseFloat(s.fontSize),fits:e.scrollWidth<=e.clientWidth+1};});
+    check(expired.text==='Your session expired due to inactivity. Please sign in again.' && expired.font>=12 && expired.font<=13 && expired.line>=1.4 && expired.line<=1.5 && expired.fits,'Expiry '+width+': exact wording, smaller type and wrapping');
+    await navigate('login.php?flash=1',width,height);
+    const normal=await evaluate(()=>{const e=document.querySelector('.error-message');return {font:getComputedStyle(e).fontSize,special:e.classList.contains('session-expiry-notice')};});
+    await navigate('login.php?flash=1&baseline=1',width,height);
+    check(normal.font===await evaluate('getComputedStyle(document.querySelector(".error-message")).fontSize') && !normal.special,'Normal Login errors unchanged at '+width);
+    for(const file of ['reset_password.php','change_password_required.php']) {
+      await navigate(file,width,height);
+      check(await evaluate('document.documentElement.scrollWidth<=innerWidth && document.querySelector("form").getBoundingClientRect().right<=innerWidth'),file+'/'+width+': auth form fits');
+      for(const button of await evaluate('[...document.querySelectorAll(".toggle-password")].map(e=>e.getAttribute("aria-controls"))')) {
+        await evaluate(id=>document.querySelector('[aria-controls="'+id+'"]').focus(),button);
+        await command('Input.dispatchKeyEvent',{type:'keyDown',key:'Enter',code:'Enter',windowsVirtualKeyCode:13});
+        await command('Input.dispatchKeyEvent',{type:'char',key:'Enter',code:'Enter',text:'\r',windowsVirtualKeyCode:13});
+        await command('Input.dispatchKeyEvent',{type:'keyUp',key:'Enter',code:'Enter',windowsVirtualKeyCode:13});
+        check(await evaluate(id=>document.getElementById(id).type==='text' && document.querySelector('[aria-controls="'+id+'"]').getAttribute('aria-label').startsWith('Hide '),button),file+'/'+width+': keyboard eye '+button);
+      }
     }
   }
   for(const file of ['login.php','register.php'])check(fs.readFileSync(path.join(root,file),'utf8').replaceAll('\r\n','\n').split('?>')[0]===baseline(file).replaceAll('\r\n','\n').split('?>')[0],file+': PHP bootstrap/session/redirect unchanged');
