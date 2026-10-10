@@ -7,6 +7,9 @@ if (realpath($_SERVER['SCRIPT_FILENAME'] ?? '') === __FILE__
     exit;
 }
 $prismNavEscape = static fn($value) => htmlspecialchars((string)$value, ENT_QUOTES, 'UTF-8');
+?>
+<script src="<?= $prismNavEscape(asset_url('assets/js/prism-guidance.js')) ?>" defer></script>
+<?php
 if ($authUser['role'] === 'adviser'):
     $prismPortalLinks = [
         ['research_adviser.php', 'Dashboard'], ['admin_students.php', 'Assigned Students'],
@@ -84,3 +87,4 @@ $prismNavGroups = [
 <div class="prism-account-links" id="prismAccountLinks" hidden><a href="account.php">My account</a><a href="account.php#activity">Activity logs</a><a href="logout.php">Log Out</a></div>
 </div>
 <?php endif; ?>
+<template data-prism-guide-role="<?= $prismNavEscape($authUser['role']) ?>"><button type="button" data-prism-tour>Quick Tour</button><button type="button" data-prism-guide>Navigation Guide</button></template>

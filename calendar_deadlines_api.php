@@ -5,12 +5,41 @@ require_once __DIR__ . '/workflow.php';
 $user = api_require_login(['admin', 'adviser', 'student']);
 $action = $_GET['action'] ?? 'list';
 if (!is_string($action)) json_out(['ok' => false, 'message' => 'Invalid action.'], 422);
+if ($action === 'dashboard_day') {
+    api_require_login(['admin', 'adviser']);
+    if (($_SERVER['REQUEST_METHOD'] ?? '') !== 'GET') {
+        json_out(['ok' => false, 'message' => 'Use GET to view deadline details.'], 405);
+    }
+}
 if (in_array($action, ['create', 'cancel'], true)) {
     api_require_login(['admin', 'adviser']);
     require_post_same_origin();
 }
 $pdo = db();
 try {
+    if ($action === 'dashboard_day') {
+        $date = deadline_date($_GET['date'] ?? null);
+        if (isset($_GET['page']) && !is_scalar($_GET['page'])) throw new InvalidArgumentException('Invalid page.');
+        // The viewer, never client-supplied group/creator/manage parameters, determines scope.
+        [$scope, $params] = deadline_scope($pdo, $user);
+        $scope .= ' AND d.deadline_date = :date';
+        $params[':date'] = $date;
+        $page = prism_page_query($pdo, 'SELECT d.id, d.title, d.deadline_date, d.target_scope, d.status',
+            $scope, $params, 'd.id DESC', ['page' => $_GET['page'] ?? 1]);
+        $allowed = $user['role'] === 'adviser' ? research_group_options($pdo, $user) : [];
+        foreach ($page['rows'] as &$row) {
+            $row['groups'] = [];
+            if ($row['target_scope'] === 'groups') {
+                $stmt = $pdo->prepare('SELECT research_group FROM calendar_deadline_groups WHERE deadline_id = :id ORDER BY research_group');
+                $stmt->execute([':id' => $row['id']]);
+                $groups = $stmt->fetchAll(PDO::FETCH_COLUMN);
+                $row['groups'] = $user['role'] === 'admin' ? $groups : array_values(array_intersect($groups, $allowed));
+            }
+        }
+        unset($row);
+        json_out(['ok' => true, 'deadlines' => $page['rows'], 'total' => $page['total'], 'page' => $page['page'],
+            'pages' => max(1, (int)ceil($page['total'] / 10))]);
+    }
     if ($action === 'group_options') {
         api_require_login(['admin', 'adviser']);
         json_out(['ok' => true, 'groups' => research_group_options($pdo, $user, null, true)]);

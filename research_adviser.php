@@ -20,6 +20,7 @@ $authUser = require_login('adviser');
 <script src="<?php echo htmlspecialchars(asset_url('assets/js/dashboard-sidebar.js'), ENT_QUOTES, 'UTF-8'); ?>" defer></script>
 <script src="<?php echo htmlspecialchars(asset_url('assets/js/prism-ui.js'), ENT_QUOTES, 'UTF-8'); ?>" defer></script>
 <script src="<?php echo htmlspecialchars(asset_url('assets/js/adviser-dashboard.js'), ENT_QUOTES, 'UTF-8'); ?>" defer></script>
+<script src="<?php echo htmlspecialchars(asset_url('assets/js/dashboard-deadlines.js'), ENT_QUOTES, 'UTF-8'); ?>" defer></script>
 <link rel="stylesheet" href="<?php echo htmlspecialchars(asset_url('assets/css/ceu-footer.css'), ENT_QUOTES, 'UTF-8'); ?>">
 <link rel="stylesheet" href="<?php echo htmlspecialchars(asset_url('assets/css/research-resources.css'), ENT_QUOTES, 'UTF-8'); ?>">
 <link rel="stylesheet" href="<?php echo htmlspecialchars(asset_url('assets/css/prism-workspace.css'), ENT_QUOTES, 'UTF-8'); ?>">
@@ -56,6 +57,13 @@ $authUser = require_login('adviser');
 <div id="adviserQueue" class="adviser-queue" aria-live="polite" aria-busy="true"><p class="adviser-panel-state">Loading current submissions...</p></div>
 </section>
 <div class="adviser-side-panels">
+<section class="adviser-panel prism-deadline-calendar" aria-labelledby="adviserCalendarTitle">
+<div class="adviser-panel-heading"><h2 id="adviserCalendarTitle">Calendar</h2><a href="calendar.php">View Calendar</a></div>
+<div class="prism-deadline-toolbar"><button type="button" data-deadline-month="-1" aria-label="Previous month"><i class="fa-solid fa-chevron-left" aria-hidden="true"></i></button><strong id="adviserCalendarMonth"></strong><button type="button" data-deadline-month="1" aria-label="Next month"><i class="fa-solid fa-chevron-right" aria-hidden="true"></i></button></div>
+<div class="prism-deadline-weekdays" aria-hidden="true"><span>Sun</span><span>Mon</span><span>Tue</span><span>Wed</span><span>Thu</span><span>Fri</span><span>Sat</span></div>
+<div class="prism-deadline-grid" id="adviserCalendarDays"></div>
+<p class="prism-deadline-load" id="dashboardDeadlineState" role="status">Loading official deadlines...</p>
+</section>
 <section class="adviser-panel" aria-labelledby="adviserProfileTitle"><div class="adviser-panel-heading"><h2 id="adviserProfileTitle">Your account</h2><a href="account.php">View account</a></div><div id="adviserProfile" aria-live="polite" aria-busy="true"><p class="adviser-panel-state">Loading account...</p></div></section>
 <section class="adviser-panel" aria-labelledby="adviserNotificationsTitle"><div class="adviser-panel-heading"><div><h2 id="adviserNotificationsTitle">Recent notifications</h2><p>Recent messages addressed to your account.</p></div><a href="admin_notifications.php">Notification Center</a></div><div id="adviserNotifications" aria-live="polite" aria-busy="true"><p class="adviser-panel-state">Loading recent notifications...</p></div></section>
 </div>

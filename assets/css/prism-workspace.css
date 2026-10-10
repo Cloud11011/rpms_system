@@ -1,3 +1,60 @@
+/* Batch 2: stable marker space and native read-only dialogs. */
+.prism-readonly-dialog {
+    position:fixed; inset:0; margin:auto;
+    box-sizing:border-box; width:min(560px,calc(100vw - 32px)); max-width:calc(100vw - 32px);
+    max-height:calc(100dvh - 32px); padding:22px; border:1px solid var(--prism-border);
+    border-radius:var(--prism-radius); background:var(--prism-surface); color:var(--prism-text);
+    font:inherit; overflow-y:auto; overflow-wrap:anywhere; box-shadow:var(--prism-shadow);
+}
+.prism-readonly-dialog::backdrop { background:rgba(12,14,63,.52); }
+.prism-readonly-dialog h2 { font-size:var(--prism-font-heading); margin:0 0 16px; }
+.prism-readonly-dialog h3 { font-size:var(--prism-font-subheading); margin:0 0 12px; }
+.prism-readonly-dialog p { line-height:1.55; }
+.prism-readonly-dialog .prism-dialog-actions {
+    position:sticky; bottom:-22px; padding:12px 0; background:var(--prism-surface); gap:8px;
+}
+.prism-readonly-dialog .prism-btn { min-height:44px; white-space:normal; }
+.prism-readonly-dialog :focus-visible { outline:3px solid var(--prism-focus); outline-offset:3px; }
+.prism-readonly-dialog .prism-tour-progress { color:var(--prism-muted); font-size:var(--prism-font-label); }
+.prism-guide-list { margin:0; }
+.prism-guide-list dt { margin-top:14px; }
+.prism-guide-list dd { margin:8px 0 16px; line-height:1.55; }
+.prism-deadline-detail { padding:16px 0; border-bottom:1px solid var(--prism-border); }
+.prism-deadline-detail dl { display:grid; grid-template-columns:minmax(0,120px) minmax(0,1fr); gap:8px 16px; margin:0; }
+.prism-deadline-detail dt { font-weight:600; }
+.prism-deadline-detail dd { margin:0; }
+body.prism-workspace :is(.prism-account-links,.portal-profile-dropdown) [data-prism-tour],
+body.prism-workspace :is(.prism-account-links,.portal-profile-dropdown) [data-prism-guide] {
+    display:block; width:100%; min-height:44px; text-align:left; border:0; border-radius:6px;
+    background:transparent; color:var(--prism-text); padding:10px 12px; font-size:var(--prism-font-nav); cursor:pointer;
+}
+body.prism-workspace :is([data-prism-tour],[data-prism-guide]):hover { background:var(--prism-surface-2); }
+body.prism-workspace [data-deadline-date] { position:relative; }
+.prism-deadline-marker { position:absolute; right:3px; bottom:3px; font-size:11px; color:var(--accent-pink); pointer-events:none; }
+.prism-deadline-marker[hidden] { display:none !important; }
+body.prism-workspace [data-deadline-date].active-day .prism-deadline-marker { color:inherit; }
+body.prism-workspace [data-deadline-date]:focus-visible { outline:3px solid var(--prism-focus); outline-offset:1px; }
+.prism-deadline-load { min-height:3em; margin:10px 0 0; color:var(--prism-muted); font-size:var(--prism-font-meta); line-height:1.5; }
+.prism-deadline-toolbar { display:flex; align-items:center; justify-content:space-between; gap:8px; margin:12px 0; }
+.prism-deadline-toolbar button { width:44px; height:44px; border:1px solid var(--prism-border); border-radius:8px; background:var(--prism-surface); color:var(--prism-text); cursor:pointer; }
+.prism-deadline-weekdays,.prism-deadline-grid { display:grid; grid-template-columns:repeat(7,minmax(0,1fr)); gap:4px; text-align:center; }
+.prism-deadline-weekdays { font-size:var(--prism-font-micro); color:var(--prism-muted); margin-bottom:6px; }
+.prism-deadline-grid { min-height:244px; }
+.prism-deadline-grid button { min-width:0; height:44px; border:1px solid var(--prism-border); border-radius:8px; background:var(--prism-surface); color:var(--prism-text); cursor:pointer; }
+body.prism-workspace button.mini-day { border:0; font-family:inherit; font-size:inherit; line-height:inherit; cursor:pointer; }
+body.prism-workspace button.mini-day:not(.active-day) { background:transparent; color:inherit; }
+body.prism-workspace .mini-day .prism-deadline-marker { font-size:8px; right:1px; bottom:1px; }
+@media (max-width:480px) {
+    .prism-readonly-dialog { padding:16px; }
+    .prism-readonly-dialog .prism-dialog-actions { bottom:-16px; }
+    .prism-readonly-dialog .prism-dialog-actions .prism-btn { flex:1; }
+    .prism-deadline-detail dl { grid-template-columns:minmax(0,1fr); gap:5px; }
+    .prism-deadline-detail dd { margin-bottom:8px; }
+}
+@media (prefers-reduced-motion:reduce) {
+    .prism-readonly-dialog, .prism-readonly-dialog *, [data-deadline-date] { animation:none !important; transition:none !important; scroll-behavior:auto !important; }
+}
+
 /* Authenticated workspaces only. Load last; aliases keep existing components on one palette. */
 body.prism-workspace {
     --prism-bg:#f5f7fb; --prism-card:#fff; --prism-navy:#0c0e3f;

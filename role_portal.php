@@ -28,6 +28,7 @@ $identityKey = hash('sha256', $portalRole . '|' . $userId);
 <link rel="stylesheet" href="<?php echo htmlspecialchars(asset_url('assets/css/research-resources.css'), ENT_QUOTES, 'UTF-8'); ?>">
 <link rel="stylesheet" href="<?php echo htmlspecialchars(asset_url('assets/css/prism-workspace.css'), ENT_QUOTES, 'UTF-8'); ?>">
 <script src="<?php echo htmlspecialchars(asset_url('assets/js/prism-workspace.js'), ENT_QUOTES, 'UTF-8'); ?>" defer></script>
+<script src="<?php echo htmlspecialchars(asset_url('assets/js/prism-guidance.js'), ENT_QUOTES, 'UTF-8'); ?>" defer></script>
 </head>
 <body class="prism-workspace portal-shell student-page student-dashboard-page" data-portal-key="<?php echo htmlspecialchars($identityKey, ENT_QUOTES); ?>" data-role="<?php echo htmlspecialchars($portalRole, ENT_QUOTES); ?>" data-name="<?php echo htmlspecialchars($userName, ENT_QUOTES); ?>" data-email="<?php echo htmlspecialchars($userEmail, ENT_QUOTES); ?>">
 <script>window.PRISM_STAGE_LABELS = <?php echo json_encode(stage_labels_map(), JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT); ?>;</script>
@@ -48,11 +49,14 @@ $identityKey = hash('sha256', $portalRole . '|' . $userId);
 <button class="portal-profile-btn" id="portalProfileToggle" type="button" aria-expanded="false" aria-controls="portalProfileLinks" aria-label="Account menu"><img id="navProfileImage" src="<?php echo htmlspecialchars($profileImg, ENT_QUOTES); ?>" alt="Profile picture"><span><strong id="sideName"><?php echo htmlspecialchars($userName); ?></strong><small><?php echo htmlspecialchars($portalRole); ?></small></span><i class="fa-solid fa-chevron-down"></i></button>
 <div class="portal-profile-dropdown" id="portalProfileLinks" hidden>
 <button type="button" data-go="profile"><i class="fa-solid fa-user"></i> Profile</button>
+<button type="button" data-prism-tour>Quick Tour</button>
+<button type="button" data-prism-guide>Navigation Guide</button>
     <a href="logout.php"><i class="fa-solid fa-right-from-bracket"></i> Log out</a>
 </div>
 </div>
 </div>
 </nav>
+<template data-prism-guide-role="student"></template>
 <div class="container">
 <main class="main-content portal-main">
 <header class="topbar"><div><h1 id="pageTitle">Dashboard</h1><p id="pageSubtitle">Your research and IERB progress at a glance.</p></div><div class="top-controls"><button type="button" class="theme-toggle" id="themeToggle" title="Toggle light or dark theme" aria-label="Toggle light or dark theme"><i class="fa-solid fa-sun light-icon" aria-hidden="true"></i><i class="fa-solid fa-moon dark-icon" aria-hidden="true"></i></button></div></header>

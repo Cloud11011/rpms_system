@@ -43,6 +43,7 @@ try {
 <link rel="stylesheet" href="<?php echo htmlspecialchars(asset_url('assets/css/dashboard-sidebar.css'), ENT_QUOTES, 'UTF-8'); ?>">
 <script src="<?php echo htmlspecialchars(asset_url('assets/js/dashboard-sidebar.js'), ENT_QUOTES, 'UTF-8'); ?>" defer></script>
 <link rel="stylesheet" href="<?php echo htmlspecialchars(asset_url('assets/css/dashboard-overview.css'), ENT_QUOTES, 'UTF-8'); ?>">
+<script src="<?php echo htmlspecialchars(asset_url('assets/js/dashboard-deadlines.js'), ENT_QUOTES, 'UTF-8'); ?>" defer></script>
 <link rel="stylesheet" href="<?php echo htmlspecialchars(asset_url('assets/css/ceu-footer.css'), ENT_QUOTES, 'UTF-8'); ?>">
 <link rel="stylesheet" href="<?php echo htmlspecialchars(asset_url('assets/css/research-resources.css'), ENT_QUOTES, 'UTF-8'); ?>">
 <link rel="stylesheet" href="<?php echo htmlspecialchars(asset_url('assets/css/prism-workspace.css'), ENT_QUOTES, 'UTF-8'); ?>">
@@ -244,6 +245,7 @@ try {
 <div class="day-name">Sat</div>
 </div>
 <div class="calendar-grid" id="calendarDays"></div>
+<p class="prism-deadline-load" id="dashboardDeadlineState" role="status">Loading official deadlines...</p>
 </div>
 <!-- Year View Area -->
 <div id="yearCalendarView" class="year-grid"></div>
@@ -601,11 +603,13 @@ function renderCalendar() {
         yearView.style.display = 'grid';
         calendarLabel.textContent = currentDate.getFullYear();
         renderYearView();
+        window.PrismDashboardDeadlines?.refresh(currentDate, currentView);
     } else {
         standardView.style.display = 'block';
         yearView.style.display = 'none';
         calendarLabel.textContent = `${monthNames[currentDate.getMonth()]} ${currentDate.getFullYear()}`;
         renderMonthView();
+    window.PrismDashboardDeadlines?.refresh(currentDate, currentView);
     }
 }
 
@@ -626,7 +630,7 @@ function renderMonthView() {
         let isToday = (i === today.getDate() && month === today.getMonth() && year === today.getFullYear()) ? 'active-day' : '';
         const key = dateKey(year, month, i);
         const hasEvent = Array.isArray(dashboardReminders[key]) && dashboardReminders[key].length ? 'has-event' : '';
-        calendarDays.innerHTML += `<button type="button" class="day ${isToday} ${hasEvent}" onclick="openDashboardDay('${key}')" title="View tasks for ${key}">${i}</button>`;
+        calendarDays.innerHTML += `<button type="button" class="day ${isToday} ${hasEvent}" data-deadline-date="${key}" onclick="openDashboardDay('${key}')" title="View tasks for ${key}">${i}<i class="fa-solid fa-calendar-day prism-deadline-marker" aria-hidden="true" hidden></i></button>`;
     }
 
     const totalSlots = calendarDays.children.length;
@@ -659,7 +663,8 @@ function renderYearView() {
         }
         for (let d = 1; d <= lastDate; d++) {
             let isToday = (d === today.getDate() && m === today.getMonth() && year === today.getFullYear()) ? 'active-day' : '';
-            monthHTML += `<div class="mini-day ${isToday}">${d}</div>`;
+            const key = dateKey(year, m, d);
+            monthHTML += `<button type="button" class="mini-day ${isToday}" data-deadline-date="${key}" aria-label="View ${key}">${d}<i class="fa-solid fa-calendar-day prism-deadline-marker" aria-hidden="true" hidden></i></button>`;
         }
         const totalRendered = firstDayIndex + lastDate;
         const remainingSlots = (Math.ceil(totalRendered / 7) * 7) - totalRendered;

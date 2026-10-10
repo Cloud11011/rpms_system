@@ -31,6 +31,8 @@ storage/auth_rate_limits/
 !/tests/csv-export-audit.php
 !/tests/backend-audit.php
 !/tests/calendar-deadlines-audit.php
+!/tests/v10-batch2-readonly.php
+!/tests/v10-batch2-ui.cjs
 !/tests/academic-migration-audit.php
 !/tests/crud-audit.php
 !/tests/schema-v8-mysql.php

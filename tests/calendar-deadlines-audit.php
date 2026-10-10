@@ -57,6 +57,7 @@ if (($argv[1] ?? '') === '--case') {
     $pdo->exec('ALTER TABLE advisers ADD COLUMN employee_id TEXT');
     $pdo->exec('ALTER TABLE students ADD COLUMN student_id TEXT');
     $pdo->exec("ALTER TABLE advisers ADD COLUMN status TEXT DEFAULT 'Active'");
+    foreach ($case['lateSql'] ?? [] as $sql) $pdo->exec($sql);
     require __DIR__.'/../security.php';
     $config=file_get_contents(__DIR__.'/../config.php');
     eval(function_source($config,'api_require_login').function_source($config,'require_post_same_origin'));

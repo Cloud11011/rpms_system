@@ -169,6 +169,7 @@ function fixtureApi(file, action) {
   if (file === 'calendar_deadlines_api.php') {
     const request = requests.findLast(r => r.file === file && r.action === action);
     const query = request?.query || {};
+    if (process.argv.includes('--batch2-only')) return require('./v10-batch2-ui.cjs').mockDeadlines(action, query, scenario, role);
     if (action === 'group_options') return {ok:true,groups:role==='adviser'?['AMT-BSIT-Y2-2627-G01']:['AMT-BSIT-Y2-2627-G01','AMT-BSIT-Y2-2627-G02']};
     if (scenario === 'error' || deadlineFailure) return {ok:false,message:'Synthetic deadline failure'};
     if (action === 'create' || action === 'cancel') return {ok:true,id:1,message:action==='create'?'Official deadline created.':'Official deadline cancelled.',delivery:{notificationFailures:0,emailFailures:0}};
@@ -2251,6 +2252,7 @@ async function run() {
   await command('Fetch.enable', { patterns: [{ urlPattern: '*' }] });
   await command('Browser.setDownloadBehavior', { behavior: 'deny' }, true);
   if(process.argv.includes('--resources-only')) {checkInstitutionalPartialBoundary();await checkInstitutionalComponents();check(errors.length===0,'No resource browser exceptions',errors.join(' | '));console.log(checks+' resource browser checks; '+failures.length+' failures.');for(const f of failures)console.error('FAIL '+f);if(failures.length)process.exitCode=1;return;}
+  if(process.argv.includes('--batch2-only')) {await require('./v10-batch2-ui.cjs').run({check,evaluate,waitFor,navigate,command,keyPress,errors,getRequests:()=>requests,setDelay:value=>{apiDelay=value;}});console.log(checks+' batch 2 browser checks; '+failures.length+' failures.');for(const f of failures)console.error('FAIL '+f);if(failures.length)process.exitCode=1;return;}
   if(process.argv.includes('--batch1-only')) {await require('./v10-batch1-ui.cjs').run({check,evaluate,waitFor,navigate,command,keyPress,errors,getRequests:()=>requests});await checkDashboard();console.log(checks+' batch 1 browser checks; '+failures.length+' failures.');for(const f of failures)console.error('FAIL '+f);if(failures.length)process.exitCode=1;return;}
   if(process.argv.includes('--onboarding-only')) {await onboardingUIAudit.run({check,evaluate,waitFor,navigate,command,keyPress,setManagement:value=>{managementFixture=value;},getRequests:()=>requests,errors});console.log(checks+' onboarding browser checks; '+failures.length+' failures.');for(const failure of failures)console.error('FAIL '+failure);if(failures.length)process.exitCode=1;return;}
   if (process.argv.includes('--retention-only')) { await checkRetentionRedesign();console.log(checks+' retention browser checks; '+failures.length+' failures.');for(const failure of failures)console.error('FAIL '+failure);if(failures.length)process.exitCode=1;return; }
