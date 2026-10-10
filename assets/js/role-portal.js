@@ -4,6 +4,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const stageLabels = window.PRISM_STAGE_LABELS || {};
     const labelForStage = stageKey => stageLabels[stageKey] || stageKey;
     const $ = id => document.getElementById(id);
+    PrismUI.documentTypes.forEach(type => $('documentType').add(new Option(type, type)));
     const esc = v => String(v ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
     const fmt = value => {
         const date = value ? new Date(value) : null;
@@ -251,8 +252,9 @@ document.addEventListener('DOMContentLoaded', () => {
             <td>${PrismUI.badge(d.workflowState || d.reviewStatus, { small: true })}${d.rpmsSubmittedAt ? `<small>Submitted: ${esc(fmt(d.rpmsSubmittedAt))}</small>` : ''}</td>
             <td>${esc(d.reviewRemarks || (d.workflowState === 'Submitted to RPMS' ? 'Formally submitted to RPMS' : 'No reviewer remarks yet'))}</td>
             <td><div class="student-document-actions"><a class="action-btn" href="documents_api.php?action=file&id=${encodeURIComponent(d.id)}" target="_blank" rel="noopener">Preview</a>
-                <a class="action-btn" href="documents_api.php?action=file&download=1&id=${encodeURIComponent(d.id)}">Download</a>${d.actions?.submitToRpms ? `<button type="button" class="action-btn" data-formal-submit="${esc(d.id)}">Submit to RPMS</button>` : ''}</div></td>
+                <a class="action-btn" href="documents_api.php?action=file&download=1&id=${encodeURIComponent(d.id)}">Download</a>${d.actions?.submitToRpms ? `<button type="button" class="action-btn prism-btn-primary" data-formal-submit="${esc(d.id)}">Submit to RPMS</button>` : ''}</div></td>
         </tr>`).join('') || `<tr><td colspan="6">${empty('No documents match this view.')}</td></tr>`;
+        document.querySelectorAll('.student-document-actions').forEach(host => PrismUI.actionMenu(host, {primary:host.querySelector('[data-formal-submit]')}));
     }
 
     function noticeItem(n, includeAction = true) {
@@ -299,7 +301,7 @@ document.addEventListener('DOMContentLoaded', () => {
         $('submissionStudentId').value = myRecord?.studentId || 'Not recorded';
         $('submissionStage').value = myRecord?.stageLabel || myRecord?.stage || 'Not recorded';
         $('submissionAdviser').value = myRecord?.adviser || 'Unassigned';
-        $('submissionProtocol').value = myRecord?.protocolCode || 'Not assigned';
+        $('submissionProtocol').value = myRecord?.protocolCode || 'No protocol code yet.';
     }
 
     async function refreshAll() {
@@ -361,7 +363,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (reveal.hidden) {
             reveal.textContent = myRecord?.protocolCode
                 ? `Protocol Code: ${myRecord.protocolCode}`
-                : 'Protocol Code has not been assigned yet.';
+                : 'No protocol code yet.';
         }
         reveal.hidden = !reveal.hidden;
     });

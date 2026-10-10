@@ -17,3 +17,24 @@ body { height:auto; min-height:100dvh; font-family:Montserrat,system-ui,sans-ser
 .onboarding-password .toggle-password { position:absolute; right:4px; top:50%; transform:translateY(-50%); display:flex; align-items:center; justify-content:center; width:44px; height:44px; min-height:44px; margin:0; padding:0; border:0; border-radius:50%; background:transparent; color:var(--text); transition:color 160ms ease; }
 .onboarding-password .toggle-password:hover { color:var(--focus); }
 @media(prefers-reduced-motion:reduce) { .onboarding-card :is(input,select,button,a), .onboarding-password .toggle-password { transition:none; } }
+
+/* Reuse Login's stylesheet, CEU background, overlay, card and button family. */
+body.unified-login.onboarding-page { padding:0; background:url('../images/ceu_bg.png') no-repeat center center/cover; background-attachment:fixed; }
+.onboarding-page .background-overlay { align-items:center; }
+.unified-login.onboarding-page .onboarding-card { max-width:560px; margin:0; border:1px solid #ffffff50; text-align:left; color:#0c0e3f; color-scheme:light; font-size:13.5px; line-height:1.6; }
+.onboarding-page .onboarding-card h1 { text-align:center; font-size:22px; margin:18px 0 14px; }
+.onboarding-page .onboarding-card label { font-size:13px; margin:14px 0 6px; }
+.onboarding-page .onboarding-card :is(input,select) { min-height:48px; background:#f3f3f3; color:#0c0e3f; border:1px solid transparent; border-radius:24px; padding:11px 16px; }
+.onboarding-page .onboarding-card :is(input,select):hover { border-color:#ee1280; }
+.onboarding-page .onboarding-card :is(input,select):focus-visible { border-color:#ee1280; outline:2px solid #ee1280; outline-offset:3px; }
+.onboarding-page .onboarding-card button[type=submit] { width:100%; min-height:52px; margin:16px 0 0; color:#fff; background:#0c0e3f; }
+.onboarding-page .onboarding-card button[type=submit]:hover:not(:disabled) { background:#ee1280; }
+.onboarding-page .onboarding-password input { padding-right:56px; }
+.onboarding-page .onboarding-password .toggle-password { color:#0c0e3f; }
+.onboarding-page .onboarding-card fieldset { border-color:#d8d3e2; border-radius:12px; padding:12px; }
+.onboarding-page .onboarding-card .academic-fields-grid label { margin:0; }
+.onboarding-page [role=alert] { min-height:24px; margin:8px 0; }
+.onboarding-page [role=alert]:not(:empty) { border-radius:8px; border-color:#d8d3e2; color:#a01c1c; }
+.onboarding-page .onboarding-card a { color:#b30b60; }
+@media(max-width:500px) { .unified-login.onboarding-page .onboarding-card { padding:24px 20px; } }
+@media(prefers-reduced-motion:reduce) { .onboarding-page .onboarding-card :is(input,select,button,a) { transition:none; } }

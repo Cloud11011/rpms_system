@@ -78,7 +78,7 @@ async function run(ctx) {
     await evaluate('document.querySelector("[data-lifecycle-password]").click()');check(await evaluate('document.getElementById("permanentDeletePassword").type==="text"'),'Password eye works');
     await evaluate('document.getElementById("cancelPermanentDelete").focus()');await keyPress('Tab','Tab',9);
     check(await evaluate('document.activeElement.type==="submit"'),'Native dialog keyboard order');
-    await keyPress('Escape','Escape',27);check(await evaluate('!document.getElementById("permanentDeleteDialog").open && document.activeElement.getAttribute("aria-label").startsWith("Permanently Delete")'),'Escape restores trigger focus');
+    await keyPress('Escape','Escape',27);check(await evaluate('!document.getElementById("permanentDeleteDialog").open && document.activeElement.classList.contains("prism-action-trigger")'),'Escape restores trigger focus');
     await evaluate(`[...document.querySelectorAll("#recordRows tr:nth-child(2) button")].find(b=>b.title.includes("Override Grace Period")).click()`);await waitFor('document.getElementById("permanentDeleteDialog").open');
     check(await evaluate('document.getElementById("permanentDeleteForm").elements.reason.required && !document.getElementById("permanentDeleteReasonGroup").hidden'),'Single override requires visible reason');
     await keyPress('Escape','Escape',27);

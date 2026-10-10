@@ -20,30 +20,30 @@
 
 /* Specific lifecycle rules override the shared pale row-action backgrounds. */
 .lifecycle-actions { display:grid; gap:6px; width:40px; }
-body.prism-workspace .management-page .row-actions .lifecycle-action {
+body.prism-workspace .management-page .row-actions .lifecycle-action:not(.prism-action-item) {
     display:grid; place-items:center; box-sizing:border-box;
     width:40px; height:40px; min-width:40px; min-height:40px; padding:0;
     border:1px solid var(--prism-border)!important; border-radius:8px;
     color:var(--text-primary); background:var(--prism-surface-2)!important;
     font-size:16px; opacity:1; filter:none;
 }
-body.prism-workspace .management-page .row-actions .lifecycle-danger {
+body.prism-workspace .management-page .row-actions .lifecycle-danger:not(.prism-action-item) {
     color:#a31d35!important; background:#fff1f3!important; border-color:#b9485e!important;
 }
-body.prism-workspace .management-page .row-actions .lifecycle-action:hover:not(:disabled):not([aria-disabled=true]) {
+body.prism-workspace .management-page .row-actions .lifecycle-action:not(.prism-action-item):hover:not(:disabled):not([aria-disabled=true]) {
     color:#fff!important; background:#454a85!important; border-color:#454a85!important;
 }
-body.prism-workspace .management-page .row-actions .lifecycle-archive:hover:not(:disabled):not([aria-disabled=true]) {
+body.prism-workspace .management-page .row-actions .lifecycle-archive:not(.prism-action-item):hover:not(:disabled):not([aria-disabled=true]) {
     background:#805500!important; border-color:#805500!important;
 }
-body.prism-workspace .management-page .row-actions .lifecycle-danger:hover:not(:disabled):not([aria-disabled=true]) {
+body.prism-workspace .management-page .row-actions .lifecycle-danger:not(.prism-action-item):hover:not(:disabled):not([aria-disabled=true]) {
     background:#a31d35!important; border-color:#a31d35!important;
 }
-body.prism-workspace .management-page .row-actions .lifecycle-action:is(:disabled,[aria-disabled=true]) {
+body.prism-workspace .management-page .row-actions .lifecycle-action:not(.prism-action-item):is(:disabled,[aria-disabled=true]) {
     color:#565b67!important; background:#e8eaf0!important; border-color:#777d8a!important;
     opacity:1; filter:none; transform:none; cursor:not-allowed;
 }
-body.prism-workspace .management-page .row-actions .lifecycle-danger[aria-disabled=true] {
+body.prism-workspace .management-page .row-actions .lifecycle-danger:not(.prism-action-item)[aria-disabled=true] {
     color:#8b3446!important; background:#f4e6ea!important; border-color:#a75a6b!important;
 }
 body.prism-workspace .lifecycle-action:focus-visible,

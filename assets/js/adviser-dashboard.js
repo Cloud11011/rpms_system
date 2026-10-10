@@ -113,7 +113,7 @@ document.addEventListener('DOMContentLoaded', () => {
             fileLink.rel = 'noopener noreferrer';
             actions.append(fileLink);
             if (doc.actions && doc.actions.review === true) {
-                const review = node('button', 'Review document', 'adviser-button');
+                const review = node('button', 'Review document', 'adviser-button prism-btn-primary');
                 review.type = 'button';
                 review.dataset.reviewId = String(doc.id);
                 review.addEventListener('click', () => openReview(doc, review));

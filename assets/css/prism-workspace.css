@@ -355,3 +355,131 @@ body.prism-workspace .portal-nav-links::-webkit-scrollbar { display:none; }
 body.prism-workspace :is(#exportExcel,.header-actions a[href*="action=export_csv"],.data-export-card .prism-btn) { color:var(--text-primary); background:var(--card-bg); border:1px solid var(--border-color); opacity:1; min-height:42px; transition:border-color 160ms ease; }
 body.prism-workspace :is(#exportExcel,.header-actions a[href*="action=export_csv"],.data-export-card .prism-btn):hover { background:var(--bg-color); border-color:var(--accent-pink); }
 @media(prefers-reduced-motion:reduce) { body.prism-workspace :is(#exportExcel,.header-actions a[href*="action=export_csv"],.data-export-card .prism-btn,.adviser-document-actions .adviser-button) { transition:none; } }
+
+/* Batch 4: compact controls and panels above the workspace, below navigation/dialogs. */
+body.prism-workspace :is(.management-actions,.ierb-controls,.document-controls,.document-actions) {
+    display:flex; flex-direction:row; flex-wrap:wrap; align-items:center; justify-content:flex-start; gap:8px;
+}
+body.prism-workspace :is(.management-search,.ierb-search,.document-search) {
+    flex:0 1 320px; width:320px; max-width:100%; min-width:0; height:38px; min-height:38px;
+    margin:0; padding:0 10px; display:flex; align-items:center; gap:8px;
+}
+body.prism-workspace :is(.management-search,.ierb-search,.document-search) input {
+    flex:1; width:100%; min-width:0; height:36px; min-height:0; padding:0; margin:0;
+}
+body.prism-workspace :is(.management-actions,.ierb-controls,.document-actions,.retention-toolbar-actions,.retention-cleanup) > button,
+body.prism-workspace .prism-btn,
+body.prism-workspace :is(.doc-primary,.doc-secondary,.primary-btn,.action-btn,.adviser-button) {
+    display:inline-flex; align-items:center; justify-content:center; gap:6px; min-height:38px;
+    height:auto; width:auto; max-width:100%; padding:7px 12px; margin:0; flex:0 0 auto;
+    border:1px solid var(--prism-border); border-radius:8px; font:600 var(--prism-font-body)/1.4 Montserrat,system-ui,sans-serif;
+    cursor:pointer; text-decoration:none; transition:background-color 160ms ease,border-color 160ms ease;
+}
+body.prism-workspace :is(.prism-btn,.doc-secondary,.action-btn,.prism-action-trigger) {
+    color:var(--prism-text); background:var(--prism-card);
+}
+body.prism-workspace :is(.primary-btn,.doc-primary,.upload-document-button,.prism-btn-primary,#addRecord,#inviteAccount,#addIerbEntry) {
+    color:#fff; background:#0c0e3f; border-color:#0c0e3f;
+}
+body.prism-workspace .prism-btn-secondary { color:var(--prism-info-fg); background:var(--prism-info-bg); border-color:var(--prism-info-bd); }
+body.prism-workspace .prism-btn-neutral { color:var(--prism-text); background:var(--prism-card); }
+body.prism-workspace :is(.prism-btn-danger,.prism-action-danger) { color:var(--prism-danger-fg); background:var(--prism-danger-bg); border-color:var(--prism-danger-bd); }
+body.prism-workspace :is(.prism-btn,.action-btn,.adviser-button,.doc-primary,.doc-secondary):hover:not(:disabled):not([aria-disabled=true]) { border-color:var(--prism-pink); }
+body.prism-workspace :is(button,a):focus-visible { outline:2px solid var(--prism-focus); outline-offset:3px; }
+body.prism-workspace :is(button,a)[aria-disabled=true],body.prism-workspace button:disabled { opacity:.6; cursor:not-allowed; }
+body.prism-workspace :is(.doc-primary,.upload-document-button,.primary-btn) i { margin:0; }
+body.prism-workspace .prism-filter-disclosure,
+body.prism-workspace .prism-filter-disclosure:has(> button[aria-expanded=true]) { flex:0 0 auto; width:auto; max-width:100%; }
+body.prism-workspace .prism-filter-panel {
+    position:fixed; z-index:500; display:flex; flex-wrap:wrap; align-content:flex-start; gap:10px;
+    width:min(620px,calc(100vw - 24px)); max-width:calc(100vw - 24px); margin:0; padding:16px;
+    overflow:auto; overscroll-behavior:contain; box-sizing:border-box; border:1px solid var(--prism-border);
+    border-radius:12px; background:var(--prism-card); color:var(--prism-text); box-shadow:0 12px 32px #10113035;
+}
+body.prism-workspace .prism-filter-panel label { flex:1 1 180px; min-width:0; }
+body.prism-workspace .prism-filter-panel .prism-filter-clear { flex:0 0 auto; }
+body.prism-workspace .prism-filter-panel .retention-cleanup { flex:1 1 100%; width:100%; margin:0; padding:12px 0 0; border:0; border-top:1px solid var(--prism-border); border-radius:0; background:transparent; }
+body.prism-workspace .retention-cleanup h3 { margin:0 0 8px; font-size:var(--prism-font-body); }
+body.prism-workspace .retention-cleanup p { margin:0 0 10px; line-height:1.5; }
+body.prism-workspace .retention-cleanup > button { margin:0 6px 6px 0; }
+body.prism-workspace .retention-toolbar { padding:12px; }
+body.prism-workspace .retention-toolbar-actions { align-items:center; gap:8px; }
+body.prism-workspace .retention-toolbar-actions select { min-height:38px; padding:7px 10px; }
+body.prism-workspace .prism-action-menu { display:inline-block; }
+body.prism-workspace .prism-action-panel {
+    position:fixed; z-index:510; display:grid; gap:8px; width:260px; max-width:calc(100vw - 24px);
+    overflow:auto; overscroll-behavior:contain; padding:6px; border:1px solid var(--prism-border); border-radius:10px;
+    color:var(--prism-text); background:var(--prism-card); box-shadow:0 12px 32px #10113035;
+}
+body.prism-workspace .prism-action-panel .prism-action-item {
+    display:flex; align-items:center; justify-content:flex-start; gap:8px; width:100%; height:auto;
+    min-height:38px; padding:8px 10px; margin:0; border:1px solid transparent; border-radius:6px;
+    color:var(--prism-text); background:transparent; font:500 var(--prism-font-body)/1.4 Montserrat,system-ui,sans-serif;
+    text-align:left; white-space:normal; overflow-wrap:anywhere; text-decoration:none;
+}
+body.prism-workspace .prism-action-panel .prism-action-danger { color:var(--prism-danger-fg); background:var(--prism-danger-bg); }
+body.prism-workspace .prism-action-panel .prism-action-item:hover { background:var(--prism-surface-2); border-color:var(--prism-border); }
+body.prism-workspace .prism-action-panel[hidden],body.prism-workspace .prism-filter-panel[hidden] { display:none!important; }
+body.prism-workspace :is(.lifecycle-actions,.document-row-actions,.student-document-actions,.adviser-document-actions) { display:flex; align-items:center; flex-wrap:wrap; gap:8px; min-width:0; }
+body.prism-workspace .view-switch { padding:0; height:38px; align-items:center; }
+body.prism-workspace .view-switch button { width:36px; height:36px; }
+
+/* Research Resources: native, equal-height stacked disclosures in all roles. */
+body.prism-workspace .prism-resource-grid { display:grid; grid-template-columns:minmax(0,1fr); gap:12px; }
+body.prism-workspace .prism-resource { width:100%; min-width:0; border:1px solid var(--prism-border); border-radius:10px; background:var(--prism-card); }
+body.prism-workspace .prism-resource > summary {
+    display:flex; align-items:center; justify-content:space-between; gap:12px; min-height:58px; padding:16px 20px;
+    list-style:none; color:var(--prism-text); font-size:var(--prism-font-subheading); cursor:pointer;
+    transition:background-color 160ms ease;
+}
+body.prism-workspace .prism-resource > summary::-webkit-details-marker { display:none; }
+body.prism-workspace .prism-resource-subtitle { display:none; }
+body.prism-workspace .prism-resource > summary::before { display:none; }
+body.prism-workspace .prism-resource > summary::after { content:'+'; font:500 24px/1 system-ui,sans-serif; flex:0 0 24px; text-align:center; }
+body.prism-workspace .prism-resource[open] > summary::after { content:'−'; }
+body.prism-workspace .prism-resource > summary:hover { background:var(--prism-surface-2); }
+body.prism-workspace .prism-resource > summary:focus-visible { outline:2px solid var(--prism-focus); outline-offset:2px; }
+
+/* The complete Admin lifecycle section reads as a single form column. */
+body.prism-workspace .account-lifecycle { padding:24px; }
+body.prism-workspace .account-lifecycle > .management-card-head { padding:0; margin:0 0 20px; }
+body.prism-workspace .account-lifecycle :is(.lifecycle-form,.lifecycle-destructive) { width:100%; max-width:480px; margin-inline:0; }
+body.prism-workspace .account-lifecycle .lifecycle-form { gap:14px; }
+body.prism-workspace .account-lifecycle .lifecycle-form p { line-height:1.6; }
+body.prism-workspace .account-lifecycle .lifecycle-password { width:100%; }
+body.prism-workspace .account-lifecycle .lifecycle-form input:not([type=checkbox]) { width:100%; min-height:44px; }
+body.prism-workspace .account-lifecycle .lifecycle-password-toggle { width:40px; height:40px; min-height:40px; }
+body.prism-workspace .account-lifecycle .lifecycle-check { display:grid; grid-template-columns:20px minmax(0,1fr); align-items:start; gap:10px; min-height:44px; line-height:1.5; font-weight:500; }
+body.prism-workspace .account-lifecycle .lifecycle-check input[type=checkbox] { width:20px; height:20px; min-height:20px; margin:0; padding:0; align-self:start; }
+body.prism-workspace .account-lifecycle .lifecycle-form > button[type=submit] { justify-self:start; width:auto; min-height:40px; padding:9px 16px; border:1px solid var(--prism-danger-bd); border-radius:8px; color:var(--prism-danger-fg); background:var(--prism-danger-bg); }
+body.prism-workspace .account-lifecycle .lifecycle-destructive { border-top:1px solid var(--prism-border); margin-top:20px; padding-top:16px; }
+body.prism-workspace .account-lifecycle .lifecycle-destructive summary { min-height:44px; padding:8px 0; cursor:pointer; line-height:1.5; }
+body.prism-workspace .account-lifecycle #adminLifecycleResult { width:100%; max-width:480px; margin:10px 0 0; line-height:1.5; }
+@media(max-width:600px) {
+    body.prism-workspace :is(.management-search,.ierb-search,.document-search) { flex:1 1 100%; width:100%; height:44px; min-height:44px; }
+    body.prism-workspace :is(.management-actions,.ierb-controls,.document-actions) > button,
+    body.prism-workspace :is(.prism-btn,.prism-action-panel .prism-action-item,.action-btn,.adviser-button) { min-height:44px; }
+    body.prism-workspace .prism-filter-panel label { flex-basis:100%; }
+    body.prism-workspace .view-switch { height:44px; }
+    body.prism-workspace .view-switch button { width:44px; height:44px; }
+    body.prism-workspace .account-lifecycle { padding:16px; }
+}
+@media(prefers-reduced-motion:reduce) {
+    body.prism-workspace :is(.prism-btn,.prism-action-item,.prism-resource > summary,.action-btn,.adviser-button) { transition:none; }
+}
+
+body.prism-workspace .management-controls { display:flex; flex-direction:row; flex-wrap:wrap; align-items:center; justify-content:flex-start; gap:8px; }
+body.prism-workspace .management-controls .management-primary { min-height:38px; padding:7px 12px; margin:0; width:auto; display:inline-flex; align-items:center; justify-content:center; gap:6px; }
+body.prism-workspace .account-lifecycle #adminLifecycleResult { max-width:480px; margin:10px 0 0; line-height:1.5; }
+@media(max-width:600px) { body.prism-workspace .management-controls .management-primary { min-height:44px; } }
+body.prism-workspace .account-lifecycle [data-lifecycle-result] { margin:0; color:var(--prism-danger-fg); line-height:1.5; }
+body.prism-workspace .account-lifecycle [data-lifecycle-result]:empty { display:none; }
+@media(max-width:600px) {
+    body.prism-workspace .prism-resource > summary { min-height:92px; padding:12px; font-size:14px; line-height:1.5; }
+}
+body.prism-workspace .prism-action-trigger { white-space:nowrap; }
+/* Keep the dominant Adviser review action aligned with its single file link. */
+body.portal-shell .adviser-document-actions { display:grid; grid-template-columns:minmax(0,1fr); min-width:180px; gap:8px; }
+body.portal-shell .adviser-document-actions .adviser-button { width:100%; min-height:44px; white-space:nowrap; }
+
+body.prism-workspace .lifecycle-actions { width:auto; }

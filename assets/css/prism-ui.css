@@ -376,9 +376,9 @@ input[type="radio"] { accent-color: var(--accent-purple, #A21368); }
   font-size:var(--prism-font-body) !important;
   line-height: 1.2;
 }
-.icon-btn,
-.record-action,
-.document-action-button,
+.icon-btn:not(.prism-action-item),
+.record-action:not(.prism-action-item),
+.document-action-button:not(.prism-action-item),
 .task-action,
 .calendar-nav,
 .view-switch button,
@@ -652,7 +652,7 @@ button:disabled,
   .management-controls,
   .document-controls,
   .ierb-controls {
-    align-items: stretch !important;
+    align-items: center;
     flex-wrap: wrap;
   }
   .document-actions,
@@ -972,16 +972,16 @@ button:disabled,
   align-items:center;
   flex-wrap:wrap;
 }
-.row-actions button,
-.document-row-actions .document-action-button,
+.row-actions button:not(.prism-action-item),
+.document-row-actions .document-action-button:not(.prism-action-item),
 .report-row-actions a,
 .report-row-actions button{
   border:1px solid var(--prism-border)!important;
   background:var(--prism-surface-2)!important;
   transition:transform .12s ease,background-color .12s ease,border-color .12s ease,color .12s ease;
 }
-.row-actions button:hover,
-.document-row-actions .document-action-button:hover,
+.row-actions button:not(.prism-action-item):hover,
+.document-row-actions .document-action-button:not(.prism-action-item):hover,
 .report-row-actions a:hover,
 .report-row-actions button:hover{
   transform:translateY(-1px);

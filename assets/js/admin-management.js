@@ -290,6 +290,7 @@
                     tr.querySelector('td:not(.retention-select)').append(state);
                 }
             }
+            PrismUI.actionMenu(actions);
             rowsEl.appendChild(tr);
         });
     }
@@ -370,7 +371,7 @@
     const permanentForm=document.getElementById('permanentDeleteForm');
     let permanentRecord=null, permanentReturnFocus=null, permanentContext=null;
     function preparePermanentDialog(button,title,identity,label,warning) {
-        permanentReturnFocus=button || document.activeElement;permanentForm.reset();
+        permanentReturnFocus=PrismUI.actionOrigin(button || document.activeElement);permanentForm.reset();
         document.getElementById('permanentDeleteTitle').textContent=title;
         document.getElementById('permanentDeleteIdentity').textContent=identity;
         document.getElementById('permanentDeleteConfirmationLabel').textContent=label;

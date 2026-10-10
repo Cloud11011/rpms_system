@@ -203,7 +203,7 @@ document.addEventListener('DOMContentLoaded', () => {
             event.preventDefault();
             const form=event.currentTarget, button=form.querySelector('[type="submit"]');
             const release=PrismUI.busy(button,'Processing...'); if(!release)return;
-            const result=$('adminLifecycleResult'); result.textContent='';
+            const result=form.querySelector('[data-lifecycle-result]') || $('adminLifecycleResult'); result.textContent='';
             try {
                 const data=await PrismUI.postJson('account_lifecycle_api.php', {
                     accountType:'admin', action, targetId:Number($('lifecycle').dataset.userId),

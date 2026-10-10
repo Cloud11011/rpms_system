@@ -47,8 +47,8 @@ async function run({check,evaluate,waitFor,navigate,command,keyPress,errors,getR
       await evaluate('document.querySelector(".prism-sidebar").style.removeProperty("height")');
     }
     if (file==='research_adviser.php') {
-      const metrics=await evaluate('(() => { const a=[...document.querySelectorAll(".adviser-document-actions .adviser-button")]; return a.length===2 && a.every(e=>e.className===a[0].className && getComputedStyle(e).backgroundColor===getComputedStyle(a[0]).backgroundColor) && Math.abs(a[0].getBoundingClientRect().height-a[1].getBoundingClientRect().height)<1 && getComputedStyle(a[0].parentElement).gap==="8px"; })()');
-      check(metrics,label+': document actions have equal treatment, height and gap');
+      const metrics=await evaluate('(() => { const a=[...document.querySelectorAll(".adviser-document-actions .adviser-button")]; return a.length===2 && a.every(e=>e.classList.contains("adviser-button")) && a[1].classList.contains("prism-btn-primary") && Math.abs(a[0].getBoundingClientRect().height-a[1].getBoundingClientRect().height)<1 && getComputedStyle(a[0].parentElement).gap==="8px"; })()');
+      check(metrics,label+': document primary/secondary actions retain equal height and gap',JSON.stringify(await evaluate('[...document.querySelectorAll(".adviser-document-actions .adviser-button")].map(e=>({cls:e.className,height:e.getBoundingClientRect().height,gap:getComputedStyle(e.parentElement).gap}))')));
       check(await evaluate('!!document.querySelector("#adviserQueueSearch")'),label+': working submission search remains');
     }
     if (file==='student.php') {
@@ -60,9 +60,11 @@ async function run({check,evaluate,waitFor,navigate,command,keyPress,errors,getR
       }
       await evaluate('document.querySelector("[data-page=documents]").click()');
       await waitFor('document.querySelector(".portal-page.active").dataset.section==="documents" && document.querySelector(".student-document-actions").getBoundingClientRect().width>0');
-      check(await evaluate('(() => {const a=[...document.querySelectorAll(".student-document-actions a")],r=a.map(e=>e.getBoundingClientRect());return a.length>=2 && r.every(e=>e.height>=42) && Math.abs(r[0].height-r[1].height)<1 && (r[1].left-r[0].right>=7 || r[1].top-r[0].bottom>=7) && a[0].href.includes("action=file") && a[1].href.includes("download=1");})()'),label+': distinct preview/download hit areas and endpoints');
+      await evaluate('document.querySelector(".student-document-actions .prism-action-trigger").click()');
+      check(await evaluate('(() => {const a=[...document.querySelectorAll(".student-document-actions a")],r=a.map(e=>e.getBoundingClientRect());return a.length>=2 && r.every(e=>e.height>=(innerWidth<601?44:38)) && Math.abs(r[0].height-r[1].height)<1 && (r[1].left-r[0].right>=7 || r[1].top-r[0].bottom>=7) && a[0].href.includes("action=file") && a[1].href.includes("download=1");})()'),label+': distinct preview/download hit areas and endpoints');
       await evaluate('document.querySelector(".student-document-actions a").focus()');
       check(await evaluate('parseFloat(getComputedStyle(document.activeElement).outlineWidth)>=2'),label+': visible document focus');
+      await keyPress('Escape','Escape',27);
       await evaluate('document.querySelector("[data-page=dashboard]").click()');
       await waitFor('document.querySelector(".portal-page.active").dataset.section==="dashboard"');
     }

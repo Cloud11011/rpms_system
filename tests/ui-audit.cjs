@@ -52,6 +52,7 @@ let setupPendingFixture = false;
 let reviewFailure = 0;
 let summaryProvider = 'ai';
 let summaryStored = null;
+let summaryMultiRecords = false;
 let reviewedStatus = null;
 let lifecycleStageValues = null;
 let studentSubmitted = false;
@@ -154,6 +155,7 @@ async function checkRetentionRedesign() {
 function fixtureApi(file, action) {
   if(process.argv.includes('--onboarding-only')) {const data=onboardingUIAudit.mockApi(file,action,requests.findLast(r=>r.file===file));if(data)return data;}
   if (process.argv.includes('--retention-only')) { const response=retentionMockApi(file,action);if(response)return response; }
+  if (process.argv.includes('--batch4-only') && file==='account_lifecycle_api.php') {const response=retentionMockApi(file,action);if(response)return response;}
   if (process.argv.includes('--batch3-only')) { const response=require('./v10-batch3-ui.cjs').mockApi(file,action,requests.findLast(r=>r.file===file),role);if(response)return response; }
   if (file === 'documents_api.php' && action === 'summarize') {
     if (summaryProvider === 'error') return {ok:false,message:'No extractable text was found. This appears to be a scanned/image-only PDF. '+attack};
@@ -207,6 +209,11 @@ function fixtureApi(file, action) {
   if (file === 'advisers_api.php') return {ok:true,advisers:populated?[{id:1,name:attack,employeeId:'A-1',email:'fixture@example.test',department:'AMT',status:'Active',groups:['AMT-BSIT-Y2-2627-G01','AMT-BSIT-Y2-2627-G02']},{id:2,name:'New Adviser',employeeId:'A-2',email:'new@example.test',status:'Active',groups:[]}]:[]};
   if (file === 'students_api.php' && action === 'adviser_options') return {ok:true,advisers:[]};
   if (file === 'students_api.php' && action === 'save' && academicSaveError) return {ok:false,message:'Academic validation error '+attack};
+  if (file==='account_lifecycle_api.php'&&action==='account_state') {
+    const target=Number(requests.findLast(r=>r.file===file)?.query.targetId);
+    const row=lifecycleRecords?.find(r=>r.id===target)||academicRecord;
+    return {ok:true,lifecycle:row?.lifecycle||{manualEligible:!!row?.archivedAt},assignedStudents:0};
+  }
   if (file === 'account_lifecycle_api.php') return action==='availability'
     ? {ok:true,available:lifecycleGateAvailable,verificationMode:'schema_scoped_shared_hosting',message:lifecycleGateAvailable?'Schema verification is valid. Each deletion still requires all account safety checks.':'Permanent deletion is disabled: schema verification evidence has expired. Repeat operator verification.'}
     : lifecycleDeleteFailure ? {ok:false,message:'Protected Student history exists. Retain the account using Archive.'} : {ok:true,message:'Account permanently deleted.'};
@@ -214,7 +221,11 @@ function fixtureApi(file, action) {
   if (file === 'students_api.php' && academicRecord) return {ok:true,students:[academicRecord]};
   if (file === 'students_api.php') return {ok:true,students:populated?[{id:1,name:attack,research:attack,course:'Fixture Course',stage:'Stage 1',status:'On Track'}]:[]};
   if (file === 'documents_api.php' && role === 'adviser') return {ok:true,documents:populated?[{id:'fixture-doc',originalName:attack+'LongFileName'.repeat(15)+'.pdf',student:attack,studentId:1,documentType:'Research Protocol',stage:'Stage 1',uploadedAt:'2026-09-24',workflowState:reviewedStatus==='Approved'?'Ready for Formal RPMS Submission':(['Denied','Resubmission Requested'].includes(reviewedStatus)?'Needs Revision':'Pending Adviser Review'),reviewStatus:reviewedStatus||'Submitted',reviewRemarks:attack,versionNo:1,isCurrent:true,actions:{review:true}}]:[],counts:{}};
-  if (file === 'documents_api.php') return { ok:true, documents:populated ? [{ id:'fixture-doc', originalName:attack, aiSummary:summaryStored, student:'Fixture Student', studentId:1, documentType:'Protocol', stage:'Stage 1', stageLabel:'Initial review', uploadedAt:'2026-09-24', workflowState:'Pending Adviser Review', reviewStatus:'Submitted', versionNo:1, isCurrent:true, actions:{review:true,summarize:role==='admin'} }] : [], counts:{} };
+  if (file === 'documents_api.php') {
+    const docs=populated ? [{ id:'fixture-doc', originalName:attack, aiSummary:summaryStored, student:'Fixture Student', studentId:1, documentType:'Protocol', stage:'Stage 1', stageLabel:'Initial review', uploadedAt:'2026-09-24', workflowState:'Pending Adviser Review', reviewStatus:'Submitted', versionNo:1, isCurrent:true, actions:{review:true,summarize:role==='admin'} }] : [];
+    if(summaryMultiRecords&&docs.length)docs.push({...docs[0],id:'fixture-doc-second',originalName:'Second research document.pdf',aiSummary:null});
+    return {ok:true,documents:docs,counts:{}};
+  }
   if (file === 'ierb_api.php' && action === 'needs_attention') return {ok:true, students:[], total:0};
   if (file === 'reports_api.php') return { ok: true, reports: populated ? [{ id: 'fixture-report', title: attack, type: 'AI Summarized Report', generated_at: '2026-09-24 08:00:00', generated_by: attack, requiresRegeneration:legacyAIFixture }] : [], report: { id: 'fixture-report' }, aiUsed: false };
   if (file === 'stage_labels_api.php') return { ok: true, labels: labelsForScenario() };
@@ -268,11 +279,20 @@ function mockApi(file, action, query = new URLSearchParams()) {
   return {...data,[key]:rows.slice((page-1)*limit,page*limit),total,page,limit};
 }
 
+function fixtureLogin() {
+  const source=fs.readFileSync(path.join(root,'login.php'),'utf8');
+  const html=source.slice(source.indexOf('<!DOCTYPE'));
+  const stub='<?php $loginError=""; $loginSuccess=""; function asset_url($p){return $p;} function allowed_email_domains_hint(){return "Institutional";} ?>';
+  const result=spawnSync(php,['-d','display_errors=stderr'],{cwd:root,input:stub+html,encoding:'utf8',windowsHide:true});
+  assert.equal(result.status,0,result.stderr); assert.equal(result.stderr,''); return result.stdout;
+}
 async function serve(req, res) {
   try {
     const url = new URL(req.url, origin);
     const file = decodeURIComponent(url.pathname.slice(1));
-    if (['complete_profile.php','account_setup.php'].includes(file)) {
+    if (file==='login.php') {
+      res.writeHead(200,{...securityHeaders,'Content-Type':'text/html; charset=utf-8'});res.end(fixtureLogin());
+    } else if (['complete_profile.php','account_setup.php'].includes(file)) {
       let body='';for await(const chunk of req)body+=chunk;
       requests.push({file,action:null,query:Object.fromEntries(url.searchParams),method:req.method,body});
       res.writeHead(200,{...securityHeaders,'Content-Type':'text/html; charset=utf-8'});res.end(fixtureOnboarding(file));
@@ -297,7 +317,7 @@ async function serve(req, res) {
         return;
       }
       const json = JSON.stringify(mockApi(file, url.searchParams.get('action'), url.searchParams));
-      const status=file==='account_lifecycle_api.php' && url.searchParams.get('action')!=='availability' && lifecycleDeleteFailure ? lifecycleDeleteFailure :
+      const status=file==='account_lifecycle_api.php' && req.method==='POST' && lifecycleDeleteFailure ? lifecycleDeleteFailure :
         (file==='documents_api.php' && url.searchParams.get('action')==='review' && reviewFailure ? reviewFailure : 200);
       res.writeHead(status, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' });
       res.end(json);
@@ -361,7 +381,7 @@ async function navigate(file, width, dark, data = 'empty', viewer = 'admin', scr
   await command('Emulation.setDeviceMetricsOverride', { width, height: 1000, deviceScaleFactor: 1, mobile: false });
   await command('Page.navigate', { url: `${origin}/${file}?fixture=${Date.now()}${filterQuery}` });
   file = pageWrappers[file] || file;
-  const ready = { 'admin_notifications.php': '#noticeHistory > *', 'admin_ai.php': '#aiHistory > *', 'ierbprog.php': '#stageChart > *', 'account.php': '#activityList > *', 'dashboard.php':'#ierbMonitorBody > *', 'research_adviser.php':'#adviserQueue > *', 'role_portal.php':'#studentDashboardState', 'admin_people.php':'#recordRows > *', 'documents.php':'#documentsTableBody > *', 'reports.php':'#reportTableBody > *', 'calendar.php':'#monthGrid > *', 'data_export.php':'.data-export-card','complete_profile.php':'#completeProfileForm','account_setup.php':'[name=token]' }[file];
+  const ready = { 'login.php': '.login-card', 'admin_notifications.php': '#noticeHistory > *', 'admin_ai.php': '#aiHistory > *', 'ierbprog.php': '#stageChart > *', 'account.php': '#activityList > *', 'dashboard.php':'#ierbMonitorBody > *', 'research_adviser.php':'#adviserQueue > *', 'role_portal.php':'#studentDashboardState', 'admin_people.php':'#recordRows > *', 'documents.php':'#documentsTableBody > *', 'reports.php':'#reportTableBody > *', 'calendar.php':'#monthGrid > *', 'data_export.php':'.data-export-card','complete_profile.php':'#completeProfileForm','account_setup.php':'[name=token]' }[file];
   await waitFor(`document.readyState === 'complete' && !!document.querySelector(${JSON.stringify(ready)})`,process.argv.includes('--visual-only')?300:100);
   if (file === 'role_portal.php') await waitFor('document.getElementById("studentDashboardState").getAttribute("aria-busy")==="false"');
   if (file === 'research_adviser.php') await waitFor('document.getElementById("adviserQueue").getAttribute("aria-busy")==="false"');
@@ -911,7 +931,7 @@ async function checkDocumentSummary() {
     await command('Input.dispatchKeyEvent',{type:'keyDown',key:'Tab',code:'Tab',modifiers:8});
     check(await evaluate('document.activeElement.id==="regenerateSummary"'),'Modal traps reverse-tab focus');
     await command('Input.dispatchKeyEvent',{type:'keyDown',key:'Escape',code:'Escape'});
-    check(await evaluate('!document.getElementById("summaryModal").classList.contains("show") && document.activeElement.hasAttribute("data-summary")'),'Escape closes and restores focus');
+    check(await evaluate('!document.getElementById("summaryModal").classList.contains("show") && document.activeElement===PrismUI.actionOrigin(document.querySelector("[data-summary]"))'),'Escape closes and restores focus to the original row action');
   }
   await evaluate('document.querySelector("[data-summary]").click()');
   summaryProvider='local_fallback';
@@ -927,6 +947,19 @@ async function checkDocumentSummary() {
     await evaluateFunction(id=>document.getElementById(id).click(),id);
     check(await evaluateFunction(id=>!!document.querySelector(id==='folderViewButton'?'#documentsFolderView [data-summary]':'#documentsCourseView [data-summary]'),id),'Summary action available in '+id);
   }
+  summaryMultiRecords=true;summaryProvider='ai';
+  try {
+    for(const [viewButton,host] of [['tableViewButton','documentsTableBody'],['folderViewButton','documentsFolderView'],['courseViewButton','documentsCourseView']]) {
+      await navigate('documents.php',375,true,'populated','admin');
+      await evaluateFunction(id=>document.getElementById(id).click(),viewButton);
+      if(viewButton==='tableViewButton')await evaluate('document.querySelectorAll(".prism-action-trigger")[1].click()');
+      await evaluateFunction(host=>document.querySelector('#'+host+' [data-summary="fixture-doc-second"]').click(),host);
+      await waitFor('!document.getElementById("regenerateSummary").disabled');
+      check(JSON.parse(requests.findLast(r=>r.file==='documents_api.php'&&r.action==='summarize').body).id==='fixture-doc-second','Summary selects the second document in '+viewButton);
+      await keyPress('Escape','Escape',27);
+      check(await evaluateFunction(host=>document.activeElement===PrismUI.actionOrigin(document.querySelector('#'+host+' [data-summary="fixture-doc-second"]')),host),'Summary re-render restores the same document focus in '+viewButton);
+    }
+  } finally {summaryMultiRecords=false;}
   await navigate('documents.php',1280,false,'populated','adviser');
   check(await evaluate('!document.querySelector("[data-summary],#summaryModal")'),'Adviser repository has no summary controls');
   await navigate('role_portal.php',375,false,'student-ready','student');
@@ -1128,13 +1161,13 @@ async function checkStudentPortal() {
   await evaluateFunction(()=>{
     document.querySelector('[data-go="submit"]').click();
     document.getElementById('submissionResearchTitle').value='Fixture title';document.getElementById('submissionResearchGroup').value='Fixture group';
-    document.getElementById('documentType').value='Research Protocol';document.getElementById('documentNotes').value='Fixture notes';
+    document.getElementById('documentType').value='Study Protocol';document.getElementById('documentNotes').value='Fixture notes';
     const transfer=new DataTransfer();transfer.items.add(new File(['Fixture file'],'fixture.txt',{type:'text/plain'}));document.getElementById('documentFile').files=transfer.files;
     document.getElementById('submissionForm').requestSubmit();
   });
   await waitFor('document.querySelector(".portal-page.active").dataset.section==="documents" && !document.querySelector("#submissionForm button[type=submit]").disabled');
   const upload=requests.findLast(r=>r.file==='documents_api.php' && r.action==='upload');
-  check(upload?.method==='POST' && ['name="document"','filename="fixture.txt"','name="documentType"','Research Protocol','name="stage"','Stage 1','name="notes"','Fixture notes'].every(part=>upload.body.includes(part)) && !upload.body.includes('Research title: Fixture title'),'Student upload sends editable file/type/notes, not forged institutional metadata');
+  check(upload?.method==='POST' && ['name="document"','filename="fixture.txt"','name="documentType"','Study Protocol','name="stage"','Stage 1','name="notes"','Fixture notes'].every(part=>upload.body.includes(part)) && !upload.body.includes('Research title: Fixture title'),'Student upload sends editable file/type/notes, not forged institutional metadata');
 }
 
 
@@ -1558,7 +1591,7 @@ async function checkStudentDashboardProtocol() {
         check(result.text===(code||'')&&result.safe,label+': code rendered literally and safely');
         check(result.labelWhole&&result.fits,label+': label whole and long code contained');
         check(result.font==='11.5px',label+': secondary metadata typography');
-        check(result.submit===(code||'Not assigned')&&result.documentsVisible===!!code&&(!code||result.documents===code),label+': Submit Document and My Documents preserve code');
+        check(result.submit===(code||'No protocol code yet.')&&result.documentsVisible===!!code&&(!code||result.documents===code),label+': Submit Document and My Documents preserve code');
         const signature=requests.slice(start).map(r=>`${r.method} ${r.file} ${r.action}`).sort().join('|');
         if(expectedRequests===null)expectedRequests=signature;
         check(signature===expectedRequests,label+': no additional requests for protocol code',signature);
@@ -1566,6 +1599,10 @@ async function checkStudentDashboardProtocol() {
         if(code) {
           await evaluate("document.querySelector('#portalNav [data-page=progress]').click();document.getElementById('principalIndicator').click()");
           check(await evaluateFunction(code=>!document.getElementById('protocolCodeReveal').hidden&&document.getElementById('protocolCodeReveal').textContent==='Protocol Code: '+code,code),label+': IERB Progress retains its existing code reveal');
+          await evaluate("document.querySelector('#portalNav [data-page=dashboard]').click()");
+        } else {
+          await evaluate("document.querySelector('#portalNav [data-page=progress]').click();document.getElementById('principalIndicator').click()");
+          check(await evaluate("!document.getElementById('protocolCodeReveal').hidden&&document.getElementById('protocolCodeReveal').textContent==='No protocol code yet.'"),label+': existing Progress reveal uses the same missing-code wording');
           await evaluate("document.querySelector('#portalNav [data-page=dashboard]').click()");
         }
         if(width===320&&['assigned','long'].includes(kind)) {
@@ -2103,9 +2140,9 @@ async function checkLifecyclePolish() {
   await navigate('account.php',320,true,'populated','admin');await measure('account.php',320,true,' lifecycle forms');
   check(await evaluateFunction(()=>!!document.getElementById('adminArchiveForm')&&!!document.querySelector('#adminDeleteForm input[name=confirmation]')),'Admin separate archive and typed-delete forms');
   await navigate('account.php',320,true,'populated','adviser');check(await evaluate('!document.getElementById("lifecycle")'),'Adviser has no Admin lifecycle controls');
-  managementFixture='student';academicRecord={id:100,studentId:'S100',name:'Archived test',email:'test@example.invalid',archivedAt:'2026-10-01',stage:'Stage 1',status:'On Track'};
+  managementFixture='student';academicRecord={id:100,studentId:'S100',name:'Archived test',email:'test@example.invalid',archivedAt:'2026-10-01',lifecycle:{manualEligible:true},stage:'Stage 1',status:'On Track'};
   await navigate('admin_students.php',320,true,'populated','admin');
-  await evaluateFunction(()=>document.querySelector('button[title="Permanently Delete Student"]').click());await measure('admin_students.php',320,true,' destructive dialog');
+  await evaluateFunction(()=>document.querySelector('[aria-label="Permanently Delete Student"]').click());await waitFor('document.getElementById("permanentDeleteDialog").open');await measure('admin_students.php',320,true,' destructive dialog');
   check(await evaluateFunction(()=>document.getElementById('permanentDeleteDialog').open&&document.querySelector('#permanentDeleteForm input[name=currentPassword]').required&&document.querySelector('#permanentDeleteForm input[name=confirmation]').required),'Student deletion uses explicit password and typed confirmation dialog');
   await evaluate('document.getElementById("cancelPermanentDelete").click()');academicRecord=null;
   check(errors.length===0,'No lifecycle UI exceptions',errors.join(' | '));
@@ -2115,10 +2152,16 @@ async function checkLifecyclePolish() {
 async function checkStudentLifecycle() {
   const dest=path.join(root,'tests','lifecycle-results');fs.mkdirSync(dest,{recursive:true});
   const matrix=[[1920,1080],[1366,768],[1024,768],[768,1024],[390,844],[375,812]];
-  const record=(id,name,archived=false)=>({id,studentId:'S'+id,name,email:'student'+id+'@example.invalid',stage:'Stage 1',status:'On Track',archivedAt:archived?'2026-10-01':null});
+  const record=(id,name,archived=false)=>({id,studentId:'S'+id,name,email:'student'+id+'@example.invalid',stage:'Stage 1',status:'On Track',archivedAt:archived?'2026-10-01':null,lifecycle:{manualEligible:archived}});
   lifecycleRecords=[record(1,'Active normal Student'),record(2,'Active unused test Student'),record(3,'Archived unused test Student',true),record(4,'Archived protected Student',true),record(5,'Long Student Name '.repeat(10),true),{...record(6,'Long ID Student',true),studentId:'S'.repeat(100)}];
   managementFixture='student';lifecycleGateAvailable=true;
-  const openRow=async index=>evaluate(`document.querySelectorAll('#recordRows tr')[${index}].querySelector('.lifecycle-danger').click()`);
+  const lum=rgb=>rgb.match(/[\d.]+/g).slice(0,3).map(Number).map(x=>x/255).map(x=>x<=.04045?x/12.92:((x+.055)/1.055)**2.4).reduce((sum,x,i)=>sum+x*[.2126,.7152,.0722][i],0);
+  const contrast=(a,b,base='rgb(24, 33, 49)')=>{
+    const c=b.match(/[\d.]+/g).map(Number),v=base.match(/[\d.]+/g).map(Number),alpha=c[3]??1;
+    const bg='rgb('+c.slice(0,3).map((x,i)=>Math.round(x*alpha+v[i]*(1-alpha))).join(', ')+')';
+    return (Math.max(lum(a),lum(bg))+.05)/(Math.min(lum(a),lum(bg))+.05);
+  };
+  const openRow=async index=>{await evaluate(`document.querySelectorAll('#recordRows tr')[${index}].querySelector('.lifecycle-danger').click()`);if(lifecycleRecords[index]?.archivedAt&&lifecycleGateAvailable)await waitFor('document.getElementById("permanentDeleteDialog").open');};
   const cancel=async()=>evaluate('document.getElementById("cancelPermanentDelete").click()');
   for(const [width,height] of matrix) for(const dark of [false,true]) {
     const label=width+'x'+height+' '+(dark?'dark':'light');
@@ -2126,30 +2169,33 @@ async function checkStudentLifecycle() {
     await command('Emulation.setDeviceMetricsOverride',{width,height,deviceScaleFactor:1,mobile:false});
     await waitFor('document.getElementById("permanentDeleteAvailability").textContent.includes("is valid")');
     await measure('admin_students.php',width,dark,' Student lifecycle');
-    const actions=await evaluateFunction(()=>[...document.querySelectorAll('#recordRows tr')].map(row=>[...row.querySelectorAll('.lifecycle-action')].map(b=>{
-      const r=b.getBoundingClientRect(),s=getComputedStyle(b);return {w:r.width,h:r.height,x:r.x,y:r.y,title:b.title,label:b.getAttribute('aria-label'),disabled:b.disabled||b.getAttribute('aria-disabled')==='true',icon:!!b.querySelector('i[aria-hidden=true]'),fg:s.color,bg:s.backgroundColor};
-    })));
-    check(actions.length===6&&actions.every(row=>row.length===3&&row.every(b=>b.w===40&&b.h===40&&b.title&&b.label&&b.icon)),label+': equal labelled actions in every row',JSON.stringify(actions));
-    check(actions.every(row=>!row[0].disabled&&row.every(b=>b.x===row[0].x)&&Math.abs(row[1].y-row[0].y-46)<1&&Math.abs(row[2].y-row[1].y-46)<1),label+': aligned actions and visible Edit');
-    check(actions.slice(0,2).every(row=>!row[1].disabled&&row[2].disabled&&row[2].title.includes('Archive Student before'))&&actions.slice(2).every(row=>row[1].disabled&&!row[2].disabled),label+': archived-first states');
-    const lum=rgb=>rgb.match(/[\d.]+/g).slice(0,3).map(Number).map(x=>x/255).map(x=>x<=.04045?x/12.92:((x+.055)/1.055)**2.4).reduce((sum,x,i)=>sum+x*[.2126,.7152,.0722][i],0);
-    const contrast=(a,b)=>(Math.max(lum(a),lum(b))+.05)/(Math.min(lum(a),lum(b))+.05);
-    check(actions.every(row=>contrast(row[2].fg,row[2].bg)>=4.5),label+': enabled and disabled trash contrast');
-    const hoverPoint=await evaluateFunction(()=>{const b=document.querySelectorAll('#recordRows tr')[2].querySelector('.lifecycle-danger');b.scrollIntoView({behavior:'instant',block:'center',inline:'nearest'});const r=b.getBoundingClientRect();return {x:r.x+r.width/2,y:r.y+r.height/2};});
-    await command('Input.dispatchMouseEvent',{type:'mouseMoved',...hoverPoint});
-    await waitFor('getComputedStyle(document.querySelectorAll("#recordRows tr")[2].querySelector(".lifecycle-danger")).backgroundColor==="rgb(163, 29, 53)"');
-    const hover=await evaluateFunction(()=>{const s=getComputedStyle(document.querySelectorAll('#recordRows tr')[2].querySelector('.lifecycle-danger'));return {fg:s.color,bg:s.backgroundColor};});
-    check(hover.bg==='rgb(163, 29, 53)'&&contrast(hover.fg,hover.bg)>=4.5,label+': red hover state retains contrast',JSON.stringify(hover));
+    for(let row=0;row<lifecycleRecords.length;row++) {
+      await evaluate(`document.querySelectorAll('#recordRows tr')[${row}].querySelector('.prism-action-trigger').click()`);
+      const actions=await evaluateFunction(()=>[...document.querySelector('.prism-action-panel:not([hidden])').querySelectorAll('.lifecycle-action')].map(b=>{
+        const r=b.getBoundingClientRect();return {w:r.width,h:r.height,label:b.getAttribute('aria-label'),icon:!!b.querySelector('i[aria-hidden=true]'),text:b.textContent.trim()};
+      }));
+      check(actions.length>=3&&actions.every(b=>b.h>=(width<601?44:38)&&b.label&&b.text&&b.icon&&Math.abs(b.w-actions[0].w)<1),label+': equal labelled menu actions in row '+row,JSON.stringify(actions));
+      check(await evaluate(`(() => {const row=document.querySelectorAll('#recordRows tr')[${row}],del=row.querySelector('.lifecycle-danger'),archive=row.querySelector('.lifecycle-archive');return ${row<2?'!archive.disabled && del.getAttribute("aria-disabled")==="true"':'archive.disabled && del.getAttribute("aria-disabled")==="false"'};})()`),label+': archived-first action states in row '+row);
+      await keyPress('Escape','Escape',27);
+    }
+    await evaluate('document.querySelectorAll("#recordRows tr")[2].querySelector(".prism-action-trigger").click()');
+    const danger=await evaluateFunction(()=>{const b=document.querySelectorAll('#recordRows tr')[2].querySelector('.lifecycle-danger'),s=getComputedStyle(b);return {fg:s.color,bg:s.backgroundColor,base:getComputedStyle(b.closest('.prism-action-panel')).backgroundColor,danger:b.classList.contains('prism-action-danger')};});
+    check(danger.danger&&contrast(danger.fg,danger.bg,danger.base)>=4.5,label+': danger menu foreground/background contrast',JSON.stringify(danger));
+    const point=await evaluateFunction(()=>{const r=document.querySelectorAll('#recordRows tr')[2].querySelector('.lifecycle-danger').getBoundingClientRect();return {x:r.x+r.width/2,y:r.y+r.height/2};});
+    await command('Input.dispatchMouseEvent',{type:'mouseMoved',...point});
+    await evaluate('new Promise(r=>setTimeout(r,220))');
+    const hover=await evaluateFunction(()=>{const s=getComputedStyle(document.querySelectorAll('#recordRows tr')[2].querySelector('.lifecycle-danger'));return {fg:s.color,bg:s.backgroundColor,base:getComputedStyle(document.querySelector('.prism-action-panel:not([hidden])')).backgroundColor};});
+    check(contrast(hover.fg,hover.bg,hover.base)>=4.5,label+': danger hover retains contrast',JSON.stringify(hover));
     await command('Input.dispatchMouseEvent',{type:'mouseMoved',x:0,y:0});
-    await evaluate('document.querySelectorAll("#recordRows tr")[2].querySelector(".lifecycle-action").focus()');
-    for(const type of ['keyDown','keyUp'])await command('Input.dispatchKeyEvent',{type,key:'Tab',code:'Tab',windowsVirtualKeyCode:9});
-    check(await evaluateFunction(()=>document.activeElement.matches('.lifecycle-danger')&&getComputedStyle(document.activeElement).outlineStyle==='solid'),label+': destructive action keyboard focus is visible');
+    await evaluate('document.querySelectorAll("#recordRows tr")[2].querySelector(".lifecycle-danger").focus()');
+    check(await evaluate('document.activeElement.matches(".lifecycle-danger")&&getComputedStyle(document.activeElement).outlineStyle==="solid"'),label+': destructive item keyboard focus visible');
+    await keyPress('Escape','Escape',27);
     await openRow(0);check(await evaluate('!document.getElementById("permanentDeleteDialog").open'),label+': active Student cannot open deletion');
     await openRow(2);check(await evaluate('document.getElementById("permanentDeleteDialog").open'),label+': archived Student opens confirmation');
     const layout=await evaluateFunction(()=>{
       const d=document.getElementById('permanentDeleteDialog'),r=d.getBoundingClientRect(),f=document.getElementById('permanentDeleteForm');
       return {w:r.width,l:r.left,r:r.right,t:r.top,b:r.bottom,scroll:getComputedStyle(d).overflowY,
-        fields:[...f.querySelectorAll('.lifecycle-form-group')].map(g=>{const l=g.querySelector('label').getBoundingClientRect(),i=g.querySelector('input').getBoundingClientRect();return {gap:i.top-l.bottom,w:i.width,l:i.left,r:i.right};}),
+        fields:[...f.querySelectorAll('.lifecycle-form-group:not([hidden])')].map(g=>{const l=g.querySelector('label').getBoundingClientRect(),i=g.querySelector('input,textarea').getBoundingClientRect();return {gap:i.top-l.bottom,w:i.width,l:i.left,r:i.right};}),
         checks:[...f.querySelectorAll('.lifecycle-check')].map(e=>({display:getComputedStyle(e).display,w:e.querySelector('input').getBoundingClientRect().width})),
         toggle:f.querySelector('[data-lifecycle-password]').type,bg:getComputedStyle(f.querySelector('[type=submit]')).backgroundColor};
     });
@@ -2168,7 +2214,7 @@ async function checkStudentLifecycle() {
     for(const type of ['keyDown','keyUp'])await command('Input.dispatchKeyEvent',{type,key:' ',code:'Space',windowsVirtualKeyCode:32});
     check(await evaluate('document.getElementById("permanentDeletePassword").type==="text"'),label+': eye keyboard activation');
     await cancel();
-    check(await evaluateFunction(()=>{const f=document.getElementById('permanentDeleteForm');return !document.getElementById('permanentDeleteDialog').open&&f.elements.currentPassword.value===''&&f.elements.currentPassword.type==='password'&&document.activeElement.matches('.lifecycle-danger');}),label+': Cancel clears password and restores focus');
+    check(await evaluateFunction(()=>{const f=document.getElementById('permanentDeleteForm');return !document.getElementById('permanentDeleteDialog').open&&f.elements.currentPassword.value===''&&f.elements.currentPassword.type==='password'&&document.activeElement.matches('.prism-action-trigger');}),label+': Cancel clears password and restores focus');
     for(const row of [5,4]) {
       await openRow(row);
       check(await evaluateFunction(()=>{const e=document.getElementById('permanentDeleteIdentity');return e.scrollWidth<=e.clientWidth+1;}),label+': long identity wraps '+row);
@@ -2177,22 +2223,22 @@ async function checkStudentLifecycle() {
     }
   }
   lifecycleDeleteFailure=409;await openRow(3);
-  await evaluateFunction(()=>{const f=document.getElementById('permanentDeleteForm');f.elements.currentPassword.value='Synthetic browser passphrase';f.elements.confirmation.value='S4';f.elements.testRecord.checked=true;f.elements.confirmed.checked=true;f.querySelector('[type=submit]').click();});
+  await evaluateFunction(()=>{const f=document.getElementById('permanentDeleteForm');f.elements.currentPassword.value='Synthetic browser passphrase';f.elements.confirmation.value='S4';f.elements.confirmed.checked=true;f.querySelector('[type=submit]').click();});
   await waitFor('document.getElementById("permanentDeleteResult").textContent.includes("Protected Student history")');
   check(await evaluate('document.getElementById("permanentDeleteDialog").open&&document.getElementById("permanentDeletePassword").value===""'),'Backend protected-history 409 remains visible and clears password');
-  checkPayload('account_lifecycle_api.php',null,{accountType:'student',action:'permanent_delete',targetId:4,currentPassword:'Synthetic browser passphrase',confirmation:'S4',confirmed:true,testRecord:true},'Exact Student targeting/password/ID/acknowledgements');
+  checkPayload('account_lifecycle_api.php',null,{accountType:'student',action:'permanent_delete',targetId:4,currentPassword:'Synthetic browser passphrase',confirmation:'S4',confirmed:true,reason:''},'Exact Student targeting/password/ID/confirmation');
   await cancel();lifecycleDeleteFailure=0;await openRow(2);
   const before=requests.filter(r=>r.file==='account_lifecycle_api.php'&&r.method==='POST').length;
   await evaluateFunction(()=>{const f=document.getElementById('permanentDeleteForm');f.elements.currentPassword.value='Synthetic browser passphrase';f.elements.confirmation.value='S3';f.querySelector('[type=submit]').click();});
   check(requests.filter(r=>r.file==='account_lifecycle_api.php'&&r.method==='POST').length===before,'Unchecked destructive acknowledgements prevent submission');
-  await evaluateFunction(()=>{const f=document.getElementById('permanentDeleteForm');f.elements.testRecord.checked=true;f.elements.confirmed.checked=true;f.querySelector('[type=submit]').click();});
+  await evaluateFunction(()=>{const f=document.getElementById('permanentDeleteForm');f.elements.confirmed.checked=true;f.querySelector('[type=submit]').click();});
   await waitFor('!document.getElementById("permanentDeleteDialog").open');
-  checkPayload('account_lifecycle_api.php',null,{accountType:'student',action:'permanent_delete',targetId:3,currentPassword:'Synthetic browser passphrase',confirmation:'S3',confirmed:true,testRecord:true},'Successful destructive confirmation still submits');
+  checkPayload('account_lifecycle_api.php',null,{accountType:'student',action:'permanent_delete',targetId:3,currentPassword:'Synthetic browser passphrase',confirmation:'S3',confirmed:true,reason:''},'Successful destructive confirmation still submits');
   lifecycleGateAvailable=false;await navigate('admin_students.php',1366,false,'populated','admin');
   await waitFor('document.getElementById("permanentDeleteAvailability").textContent.includes("expired")');
   check(await evaluate('[...document.querySelectorAll("#recordRows .lifecycle-danger")].every(e=>e.getAttribute("aria-disabled")==="true")'),'Invalid evidence disables every delete control');
   await openRow(2);check(await evaluate('!document.getElementById("permanentDeleteDialog").open'),'Invalid gate cannot open deletion');
-  lifecycleGateAvailable=true;managementFixture='adviser';lifecycleRecords=[{id:200,name:'Archived unused Adviser',employeeId:'E200',status:'Inactive',email:'adviser@example.invalid',groups:[]}];
+  lifecycleGateAvailable=true;managementFixture='adviser';lifecycleRecords=[{id:200,name:'Archived unused Adviser',employeeId:'E200',status:'Inactive',email:'adviser@example.invalid',groups:[],archivedAt:'2026-03-01',lifecycle:{manualEligible:true}}];
   await navigate('admin_advisers.php',1024,false,'populated','admin');
   await waitFor('document.getElementById("permanentDeleteAvailability").textContent.includes("is valid")');await openRow(0);
   check(await evaluate('document.getElementById("permanentDeleteDialog").open&&document.getElementById("permanentDeleteConfirmationLabel").textContent.includes("Employee ID")'),'Adviser shares modal and keeps Employee ID confirmation');await cancel();
@@ -2254,6 +2300,7 @@ async function run() {
   await command('Log.enable');
   await command('Fetch.enable', { patterns: [{ urlPattern: '*' }] });
   await command('Browser.setDownloadBehavior', { behavior: 'deny' }, true);
+  if(process.argv.includes('--batch4-before') || process.argv.includes('--batch4-only')) {await require('./v10-batch4-ui.cjs').run({check,evaluate,waitFor,navigate,command,keyPress,errors,getRequests:()=>requests,setManagement:value=>{managementFixture=value;}});console.log(checks+' batch 4 browser checks; '+failures.length+' failures.');for(const f of failures)console.error('FAIL '+f);if(failures.length)process.exitCode=1;return;}
   if(process.argv.includes('--resources-only')) {checkInstitutionalPartialBoundary();await checkInstitutionalComponents();check(errors.length===0,'No resource browser exceptions',errors.join(' | '));console.log(checks+' resource browser checks; '+failures.length+' failures.');for(const f of failures)console.error('FAIL '+f);if(failures.length)process.exitCode=1;return;}
   if(process.argv.includes('--batch2-only')) {await require('./v10-batch2-ui.cjs').run({check,evaluate,waitFor,navigate,command,keyPress,errors,getRequests:()=>requests,setDelay:value=>{apiDelay=value;}});console.log(checks+' batch 2 browser checks; '+failures.length+' failures.');for(const f of failures)console.error('FAIL '+f);if(failures.length)process.exitCode=1;return;}
   if(process.argv.includes('--batch3-only')) {await require('./v10-batch3-ui.cjs').run({check,evaluate,waitFor,navigate,command,keyPress,errors,getRequests:()=>requests,setDelay:value=>{apiDelay=value;},setManagement:value=>{managementFixture=value;}});console.log(checks+' batch 3 browser checks; '+failures.length+' failures.');for(const f of failures)console.error('FAIL '+f);if(failures.length)process.exitCode=1;return;}

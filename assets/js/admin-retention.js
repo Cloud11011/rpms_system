@@ -25,7 +25,9 @@
         const review=document.createElement('button');review.type='button';review.className='prism-btn';review.textContent='Review eligible accounts';
         const runCleanup=document.createElement('button');runCleanup.type='button';runCleanup.className='prism-btn';runCleanup.textContent='Run Retention Cleanup';
         const recovery=document.createElement('div');recovery.className='retention-recovery';
-        cleanup.append(cleanupCounts,review,runCleanup,recovery);toolbar.before(cleanup);
+        const maintenanceTitle=document.createElement('h3');maintenanceTitle.textContent='Retention Maintenance';
+        runCleanup.classList.add('prism-btn-danger');
+        cleanup.append(maintenanceTitle,cleanupCounts,review,runCleanup,recovery);document.getElementById('recordFilters').append(cleanup);
         const header=document.createElement('th');header.scope='col';header.textContent='Select';options.rows.closest('table').querySelector('thead tr').prepend(header);
         const getIds=()=>allIds || selected;
         function scopeLabel() {

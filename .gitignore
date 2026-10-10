@@ -71,3 +71,6 @@ storage/auth_rate_limits/
 !/tests/account-onboarding-ui.cjs
 !/tests/academic-api-audit.php
 storage/.purge/
+
+!/tests/v10-batch4-ui.cjs
+!/tests/v10-batch4-security.php

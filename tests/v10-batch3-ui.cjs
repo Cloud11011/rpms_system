@@ -88,7 +88,7 @@ async function run(ctx) {
       await evaluate(`document.getElementById('${host}').querySelector('select').focus()`);await keyPress('Escape','Escape',27);
       check(await evaluate(`document.getElementById('${host}').hidden&&document.activeElement.getAttribute('aria-controls')==='${host}'`),prefix+': Escape closes and returns focus');
       await keyPress('Enter','Enter',13);
-      await evaluate(`document.getElementById('${host}').querySelector('.prism-filter-clear').focus()`);await keyPress('Tab','Tab',9);
+      await evaluate(`[...document.getElementById('${host}').querySelectorAll('button:not(:disabled),select,input,a[href]')].at(-1).focus()`);await keyPress('Tab','Tab',9);
       check(await evaluate(`!document.getElementById('${host}').contains(document.activeElement)`),prefix+': simple disclosure permits Tab to leave');
       await evaluate(`document.getElementById('${host}').querySelector('.prism-filter-clear').click()`);
       check(await evaluate(`document.querySelector('[aria-controls="${host}"]').textContent==='Filters & Sort'`),prefix+': Clear resets active indicator');

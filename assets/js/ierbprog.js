@@ -211,6 +211,7 @@
                 actions.appendChild(delBtn);
             }
 
+            PrismUI.actionMenu(actions);
             tableBody.appendChild(tr);
         });
     }

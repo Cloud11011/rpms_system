@@ -11,6 +11,15 @@
   'use strict';
 
   const STAGES = ['Stage 1', 'Stage 2', 'Stage 3', 'Stage 4', 'Stage 5', 'Completed'];
+  // New-upload labels only. Historical records and filter values remain literal.
+  const DOCUMENT_TYPES = Object.freeze([
+    'Form 11 Review Checklist', 'Form 12 Registration and Application Form',
+    'Form 14 Informed Consent Assessment', 'Form 13 Study Protocol Assessment Form',
+    'Study Protocol', 'Letter to IERB Chair', 'Certificate of Ethics', 'Payment',
+    'Informed Consent - Local Language', 'Informed Consent - English',
+    'Data Collection Questionnaire', 'Diagrammatic Workflow', 'Curriculum Vitae',
+    'Other Supporting Document'
+  ]);
 
   // label -> [tone, icon]. One place that defines how every status looks across the system.
  const BADGES = {
@@ -709,7 +718,89 @@
     };
   }
 
-  /** Inline disclosure stays in normal page flow and never traps keyboard focus. */
+  // One active floating panel. Keep its DOM beside the trigger for normal Tab order.
+  // Fixed positioning avoids clipping by the tables' horizontal scroll containers.
+  let floating = null;
+  let floatingSequence = 0;
+  function positionFloating() {
+    if (!floating) return;
+    const { trigger, panel } = floating;
+    if (!trigger.isConnected) { closeFloating(false); return; }
+    const margin = 12, anchor = trigger.getBoundingClientRect();
+    panel.style.maxHeight = Math.max(80, innerHeight - margin * 2) + 'px';
+    const box = panel.getBoundingClientRect();
+    const left = Math.max(margin, Math.min(anchor.right - box.width, innerWidth - box.width - margin));
+    const below = anchor.bottom + 8;
+    const above = anchor.top - box.height - 8;
+    const top = below + box.height <= innerHeight - margin ? below
+      : above >= margin ? above : Math.max(margin, innerHeight - box.height - margin);
+    panel.style.left = left + 'px'; panel.style.top = top + 'px';
+  }
+  function closeFloating(returnFocus = true) {
+    if (!floating) return;
+    const { trigger, panel, observer } = floating;
+    floating = null; observer.disconnect(); panel.hidden = true;
+    trigger.setAttribute('aria-expanded', 'false');
+    if (returnFocus && trigger.isConnected) trigger.focus({ preventScroll: true });
+  }
+  function toggleFloating(trigger, panel) {
+    if (floating?.trigger === trigger) { closeFloating(); return; }
+    closeFloating(false); panel.hidden = false; trigger.setAttribute('aria-expanded', 'true');
+    const observer = new ResizeObserver(positionFloating);
+    floating = { trigger, panel, observer }; observer.observe(panel); positionFloating();
+  }
+  document.addEventListener('click', event => {
+    if (floating && !floating.panel.contains(event.target) && !floating.trigger.contains(event.target))
+      closeFloating(floating.panel.contains(document.activeElement));
+  });
+  document.addEventListener('keydown', event => {
+    if (event.key === 'Escape' && floating && !document.querySelector('dialog[open], .prism-modal')) {
+      event.preventDefault(); event.stopPropagation(); closeFloating();
+    }
+  });
+  window.addEventListener('resize', positionFloating);
+  document.addEventListener('scroll', event => {
+    if (floating && !floating.panel.contains(event.target)) positionFloating();
+  }, true);
+
+  /** Consolidate existing authorized controls without recreating their handlers. */
+  function actionMenu(host, { primary = null, label = 'Actions' } = {}) {
+    const items = [...host.children].filter(e => e.matches('button,a') && e !== primary);
+    if (!items.length || host.querySelector('.prism-action-menu')) return;
+    const wrap = document.createElement('div'); wrap.className = 'prism-action-menu';
+    const trigger = document.createElement('button'); trigger.type = 'button'; trigger.className = 'prism-btn prism-btn-neutral prism-action-trigger';
+    trigger.textContent = label + ' ▾';
+    const panel = document.createElement('div'); panel.id = 'prismActions' + (++floatingSequence);
+    panel.className = 'prism-action-panel'; panel.hidden = true;
+    panel.setAttribute('role', 'group'); panel.setAttribute('aria-label', 'Record actions');
+    trigger.setAttribute('aria-controls', panel.id); trigger.setAttribute('aria-expanded', 'false');
+    items.forEach(item => {
+      const name = item.textContent.trim() || item.getAttribute('aria-label')?.split('. ')[0] || item.title || 'View';
+      item.append(document.createTextNode(item.textContent.trim() ? '' : name));
+      item.classList.add('prism-action-item');
+      if (/archive|delete|purge|deny|cancel|remove.*hold|override/i.test(name)) item.classList.add('prism-action-danger');
+      item.addEventListener('click', () => {
+        // Focus the stable trigger before the existing handler opens a dialog.
+        closeFloating();
+      }, true);
+      panel.append(item);
+    });
+    wrap.append(trigger, panel); host.append(wrap);
+    trigger.addEventListener('click', () => toggleFloating(trigger, panel));
+    wrap.addEventListener('keydown', event => {
+      if (!['ArrowDown','ArrowUp','Home','End'].includes(event.key)) return;
+      event.preventDefault();
+      if (panel.hidden) toggleFloating(trigger, panel);
+      const available = [...panel.querySelectorAll('button:not(:disabled),a[href]')];
+      if (!available.length) return;
+      const index = available.indexOf(document.activeElement);
+      const next = event.key === 'Home' ? 0 : event.key === 'End' ? available.length - 1
+        : (index + (event.key === 'ArrowUp' ? -1 : 1) + available.length) % available.length;
+      available[next].focus();
+    });
+  }
+
+  /** Floating non-modal filters preserve controls, defaults, cascade and Tab order. */
   function filtersDisclosure(host, controls, reload, toolbar) {
     const wrap = document.createElement('div'); wrap.className = 'prism-filter-disclosure';
     const trigger = document.createElement('button'); trigger.type = 'button'; trigger.className = 'prism-btn';
@@ -725,8 +816,8 @@
       trigger.textContent = 'Filters & Sort' + (active ? ' (' + active + ')' : '');
       clear.disabled = !controls.some(control => control.value !== defaults.get(control));
     }
-    function close() { host.hidden = true; trigger.setAttribute('aria-expanded', 'false'); }
-    trigger.addEventListener('click', () => { host.hidden = !host.hidden; trigger.setAttribute('aria-expanded', String(!host.hidden)); });
+    function close() { if (floating?.panel === host) closeFloating(); else { host.hidden = true; trigger.setAttribute('aria-expanded', 'false'); } }
+    trigger.addEventListener('click', () => toggleFloating(trigger, host));
     wrap.addEventListener('keydown', event => { if (event.key === 'Escape' && !host.hidden) { event.preventDefault(); event.stopPropagation(); close(); trigger.focus(); } });
     clear.addEventListener('click', () => {
       controls.forEach(control => { control.value = defaults.get(control); });
@@ -821,6 +912,8 @@
 
   const api = {
     badge: badge, badgeElement: badgeElement, docMini: docMini, emptyState: emptyState, tip: tip, toast: toast,
+    documentTypes: DOCUMENT_TYPES, actionMenu: actionMenu,
+    actionOrigin: control => control?.closest('.prism-action-menu')?.querySelector('.prism-action-trigger') || control,
     confirm: confirmDialog, request: request, handleSessionExpiry: handleSessionExpiry, debounce: debounce, recordFilters: recordFilters, filtersDisclosure: filtersDisclosure, postJson: postJson, esc: esc, pagination: pagination, busy: busy, runAction: runAction, dirtyForm: dirtyForm, recordPager: recordPager, clearFilters: clearFilters,
     submitToRpms: submitToRpms, overrideStudent: overrideStudent, overrideDocument: overrideDocument, showVersions: showVersions,
     enhanceTable: enhanceTable, tableFilter: tableFilter, hint: hint,
