@@ -72,6 +72,7 @@
             'admin_ai.php': 'Request and review AI progress reports using the current reporting tools.',
             'data_export.php': 'Export permitted research data using the existing CSV download controls.',
             'account.php': 'View account information and use the permitted profile and security settings.',
+            'admin_legal_policies.php': 'Review published Privacy and Terms versions, prepare drafts and approve or reject changes using the legal policy safeguards.',
             'account.php#activity': 'Review activity logs for actions visible to your account.',
             'account.php#security': 'Open account security settings.',
             dashboard: 'See your current research progress, document status and recent submissions.',

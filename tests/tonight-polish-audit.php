@@ -2,7 +2,9 @@
 namespace PrismPolishAudit;
 use RuntimeException;
 if (PHP_SAPI !== 'cli') { http_response_code(404); exit; }
-function current_user(): array { return $GLOBALS['fixtureUser']; }
+function current_user(): ?array { return ($GLOBALS['case']['file']??'')==='login_process.php'?null:$GLOBALS['fixtureUser']; }
+function legal_acceptance_required(...$args): bool { return false; }
+function prism_publish_session_generation(): void {}
 // These pre-existing routing cases represent completed profiles; Pending routing is
 // exercised through the actual service and central guard in the isolated HTTP suite.
 function onboarding_complete(object $pdo,array $user): bool { return $user['profile_completed_at']!==null; }
@@ -36,7 +38,7 @@ function check(bool $condition, string $label): void {
     $GLOBALS['checks']++;
     if (!$condition) throw new RuntimeException($label);
 }
-foreach (['admin' => 'dashboard.php', 'adviser' => 'ierbprog.php', 'student' => 'student.php'] as $role => $destination) {
+foreach (['admin' => 'dashboard.php', 'adviser' => 'research_adviser.php', 'student' => 'student.php'] as $role => $destination) {
     foreach (['login_process.php', 'login.php', 'index.php'] as $file) {
         foreach ([0, 1] as $mustChange) {
             foreach ([false, true] as $badPassword) {
@@ -45,7 +47,7 @@ foreach (['admin' => 'dashboard.php', 'adviser' => 'ierbprog.php', 'student' => 
                 $r = json_decode($out,true);
                 check($exit === 0 && $err === '' && is_array($r), 'Isolated login endpoint executes: ' . $err);
                 $failed = $file === 'login_process.php' && $badPassword;
-                check($r['headers'] === ['Location: ' . ($file === 'index.php' ? $destination : ($failed ? 'login.php' : 'index.php'))], 'Correct direct role routing or failed-login return');
+                check($r['headers'] === ['Location: ' . ($file === 'index.php' ? ($mustChange?'change_password_required.php':$destination) : ($failed ? 'login.php' : 'index.php'))], 'Correct direct role routing or failed-login return');
                 if ($file === 'login_process.php') {
                     check($failed ? !isset($r['session']['user_id']) : ($r['session']['must_change_password'] === $mustChange && $r['regenerated']), 'Session regeneration and password-change flag preserved');
                 }

@@ -5,6 +5,14 @@ $httpRoot=dirname($datadir).'/http'; mkdir($httpRoot); mkdir($httpRoot.'/include
 foreach(['config.php','security.php','auth_rate_limit.php','workflow.php','account_lifecycle_api.php','login_process.php','profile_api.php','students_api.php','advisers_api.php','ierb_api.php','ai_helpers.php'] as $file)
     copy(__DIR__.'/../'.$file,$httpRoot.'/'.$file);
 foreach(glob(__DIR__.'/../includes/*') as $file) if(is_file($file) && in_array(pathinfo($file,PATHINFO_EXTENSION),['php','json'],true)) copy($file,$httpRoot.'/includes/'.basename($file));
+// Preserve this legacy schema fixture; B6 HTTP separately tests the full v10 gates.
+$fixtureConfig=file_get_contents($httpRoot.'/config.php');
+file_put_contents($httpRoot.'/config.php',str_replace('const SCHEMA_VERSION = 10;', 'const SCHEMA_VERSION = 9;', $fixtureConfig));
+$fixtureLegal=file_get_contents($httpRoot.'/includes/legal_policy.php');
+$fixtureLegal=preg_replace('/function legal_outstanding\([^\n]*\n\{[\s\S]*?\n\}/','function legal_outstanding(...$args): array { return []; }',$fixtureLegal,1,$legalReplacements);
+if ($legalReplacements!==1) throw new RuntimeException('Exact legacy legal fixture boundary required.');
+file_put_contents($httpRoot.'/includes/legal_policy.php',$fixtureLegal);
+copy(__DIR__.'/../tools/schema-v9-contract.json',$httpRoot.'/includes/account_lifecycle_schema.json');
 $socket=stream_socket_server('tcp://127.0.0.1:0',$errno,$error); $httpPort=(int)substr(strrchr(stream_socket_get_name($socket,false),':'),1); fclose($socket);
 $httpBase='http://127.0.0.1:'.$httpPort;
 function remediation_http_config(bool $verified=true,bool $deniedAudit=false,?array $verification=null,?array $connection=null): void {

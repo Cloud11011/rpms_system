@@ -13,7 +13,7 @@ async function run({check,evaluate,waitFor,navigate,command,keyPress,errors,getR
         check(await evaluate("!!document.querySelector('.login-legal-footer a[href=\"privacy.php\"]')&&!!document.querySelector('.login-legal-footer a[href=\"terms.php\"]')"),label+': native Login legal links');
         check(await evaluate("document.querySelector('.login-legal-footer').getBoundingClientRect().bottom<=innerHeight"),label+': Login footer fits viewport');
       } else if(file!=='dashboard.php') {
-        check(await evaluate("document.querySelectorAll('h1').length===1&&document.querySelectorAll('h2').length==="+(file==='privacy.php'?12:16)),file+'/'+label+': heading hierarchy');
+        check(await evaluate("document.querySelectorAll('h1').length===1&&document.querySelectorAll('h2').length===1&&document.querySelectorAll('h3').length==="+(file==='privacy.php'?12:16)),file+'/'+label+': heading hierarchy');
         check(await evaluate("document.body.textContent.includes('Effective Date: October 2026')&&!document.querySelector('.prism-sidebar,.portal-navbar')"),file+'/'+label+': approved date and public presentation');
         check(await evaluate("getComputedStyle(document.body).overflowY!=='hidden'&&document.documentElement.scrollHeight>innerHeight"),file+'/'+label+': normal long-page scroll');
         await evaluate("document.querySelector('.legal-header a[href=\"login.php\"]').focus()");
@@ -49,8 +49,8 @@ async function run({check,evaluate,waitFor,navigate,command,keyPress,errors,getR
     await navigate(file,390,false,'populated',file==='student.php'?'student':'admin');
     if(file==='documents.php') {await evaluate("document.getElementById('uploadDocumentButton').click()");await waitFor("document.getElementById('uploadModal').classList.contains('show')");await evaluate("document.getElementById('documentStudent').selectedIndex=1");}
     check(await evaluate("document.getElementById('documentFile').multiple&&PrismUI.documentTypes.length===14"),file+': native multiple input and PHP catalog');
-    await evaluate("{const dt=new DataTransfer();dt.items.add(new File(['Fixture'], 'valid.txt',{type:'text/plain'}));dt.items.add(new File(['Fixture'],'bad.exe',{type:'text/plain'}));document.getElementById('documentFile').files=dt.files;document.getElementById('documentFile').dispatchEvent(new Event('change'));document.getElementById('documentType').value='Study Protocol'}");
-    check(await evaluate("document.getElementById('uploadSelection').textContent.includes('valid.txt')&&document.getElementById('uploadSelection').textContent.includes('bad.exe')"),file+': selected file names/sizes available');
+    await evaluate("{const dt=new DataTransfer();dt.items.add(new File(['Presentation fixture'], 'valid.pdf',{type:'application/pdf'}));dt.items.add(new File(['Fixture'],'bad.exe',{type:'text/plain'}));document.getElementById('documentFile').files=dt.files;document.getElementById('documentFile').dispatchEvent(new Event('change'));document.getElementById('documentType').value='Study Protocol'}");
+    check(await evaluate("document.getElementById('uploadSelection').textContent.includes('valid.pdf')&&document.getElementById('uploadSelection').textContent.includes('bad.exe')"),file+': selected file names/sizes available');
     const form=file==='documents.php'?'uploadForm':'submissionForm',before=getRequests().filter(r=>r.action==='upload').length;
     setDelay(150);await evaluate(`document.getElementById('${form}').requestSubmit();document.getElementById('${form}').requestSubmit()`);
     await waitFor("document.getElementById('uploadResults').textContent.includes('1 of 2')");setDelay(0);
@@ -67,7 +67,7 @@ async function run({check,evaluate,waitFor,navigate,command,keyPress,errors,getR
   await command('Emulation.setEmulatedMedia',{features:[{name:'prefers-reduced-motion',value:'reduce'}]});
   await navigate('privacy.php',375,true,'populated','admin');check(await evaluate("document.querySelectorAll('h1').length===1"),'legal page readable with reduced motion');
   await navigate('privacy.php',375,true,'populated','admin',true);
-  check(await evaluate("!!document.querySelector('a[href=\"login.php\"]')&&document.querySelectorAll('h2').length===12"),'legal content and native navigation survive JavaScript disabled');
+  check(await evaluate("!!document.querySelector('a[href=\"login.php\"]')&&document.querySelectorAll('h3').length===12"),'legal content and native navigation survive JavaScript disabled');
   await navigate('login.php',375,false,'populated','admin',true);
   check(await evaluate("!!document.querySelector('a[href=\"privacy.php\"]')&&!!document.querySelector('a[href=\"terms.php\"]')"),'Login legal links survive JavaScript disabled');
   await command('Emulation.setScriptExecutionDisabled',{value:false});

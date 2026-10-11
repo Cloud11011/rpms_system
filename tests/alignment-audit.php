@@ -1,5 +1,7 @@
 <?php
 namespace PrismAlignmentAudit;
+function legal_acceptance_required(...$args): bool { return false; }
+function prism_publish_session_generation(): void {}
 use PDO;
 use RuntimeException;
 require_once __DIR__.'/../includes/student_snapshot.php';
@@ -100,6 +102,7 @@ if (($argv[1] ?? '') === '--case') {
     $source=str_replace(["require_once __DIR__.'/includes/account_lifecycle.php';","require_once __DIR__ . '/includes/account_lifecycle.php';"],'',$source);
     $source = str_replace("require_once __DIR__ . '/includes/office_container.php';", '', $source);
     $source = str_replace("require_once __DIR__ . '/includes/document_summary.php';", '', $source);
+    $source = str_replace(["require_once __DIR__ . '/includes/document_catalog.php';", "require_once __DIR__ . '/includes/document_upload.php';"], '', $source);
     foreach (["require __DIR__ . '/config.php';", "require_once __DIR__ . '/workflow.php';", "require_once __DIR__ . '/ai_helpers.php';", "require_once __DIR__ . '/includes/academic_catalog.php';", "require_once __DIR__ . '/includes/notification_delivery.php';", "require_once __DIR__ . '/includes/research_groups.php';"] as $include) $source = str_replace($include, '', $source);
     $source = str_replace("array_map('row_to_student',", "array_map('\\PrismAlignmentAudit\\row_to_student',", $source);
     $isPage = in_array($case['file'], ['admin_ai.php','reports.php'], true);

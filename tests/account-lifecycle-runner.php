@@ -5,11 +5,14 @@
  * Run: C:\xampp\php\php.exe tests/account-lifecycle-runner.php --lifecycle
  */
 if (PHP_SAPI !== 'cli') { http_response_code(404); exit; }
-if (!in_array($argc,[2,4],true) || ($argc===4 && $argv[2]!=='--mariadb-bin') || !in_array($argv[1], ['--lifecycle-metadata', '--lifecycle', '--lifecycle-remediation', '--lifecycle-shared-hosting', '--retention', '--retention-manifest', '--hostinger-fk-migration', '--hostinger-fk-retries', '--hostinger-fk-guards'], true) || PHP_OS_FAMILY !== 'Windows') {
+if (!in_array($argc,[2,4],true) || ($argc===4 && $argv[2]!=='--mariadb-bin') || !in_array($argv[1], ['--batch6', '--lifecycle-metadata', '--lifecycle', '--lifecycle-remediation', '--lifecycle-shared-hosting', '--retention', '--retention-core', '--retention-manifest', '--hostinger-fk-migration', '--hostinger-fk-retries', '--hostinger-fk-guards'], true) || PHP_OS_FAMILY !== 'Windows') {
     fwrite(STDERR, "Requires Windows/XAMPP and --lifecycle or --lifecycle-metadata.\n");
     exit(1);
 }
 $checks = 0;
+require_once __DIR__.'/../includes/schema_v10.php';
+// Earlier suites deliberately exercise v8/v9; the application manifest is now v10.
+if ($argv[1]!=='--batch6') define('PRISM_LIFECYCLE_MANIFEST_FILE',__DIR__.'/../tools/schema-v9-contract.json');
 function reset_migration_expect(mixed $expected, mixed $actual, string $message): void
 {
     ++$GLOBALS['checks'];
@@ -32,7 +35,7 @@ $declarations=str_replace('__DIR__',var_export(dirname(__DIR__),true),$declarati
 $setup = reset_migration_source($source, 'function send_account_setup_email(', "\nfunction json_body(");
 eval('namespace PrismResetMigrationSQL; use \PDO; use \RuntimeException; use \Throwable;'
     . 'const APP_BASE_URL = "https://prism.invalid";'
-    . 'function getenv(string $key): string|false { if (!empty($GLOBALS["denyMigration"])) return false; return ($key === "PRISM_ALLOW_SCHEMA_V6_MIGRATION" || ($key === "PRISM_ALLOW_SCHEMA_V7_MIGRATION" && !empty($GLOBALS["allowV7"])) || ($key === "PRISM_ALLOW_SCHEMA_V8_MIGRATION" && !empty($GLOBALS["allowV8"])) || ($key === "PRISM_ALLOW_SCHEMA_V9_MIGRATION" && !empty($GLOBALS["allowV9"]))) ? "1" : false; }'
+    . 'function getenv(string $key): string|false { if (!empty($GLOBALS["denyMigration"])) return false; if ($key === "PRISM_SCHEMA_V10_EXPECT_DB") return \getenv($key); return ($key === "PRISM_ALLOW_SCHEMA_V6_MIGRATION" || ($key === "PRISM_ALLOW_SCHEMA_V7_MIGRATION" && !empty($GLOBALS["allowV7"])) || ($key === "PRISM_ALLOW_SCHEMA_V8_MIGRATION" && !empty($GLOBALS["allowV8"])) || ($key === "PRISM_ALLOW_SCHEMA_V9_MIGRATION" && !empty($GLOBALS["allowV9"])) || ($key === "PRISM_ALLOW_SCHEMA_V10_MIGRATION" && !empty($GLOBALS["allowV10"]))) ? "1" : false; }'
     . 'function app_base_url_is_valid(): bool { return true; }'
     . 'function log_api_error(...$args): void { $GLOBALS["setupErrors"]++; }'
     . 'function send_notification_email(...$args): array { $GLOBALS["setupMailCalls"]++; return ["ok" => true, "channel" => "fixture"]; }'
@@ -94,7 +97,9 @@ try {
         'Connection must belong to the temporary instance');
     echo 'Temporary MariaDB version: ' . $pdo->query('SELECT VERSION()')->fetchColumn() . "\n";
 
-    if(in_array($argv[1],['--hostinger-fk-migration','--hostinger-fk-retries','--hostinger-fk-guards'],true)) {
+    if ($argv[1]==='--batch6') {
+        require __DIR__.'/v10-batch6-mysql.php';
+    } elseif(in_array($argv[1],['--hostinger-fk-migration','--hostinger-fk-retries','--hostinger-fk-guards'],true)) {
         require_once __DIR__.'/../includes/account_lifecycle.php';
         $GLOBALS['allowV7']=$GLOBALS['allowV8']=true;
         require __DIR__.'/account-hostinger-fk-migration.php';
@@ -104,6 +109,11 @@ try {
 } catch (Throwable $error) {
     $failure = $error;
 } finally {
+    if ($failure && is_file($root.'/server.log')) {
+        $diagnostics=__DIR__.'/v10-batch6-results'; if (!is_dir($diagnostics)) mkdir($diagnostics);
+        // Native error diagnostics only, never install output/credentials/fixture configuration.
+        file_put_contents($diagnostics.'/native-failure-server.log',file_get_contents($root.'/server.log'));
+    }
     if ($pdo) {
         try { $pdo->exec('SHUTDOWN'); } catch (Throwable $ignored) {}
         $pdo = null;
@@ -131,6 +141,7 @@ try {
     }
 }
 if ($failure) {
+    foreach (array_slice($failure->getTrace(),0,5) as $frame) fwrite(STDERR,($frame['function']??'').' at '.($frame['file']??'').':'.($frame['line']??0)."\n");
     fwrite(STDERR, 'FAIL: ' . $failure->getMessage() . (isset($GLOBALS['hostingerFkContext'])?' [FK fixture '.$GLOBALS['hostingerFkContext'].']':'') . "\n");
     exit(1);
 }

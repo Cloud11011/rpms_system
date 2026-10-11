@@ -28,6 +28,8 @@ class FixturePDO extends PDO {
 }
 function db(): PDO { static $pdo;return $pdo??=new FixturePDO(); }
 function onboarding_complete(PDO $pdo,array $user): bool { return $user['role']==='admin' || empty($user['pending']); }
+function legal_outstanding(...$args): array { return []; }
+function legal_acceptance_required(...$args): bool { return false; }
 function consume_auth_attempt(...$args): bool { return true; }
 function too_many_recent_failures(...$args): bool { return false; }
 function log_activity(...$args): void {}
@@ -63,7 +65,19 @@ if (($argv[1]??'')==='--seed') {
 }
 if(PHP_SAPI!=='cli-server'||($_SERVER['REMOTE_ADDR']??'')!=='127.0.0.1')exit(1);
 $publicRoute=basename(parse_url($_SERVER['REQUEST_URI'],PHP_URL_PATH));
-if(in_array($publicRoute,['privacy.php','terms.php'],true)) { require __DIR__.'/../'.$publicRoute; exit; }
+if(in_array($publicRoute,['privacy.php','terms.php'],true)) {
+    require_once __DIR__.'/../includes/assets.php';
+    require_once __DIR__.'/../includes/legal_policy.php';
+    $legalPageKey=pathinfo($publicRoute,PATHINFO_FILENAME);
+    $source=file_get_contents(__DIR__.'/../includes/public_legal.php');
+    $source=str_replace("require_once __DIR__.'/../config.php';",'', $source);
+    $source=str_replace("require __DIR__.'/legal_placeholders.php'",'require '.var_export(__DIR__.'/../includes/legal_placeholders.php',true),$source);
+    eval('namespace '.__NAMESPACE__.'; '.preg_replace('/^<\?php\s*/','',$source)); exit;
+}
+function legal_current(...$args): array {
+    $seed=json_decode(file_get_contents(__DIR__.'/../includes/schema_v10_seed.json'),true);
+    foreach ($seed as &$row) $row+=['version_number'=>1,'published_at'=>'2026-10-11 12:00:00']; unset($row);return $seed;
+}
 ini_set('display_errors','0');ini_set('session.use_strict_mode','1');ini_set('session.use_only_cookies','1');
 session_save_path($fixture.'/sessions');
 session_set_cookie_params(['path'=>'/','httponly'=>true,'samesite'=>'Lax']);session_start();

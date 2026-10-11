@@ -45,6 +45,7 @@ $prismNavGroups = [
         ['admin_notifications.php', 'Notifications'],
     ]],
     'Account' => ['Account & Planning', 'fa-user-gear', [
+        ['admin_legal_policies.php', 'Legal Policies'],
         ['account.php', 'Account & Activity'], ['account.php#activity', 'Activity Logs'],
         ['calendar.php', 'Personal Calendar'],
     ]],

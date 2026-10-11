@@ -27,7 +27,7 @@ function lifecycle_schema_inventory(PDO $pdo): array
 
 function lifecycle_manifest_hash(): string
 {
-    return hash_file('sha256',__DIR__.'/account_lifecycle_schema.json');
+    return hash_file('sha256',defined('PRISM_LIFECYCLE_MANIFEST_FILE') ? PRISM_LIFECYCLE_MANIFEST_FILE : __DIR__.'/account_lifecycle_schema.json');
 }
 
 function lifecycle_database_binding(PDO $pdo): array
@@ -38,11 +38,16 @@ function lifecycle_database_binding(PDO $pdo): array
 
 function lifecycle_compare_schema(PDO $pdo): void
 {
-    $expected=json_decode(file_get_contents(__DIR__.'/account_lifecycle_schema.json'),true,512,JSON_THROW_ON_ERROR);
+    $expected=json_decode(file_get_contents(defined('PRISM_LIFECYCLE_MANIFEST_FILE') ? PRISM_LIFECYCLE_MANIFEST_FILE : __DIR__.'/account_lifecycle_schema.json'),true,512,JSON_THROW_ON_ERROR);
     $actual=lifecycle_schema_inventory($pdo);
     foreach($expected as $key=>$value) if($key==='schema_version' ? ($actual[$key]??null)!==$value :
         json_encode($actual[$key]??null,JSON_NUMERIC_CHECK)!==json_encode($value,JSON_NUMERIC_CHECK)) {
         throw new AccountLifecycleConflict('Permanent deletion is unavailable: database '.$key.' differ from the reviewed manifest. Retain the account using Archive.');
+    }
+    if ($actual['schema_version']==='10') {
+        require_once __DIR__.'/schema_v10.php';
+        try { schema_v10_check($pdo,schema_v10_plan()['verify']); }
+        catch (RuntimeException $e) { throw new AccountLifecycleConflict('Permanent deletion is unavailable: frozen v10 constraints differ. Retain the account using Archive.',0,$e); }
     }
 }
 

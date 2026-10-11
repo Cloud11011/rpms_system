@@ -128,7 +128,7 @@ retention_test_reset();$r=onboarding_test_pending();
 $scope=retention_selection($pdo,retention_test_actor(),['accountType'=>'student','filters'=>['profile'=>'pending']]);
 reset_migration_expect([(int)$r['id']],$scope['ids'],'Pending filter selects only incomplete identity');
 foreach(['archive','hold','remove_hold','restore'] as $action) {
-    $s=retention_selection($pdo,retention_test_actor(),['accountType'=>'student','filters'=>['profile'=>'pending']]);
+    $s=retention_selection($pdo,retention_test_actor(),['accountType'=>'student','filters'=>['profile'=>'pending','lifecycle'=>$action==='archive'?'active':'archived']]);
     $preview=retention_bulk_preview($pdo,retention_test_actor(),['selectionToken'=>$s['selectionToken'],'selectionMode'=>'all_matching','bulkAction'=>$action]);
     $result=retention_bulk_execute($pdo,retention_test_actor(),['previewToken'=>$preview['previewToken'],'cursor'=>0,'currentPassword'=>$GLOBALS['fixturePassword'],'confirmation'=>$preview['phrase'],'confirmed'=>true]);
     reset_migration_expect(1,$result['completed'],'Pending bulk '.$action);

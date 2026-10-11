@@ -5,6 +5,25 @@ class DocumentUploadError extends RuntimeException
     public function __construct(string $message, public int $status = 422) { parent::__construct($message); }
 }
 
+function allowed_document_extensions(): array
+{
+    return ['pdf','docx'];
+}
+
+function prism_pdf_content_is_valid(string $path): bool
+{
+    $handle=fopen($path,'rb');
+    if (!$handle) return false;
+    try {
+        $start=fread($handle,65536);
+        if (!preg_match('/\A%PDF-[12]\.[0-9](?:\r\n|\r|\n)/',$start)) return false;
+        if (!preg_match('/\b[0-9]+\s+[0-9]+\s+obj\b/',$start)) return false;
+        fseek($handle,max(0,filesize($path)-2048));
+        $tail=stream_get_contents($handle);
+        return (bool)preg_match('/startxref\s+[0-9]+\s+%%EOF\s*\z/s',$tail);
+    } finally { fclose($handle); }
+}
+
 function prism_upload_files(mixed $input): array
 {
     $fields = ['name', 'tmp_name', 'error', 'size', 'type'];
@@ -59,15 +78,13 @@ function prism_validate_upload(array $file): array
     if ($size > 20 * 1024 * 1024) throw new DocumentUploadError('Files must be 20 MB or smaller.', 413);
     $ext = strtolower(pathinfo($file['name'], PATHINFO_EXTENSION));
     $mimes = [
-        'pdf' => ['application/pdf'], 'png' => ['image/png'], 'jpg' => ['image/jpeg'], 'jpeg' => ['image/jpeg'],
-        'txt' => ['text/plain'], 'rtf' => ['application/rtf', 'text/rtf', 'text/plain'],
-        'doc' => ['application/msword', 'application/CDFV2', 'application/octet-stream'],
+        'pdf' => ['application/pdf'],
         'docx' => ['application/vnd.openxmlformats-officedocument.wordprocessingml.document', 'application/zip', 'application/octet-stream'],
-        'odt' => ['application/vnd.oasis.opendocument.text', 'application/zip', 'application/octet-stream'],
     ];
-    if (!isset($mimes[$ext])) throw new DocumentUploadError('This file type is not allowed. Use PDF, Word, text, RTF, ODT, PNG or JPG.', 415);
+    if (!in_array($ext,allowed_document_extensions(),true)) throw new DocumentUploadError('Only PDF and DOCX files are allowed.', 415);
     $mime = (new finfo(FILEINFO_MIME_TYPE))->file($file['tmp_name']) ?: 'application/octet-stream';
     if (!in_array($mime, $mimes[$ext], true)) throw new DocumentUploadError('The uploaded file content does not match its file extension.', 415);
-    if (!office_container_is_valid($file['tmp_name'], $ext)) throw new DocumentUploadError('The Office document container is invalid or exceeds safe archive limits.', 415);
+    if ($ext==='pdf' && !prism_pdf_content_is_valid($file['tmp_name'])) throw new DocumentUploadError('The PDF document content is invalid.',415);
+    if (!office_container_is_valid($file['tmp_name'], $ext, true)) throw new DocumentUploadError('The Office document container is invalid or exceeds safe archive limits.', 415);
     return ['ext' => $ext, 'mime' => $mime];
 }

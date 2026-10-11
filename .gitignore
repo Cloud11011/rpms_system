@@ -83,3 +83,12 @@ storage/.purge/
 !/tests/v10-batch5b-router.php
 !/tests/v10-batch5b-http.cjs
 !/tests/v10-batch5b-ui.cjs
+!/tests/v10-batch6-mysql.php
+!/tests/v10-batch6-http.php
+!/tests/v10-batch6-concurrency.php
+!/tests/v10-batch6-concurrency-worker.php
+!/tests/v10-batch6-upload-validation.php
+!/tests/v10-batch6-template.php
+!/tests/v10-batch6-ui.cjs
+!/tests/v10-batch6-browser-session.cjs
+!/tests/fixtures/batch6-valid.pdf

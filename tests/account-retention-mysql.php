@@ -17,7 +17,7 @@ reset_migration_expect($before,lifecycle_schema_inventory($pdo),'v9 retry-safe s
 reset_migration_expect(12,count($metadata['foreign_keys']),'Invitation ownership and inviter FKs; existing FKs preserved');
 reset_migration_expect(17,count($metadata['tables']),'Recovery journal and shared invitation table added');
 if ($argv[1]==='--retention-manifest') {
-    file_put_contents(__DIR__.'/../includes/account_lifecycle_schema.json',json_encode($metadata,JSON_PRETTY_PRINT|JSON_UNESCAPED_SLASHES)."\n");
+    file_put_contents(__DIR__.'/../tools/schema-v9-contract.json',json_encode($metadata,JSON_PRETTY_PRINT|JSON_UNESCAPED_SLASHES)."\n");
     echo 'PASS: additive v9 manifest from isolated MariaDB; '.$GLOBALS['checks']." assertions.\n";
     return;
 }
@@ -123,7 +123,7 @@ foreach (['student','adviser'] as $type) {
 }
 reset_migration_expect('2027-02-28 12:00:00',$pdo->query("SELECT DATE_ADD('2026-08-31 12:00:00',INTERVAL 6 MONTH)")->fetchColumn(),'Calendar month-end clamp');
 retention_test_reset();$pdo->exec('UPDATE students SET archived_at=DATE_SUB(DATE_ADD(NOW(),INTERVAL 2 DAY),INTERVAL 6 MONTH) WHERE id=100');
-reset_migration_expect(true,retention_state(retention_scope_rows($pdo,retention_test_actor(),'student',[],[100])[0])['approachingRetention'],'Three-day warning on evaluation');
+reset_migration_expect(true,retention_state(retention_scope_rows($pdo,retention_test_actor(),'student',['lifecycle'=>'archived'],[100])[0])['approachingRetention'],'Three-day warning on evaluation');
 
 // Concrete unresolved states, including current vs superseded/submitted versions.
 foreach (['Submitted','Denied','Resubmission Requested','Approved'] as $status) {
@@ -315,18 +315,23 @@ try { retention_bulk_execute($pdo,$actor,$execute);throw new RuntimeException('S
 catch(AccountLifecycleConflict $e) { reset_migration_expect(29,(int)$pdo->query('SELECT COUNT(*) FROM students')->fetchColumn(),'Stale preview refuses before first purge'); }
 $pdo->exec('UPDATE students SET retention_hold=0 WHERE id=304');
 $preview=retention_bulk_preview($pdo,$actor,$base);$execute['previewToken']=$preview['previewToken'];
-$first=retention_bulk_execute($pdo,$actor,$execute);reset_migration_expect(25,$first['nextCursor'],'Bounded first chunk');reset_migration_expect(false,$first['done'],'Explicit continuation');
+$first=retention_bulk_execute($pdo,$actor,$execute);reset_migration_expect(true,$first['nextCursor']>0 && $first['nextCursor']<=25,'Bounded first chunk including server time budget');reset_migration_expect(false,$first['done'],'Explicit continuation');
 $retry=retention_bulk_execute($pdo,$actor,$execute);reset_migration_expect($first,$retry,'Lost-response retry returns identical committed outcomes');
-$second=retention_bulk_execute($pdo,$actor,array_replace($execute,['cursor'=>$first['nextCursor']]));
-reset_migration_expect(true,$second['done'],'Bulk finishes second chunk');reset_migration_expect(26,$second['completed'],'Actual completed outcomes');reset_migration_expect(3,$second['skipped'],'Independent Hold/workflow/grace skipped');
+$second=$first;
+while (!$second['done']) {
+    $previousCursor=$second['nextCursor'];
+    $second=retention_bulk_execute($pdo,$actor,array_replace($execute,['cursor'=>$previousCursor]));
+    reset_migration_expect(true,$second['nextCursor']>$previousCursor && $second['nextCursor']-$previousCursor<=25,'Every continuation advances within the chunk limit');
+}
+reset_migration_expect(true,$second['done'],'Bulk finishes bounded continuation');reset_migration_expect(26,$second['completed'],'Actual completed outcomes');reset_migration_expect(3,$second['skipped'],'Independent Hold/workflow/grace skipped');
 reset_migration_expect(3,(int)$pdo->query('SELECT COUNT(*) FROM students')->fetchColumn(),'Only blocked accounts remain');
 reset_migration_expect(26,(int)$pdo->query('SELECT COUNT(*) FROM account_purge_jobs WHERE status="complete"')->fetchColumn(),'Every completed outcome has durable evidence');
-retention_test_reset();$selection=retention_selection($pdo,retention_test_actor(),['accountType'=>'student','filters'=>['q'=>'S100']]);
+retention_test_reset();$selection=retention_selection($pdo,retention_test_actor(),['accountType'=>'student','filters'=>['q'=>'S100','lifecycle'=>'archived']]);
 $preview=retention_bulk_preview($pdo,retention_test_actor(),['selectionToken'=>$selection['selectionToken'],'selectionMode'=>'individual','ids'=>[100],'bulkAction'=>'hold']);
 $execute=['previewToken'=>$preview['previewToken'],'cursor'=>0,'currentPassword'=>$fixturePassword,'confirmation'=>$preview['phrase'],'confirmed'=>true,'reason'=>'Bulk review'];
 reset_migration_expect(1,retention_bulk_execute($pdo,retention_test_actor(),$execute)['completed'],'Bulk Hold');
 foreach (['remove_hold','restore','archive'] as $action) {
-    $selection=retention_selection($pdo,retention_test_actor(),['accountType'=>'student','filters'=>[]]);
+    $selection=retention_selection($pdo,retention_test_actor(),['accountType'=>'student','filters'=>['lifecycle'=>'all']]);
     $preview=retention_bulk_preview($pdo,retention_test_actor(),['selectionToken'=>$selection['selectionToken'],'selectionMode'=>'all_matching','bulkAction'=>$action]);
     $execute=['previewToken'=>$preview['previewToken'],'cursor'=>0,'currentPassword'=>$fixturePassword,'confirmation'=>$preview['phrase'],'confirmed'=>true];
     reset_migration_expect(1,retention_bulk_execute($pdo,retention_test_actor(),$execute)['completed'],'Bulk '.$action);
@@ -340,6 +345,8 @@ require __DIR__.'/account-retention-concurrency.php';
 require __DIR__.'/account-retention-verification.php';
 require __DIR__.'/account-retention-http.php';
 require __DIR__.'/account-onboarding-migration.php';
-require __DIR__.'/account-hostinger-fk-migration.php';
+// Optional split keeps the full retention/onboarding suite independent of the long
+// legacy FK matrix, which is also runnable on its own fresh native server.
+if ($argv[1]!=='--retention-core') require __DIR__.'/account-hostinger-fk-migration.php';
 require __DIR__.'/account-onboarding-mysql.php';
 require __DIR__.'/account-onboarding-concurrency.php';

@@ -2,7 +2,7 @@
 
 Effective Date: October 2026
 
-PRISM (“PRISM,” “the System,” “we,” “us,” or “our”) is a web-based system for IERB progress monitoring, research document management, notifications, and reporting. PRISM is operated by Research Progress Monitoring Sectionl for authorized users associated with Centro Escolar University - MAlolos
+PRISM (“PRISM,” “the System,” “we,” “us,” or “our”) is a web-based system for IERB progress monitoring, research document management, notifications, and reporting. PRISM is operated by Research Progress Monitoring Section for authorized users associated with Centro Escolar University - Malolos
 
 This Privacy Policy explains the information PRISM collects, why it is used, how it is protected, and how Google user data is handled.
 
@@ -148,4 +148,4 @@ For questions or concerns about this Privacy Policy or PRISM's handling of perso
 
 Email: [SUPPORT/PRIVACY EMAIL]
 
-Address: Street Address: Km. 44 McArthur Highway, Barangay Longos, City of Malolos, Bulacan, 3000 Philippines
+Address: Km. 44 McArthur Highway, Barangay Longos, City of Malolos, Bulacan, 3000 Philippines

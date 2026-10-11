@@ -1,6 +1,7 @@
 <?php
 /** Invitation-only exact domains and actual API/service; isolated SQL, never live config. */
 if(PHP_SAPI!=='cli')exit(1);
+function legal_acceptance_required(...$args): bool { return false; }
 function source_function(string $source,string $name): string {
     $source=str_replace("\r\n","\n",$source);$start=strpos($source,'function '.$name.'(');$end=strpos($source,"\n}\n",$start);
     if($start===false || $end===false)throw new RuntimeException('Missing reviewed helper.');return substr($source,$start,$end+2-$start);

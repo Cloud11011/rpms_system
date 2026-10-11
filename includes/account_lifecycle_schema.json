@@ -41,7 +41,23 @@
             "ENGINE": "InnoDB"
         },
         {
+            "TABLE_NAME": "legal_policies",
+            "ENGINE": "InnoDB"
+        },
+        {
+            "TABLE_NAME": "legal_policy_approvals",
+            "ENGINE": "InnoDB"
+        },
+        {
+            "TABLE_NAME": "legal_policy_versions",
+            "ENGINE": "InnoDB"
+        },
+        {
             "TABLE_NAME": "notifications",
+            "ENGINE": "InnoDB"
+        },
+        {
+            "TABLE_NAME": "notification_campaigns",
             "ENGINE": "InnoDB"
         },
         {
@@ -57,6 +73,10 @@
             "ENGINE": "InnoDB"
         },
         {
+            "TABLE_NAME": "staff_registration_code",
+            "ENGINE": "InnoDB"
+        },
+        {
             "TABLE_NAME": "stage_labels",
             "ENGINE": "InnoDB"
         },
@@ -66,6 +86,10 @@
         },
         {
             "TABLE_NAME": "users",
+            "ENGINE": "InnoDB"
+        },
+        {
+            "TABLE_NAME": "user_policy_acceptances",
             "ENGINE": "InnoDB"
         }
     ],
@@ -1088,6 +1112,204 @@
             "COLUMN_DEFAULT": "current_timestamp()"
         },
         {
+            "TABLE_NAME": "legal_policies",
+            "COLUMN_NAME": "id",
+            "COLUMN_TYPE": "enum('privacy','terms')",
+            "IS_NULLABLE": "NO",
+            "COLUMN_KEY": "PRI",
+            "EXTRA": "",
+            "COLUMN_DEFAULT": null
+        },
+        {
+            "TABLE_NAME": "legal_policies",
+            "COLUMN_NAME": "current_version_id",
+            "COLUMN_TYPE": "int(11)",
+            "IS_NULLABLE": "YES",
+            "COLUMN_KEY": "",
+            "EXTRA": "",
+            "COLUMN_DEFAULT": "NULL"
+        },
+        {
+            "TABLE_NAME": "legal_policy_approvals",
+            "COLUMN_NAME": "id",
+            "COLUMN_TYPE": "int(11)",
+            "IS_NULLABLE": "NO",
+            "COLUMN_KEY": "PRI",
+            "EXTRA": "auto_increment",
+            "COLUMN_DEFAULT": null
+        },
+        {
+            "TABLE_NAME": "legal_policy_approvals",
+            "COLUMN_NAME": "version_id",
+            "COLUMN_TYPE": "int(11)",
+            "IS_NULLABLE": "NO",
+            "COLUMN_KEY": "UNI",
+            "EXTRA": "",
+            "COLUMN_DEFAULT": null
+        },
+        {
+            "TABLE_NAME": "legal_policy_approvals",
+            "COLUMN_NAME": "reviewer_user_id",
+            "COLUMN_TYPE": "int(11)",
+            "IS_NULLABLE": "YES",
+            "COLUMN_KEY": "MUL",
+            "EXTRA": "",
+            "COLUMN_DEFAULT": "NULL"
+        },
+        {
+            "TABLE_NAME": "legal_policy_approvals",
+            "COLUMN_NAME": "decision",
+            "COLUMN_TYPE": "enum('approved','rejected')",
+            "IS_NULLABLE": "NO",
+            "COLUMN_KEY": "",
+            "EXTRA": "",
+            "COLUMN_DEFAULT": null
+        },
+        {
+            "TABLE_NAME": "legal_policy_approvals",
+            "COLUMN_NAME": "approval_mode",
+            "COLUMN_TYPE": "enum('independent','sole_admin','bootstrap')",
+            "IS_NULLABLE": "NO",
+            "COLUMN_KEY": "",
+            "EXTRA": "",
+            "COLUMN_DEFAULT": null
+        },
+        {
+            "TABLE_NAME": "legal_policy_approvals",
+            "COLUMN_NAME": "reason",
+            "COLUMN_TYPE": "varchar(500)",
+            "IS_NULLABLE": "YES",
+            "COLUMN_KEY": "",
+            "EXTRA": "",
+            "COLUMN_DEFAULT": "NULL"
+        },
+        {
+            "TABLE_NAME": "legal_policy_approvals",
+            "COLUMN_NAME": "reviewed_at",
+            "COLUMN_TYPE": "datetime",
+            "IS_NULLABLE": "NO",
+            "COLUMN_KEY": "",
+            "EXTRA": "",
+            "COLUMN_DEFAULT": "current_timestamp()"
+        },
+        {
+            "TABLE_NAME": "legal_policy_versions",
+            "COLUMN_NAME": "id",
+            "COLUMN_TYPE": "int(11)",
+            "IS_NULLABLE": "NO",
+            "COLUMN_KEY": "PRI",
+            "EXTRA": "auto_increment",
+            "COLUMN_DEFAULT": null
+        },
+        {
+            "TABLE_NAME": "legal_policy_versions",
+            "COLUMN_NAME": "policy_id",
+            "COLUMN_TYPE": "enum('privacy','terms')",
+            "IS_NULLABLE": "NO",
+            "COLUMN_KEY": "MUL",
+            "EXTRA": "",
+            "COLUMN_DEFAULT": null
+        },
+        {
+            "TABLE_NAME": "legal_policy_versions",
+            "COLUMN_NAME": "version_number",
+            "COLUMN_TYPE": "int(11)",
+            "IS_NULLABLE": "NO",
+            "COLUMN_KEY": "",
+            "EXTRA": "",
+            "COLUMN_DEFAULT": null
+        },
+        {
+            "TABLE_NAME": "legal_policy_versions",
+            "COLUMN_NAME": "title",
+            "COLUMN_TYPE": "varchar(190)",
+            "IS_NULLABLE": "NO",
+            "COLUMN_KEY": "",
+            "EXTRA": "",
+            "COLUMN_DEFAULT": null
+        },
+        {
+            "TABLE_NAME": "legal_policy_versions",
+            "COLUMN_NAME": "content",
+            "COLUMN_TYPE": "mediumtext",
+            "IS_NULLABLE": "NO",
+            "COLUMN_KEY": "",
+            "EXTRA": "",
+            "COLUMN_DEFAULT": null
+        },
+        {
+            "TABLE_NAME": "legal_policy_versions",
+            "COLUMN_NAME": "change_summary",
+            "COLUMN_TYPE": "varchar(500)",
+            "IS_NULLABLE": "NO",
+            "COLUMN_KEY": "",
+            "EXTRA": "",
+            "COLUMN_DEFAULT": "''"
+        },
+        {
+            "TABLE_NAME": "legal_policy_versions",
+            "COLUMN_NAME": "state",
+            "COLUMN_TYPE": "enum('draft','pending','rejected','published')",
+            "IS_NULLABLE": "NO",
+            "COLUMN_KEY": "",
+            "EXTRA": "",
+            "COLUMN_DEFAULT": "'draft'"
+        },
+        {
+            "TABLE_NAME": "legal_policy_versions",
+            "COLUMN_NAME": "open_candidate",
+            "COLUMN_TYPE": "tinyint(4)",
+            "IS_NULLABLE": "YES",
+            "COLUMN_KEY": "",
+            "EXTRA": "STORED GENERATED",
+            "COLUMN_DEFAULT": "NULL"
+        },
+        {
+            "TABLE_NAME": "legal_policy_versions",
+            "COLUMN_NAME": "content_sha256",
+            "COLUMN_TYPE": "char(64)",
+            "IS_NULLABLE": "NO",
+            "COLUMN_KEY": "",
+            "EXTRA": "",
+            "COLUMN_DEFAULT": null
+        },
+        {
+            "TABLE_NAME": "legal_policy_versions",
+            "COLUMN_NAME": "creator_user_id",
+            "COLUMN_TYPE": "int(11)",
+            "IS_NULLABLE": "YES",
+            "COLUMN_KEY": "MUL",
+            "EXTRA": "",
+            "COLUMN_DEFAULT": "NULL"
+        },
+        {
+            "TABLE_NAME": "legal_policy_versions",
+            "COLUMN_NAME": "created_at",
+            "COLUMN_TYPE": "datetime",
+            "IS_NULLABLE": "NO",
+            "COLUMN_KEY": "",
+            "EXTRA": "",
+            "COLUMN_DEFAULT": "current_timestamp()"
+        },
+        {
+            "TABLE_NAME": "legal_policy_versions",
+            "COLUMN_NAME": "submitted_at",
+            "COLUMN_TYPE": "datetime",
+            "IS_NULLABLE": "YES",
+            "COLUMN_KEY": "",
+            "EXTRA": "",
+            "COLUMN_DEFAULT": "NULL"
+        },
+        {
+            "TABLE_NAME": "legal_policy_versions",
+            "COLUMN_NAME": "published_at",
+            "COLUMN_TYPE": "datetime",
+            "IS_NULLABLE": "YES",
+            "COLUMN_KEY": "",
+            "EXTRA": "",
+            "COLUMN_DEFAULT": "NULL"
+        },
+        {
             "TABLE_NAME": "notifications",
             "COLUMN_NAME": "id",
             "COLUMN_TYPE": "int(11)",
@@ -1232,6 +1454,159 @@
             "COLUMN_DEFAULT": "NULL"
         },
         {
+            "TABLE_NAME": "notifications",
+            "COLUMN_NAME": "campaign_id",
+            "COLUMN_TYPE": "int(11)",
+            "IS_NULLABLE": "YES",
+            "COLUMN_KEY": "MUL",
+            "EXTRA": "",
+            "COLUMN_DEFAULT": "NULL"
+        },
+        {
+            "TABLE_NAME": "notifications",
+            "COLUMN_NAME": "recipient_user_id",
+            "COLUMN_TYPE": "int(11)",
+            "IS_NULLABLE": "YES",
+            "COLUMN_KEY": "MUL",
+            "EXTRA": "",
+            "COLUMN_DEFAULT": "NULL"
+        },
+        {
+            "TABLE_NAME": "notifications",
+            "COLUMN_NAME": "archived_at",
+            "COLUMN_TYPE": "datetime",
+            "IS_NULLABLE": "YES",
+            "COLUMN_KEY": "",
+            "EXTRA": "",
+            "COLUMN_DEFAULT": "NULL"
+        },
+        {
+            "TABLE_NAME": "notifications",
+            "COLUMN_NAME": "deleted_at",
+            "COLUMN_TYPE": "datetime",
+            "IS_NULLABLE": "YES",
+            "COLUMN_KEY": "",
+            "EXTRA": "",
+            "COLUMN_DEFAULT": "NULL"
+        },
+        {
+            "TABLE_NAME": "notification_campaigns",
+            "COLUMN_NAME": "id",
+            "COLUMN_TYPE": "int(11)",
+            "IS_NULLABLE": "NO",
+            "COLUMN_KEY": "PRI",
+            "EXTRA": "auto_increment",
+            "COLUMN_DEFAULT": null
+        },
+        {
+            "TABLE_NAME": "notification_campaigns",
+            "COLUMN_NAME": "sender_user_id",
+            "COLUMN_TYPE": "int(11)",
+            "IS_NULLABLE": "YES",
+            "COLUMN_KEY": "MUL",
+            "EXTRA": "",
+            "COLUMN_DEFAULT": "NULL"
+        },
+        {
+            "TABLE_NAME": "notification_campaigns",
+            "COLUMN_NAME": "kind",
+            "COLUMN_TYPE": "enum('staff','support','workflow','system')",
+            "IS_NULLABLE": "NO",
+            "COLUMN_KEY": "",
+            "EXTRA": "",
+            "COLUMN_DEFAULT": "'system'"
+        },
+        {
+            "TABLE_NAME": "notification_campaigns",
+            "COLUMN_NAME": "support_category",
+            "COLUMN_TYPE": "enum('Ask RPMS Staff','Report a Problem','Account/Access','Document/Submission','IERB Progress','Technical Issue','Other')",
+            "IS_NULLABLE": "YES",
+            "COLUMN_KEY": "",
+            "EXTRA": "",
+            "COLUMN_DEFAULT": "NULL"
+        },
+        {
+            "TABLE_NAME": "notification_campaigns",
+            "COLUMN_NAME": "reply_to_campaign_id",
+            "COLUMN_TYPE": "int(11)",
+            "IS_NULLABLE": "YES",
+            "COLUMN_KEY": "MUL",
+            "EXTRA": "",
+            "COLUMN_DEFAULT": "NULL"
+        },
+        {
+            "TABLE_NAME": "notification_campaigns",
+            "COLUMN_NAME": "subject",
+            "COLUMN_TYPE": "varchar(255)",
+            "IS_NULLABLE": "YES",
+            "COLUMN_KEY": "",
+            "EXTRA": "",
+            "COLUMN_DEFAULT": "NULL"
+        },
+        {
+            "TABLE_NAME": "notification_campaigns",
+            "COLUMN_NAME": "message",
+            "COLUMN_TYPE": "text",
+            "IS_NULLABLE": "YES",
+            "COLUMN_KEY": "",
+            "EXTRA": "",
+            "COLUMN_DEFAULT": "NULL"
+        },
+        {
+            "TABLE_NAME": "notification_campaigns",
+            "COLUMN_NAME": "status",
+            "COLUMN_TYPE": "varchar(20)",
+            "IS_NULLABLE": "NO",
+            "COLUMN_KEY": "",
+            "EXTRA": "",
+            "COLUMN_DEFAULT": "'Scheduled'"
+        },
+        {
+            "TABLE_NAME": "notification_campaigns",
+            "COLUMN_NAME": "scheduled_at",
+            "COLUMN_TYPE": "datetime",
+            "IS_NULLABLE": "YES",
+            "COLUMN_KEY": "",
+            "EXTRA": "",
+            "COLUMN_DEFAULT": "NULL"
+        },
+        {
+            "TABLE_NAME": "notification_campaigns",
+            "COLUMN_NAME": "sent_at",
+            "COLUMN_TYPE": "datetime",
+            "IS_NULLABLE": "YES",
+            "COLUMN_KEY": "",
+            "EXTRA": "",
+            "COLUMN_DEFAULT": "NULL"
+        },
+        {
+            "TABLE_NAME": "notification_campaigns",
+            "COLUMN_NAME": "archived_at",
+            "COLUMN_TYPE": "datetime",
+            "IS_NULLABLE": "YES",
+            "COLUMN_KEY": "",
+            "EXTRA": "",
+            "COLUMN_DEFAULT": "NULL"
+        },
+        {
+            "TABLE_NAME": "notification_campaigns",
+            "COLUMN_NAME": "deleted_at",
+            "COLUMN_TYPE": "datetime",
+            "IS_NULLABLE": "YES",
+            "COLUMN_KEY": "",
+            "EXTRA": "",
+            "COLUMN_DEFAULT": "NULL"
+        },
+        {
+            "TABLE_NAME": "notification_campaigns",
+            "COLUMN_NAME": "created_at",
+            "COLUMN_TYPE": "datetime",
+            "IS_NULLABLE": "NO",
+            "COLUMN_KEY": "",
+            "EXTRA": "",
+            "COLUMN_DEFAULT": "current_timestamp()"
+        },
+        {
             "TABLE_NAME": "password_resets",
             "COLUMN_NAME": "id",
             "COLUMN_TYPE": "int(11)",
@@ -1374,6 +1749,96 @@
             "COLUMN_KEY": "",
             "EXTRA": "",
             "COLUMN_DEFAULT": null
+        },
+        {
+            "TABLE_NAME": "staff_registration_code",
+            "COLUMN_NAME": "slot",
+            "COLUMN_TYPE": "tinyint(4)",
+            "IS_NULLABLE": "NO",
+            "COLUMN_KEY": "PRI",
+            "EXTRA": "",
+            "COLUMN_DEFAULT": "1"
+        },
+        {
+            "TABLE_NAME": "staff_registration_code",
+            "COLUMN_NAME": "generation_id",
+            "COLUMN_TYPE": "char(32)",
+            "IS_NULLABLE": "NO",
+            "COLUMN_KEY": "UNI",
+            "EXTRA": "",
+            "COLUMN_DEFAULT": null
+        },
+        {
+            "TABLE_NAME": "staff_registration_code",
+            "COLUMN_NAME": "verifier_hash",
+            "COLUMN_TYPE": "varchar(255)",
+            "IS_NULLABLE": "YES",
+            "COLUMN_KEY": "",
+            "EXTRA": "",
+            "COLUMN_DEFAULT": "NULL"
+        },
+        {
+            "TABLE_NAME": "staff_registration_code",
+            "COLUMN_NAME": "state",
+            "COLUMN_TYPE": "enum('pending','acknowledged','invalidated','expired','consumed')",
+            "IS_NULLABLE": "NO",
+            "COLUMN_KEY": "",
+            "EXTRA": "",
+            "COLUMN_DEFAULT": "'pending'"
+        },
+        {
+            "TABLE_NAME": "staff_registration_code",
+            "COLUMN_NAME": "creator_user_id",
+            "COLUMN_TYPE": "int(11)",
+            "IS_NULLABLE": "YES",
+            "COLUMN_KEY": "MUL",
+            "EXTRA": "",
+            "COLUMN_DEFAULT": "NULL"
+        },
+        {
+            "TABLE_NAME": "staff_registration_code",
+            "COLUMN_NAME": "created_at",
+            "COLUMN_TYPE": "datetime",
+            "IS_NULLABLE": "NO",
+            "COLUMN_KEY": "",
+            "EXTRA": "",
+            "COLUMN_DEFAULT": "current_timestamp()"
+        },
+        {
+            "TABLE_NAME": "staff_registration_code",
+            "COLUMN_NAME": "acknowledged_at",
+            "COLUMN_TYPE": "datetime",
+            "IS_NULLABLE": "YES",
+            "COLUMN_KEY": "",
+            "EXTRA": "",
+            "COLUMN_DEFAULT": "NULL"
+        },
+        {
+            "TABLE_NAME": "staff_registration_code",
+            "COLUMN_NAME": "expires_at",
+            "COLUMN_TYPE": "datetime",
+            "IS_NULLABLE": "YES",
+            "COLUMN_KEY": "",
+            "EXTRA": "",
+            "COLUMN_DEFAULT": "NULL"
+        },
+        {
+            "TABLE_NAME": "staff_registration_code",
+            "COLUMN_NAME": "consumed_at",
+            "COLUMN_TYPE": "datetime",
+            "IS_NULLABLE": "YES",
+            "COLUMN_KEY": "",
+            "EXTRA": "",
+            "COLUMN_DEFAULT": "NULL"
+        },
+        {
+            "TABLE_NAME": "staff_registration_code",
+            "COLUMN_NAME": "consumed_by_user_id",
+            "COLUMN_TYPE": "int(11)",
+            "IS_NULLABLE": "YES",
+            "COLUMN_KEY": "MUL",
+            "EXTRA": "",
+            "COLUMN_DEFAULT": "NULL"
         },
         {
             "TABLE_NAME": "stage_labels",
@@ -1761,6 +2226,33 @@
             "COLUMN_KEY": "",
             "EXTRA": "",
             "COLUMN_DEFAULT": "current_timestamp()"
+        },
+        {
+            "TABLE_NAME": "user_policy_acceptances",
+            "COLUMN_NAME": "user_id",
+            "COLUMN_TYPE": "int(11)",
+            "IS_NULLABLE": "NO",
+            "COLUMN_KEY": "PRI",
+            "EXTRA": "",
+            "COLUMN_DEFAULT": null
+        },
+        {
+            "TABLE_NAME": "user_policy_acceptances",
+            "COLUMN_NAME": "policy_version_id",
+            "COLUMN_TYPE": "int(11)",
+            "IS_NULLABLE": "NO",
+            "COLUMN_KEY": "PRI",
+            "EXTRA": "",
+            "COLUMN_DEFAULT": null
+        },
+        {
+            "TABLE_NAME": "user_policy_acceptances",
+            "COLUMN_NAME": "accepted_at",
+            "COLUMN_TYPE": "datetime",
+            "IS_NULLABLE": "NO",
+            "COLUMN_KEY": "",
+            "EXTRA": "",
+            "COLUMN_DEFAULT": "current_timestamp()"
         }
     ],
     "indexes": [
@@ -2107,6 +2599,141 @@
             "INDEX_TYPE": "BTREE"
         },
         {
+            "TABLE_NAME": "legal_policies",
+            "INDEX_NAME": "policy_current",
+            "NON_UNIQUE": 1,
+            "SEQ_IN_INDEX": 1,
+            "COLUMN_NAME": "id",
+            "SUB_PART": null,
+            "INDEX_TYPE": "BTREE"
+        },
+        {
+            "TABLE_NAME": "legal_policies",
+            "INDEX_NAME": "policy_current",
+            "NON_UNIQUE": 1,
+            "SEQ_IN_INDEX": 2,
+            "COLUMN_NAME": "current_version_id",
+            "SUB_PART": null,
+            "INDEX_TYPE": "BTREE"
+        },
+        {
+            "TABLE_NAME": "legal_policies",
+            "INDEX_NAME": "PRIMARY",
+            "NON_UNIQUE": 0,
+            "SEQ_IN_INDEX": 1,
+            "COLUMN_NAME": "id",
+            "SUB_PART": null,
+            "INDEX_TYPE": "BTREE"
+        },
+        {
+            "TABLE_NAME": "legal_policy_approvals",
+            "INDEX_NAME": "approval_reviewer",
+            "NON_UNIQUE": 1,
+            "SEQ_IN_INDEX": 1,
+            "COLUMN_NAME": "reviewer_user_id",
+            "SUB_PART": null,
+            "INDEX_TYPE": "BTREE"
+        },
+        {
+            "TABLE_NAME": "legal_policy_approvals",
+            "INDEX_NAME": "approval_version",
+            "NON_UNIQUE": 0,
+            "SEQ_IN_INDEX": 1,
+            "COLUMN_NAME": "version_id",
+            "SUB_PART": null,
+            "INDEX_TYPE": "BTREE"
+        },
+        {
+            "TABLE_NAME": "legal_policy_approvals",
+            "INDEX_NAME": "PRIMARY",
+            "NON_UNIQUE": 0,
+            "SEQ_IN_INDEX": 1,
+            "COLUMN_NAME": "id",
+            "SUB_PART": null,
+            "INDEX_TYPE": "BTREE"
+        },
+        {
+            "TABLE_NAME": "legal_policy_versions",
+            "INDEX_NAME": "policy_creator",
+            "NON_UNIQUE": 1,
+            "SEQ_IN_INDEX": 1,
+            "COLUMN_NAME": "creator_user_id",
+            "SUB_PART": null,
+            "INDEX_TYPE": "BTREE"
+        },
+        {
+            "TABLE_NAME": "legal_policy_versions",
+            "INDEX_NAME": "policy_open_candidate",
+            "NON_UNIQUE": 0,
+            "SEQ_IN_INDEX": 1,
+            "COLUMN_NAME": "policy_id",
+            "SUB_PART": null,
+            "INDEX_TYPE": "BTREE"
+        },
+        {
+            "TABLE_NAME": "legal_policy_versions",
+            "INDEX_NAME": "policy_open_candidate",
+            "NON_UNIQUE": 0,
+            "SEQ_IN_INDEX": 2,
+            "COLUMN_NAME": "open_candidate",
+            "SUB_PART": null,
+            "INDEX_TYPE": "BTREE"
+        },
+        {
+            "TABLE_NAME": "legal_policy_versions",
+            "INDEX_NAME": "policy_version_identity",
+            "NON_UNIQUE": 0,
+            "SEQ_IN_INDEX": 1,
+            "COLUMN_NAME": "policy_id",
+            "SUB_PART": null,
+            "INDEX_TYPE": "BTREE"
+        },
+        {
+            "TABLE_NAME": "legal_policy_versions",
+            "INDEX_NAME": "policy_version_identity",
+            "NON_UNIQUE": 0,
+            "SEQ_IN_INDEX": 2,
+            "COLUMN_NAME": "id",
+            "SUB_PART": null,
+            "INDEX_TYPE": "BTREE"
+        },
+        {
+            "TABLE_NAME": "legal_policy_versions",
+            "INDEX_NAME": "policy_version_number",
+            "NON_UNIQUE": 0,
+            "SEQ_IN_INDEX": 1,
+            "COLUMN_NAME": "policy_id",
+            "SUB_PART": null,
+            "INDEX_TYPE": "BTREE"
+        },
+        {
+            "TABLE_NAME": "legal_policy_versions",
+            "INDEX_NAME": "policy_version_number",
+            "NON_UNIQUE": 0,
+            "SEQ_IN_INDEX": 2,
+            "COLUMN_NAME": "version_number",
+            "SUB_PART": null,
+            "INDEX_TYPE": "BTREE"
+        },
+        {
+            "TABLE_NAME": "legal_policy_versions",
+            "INDEX_NAME": "PRIMARY",
+            "NON_UNIQUE": 0,
+            "SEQ_IN_INDEX": 1,
+            "COLUMN_NAME": "id",
+            "SUB_PART": null,
+            "INDEX_TYPE": "BTREE"
+        },
+        {
+            "TABLE_NAME": "notifications",
+            "INDEX_NAME": "notification_campaign",
+            "NON_UNIQUE": 1,
+            "SEQ_IN_INDEX": 1,
+            "COLUMN_NAME": "campaign_id",
+            "SUB_PART": null,
+            "INDEX_TYPE": "BTREE"
+        },
+        {
             "TABLE_NAME": "notifications",
             "INDEX_NAME": "notification_recipient",
             "NON_UNIQUE": 1,
@@ -2126,6 +2753,60 @@
         },
         {
             "TABLE_NAME": "notifications",
+            "INDEX_NAME": "notification_user",
+            "NON_UNIQUE": 1,
+            "SEQ_IN_INDEX": 1,
+            "COLUMN_NAME": "recipient_user_id",
+            "SUB_PART": null,
+            "INDEX_TYPE": "BTREE"
+        },
+        {
+            "TABLE_NAME": "notifications",
+            "INDEX_NAME": "notification_user",
+            "NON_UNIQUE": 1,
+            "SEQ_IN_INDEX": 2,
+            "COLUMN_NAME": "created_at",
+            "SUB_PART": null,
+            "INDEX_TYPE": "BTREE"
+        },
+        {
+            "TABLE_NAME": "notifications",
+            "INDEX_NAME": "PRIMARY",
+            "NON_UNIQUE": 0,
+            "SEQ_IN_INDEX": 1,
+            "COLUMN_NAME": "id",
+            "SUB_PART": null,
+            "INDEX_TYPE": "BTREE"
+        },
+        {
+            "TABLE_NAME": "notification_campaigns",
+            "INDEX_NAME": "campaign_reply",
+            "NON_UNIQUE": 1,
+            "SEQ_IN_INDEX": 1,
+            "COLUMN_NAME": "reply_to_campaign_id",
+            "SUB_PART": null,
+            "INDEX_TYPE": "BTREE"
+        },
+        {
+            "TABLE_NAME": "notification_campaigns",
+            "INDEX_NAME": "campaign_sender",
+            "NON_UNIQUE": 1,
+            "SEQ_IN_INDEX": 1,
+            "COLUMN_NAME": "sender_user_id",
+            "SUB_PART": null,
+            "INDEX_TYPE": "BTREE"
+        },
+        {
+            "TABLE_NAME": "notification_campaigns",
+            "INDEX_NAME": "campaign_sender",
+            "NON_UNIQUE": 1,
+            "SEQ_IN_INDEX": 2,
+            "COLUMN_NAME": "created_at",
+            "SUB_PART": null,
+            "INDEX_TYPE": "BTREE"
+        },
+        {
+            "TABLE_NAME": "notification_campaigns",
             "INDEX_NAME": "PRIMARY",
             "NON_UNIQUE": 0,
             "SEQ_IN_INDEX": 1,
@@ -2193,6 +2874,42 @@
             "NON_UNIQUE": 0,
             "SEQ_IN_INDEX": 1,
             "COLUMN_NAME": "k",
+            "SUB_PART": null,
+            "INDEX_TYPE": "BTREE"
+        },
+        {
+            "TABLE_NAME": "staff_registration_code",
+            "INDEX_NAME": "PRIMARY",
+            "NON_UNIQUE": 0,
+            "SEQ_IN_INDEX": 1,
+            "COLUMN_NAME": "slot",
+            "SUB_PART": null,
+            "INDEX_TYPE": "BTREE"
+        },
+        {
+            "TABLE_NAME": "staff_registration_code",
+            "INDEX_NAME": "staff_code_consumer",
+            "NON_UNIQUE": 1,
+            "SEQ_IN_INDEX": 1,
+            "COLUMN_NAME": "consumed_by_user_id",
+            "SUB_PART": null,
+            "INDEX_TYPE": "BTREE"
+        },
+        {
+            "TABLE_NAME": "staff_registration_code",
+            "INDEX_NAME": "staff_code_creator",
+            "NON_UNIQUE": 1,
+            "SEQ_IN_INDEX": 1,
+            "COLUMN_NAME": "creator_user_id",
+            "SUB_PART": null,
+            "INDEX_TYPE": "BTREE"
+        },
+        {
+            "TABLE_NAME": "staff_registration_code",
+            "INDEX_NAME": "staff_code_generation",
+            "NON_UNIQUE": 0,
+            "SEQ_IN_INDEX": 1,
+            "COLUMN_NAME": "generation_id",
             "SUB_PART": null,
             "INDEX_TYPE": "BTREE"
         },
@@ -2303,6 +3020,33 @@
             "COLUMN_NAME": "username",
             "SUB_PART": null,
             "INDEX_TYPE": "BTREE"
+        },
+        {
+            "TABLE_NAME": "user_policy_acceptances",
+            "INDEX_NAME": "acceptance_version",
+            "NON_UNIQUE": 1,
+            "SEQ_IN_INDEX": 1,
+            "COLUMN_NAME": "policy_version_id",
+            "SUB_PART": null,
+            "INDEX_TYPE": "BTREE"
+        },
+        {
+            "TABLE_NAME": "user_policy_acceptances",
+            "INDEX_NAME": "PRIMARY",
+            "NON_UNIQUE": 0,
+            "SEQ_IN_INDEX": 1,
+            "COLUMN_NAME": "user_id",
+            "SUB_PART": null,
+            "INDEX_TYPE": "BTREE"
+        },
+        {
+            "TABLE_NAME": "user_policy_acceptances",
+            "INDEX_NAME": "PRIMARY",
+            "NON_UNIQUE": 0,
+            "SEQ_IN_INDEX": 2,
+            "COLUMN_NAME": "policy_version_id",
+            "SUB_PART": null,
+            "INDEX_TYPE": "BTREE"
         }
     ],
     "foreign_keys": [
@@ -2407,6 +3151,116 @@
         },
         {
             "TABLE_SCHEMA": "{PRISM}",
+            "TABLE_NAME": "legal_policies",
+            "COLUMN_NAME": "id",
+            "CONSTRAINT_NAME": "policy_current_fk",
+            "REFERENCED_TABLE_SCHEMA": "{PRISM}",
+            "REFERENCED_TABLE_NAME": "legal_policy_versions",
+            "REFERENCED_COLUMN_NAME": "policy_id",
+            "UPDATE_RULE": "RESTRICT",
+            "DELETE_RULE": "RESTRICT"
+        },
+        {
+            "TABLE_SCHEMA": "{PRISM}",
+            "TABLE_NAME": "legal_policies",
+            "COLUMN_NAME": "current_version_id",
+            "CONSTRAINT_NAME": "policy_current_fk",
+            "REFERENCED_TABLE_SCHEMA": "{PRISM}",
+            "REFERENCED_TABLE_NAME": "legal_policy_versions",
+            "REFERENCED_COLUMN_NAME": "id",
+            "UPDATE_RULE": "RESTRICT",
+            "DELETE_RULE": "RESTRICT"
+        },
+        {
+            "TABLE_SCHEMA": "{PRISM}",
+            "TABLE_NAME": "legal_policy_approvals",
+            "COLUMN_NAME": "reviewer_user_id",
+            "CONSTRAINT_NAME": "approval_reviewer_fk",
+            "REFERENCED_TABLE_SCHEMA": "{PRISM}",
+            "REFERENCED_TABLE_NAME": "users",
+            "REFERENCED_COLUMN_NAME": "id",
+            "UPDATE_RULE": "RESTRICT",
+            "DELETE_RULE": "SET NULL"
+        },
+        {
+            "TABLE_SCHEMA": "{PRISM}",
+            "TABLE_NAME": "legal_policy_approvals",
+            "COLUMN_NAME": "version_id",
+            "CONSTRAINT_NAME": "approval_version_fk",
+            "REFERENCED_TABLE_SCHEMA": "{PRISM}",
+            "REFERENCED_TABLE_NAME": "legal_policy_versions",
+            "REFERENCED_COLUMN_NAME": "id",
+            "UPDATE_RULE": "RESTRICT",
+            "DELETE_RULE": "RESTRICT"
+        },
+        {
+            "TABLE_SCHEMA": "{PRISM}",
+            "TABLE_NAME": "legal_policy_versions",
+            "COLUMN_NAME": "creator_user_id",
+            "CONSTRAINT_NAME": "version_creator_fk",
+            "REFERENCED_TABLE_SCHEMA": "{PRISM}",
+            "REFERENCED_TABLE_NAME": "users",
+            "REFERENCED_COLUMN_NAME": "id",
+            "UPDATE_RULE": "RESTRICT",
+            "DELETE_RULE": "SET NULL"
+        },
+        {
+            "TABLE_SCHEMA": "{PRISM}",
+            "TABLE_NAME": "legal_policy_versions",
+            "COLUMN_NAME": "policy_id",
+            "CONSTRAINT_NAME": "version_policy_fk",
+            "REFERENCED_TABLE_SCHEMA": "{PRISM}",
+            "REFERENCED_TABLE_NAME": "legal_policies",
+            "REFERENCED_COLUMN_NAME": "id",
+            "UPDATE_RULE": "RESTRICT",
+            "DELETE_RULE": "RESTRICT"
+        },
+        {
+            "TABLE_SCHEMA": "{PRISM}",
+            "TABLE_NAME": "notifications",
+            "COLUMN_NAME": "campaign_id",
+            "CONSTRAINT_NAME": "notification_campaign_fk",
+            "REFERENCED_TABLE_SCHEMA": "{PRISM}",
+            "REFERENCED_TABLE_NAME": "notification_campaigns",
+            "REFERENCED_COLUMN_NAME": "id",
+            "UPDATE_RULE": "RESTRICT",
+            "DELETE_RULE": "SET NULL"
+        },
+        {
+            "TABLE_SCHEMA": "{PRISM}",
+            "TABLE_NAME": "notifications",
+            "COLUMN_NAME": "recipient_user_id",
+            "CONSTRAINT_NAME": "notification_user_fk",
+            "REFERENCED_TABLE_SCHEMA": "{PRISM}",
+            "REFERENCED_TABLE_NAME": "users",
+            "REFERENCED_COLUMN_NAME": "id",
+            "UPDATE_RULE": "RESTRICT",
+            "DELETE_RULE": "CASCADE"
+        },
+        {
+            "TABLE_SCHEMA": "{PRISM}",
+            "TABLE_NAME": "notification_campaigns",
+            "COLUMN_NAME": "reply_to_campaign_id",
+            "CONSTRAINT_NAME": "campaign_reply_fk",
+            "REFERENCED_TABLE_SCHEMA": "{PRISM}",
+            "REFERENCED_TABLE_NAME": "notification_campaigns",
+            "REFERENCED_COLUMN_NAME": "id",
+            "UPDATE_RULE": "RESTRICT",
+            "DELETE_RULE": "SET NULL"
+        },
+        {
+            "TABLE_SCHEMA": "{PRISM}",
+            "TABLE_NAME": "notification_campaigns",
+            "COLUMN_NAME": "sender_user_id",
+            "CONSTRAINT_NAME": "campaign_sender_fk",
+            "REFERENCED_TABLE_SCHEMA": "{PRISM}",
+            "REFERENCED_TABLE_NAME": "users",
+            "REFERENCED_COLUMN_NAME": "id",
+            "UPDATE_RULE": "RESTRICT",
+            "DELETE_RULE": "SET NULL"
+        },
+        {
+            "TABLE_SCHEMA": "{PRISM}",
             "TABLE_NAME": "password_resets",
             "COLUMN_NAME": "user_id",
             "CONSTRAINT_NAME": "password_resets_ibfk_1",
@@ -2415,6 +3269,28 @@
             "REFERENCED_COLUMN_NAME": "id",
             "UPDATE_RULE": "RESTRICT",
             "DELETE_RULE": "CASCADE"
+        },
+        {
+            "TABLE_SCHEMA": "{PRISM}",
+            "TABLE_NAME": "staff_registration_code",
+            "COLUMN_NAME": "consumed_by_user_id",
+            "CONSTRAINT_NAME": "staff_code_consumer_fk",
+            "REFERENCED_TABLE_SCHEMA": "{PRISM}",
+            "REFERENCED_TABLE_NAME": "users",
+            "REFERENCED_COLUMN_NAME": "id",
+            "UPDATE_RULE": "RESTRICT",
+            "DELETE_RULE": "SET NULL"
+        },
+        {
+            "TABLE_SCHEMA": "{PRISM}",
+            "TABLE_NAME": "staff_registration_code",
+            "COLUMN_NAME": "creator_user_id",
+            "CONSTRAINT_NAME": "staff_code_creator_fk",
+            "REFERENCED_TABLE_SCHEMA": "{PRISM}",
+            "REFERENCED_TABLE_NAME": "users",
+            "REFERENCED_COLUMN_NAME": "id",
+            "UPDATE_RULE": "RESTRICT",
+            "DELETE_RULE": "SET NULL"
         },
         {
             "TABLE_SCHEMA": "{PRISM}",
@@ -2437,8 +3313,30 @@
             "REFERENCED_COLUMN_NAME": "id",
             "UPDATE_RULE": "RESTRICT",
             "DELETE_RULE": "SET NULL"
+        },
+        {
+            "TABLE_SCHEMA": "{PRISM}",
+            "TABLE_NAME": "user_policy_acceptances",
+            "COLUMN_NAME": "user_id",
+            "CONSTRAINT_NAME": "acceptance_user_fk",
+            "REFERENCED_TABLE_SCHEMA": "{PRISM}",
+            "REFERENCED_TABLE_NAME": "users",
+            "REFERENCED_COLUMN_NAME": "id",
+            "UPDATE_RULE": "RESTRICT",
+            "DELETE_RULE": "CASCADE"
+        },
+        {
+            "TABLE_SCHEMA": "{PRISM}",
+            "TABLE_NAME": "user_policy_acceptances",
+            "COLUMN_NAME": "policy_version_id",
+            "CONSTRAINT_NAME": "acceptance_version_fk",
+            "REFERENCED_TABLE_SCHEMA": "{PRISM}",
+            "REFERENCED_TABLE_NAME": "legal_policy_versions",
+            "REFERENCED_COLUMN_NAME": "id",
+            "UPDATE_RULE": "RESTRICT",
+            "DELETE_RULE": "RESTRICT"
         }
     ],
     "triggers": [],
-    "schema_version": "9"
+    "schema_version": "10"
 }

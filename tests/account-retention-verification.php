@@ -45,10 +45,16 @@ $pdo->exec("REVOKE TRIGGER ON hardening_test_lifecycle.* FROM 'retention_scoped'
 $r=retention_worker_finish(retention_worker_start(retention_test_input(),1,$scopedFixture));reset_migration_expect(409,$r['status'],'Runtime scope/grant revalidation');
 $pdo->exec("GRANT TRIGGER ON hardening_test_lifecycle.* TO 'retention_scoped'@'127.0.0.1'");
 // Both read-only operator CLI entry points, including real mode-labelled evidence output.
+// This earlier-batch suite exercises v9; keep the actual v10 verifier unchanged.
+$v9VerifierRoot=$root.'/v9-verifier';mkdir($v9VerifierRoot);mkdir($v9VerifierRoot.'/tools');mkdir($v9VerifierRoot.'/includes');
+copy(__DIR__.'/../tools/verify-account-lifecycle-schema.php',$v9VerifierRoot.'/tools/verify-account-lifecycle-schema.php');
+copy(__DIR__.'/../includes/account_lifecycle_schema.php',$v9VerifierRoot.'/includes/account_lifecycle_schema.php');
+copy(__DIR__.'/../includes/account_identity.php',$v9VerifierRoot.'/includes/account_identity.php');
+copy(__DIR__.'/../tools/schema-v9-contract.json',$v9VerifierRoot.'/includes/account_lifecycle_schema.json');
 foreach ([['root',$password,'--verify'],['retention_scoped',$scopedSecret,'--verify-shared-hosting']] as [$name,$secret,$mode]) {
     $environment=array_merge(getenv(),['PRISM_SCHEMA_VERIFY_HOST'=>'127.0.0.1','PRISM_SCHEMA_VERIFY_PORT'=>(string)$port,
         'PRISM_SCHEMA_VERIFY_DATABASE'=>'hardening_test_lifecycle','PRISM_SCHEMA_VERIFY_USER'=>$name,'PRISM_SCHEMA_VERIFY_PASSWORD'=>$secret]);
-    $args=[PHP_BINARY,__DIR__.'/../tools/verify-account-lifecycle-schema.php',$mode,'--schema-changes-excluded'];if($mode==='--verify-shared-hosting')$args[]='--external-dependencies-excluded';
+    $args=[PHP_BINARY,$v9VerifierRoot.'/tools/verify-account-lifecycle-schema.php',$mode,'--schema-changes-excluded'];if($mode==='--verify-shared-hosting')$args[]='--external-dependencies-excluded';
     $process=proc_open($args,[0=>['pipe','r'],1=>['pipe','w'],2=>['pipe','w']],$pipes,__DIR__,$environment,['bypass_shell'=>true,'create_new_console'=>false]);
     fclose($pipes[0]);$out=stream_get_contents($pipes[1]);$err=stream_get_contents($pipes[2]);fclose($pipes[1]);fclose($pipes[2]);
     reset_migration_expect(0,proc_close($process),'Actual verifier CLI '.$mode.': '.$err);

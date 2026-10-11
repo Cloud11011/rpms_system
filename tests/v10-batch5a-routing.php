@@ -10,6 +10,8 @@ function consume_auth_attempt(...$args): bool { return true; }
 function log_activity(...$args): void {}
 function json_out(array $data, int $status=200): never { http_response_code($status); echo json_encode($data); exit; }
 function db(): \PDO { return $GLOBALS['fixtureDb']; }
+function legal_outstanding(...$args): array { return []; }
+function legal_acceptance_required(...$args): bool { return false; }
 function lifecycle_rows(\PDO $pdo, string $sql, array $params): array { return [$GLOBALS['profile']]; }
 class IdentityPDO extends \PDO {
     public function __construct() {}

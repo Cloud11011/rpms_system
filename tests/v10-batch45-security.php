@@ -1,6 +1,7 @@
 <?php
 /** Actual guards, endpoints and retention services; memory-only fixtures, no config bootstrap. */
 if (PHP_SAPI !== 'cli') exit(1);
+function legal_acceptance_required(...$args): bool { return false; }
 if (($argv[1] ?? '') === '--route') {
     require_once __DIR__.'/../security.php';
     $role=$argv[2] === 'anonymous' ? null : $argv[2];$reached=false;$dbCalls=0;

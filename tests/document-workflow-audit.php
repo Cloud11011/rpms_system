@@ -153,8 +153,8 @@ function log_api_error(...$args): void { $GLOBALS['errors'][] = $args; }
 function require_session_generation(bool $required=false): void {}
 function prism_session_generation(): string { return str_repeat('a',32); }
 function is_uploaded_file(string $path): bool { return true; }
-function filesize(string $path): int { return 10; }
-function fopen(string $path, string $mode) { return \fopen('php://memory','w+'); }
+function filesize(string $path): int { return $path==='fixture-upload'?\filesize(__DIR__.'/fixtures/batch6-valid.pdf'):10; }
+function fopen(string $path, string $mode) { return $mode==='rb'?\fopen(__DIR__.'/fixtures/batch6-valid.pdf','rb'):\fopen('php://memory','w+'); }
 function move_uploaded_file(string $from, string $to): bool { $GLOBALS['stored'] = true; return true; }
 function is_file(string $path): bool { return $GLOBALS['stored']; }
 function unlink(string $path): bool
@@ -167,7 +167,7 @@ function unlink(string $path): bool
 class finfo
 {
     public function __construct(int $mode) {}
-    public function file(string $path): string { return $GLOBALS['case']['mime'] ?? 'text/plain'; }
+    public function file(string $path): string { return $GLOBALS['case']['mime'] ?? 'application/pdf'; }
 }
 function extract_document_text(string $path): string { return $GLOBALS['case']['text']??'Approved March 14, 2026.'; }
 function ai_detect_approval_date(string $text): array { return \ai_detect_approval_date($text); }
@@ -199,7 +199,7 @@ if (($argv[1] ?? '') === '--case') {
     $_SESSION=[];
     $_POST = ['studentDbId' => '4', 'documentType' => 'Study Protocol', 'stage' => 'Stage 1'];
     $_POST = array_replace($_POST, $case['craftedUpload'] ?? []);
-    $_FILES = ['document' => ['error' => UPLOAD_ERR_OK, 'size' => 10, 'name' => 'Fixture.txt', 'tmp_name' => 'fixture-upload', 'type'=>'text/plain']];
+    $_FILES = ['document' => ['error' => UPLOAD_ERR_OK, 'size' => filesize('fixture-upload'), 'name' => 'Fixture.pdf', 'tmp_name' => 'fixture-upload', 'type'=>'application/pdf']];
     define('STAGE_ADVANCE_TRIGGER', $case['mode'] ?? 'approval');
     define('STAGE_SEQUENCE', ['Stage 1', 'Stage 2', 'Completed']);
     define('DOCS_DIR', 'fixture-storage');

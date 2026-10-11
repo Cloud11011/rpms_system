@@ -20,9 +20,11 @@ require_once __DIR__ . '/includes/assets.php';
 require_once __DIR__ . '/includes/email_format.php';
 require_once __DIR__ . '/auth_rate_limit.php';
 require_once __DIR__ . '/includes/account_onboarding.php';
+require_once __DIR__ . '/includes/schema_v10.php';
+require_once __DIR__ . '/includes/legal_policy.php';
 install_application_security();
 
-if (session_status() !== PHP_SESSION_ACTIVE) {
+if (session_status() !== PHP_SESSION_ACTIVE && !in_array(basename($_SERVER['SCRIPT_NAME']??''),['privacy.php','terms.php'],true)) {
     ini_set('session.use_strict_mode', '1');
     ini_set('session.use_only_cookies', '1');
     $isHttps = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off')
@@ -189,7 +191,7 @@ function db(): PDO
 // Bump this whenever you add anything to migrate(). migrate() is skipped entirely on requests
 // where the stored version already matches, instead of running ~45 INFORMATION_SCHEMA/ALTER
 // checks on every single request.
-const SCHEMA_VERSION = 9;
+const SCHEMA_VERSION = 10;
 
 function migrate(PDO $pdo): void
 {
@@ -200,13 +202,16 @@ function migrate(PDO $pdo): void
         ? $pdo->query("SELECT v FROM schema_meta WHERE k = 'schema_version'")->fetchColumn()
         : false;
     if ($stored !== false && (int)$stored >= SCHEMA_VERSION) {
+        if ((int)$stored > SCHEMA_VERSION) throw new RuntimeException('This deployment supports the frozen v10 contract only.');
         return;
     }
     // Keep the existing explicitly authorized v6 command compatible; v7 needs its own opt-in.
-    $targetVersion = getenv('PRISM_ALLOW_SCHEMA_V9_MIGRATION') === '1' ? 9
+    $targetVersion = getenv('PRISM_ALLOW_SCHEMA_V10_MIGRATION') === '1' ? 10
+        : (getenv('PRISM_ALLOW_SCHEMA_V9_MIGRATION') === '1' ? 9
         : (getenv('PRISM_ALLOW_SCHEMA_V8_MIGRATION') === '1' ? 8
-        : (getenv('PRISM_ALLOW_SCHEMA_V7_MIGRATION') === '1' ? 7 : 6));
-    if (PHP_SAPI !== 'cli' || (getenv('PRISM_ALLOW_SCHEMA_V9_MIGRATION') !== '1'
+        : (getenv('PRISM_ALLOW_SCHEMA_V7_MIGRATION') === '1' ? 7 : 6)));
+    if (PHP_SAPI !== 'cli' || (getenv('PRISM_ALLOW_SCHEMA_V10_MIGRATION') !== '1'
+        && getenv('PRISM_ALLOW_SCHEMA_V9_MIGRATION') !== '1'
         && getenv('PRISM_ALLOW_SCHEMA_V8_MIGRATION') !== '1'
         && getenv('PRISM_ALLOW_SCHEMA_V7_MIGRATION') !== '1'
         && getenv('PRISM_ALLOW_SCHEMA_V6_MIGRATION') !== '1')) {
@@ -215,6 +220,10 @@ function migrate(PDO $pdo): void
         );
     }
     if ($stored !== false && (int)$stored >= $targetVersion) return;
+    if ($targetVersion===10 && ((string)$stored!=='9'
+        || getenv('PRISM_SCHEMA_V10_EXPECT_DB')!==$pdo->query('SELECT DATABASE()')->fetchColumn())) {
+        throw new RuntimeException('Schema v10 requires a canonical v9 checkpoint and exact database binding before any DDL.');
+    }
     // Two authorized migration processes must not both try to ALTER the same table.
     $locked = (int)$pdo->query("SELECT GET_LOCK('prism_migrate', 30)")->fetchColumn() === 1;
     if (!$locked) {
@@ -233,7 +242,8 @@ function migrate(PDO $pdo): void
             if ($stored === false || (int)$stored < 6) migrate_schema_v6($pdo);
             if ($targetVersion >= 7 && ($stored === false || (int)$stored < 7)) migrate_schema_v7($pdo);
             if ($targetVersion >= 8 && ($stored === false || (int)$stored < 8)) migrate_schema_v8($pdo);
-            if ($targetVersion >= 9) migrate_schema_v9($pdo);
+            if ($targetVersion >= 9 && (int)$stored < 9) migrate_schema_v9($pdo);
+            if ($targetVersion >= 10) migrate_schema_v10($pdo);
             $pdo->prepare("REPLACE INTO schema_meta (k, v) VALUES ('schema_version', :v)")
                 ->execute([':v' => (string)$targetVersion]);
         }
@@ -417,7 +427,7 @@ function migration_v9_backfill_sql(string $role): string
 /** Use the reviewed inventory as the final prerequisite, with a projected version before stamping. */
 function migration_v9_verify(PDO $pdo): void
 {
-    $expected=json_decode(file_get_contents(__DIR__.'/includes/account_lifecycle_schema.json'),true,512,JSON_THROW_ON_ERROR);
+    $expected=json_decode(file_get_contents(__DIR__.'/tools/schema-v9-contract.json'),true,512,JSON_THROW_ON_ERROR);
     $queries=[
         'tables'=>'SELECT TABLE_NAME,ENGINE FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_SCHEMA=DATABASE() ORDER BY TABLE_NAME',
         'columns'=>'SELECT TABLE_NAME,COLUMN_NAME,COLUMN_TYPE,IS_NULLABLE,COLUMN_KEY,EXTRA,COLUMN_DEFAULT FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA=DATABASE() ORDER BY TABLE_NAME,ORDINAL_POSITION',
@@ -1137,6 +1147,11 @@ function current_user(): ?array
 }
 
 /** Redirects to login if not authenticated; optionally restrict by role(s). */
+function legal_acceptance_required(array $user): bool
+{
+    return legal_outstanding(db(),(int)$user['id'])!==[];
+}
+
 function require_login($roles = null): array
 {
     $user = current_user();
@@ -1153,6 +1168,11 @@ function require_login($roles = null): array
         exit;
     }
 
+    if (!in_array($currentScript,['legal_consent.php','change_password_required.php','logout.php','privacy.php','terms.php'],true)
+        && legal_acceptance_required($user)) {
+        header('Location: legal_consent.php'); exit;
+    }
+
     if ($roles !== null) {
         $roles = (array)$roles;
         if (!in_array($user['role'], $roles, true)) {
@@ -1161,7 +1181,7 @@ function require_login($roles = null): array
         }
     }
     if (in_array($user['role'],['student','adviser'],true)
-        && !in_array($currentScript,['complete_profile.php','change_password_required.php','logout.php'],true)
+        && !in_array($currentScript,['complete_profile.php','legal_consent.php','change_password_required.php','logout.php'],true)
         && !onboarding_complete(db(),$user)) {
         header('Location: complete_profile.php'); exit;
     }
@@ -1197,6 +1217,12 @@ function api_require_login($roles = null): array
         exit;
     }
     $script=basename($_SERVER['SCRIPT_NAME']??'');
+    $passwordGateAllowed=!empty($_SESSION['must_change_password']) && $script==='profile_api.php'
+        && in_array($_GET['action']??'', ['change_password','me'],true);
+    if (!$passwordGateAllowed && legal_acceptance_required($user)) {
+        json_out(['ok'=>false,'code'=>'legal_acceptance_required','redirect'=>'legal_consent.php',
+            'message'=>'Review and acknowledge the current legal policies before continuing.'],403);
+    }
     $pendingAllowed=$script==='account_invitation_api.php' && in_array($_GET['action']??'', ['me','complete'],true);
     $pendingAllowed=$pendingAllowed || ($script==='profile_api.php' && in_array($_GET['action']??'', ['me','change_password'],true));
     if (in_array($user['role'],['student','adviser'],true) && !$pendingAllowed && !onboarding_complete(db(),$user)) {

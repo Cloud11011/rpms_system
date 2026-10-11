@@ -1,6 +1,7 @@
 <?php
 /** Real route and shared request guards, isolated identity; no DB/bootstrap/migration. */
 if (PHP_SAPI !== 'cli') exit(1);
+function legal_acceptance_required(...$args): bool { return false; }
 if (($argv[1] ?? '') === '--case') {
     $case=json_decode($argv[2],true,512,JSON_THROW_ON_ERROR);
     require_once __DIR__.'/../security.php';

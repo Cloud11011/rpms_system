@@ -1,10 +1,17 @@
 <?php
 namespace PrismReleaseFixture;
+function require_session_generation(...$args): void {}
+function prism_session_generation(): string { return 'synthetic-accepted-generation'; }
+function is_uploaded_file(string $path): bool { return $path===__DIR__.'/fixtures/batch6-valid.pdf'; }
 use PDO;
 use PDOStatement;
 use RuntimeException;
 use Throwable;
 require_once __DIR__.'/../includes/student_snapshot.php';
+require_once __DIR__.'/../includes/office_container.php';
+foreach (['document_catalog','document_upload'] as $helper) {
+    eval('namespace '.__NAMESPACE__.'; use \\finfo; use \\RuntimeException; '.preg_replace('/^<\?php\s*/','',file_get_contents(__DIR__.'/../includes/'.$helper.'.php')));
+}
 
 /** Real endpoint SQL on disposable SQLite and synthetic files. Never bootstrap config.php. */
 if (PHP_SAPI !== 'cli') exit(1);
@@ -62,7 +69,10 @@ if (($argv[1]??'')==='--case') {
     if (($case['role']??'')==='student') $case['email']='s3@example.test';
     $GLOBALS['actor']=['id'=>1,'role'=>$case['role']??'admin','email'=>$case['email']??(($case['role']??'admin')==='adviser'?'adv@example.test':'admin@example.test'),'full_name'=>'Synthetic Admin'];
     $_GET=['action'=>$case['action']??'list']+($case['query']??[]); $_POST=$case['post']??[];
-    $_FILES=['document'=>['error'=>0,'name'=>'protocol.txt','tmp_name'=>'synthetic','size'=>20]];
+    $_POST += ['documentType'=>'Study Protocol'];
+    if (isset($_POST['studentDbId'])) $_POST['studentDbId']=(string)$_POST['studentDbId'];
+    $uploadFixture=__DIR__.'/fixtures/batch6-valid.pdf';
+    $_FILES=['document'=>['error'=>0,'name'=>'protocol.pdf','tmp_name'=>$uploadFixture,'size'=>filesize($uploadFixture),'type'=>'application/pdf']];
     $_SERVER=['REQUEST_METHOD'=>'POST']; $GLOBALS['status']=200; $GLOBALS['headers']=[]; $GLOBALS['audits']=[]; $GLOBALS['provider']=[]; $GLOBALS['notices']=[];
     define('STAGE_SEQUENCE',['Stage 1','Stage 2','Stage 3','Stage 4','Stage 5','Completed']);
     foreach (['ATTENTION_REVIEW_DAYS'=>3,'ATTENTION_UNSUBMITTED_DAYS'=>3,'ATTENTION_OVERDUE_DAYS'=>30,'ADVISERS_REVIEW_ONLY_OWN_STUDENTS'=>true,'OVERRIDE_MIN_REASON_LENGTH'=>5] as $key=>$value) define($key,$value);
@@ -99,7 +109,7 @@ if (($argv[1]??'')==='--case') {
     $s=file_get_contents(__DIR__.'/../'.$case['file']);
     $s=str_replace(["require_once __DIR__.'/includes/account_lifecycle.php';","require_once __DIR__ . '/includes/account_lifecycle.php';"],'',$s);
     // Only known local bootstrap/include statements can be removed. No live config is ever evaluated.
-    $s=preg_replace("~require(?:_once)? __DIR__ \\. '/(?:config|workflow|ai_helpers|includes/(?:pagination|record_filters|academic_catalog|research_groups|office_container|document_summary|notification_delivery|calendar_deadlines|csv_export))\\.php';~",'',$s);
+    $s=preg_replace("~require(?:_once)? __DIR__ \\. '/(?:config|workflow|ai_helpers|includes/(?:pagination|record_filters|academic_catalog|research_groups|office_container|document_summary|document_catalog|document_upload|notification_delivery|calendar_deadlines|csv_export))\\.php';~",'',$s);
     if (preg_match('/\b(?:require|include)(?:_once)?\s*(?:\(|[\'"$])/',$s)) throw new RuntimeException('Unexpected fixture dependency');
     foreach (['row_to_student','csv_safe'] as $callback) $s=str_replace("'".$callback."'", "'".__NAMESPACE__."\\".$callback."'", $s);
     eval('namespace '.__NAMESPACE__.'; use \\PDO; use \\Throwable; use \\RuntimeException; use \\InvalidArgumentException;'.preg_replace('/^<\?php\s*/','',$s));
@@ -113,7 +123,7 @@ function endpoint(array $case): array {
     fclose($pipes[0]);$out=stream_get_contents($pipes[1]);$err=stream_get_contents($pipes[2]);fclose($pipes[1]);fclose($pipes[2]);$exit=proc_close($p);
     verify($exit===0&&$err==='', 'Endpoint fixture clean: '.$err.' '.$out); return json_decode($out,true,512,JSON_THROW_ON_ERROR);
 }
-$r=endpoint(['file'=>'students_api.php']); verify($r['response']['total']===3,'Admin Student Records preserves A/B/C');
+$r=endpoint(['file'=>'students_api.php','query'=>['lifecycle'=>'all']]); verify($r['response']['total']===3,'Explicit All Admin Student Records preserves A/B/C');
 foreach ([[],['activeOnly'=>'1']] as $query) { $r=endpoint(['file'=>'students_api.php','action'=>'options','query'=>$query]); verify(count($r['response']['students'])===($query?2:3),'Explicit operational options preserve general historical selector'); }
 foreach (['admin','adviser'] as $role) {
     $r=endpoint(['file'=>'ierb_api.php','role'=>$role]);verify($r['response']['total']===2,'Current list has A/B only');

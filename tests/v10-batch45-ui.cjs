@@ -42,7 +42,11 @@ async function run({check,evaluate,waitFor,navigate,command,keyPress,errors,getR
       check(await evaluate('document.querySelector(".retention-toolbar p").textContent.startsWith("0 accounts selected") && !document.querySelector(".retention-toolbar p").textContent.includes("snapshot")'),label+': exit clears all-matching snapshot');
       await evaluate('document.getElementById("retentionSelectPage").click();document.getElementById("recordSearch").value="Record";document.getElementById("recordSearch").dispatchEvent(new Event("input",{bubbles:true}))');
       check(await evaluate('document.querySelector(".retention-toolbar p").textContent.startsWith("0 accounts selected")'),label+': search immediately clears selection');
+      // Await the debounced search response before testing a menu on a row it replaces.
+      await evaluate('new Promise(r=>setTimeout(r,300))');
+      await waitFor('document.querySelector(".prism-action-trigger") && !document.getElementById("recordCount").textContent.includes("Loading") && !document.querySelector("#recordRows [data-retention-id=\"3\"]")');
       await evaluate('document.getElementById("retentionSelectionMode").click()');
+      await evaluate('new Promise(r=>setTimeout(r,250))');
       const before=await geometry();await evaluate('document.getElementById("prismSidebarToggle").click()');await evaluate('new Promise(r=>setTimeout(r,240))');const after=await geometry();
       check(same(before,after),label+': opening navigation leaves all main geometry unchanged');metrics.push({label,navigation:{before,after}});
       if([1366,375].includes(width))await shot(label+'-navigation-expanded');
@@ -55,6 +59,7 @@ async function run({check,evaluate,waitFor,navigate,command,keyPress,errors,getR
       if([1366,375].includes(width))await shot(label+'-filters-open');
       await keyPress('Escape','Escape',27);
       await evaluate('document.querySelector(".prism-action-trigger").click()');
+      await waitFor('document.querySelector(".prism-action-panel:not([hidden])")');
       check(await evaluate('(() => {const p=document.querySelector(".prism-action-panel:not([hidden])"),r=p.getBoundingClientRect();return r.left>=0&&r.right<=innerWidth+1&&r.bottom<=innerHeight+1;})()'),label+': Actions fits');
       if([1366,375].includes(width))await shot(label+'-actions-open');
       await keyPress('Escape','Escape',27);

@@ -61,7 +61,7 @@ function hostinger_fk_fixture(HostingerFkMigrationPDO $db,string $schema,array $
     $db->exec('INSERT INTO calendar_deadline_recipients(deadline_id,student_id) VALUES (1,1)');
     // 12.1 generates numeric names for unnamed FKs. Model the supplied historical-v8
     // inventory explicitly, including its six unchanged canonical relationships.
-    $expected=json_decode(file_get_contents(__DIR__.'/../includes/account_lifecycle_schema.json'),true,512,JSON_THROW_ON_ERROR)['foreign_keys'];
+    $expected=json_decode(file_get_contents(__DIR__.'/../tools/schema-v9-contract.json'),true,512,JSON_THROW_ON_ERROR)['foreign_keys'];
     foreach($expected as $fk) {
         if($fk['TABLE_NAME']==='account_invitations')continue;
         $t=$fk['TABLE_NAME'];$c=$fk['COLUMN_NAME'];$name=$fk['CONSTRAINT_NAME'];
@@ -76,7 +76,7 @@ function hostinger_fk_fixture(HostingerFkMigrationPDO $db,string $schema,array $
     // Reproduce historical v8 supporting-index names as well. New 12.1 implicit
     // FK indexes use constraint names, unlike the older server that created v8.
     $expectedIndexes=[];
-    foreach(json_decode(file_get_contents(__DIR__.'/../includes/account_lifecycle_schema.json'),true)['indexes'] as $index) {
+    foreach(json_decode(file_get_contents(__DIR__.'/../tools/schema-v9-contract.json'),true)['indexes'] as $index) {
         $key=$index['TABLE_NAME'].':'.$index['INDEX_NAME'];$expectedIndexes[$key][]=$index;
     }
     $actualIndexes=[];

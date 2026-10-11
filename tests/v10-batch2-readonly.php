@@ -64,7 +64,7 @@ verify(count(array_unique($ids))===25,'Every dense-date row retrieved once acros
 $root=dirname(__DIR__);
 $config=file_get_contents($root.'/config.php');
 verify(str_contains($config,"strcasecmp((string)\$user['status'], 'Active') !== 0"), 'Existing invalid/archived account session policy retained');
-verify(str_contains($config,'const SCHEMA_VERSION = 9;'),'Current schema remains v9');
+verify(str_contains($config,'const SCHEMA_VERSION = 10;'),'Final Batch 6 schema is v10');
 $api=file_get_contents($root.'/calendar_deadlines_api.php');
 $start=strpos($api,"    if (\$action === 'dashboard_day') {"); $end=strpos($api,"    if (\$action === 'group_options')",$start);
 verify(!preg_match('/\b(?:INSERT|UPDATE|DELETE|ALTER|CREATE|audit_log|deadline_notify)\b/',substr($api,$start,$end-$start)), 'New detail branch contains only reads');

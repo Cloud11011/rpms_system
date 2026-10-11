@@ -1,0 +1,579 @@
+{
+  "new": {
+    "notification_campaigns": {
+      "purpose": "B7 logical send and independent sender history; B8 one-way support and reply correlation.",
+      "columns": {
+        "id": [
+          "INT NOT NULL AUTO_INCREMENT",
+          "Stable logical message identifier."
+        ],
+        "sender_user_id": [
+          "INT NULL",
+          "Authenticated sender; SET NULL on account purge."
+        ],
+        "kind": [
+          "ENUM('staff','support','workflow','system') NOT NULL DEFAULT 'system'",
+          "B7/B8 high-level category; existing recipient type preserves subtype."
+        ],
+        "support_category": [
+          "ENUM('Ask RPMS Staff','Report a Problem','Account/Access','Document/Submission','IERB Progress','Technical Issue','Other') NULL",
+          "B8 required request category; no ticket engine."
+        ],
+        "reply_to_campaign_id": [
+          "INT NULL",
+          "B8 ordinary composer reply correlation, not a threaded ticket."
+        ],
+        "subject": [
+          "VARCHAR(255) NULL",
+          "Sender copy subject, erased when sender deletes their copy."
+        ],
+        "message": [
+          "TEXT NULL",
+          "Sender copy body; recipient rows independently retain their copies."
+        ],
+        "status": [
+          "VARCHAR(20) NOT NULL DEFAULT 'Scheduled'",
+          "B7 Scheduled/Sending/Sent/Failed/Cancelled; code must cancel before deleting."
+        ],
+        "scheduled_at": [
+          "DATETIME NULL",
+          "B7 schedule."
+        ],
+        "sent_at": [
+          "DATETIME NULL",
+          "B7 logical send completion."
+        ],
+        "archived_at": [
+          "DATETIME NULL",
+          "B7 independent sender archive."
+        ],
+        "deleted_at": [
+          "DATETIME NULL",
+          "B7 independent sender deletion tombstone; erase subject/message."
+        ],
+        "created_at": [
+          "DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP",
+          "Send/request creation time."
+        ]
+      },
+      "indexes": [
+        [
+          "PRIMARY",
+          [
+            "id"
+          ],
+          true
+        ],
+        [
+          "campaign_sender",
+          [
+            "sender_user_id",
+            "created_at"
+          ],
+          false
+        ],
+        [
+          "campaign_reply",
+          [
+            "reply_to_campaign_id"
+          ],
+          false
+        ]
+      ],
+      "fks": [
+        [
+          "campaign_sender_fk",
+          [
+            "sender_user_id"
+          ],
+          "users",
+          [
+            "id"
+          ],
+          "SET NULL"
+        ],
+        [
+          "campaign_reply_fk",
+          [
+            "reply_to_campaign_id"
+          ],
+          "notification_campaigns",
+          [
+            "id"
+          ],
+          "SET NULL"
+        ]
+      ]
+    },
+    "legal_policies": {
+      "purpose": "B6 exactly two stable policies and explicit authoritative current pointers.",
+      "columns": {
+        "id": [
+          "ENUM('privacy','terms') NOT NULL",
+          "Only privacy/terms; no arbitrary client types."
+        ],
+        "current_version_id": [
+          "INT NULL",
+          "Publication atomically moves pointer; null only during transactional bootstrap."
+        ]
+      },
+      "indexes": [
+        [
+          "PRIMARY",
+          [
+            "id"
+          ],
+          true
+        ],
+        [
+          "policy_current",
+          [
+            "id",
+            "current_version_id"
+          ],
+          false
+        ]
+      ],
+      "fks": [
+        [
+          "policy_current_fk",
+          [
+            "id",
+            "current_version_id"
+          ],
+          "legal_policy_versions",
+          [
+            "policy_id",
+            "id"
+          ],
+          "RESTRICT"
+        ]
+      ]
+    },
+    "legal_policy_versions": {
+      "purpose": "B6 immutable published/pending/rejected text, sequential numbers and one open candidate.",
+      "columns": {
+        "id": [
+          "INT NOT NULL AUTO_INCREMENT",
+          "Exact version identity referenced by acceptance."
+        ],
+        "policy_id": [
+          "ENUM('privacy','terms') NOT NULL",
+          "Stable policy identity."
+        ],
+        "version_number": [
+          "INT NOT NULL",
+          "Server-assigned monotonic number per policy, including rejected versions."
+        ],
+        "title": [
+          "VARCHAR(190) NOT NULL",
+          "Public heading."
+        ],
+        "content": [
+          "MEDIUMTEXT NOT NULL",
+          "Structured plain source; every render escapes markup."
+        ],
+        "change_summary": [
+          "VARCHAR(500) NOT NULL DEFAULT ''",
+          "Required before submission."
+        ],
+        "state": [
+          "ENUM('draft','pending','rejected','published') NOT NULL DEFAULT 'draft'",
+          "Rejected text remains immutable; start new candidate."
+        ],
+        "open_candidate": [
+          "TINYINT GENERATED ALWAYS AS (CASE WHEN state IN ('draft','pending') THEN 1 ELSE NULL END) STORED",
+          "Unique nullable marker enforces one draft/pending candidate per policy."
+        ],
+        "content_sha256": [
+          "CHAR(64) NOT NULL",
+          "Exact source integrity; verified before rendering/acceptance/publication."
+        ],
+        "creator_user_id": [
+          "INT NULL",
+          "Creator attribution without personal snapshots; SET NULL on purge."
+        ],
+        "created_at": [
+          "DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP",
+          "Candidate creation."
+        ],
+        "submitted_at": [
+          "DATETIME NULL",
+          "Submission freezes candidate."
+        ],
+        "published_at": [
+          "DATETIME NULL",
+          "Publication/effective timestamp."
+        ]
+      },
+      "indexes": [
+        [
+          "PRIMARY",
+          [
+            "id"
+          ],
+          true
+        ],
+        [
+          "policy_version_number",
+          [
+            "policy_id",
+            "version_number"
+          ],
+          true
+        ],
+        [
+          "policy_version_identity",
+          [
+            "policy_id",
+            "id"
+          ],
+          true
+        ],
+        [
+          "policy_open_candidate",
+          [
+            "policy_id",
+            "open_candidate"
+          ],
+          true
+        ],
+        [
+          "policy_creator",
+          [
+            "creator_user_id"
+          ],
+          false
+        ]
+      ],
+      "fks": [
+        [
+          "version_policy_fk",
+          [
+            "policy_id"
+          ],
+          "legal_policies",
+          [
+            "id"
+          ],
+          "RESTRICT"
+        ],
+        [
+          "version_creator_fk",
+          [
+            "creator_user_id"
+          ],
+          "users",
+          [
+            "id"
+          ],
+          "SET NULL"
+        ]
+      ]
+    },
+    "legal_policy_approvals": {
+      "purpose": "B6 durable immutable publication/rejection evidence, including explicit bootstrap/sole-admin provenance.",
+      "columns": {
+        "id": [
+          "INT NOT NULL AUTO_INCREMENT",
+          "Decision identity."
+        ],
+        "version_id": [
+          "INT NOT NULL",
+          "One final decision per immutable candidate."
+        ],
+        "reviewer_user_id": [
+          "INT NULL",
+          "Current reviewer, SET NULL on authorized account purge."
+        ],
+        "decision": [
+          "ENUM('approved','rejected') NOT NULL",
+          "Explicit review result."
+        ],
+        "approval_mode": [
+          "ENUM('independent','sole_admin','bootstrap') NOT NULL",
+          "Distinguish sole-admin exception and approved Batch 5B bootstrap."
+        ],
+        "reason": [
+          "VARCHAR(500) NULL",
+          "Mandatory rejection explanation; no passwords or personal snapshots."
+        ],
+        "reviewed_at": [
+          "DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP",
+          "Server decision timestamp."
+        ]
+      },
+      "indexes": [
+        [
+          "PRIMARY",
+          [
+            "id"
+          ],
+          true
+        ],
+        [
+          "approval_version",
+          [
+            "version_id"
+          ],
+          true
+        ],
+        [
+          "approval_reviewer",
+          [
+            "reviewer_user_id"
+          ],
+          false
+        ]
+      ],
+      "fks": [
+        [
+          "approval_version_fk",
+          [
+            "version_id"
+          ],
+          "legal_policy_versions",
+          [
+            "id"
+          ],
+          "RESTRICT"
+        ],
+        [
+          "approval_reviewer_fk",
+          [
+            "reviewer_user_id"
+          ],
+          "users",
+          [
+            "id"
+          ],
+          "SET NULL"
+        ]
+      ]
+    },
+    "user_policy_acceptances": {
+      "purpose": "B6 account-bound Terms agreement / Privacy acknowledgment, including partial re-acknowledgment.",
+      "columns": {
+        "user_id": [
+          "INT NOT NULL",
+          "Authenticated subject only; CASCADE on permanent purge."
+        ],
+        "policy_version_id": [
+          "INT NOT NULL",
+          "Exact immutable version, RESTRICT deletion."
+        ],
+        "accepted_at": [
+          "DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP",
+          "Server timestamp; no IP/device data."
+        ]
+      },
+      "indexes": [
+        [
+          "PRIMARY",
+          [
+            "user_id",
+            "policy_version_id"
+          ],
+          true
+        ],
+        [
+          "acceptance_version",
+          [
+            "policy_version_id"
+          ],
+          false
+        ]
+      ],
+      "fks": [
+        [
+          "acceptance_user_fk",
+          [
+            "user_id"
+          ],
+          "users",
+          [
+            "id"
+          ],
+          "CASCADE"
+        ],
+        [
+          "acceptance_version_fk",
+          [
+            "policy_version_id"
+          ],
+          "legal_policy_versions",
+          [
+            "id"
+          ],
+          "RESTRICT"
+        ]
+      ]
+    },
+    "staff_registration_code": {
+      "purpose": "B9 singleton current generation and transactional consume; activity_logs stores secret-free events.",
+      "columns": {
+        "slot": [
+          "TINYINT NOT NULL DEFAULT 1",
+          "CHECK(slot=1) plus PK allows exactly one current global generation."
+        ],
+        "generation_id": [
+          "CHAR(32) NOT NULL",
+          "Random nonsecret generation identity, used by audit after slot is replaced."
+        ],
+        "verifier_hash": [
+          "VARCHAR(255) NULL",
+          "Secure verifier only, cleared on invalidation/expiry/consume; never plaintext."
+        ],
+        "state": [
+          "ENUM('pending','acknowledged','invalidated','expired','consumed') NOT NULL DEFAULT 'pending'",
+          "Unusable until acknowledgment; conditional locked consume permits one winner."
+        ],
+        "creator_user_id": [
+          "INT NULL",
+          "Creator recorded; SET NULL on purge; pending generation must be invalidated by B9 if creator disappears."
+        ],
+        "created_at": [
+          "DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP",
+          "Generation time."
+        ],
+        "acknowledged_at": [
+          "DATETIME NULL",
+          "Starts validity only after saved-code acknowledgment."
+        ],
+        "expires_at": [
+          "DATETIME NULL",
+          "Exactly acknowledgment + 24 hours, enforced by B9 code."
+        ],
+        "consumed_at": [
+          "DATETIME NULL",
+          "Successful registration timestamp."
+        ],
+        "consumed_by_user_id": [
+          "INT NULL",
+          "Winning registration subject; SET NULL on purge."
+        ]
+      },
+      "indexes": [
+        [
+          "PRIMARY",
+          [
+            "slot"
+          ],
+          true
+        ],
+        [
+          "staff_code_generation",
+          [
+            "generation_id"
+          ],
+          true
+        ],
+        [
+          "staff_code_creator",
+          [
+            "creator_user_id"
+          ],
+          false
+        ],
+        [
+          "staff_code_consumer",
+          [
+            "consumed_by_user_id"
+          ],
+          false
+        ]
+      ],
+      "fks": [
+        [
+          "staff_code_creator_fk",
+          [
+            "creator_user_id"
+          ],
+          "users",
+          [
+            "id"
+          ],
+          "SET NULL"
+        ],
+        [
+          "staff_code_consumer_fk",
+          [
+            "consumed_by_user_id"
+          ],
+          "users",
+          [
+            "id"
+          ],
+          "SET NULL"
+        ]
+      ],
+      "checks": [
+        "CONSTRAINT staff_code_singleton CHECK (slot = 1)"
+      ]
+    }
+  },
+  "modified": {
+    "notifications": {
+      "purpose": "B7/B8 reuse existing recipient delivery copies with independent read/archive/delete and account binding.",
+      "columns": {
+        "campaign_id": [
+          "INT NULL",
+          "Logical send; null for preserved legacy copies with no fabricated campaign."
+        ],
+        "recipient_user_id": [
+          "INT NULL",
+          "Future exact authenticated recipient binding; CASCADE on purge. Existing role/profile/email semantics remain."
+        ],
+        "archived_at": [
+          "DATETIME NULL",
+          "Independent recipient archive."
+        ],
+        "deleted_at": [
+          "DATETIME NULL",
+          "Independent recipient deletion; B7 erases subject/message/delivery_info without touching others."
+        ]
+      },
+      "indexes": [
+        [
+          "notification_campaign",
+          [
+            "campaign_id"
+          ],
+          false
+        ],
+        [
+          "notification_user",
+          [
+            "recipient_user_id",
+            "created_at"
+          ],
+          false
+        ]
+      ],
+      "fks": [
+        [
+          "notification_campaign_fk",
+          [
+            "campaign_id"
+          ],
+          "notification_campaigns",
+          [
+            "id"
+          ],
+          "SET NULL"
+        ],
+        [
+          "notification_user_fk",
+          [
+            "recipient_user_id"
+          ],
+          "users",
+          [
+            "id"
+          ],
+          "CASCADE"
+        ]
+      ]
+    }
+  }
+}

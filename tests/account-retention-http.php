@@ -4,6 +4,14 @@ $httpRoot=$root.'/retention-http';mkdir($httpRoot);mkdir($httpRoot.'/includes');
 foreach (['config.php','security.php','auth_rate_limit.php','workflow.php','account_lifecycle_api.php','login_process.php','profile_api.php',
     'send_followup.php','account_invitation_api.php','account_setup.php','complete_profile.php','index.php','calendar_deadlines_api.php','reports_api.php','students_api.php','advisers_api.php','documents_api.php','ai_helpers.php','forgot_password_process.php','forgot_password.php','reset_password.php','update_password.php','notifications_api.php','data_exports_api.php','ierb_api.php'] as $file) copy(__DIR__.'/../'.$file,$httpRoot.'/'.$file);
 foreach (glob(__DIR__.'/../includes/*') as $file) if (is_file($file)&&in_array(pathinfo($file,PATHINFO_EXTENSION),['php','json'],true)) copy($file,$httpRoot.'/includes/'.basename($file));
+// Preserve this legacy schema fixture; B6 HTTP separately tests the full v10 gates.
+$fixtureConfig=file_get_contents($httpRoot.'/config.php');
+file_put_contents($httpRoot.'/config.php',str_replace('const SCHEMA_VERSION = 10;', 'const SCHEMA_VERSION = 9;', $fixtureConfig));
+$fixtureLegal=file_get_contents($httpRoot.'/includes/legal_policy.php');
+$fixtureLegal=preg_replace('/function legal_outstanding\([^\n]*\n\{[\s\S]*?\n\}/','function legal_outstanding(...$args): array { return []; }',$fixtureLegal,1,$legalReplacements);
+if ($legalReplacements!==1) throw new RuntimeException('Exact legacy legal fixture boundary required.');
+file_put_contents($httpRoot.'/includes/legal_policy.php',$fixtureLegal);
+copy(__DIR__.'/../tools/schema-v9-contract.json',$httpRoot.'/includes/account_lifecycle_schema.json');
 $sock=stream_socket_server('tcp://127.0.0.1:0',$errno,$error);$httpPort=(int)substr(strrchr(stream_socket_get_name($sock,false),':'),1);fclose($sock);
 $httpBase='http://127.0.0.1:'.$httpPort;
 function retention_http_config(?array $verification=null): void {
@@ -25,7 +33,10 @@ function retention_http_request(string $path,mixed $data,string &$cookie,array $
         'ignore_errors'=>true,'follow_location'=>0,'timeout'=>15]]);
     $body=file_get_contents($httpBase.'/'.$path,false,$context);$responseHeaders=$http_response_header??[];
     preg_match('~HTTP/\S+ (\d+)~',$responseHeaders[0]??'',$m);$status=(int)($m[1]??0);
-    foreach($responseHeaders as $header)if(preg_match('/^Set-Cookie: (PHPSESSID=[^;]*)/i',$header,$m))$cookie=$m[1];
+    $cookies=[];
+    foreach (explode('; ',$cookie) as $part) if (str_contains($part,'=')) {[$name,$value]=explode('=',$part,2);$cookies[$name]=$value;}
+    foreach($responseHeaders as $header)if(preg_match('/^Set-Cookie: (PHPSESSID|prism_generation)=([^;]*)/i',$header,$m))$cookies[$m[1]]=$m[2];
+    $cookie=implode('; ',array_map(fn($name,$value)=>$name.'='.$value,array_keys($cookies),$cookies));
     return ['status'=>$status,'data'=>json_decode($body,true),'body'=>$body,'headers'=>$responseHeaders];
 }
 function retention_http_login(int $id): string {
@@ -143,7 +154,7 @@ try {
         $pdo->exec("SET GLOBAL tx_isolation='".str_replace(' ','-',$isolation)."'");
         $gate=$datadir.'/upload-archive-'.bin2hex(random_bytes(5));
         $archiver=retention_worker_start(['accountType'=>'student','targetId'=>100,'action'=>'archive'],1,['retentionGate'=>$gate,'isolation'=>$isolation]);retention_wait_gate($gate);
-        $uploadFile=$root.'/synthetic-upload.txt';file_put_contents($uploadFile,'Synthetic workflow upload; no actual personal information.');
+        $uploadFile=$root.'/synthetic-upload.pdf';copy(__DIR__.'/fixtures/batch6-valid.pdf',$uploadFile);
         $uploadFixture=['url'=>$httpBase.'/documents_api.php?action=upload','origin'=>$httpBase,'cookie'=>$cookie,'file'=>$uploadFile];
         $uploadProcess=proc_open([PHP_BINARY,__DIR__.'/account-retention-upload-worker.php',json_encode($uploadFixture)],
             [0=>['pipe','r'],1=>['pipe','w'],2=>['pipe','w']],$uploadPipes,__DIR__,null,['bypass_shell'=>true,'create_new_console'=>false]);fclose($uploadPipes[0]);

@@ -10,6 +10,9 @@ function too_many_recent_failures(...$args): bool { return false; }
 function log_activity(...$args): void {}
 function db(): \PDO { return $GLOBALS['pdo']; }
 function onboarding_complete(...$args): bool { return empty($GLOBALS['case']['pending']); }
+// This prior-batch fixture represents already-current legal acceptance. B6 covers missing/stale acceptance.
+function legal_outstanding(...$args): array { return []; }
+function legal_acceptance_required(...$args): bool { return false; }
 function json_out(array $data, int $status=200): never { http_response_code($status); echo json_encode($data); exit; }
 class IdentityPDO extends \PDO {
     public function __construct() {}

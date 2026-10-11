@@ -40,7 +40,9 @@ function archive_fixture(string $path,array $entries):void {
     foreach($entries as $name=>$content)$z->addFromString($name,$content);$z->close();
 }
 try {
-    foreach ([['docx',['[Content_Types].xml'=>'<Types/>','word/document.xml'=>'<w:document/>'],true],
+    $validWord=[];$zip=new ZipArchive();$zip->open(__DIR__.'/fixtures/document-summary/research-protocol.docx');
+    for($i=0;$i<$zip->numFiles;$i++)$validWord[$zip->getNameIndex($i)]=$zip->getFromIndex($i);$zip->close();
+    foreach ([['docx',$validWord,true],
         ['odt',['mimetype'=>'application/vnd.oasis.opendocument.text','content.xml'=>'<office:document/>'],true],
         ['docx',['random.txt'=>'Random','other.txt'=>'Arbitrary'],false],
         ['docx',['[Content_Types].xml'=>'<Types/>','other.xml'=>'Missing document'],false],

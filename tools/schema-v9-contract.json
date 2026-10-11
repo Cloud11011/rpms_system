@@ -1,0 +1,2444 @@
+{
+    "tables": [
+        {
+            "TABLE_NAME": "account_invitations",
+            "ENGINE": "InnoDB"
+        },
+        {
+            "TABLE_NAME": "account_purge_jobs",
+            "ENGINE": "InnoDB"
+        },
+        {
+            "TABLE_NAME": "activity_logs",
+            "ENGINE": "InnoDB"
+        },
+        {
+            "TABLE_NAME": "advisers",
+            "ENGINE": "InnoDB"
+        },
+        {
+            "TABLE_NAME": "ai_outputs",
+            "ENGINE": "InnoDB"
+        },
+        {
+            "TABLE_NAME": "calendar_deadlines",
+            "ENGINE": "InnoDB"
+        },
+        {
+            "TABLE_NAME": "calendar_deadline_groups",
+            "ENGINE": "InnoDB"
+        },
+        {
+            "TABLE_NAME": "calendar_deadline_recipients",
+            "ENGINE": "InnoDB"
+        },
+        {
+            "TABLE_NAME": "documents",
+            "ENGINE": "InnoDB"
+        },
+        {
+            "TABLE_NAME": "ierb_history",
+            "ENGINE": "InnoDB"
+        },
+        {
+            "TABLE_NAME": "notifications",
+            "ENGINE": "InnoDB"
+        },
+        {
+            "TABLE_NAME": "password_resets",
+            "ENGINE": "InnoDB"
+        },
+        {
+            "TABLE_NAME": "reports",
+            "ENGINE": "InnoDB"
+        },
+        {
+            "TABLE_NAME": "schema_meta",
+            "ENGINE": "InnoDB"
+        },
+        {
+            "TABLE_NAME": "stage_labels",
+            "ENGINE": "InnoDB"
+        },
+        {
+            "TABLE_NAME": "students",
+            "ENGINE": "InnoDB"
+        },
+        {
+            "TABLE_NAME": "users",
+            "ENGINE": "InnoDB"
+        }
+    ],
+    "columns": [
+        {
+            "TABLE_NAME": "account_invitations",
+            "COLUMN_NAME": "user_id",
+            "COLUMN_TYPE": "int(11)",
+            "IS_NULLABLE": "NO",
+            "COLUMN_KEY": "PRI",
+            "EXTRA": "",
+            "COLUMN_DEFAULT": null
+        },
+        {
+            "TABLE_NAME": "account_invitations",
+            "COLUMN_NAME": "invited_by_user_id",
+            "COLUMN_TYPE": "int(11)",
+            "IS_NULLABLE": "YES",
+            "COLUMN_KEY": "MUL",
+            "EXTRA": "",
+            "COLUMN_DEFAULT": "NULL"
+        },
+        {
+            "TABLE_NAME": "account_invitations",
+            "COLUMN_NAME": "token_hash",
+            "COLUMN_TYPE": "char(64)",
+            "IS_NULLABLE": "YES",
+            "COLUMN_KEY": "UNI",
+            "EXTRA": "",
+            "COLUMN_DEFAULT": "NULL"
+        },
+        {
+            "TABLE_NAME": "account_invitations",
+            "COLUMN_NAME": "expires_at",
+            "COLUMN_TYPE": "datetime",
+            "IS_NULLABLE": "YES",
+            "COLUMN_KEY": "",
+            "EXTRA": "",
+            "COLUMN_DEFAULT": "NULL"
+        },
+        {
+            "TABLE_NAME": "account_invitations",
+            "COLUMN_NAME": "accepted_at",
+            "COLUMN_TYPE": "datetime",
+            "IS_NULLABLE": "YES",
+            "COLUMN_KEY": "",
+            "EXTRA": "",
+            "COLUMN_DEFAULT": "NULL"
+        },
+        {
+            "TABLE_NAME": "account_invitations",
+            "COLUMN_NAME": "last_sent_at",
+            "COLUMN_TYPE": "datetime",
+            "IS_NULLABLE": "NO",
+            "COLUMN_KEY": "",
+            "EXTRA": "",
+            "COLUMN_DEFAULT": null
+        },
+        {
+            "TABLE_NAME": "account_invitations",
+            "COLUMN_NAME": "created_at",
+            "COLUMN_TYPE": "datetime",
+            "IS_NULLABLE": "NO",
+            "COLUMN_KEY": "",
+            "EXTRA": "",
+            "COLUMN_DEFAULT": "current_timestamp()"
+        },
+        {
+            "TABLE_NAME": "account_purge_jobs",
+            "COLUMN_NAME": "id",
+            "COLUMN_TYPE": "char(32)",
+            "IS_NULLABLE": "NO",
+            "COLUMN_KEY": "PRI",
+            "EXTRA": "",
+            "COLUMN_DEFAULT": null
+        },
+        {
+            "TABLE_NAME": "account_purge_jobs",
+            "COLUMN_NAME": "account_type",
+            "COLUMN_TYPE": "varchar(20)",
+            "IS_NULLABLE": "NO",
+            "COLUMN_KEY": "",
+            "EXTRA": "",
+            "COLUMN_DEFAULT": null
+        },
+        {
+            "TABLE_NAME": "account_purge_jobs",
+            "COLUMN_NAME": "account_id",
+            "COLUMN_TYPE": "int(11)",
+            "IS_NULLABLE": "NO",
+            "COLUMN_KEY": "",
+            "EXTRA": "",
+            "COLUMN_DEFAULT": null
+        },
+        {
+            "TABLE_NAME": "account_purge_jobs",
+            "COLUMN_NAME": "identifier",
+            "COLUMN_TYPE": "varchar(100)",
+            "IS_NULLABLE": "NO",
+            "COLUMN_KEY": "",
+            "EXTRA": "",
+            "COLUMN_DEFAULT": null
+        },
+        {
+            "TABLE_NAME": "account_purge_jobs",
+            "COLUMN_NAME": "actor_id",
+            "COLUMN_TYPE": "int(11)",
+            "IS_NULLABLE": "NO",
+            "COLUMN_KEY": "",
+            "EXTRA": "",
+            "COLUMN_DEFAULT": null
+        },
+        {
+            "TABLE_NAME": "account_purge_jobs",
+            "COLUMN_NAME": "method",
+            "COLUMN_TYPE": "varchar(30)",
+            "IS_NULLABLE": "NO",
+            "COLUMN_KEY": "",
+            "EXTRA": "",
+            "COLUMN_DEFAULT": null
+        },
+        {
+            "TABLE_NAME": "account_purge_jobs",
+            "COLUMN_NAME": "status",
+            "COLUMN_TYPE": "varchar(30)",
+            "IS_NULLABLE": "NO",
+            "COLUMN_KEY": "MUL",
+            "EXTRA": "",
+            "COLUMN_DEFAULT": "'files_pending'"
+        },
+        {
+            "TABLE_NAME": "account_purge_jobs",
+            "COLUMN_NAME": "manifest_sha256",
+            "COLUMN_TYPE": "char(64)",
+            "IS_NULLABLE": "NO",
+            "COLUMN_KEY": "",
+            "EXTRA": "",
+            "COLUMN_DEFAULT": null
+        },
+        {
+            "TABLE_NAME": "account_purge_jobs",
+            "COLUMN_NAME": "created_at",
+            "COLUMN_TYPE": "datetime",
+            "IS_NULLABLE": "NO",
+            "COLUMN_KEY": "",
+            "EXTRA": "",
+            "COLUMN_DEFAULT": "current_timestamp()"
+        },
+        {
+            "TABLE_NAME": "account_purge_jobs",
+            "COLUMN_NAME": "completed_at",
+            "COLUMN_TYPE": "datetime",
+            "IS_NULLABLE": "YES",
+            "COLUMN_KEY": "",
+            "EXTRA": "",
+            "COLUMN_DEFAULT": "NULL"
+        },
+        {
+            "TABLE_NAME": "activity_logs",
+            "COLUMN_NAME": "id",
+            "COLUMN_TYPE": "int(11)",
+            "IS_NULLABLE": "NO",
+            "COLUMN_KEY": "PRI",
+            "EXTRA": "auto_increment",
+            "COLUMN_DEFAULT": null
+        },
+        {
+            "TABLE_NAME": "activity_logs",
+            "COLUMN_NAME": "user_email",
+            "COLUMN_TYPE": "varchar(190)",
+            "IS_NULLABLE": "YES",
+            "COLUMN_KEY": "",
+            "EXTRA": "",
+            "COLUMN_DEFAULT": "NULL"
+        },
+        {
+            "TABLE_NAME": "activity_logs",
+            "COLUMN_NAME": "action",
+            "COLUMN_TYPE": "varchar(100)",
+            "IS_NULLABLE": "NO",
+            "COLUMN_KEY": "",
+            "EXTRA": "",
+            "COLUMN_DEFAULT": null
+        },
+        {
+            "TABLE_NAME": "activity_logs",
+            "COLUMN_NAME": "details",
+            "COLUMN_TYPE": "varchar(255)",
+            "IS_NULLABLE": "YES",
+            "COLUMN_KEY": "",
+            "EXTRA": "",
+            "COLUMN_DEFAULT": "NULL"
+        },
+        {
+            "TABLE_NAME": "activity_logs",
+            "COLUMN_NAME": "created_at",
+            "COLUMN_TYPE": "datetime",
+            "IS_NULLABLE": "NO",
+            "COLUMN_KEY": "",
+            "EXTRA": "",
+            "COLUMN_DEFAULT": "current_timestamp()"
+        },
+        {
+            "TABLE_NAME": "activity_logs",
+            "COLUMN_NAME": "actor_name",
+            "COLUMN_TYPE": "varchar(190)",
+            "IS_NULLABLE": "YES",
+            "COLUMN_KEY": "",
+            "EXTRA": "",
+            "COLUMN_DEFAULT": "NULL"
+        },
+        {
+            "TABLE_NAME": "activity_logs",
+            "COLUMN_NAME": "actor_role",
+            "COLUMN_TYPE": "varchar(20)",
+            "IS_NULLABLE": "YES",
+            "COLUMN_KEY": "",
+            "EXTRA": "",
+            "COLUMN_DEFAULT": "NULL"
+        },
+        {
+            "TABLE_NAME": "activity_logs",
+            "COLUMN_NAME": "entity_type",
+            "COLUMN_TYPE": "varchar(40)",
+            "IS_NULLABLE": "YES",
+            "COLUMN_KEY": "MUL",
+            "EXTRA": "",
+            "COLUMN_DEFAULT": "NULL"
+        },
+        {
+            "TABLE_NAME": "activity_logs",
+            "COLUMN_NAME": "entity_id",
+            "COLUMN_TYPE": "varchar(64)",
+            "IS_NULLABLE": "YES",
+            "COLUMN_KEY": "",
+            "EXTRA": "",
+            "COLUMN_DEFAULT": "NULL"
+        },
+        {
+            "TABLE_NAME": "activity_logs",
+            "COLUMN_NAME": "student_id",
+            "COLUMN_TYPE": "int(11)",
+            "IS_NULLABLE": "YES",
+            "COLUMN_KEY": "MUL",
+            "EXTRA": "",
+            "COLUMN_DEFAULT": "NULL"
+        },
+        {
+            "TABLE_NAME": "activity_logs",
+            "COLUMN_NAME": "reason",
+            "COLUMN_TYPE": "text",
+            "IS_NULLABLE": "YES",
+            "COLUMN_KEY": "",
+            "EXTRA": "",
+            "COLUMN_DEFAULT": "NULL"
+        },
+        {
+            "TABLE_NAME": "activity_logs",
+            "COLUMN_NAME": "before_value",
+            "COLUMN_TYPE": "varchar(255)",
+            "IS_NULLABLE": "YES",
+            "COLUMN_KEY": "",
+            "EXTRA": "",
+            "COLUMN_DEFAULT": "NULL"
+        },
+        {
+            "TABLE_NAME": "activity_logs",
+            "COLUMN_NAME": "after_value",
+            "COLUMN_TYPE": "varchar(255)",
+            "IS_NULLABLE": "YES",
+            "COLUMN_KEY": "",
+            "EXTRA": "",
+            "COLUMN_DEFAULT": "NULL"
+        },
+        {
+            "TABLE_NAME": "activity_logs",
+            "COLUMN_NAME": "is_override",
+            "COLUMN_TYPE": "tinyint(1)",
+            "IS_NULLABLE": "NO",
+            "COLUMN_KEY": "",
+            "EXTRA": "",
+            "COLUMN_DEFAULT": "0"
+        },
+        {
+            "TABLE_NAME": "advisers",
+            "COLUMN_NAME": "id",
+            "COLUMN_TYPE": "int(11)",
+            "IS_NULLABLE": "NO",
+            "COLUMN_KEY": "PRI",
+            "EXTRA": "auto_increment",
+            "COLUMN_DEFAULT": null
+        },
+        {
+            "TABLE_NAME": "advisers",
+            "COLUMN_NAME": "employee_id",
+            "COLUMN_TYPE": "varchar(100)",
+            "IS_NULLABLE": "YES",
+            "COLUMN_KEY": "UNI",
+            "EXTRA": "",
+            "COLUMN_DEFAULT": "NULL"
+        },
+        {
+            "TABLE_NAME": "advisers",
+            "COLUMN_NAME": "full_name",
+            "COLUMN_TYPE": "varchar(190)",
+            "IS_NULLABLE": "YES",
+            "COLUMN_KEY": "",
+            "EXTRA": "",
+            "COLUMN_DEFAULT": "NULL"
+        },
+        {
+            "TABLE_NAME": "advisers",
+            "COLUMN_NAME": "email",
+            "COLUMN_TYPE": "varchar(190)",
+            "IS_NULLABLE": "NO",
+            "COLUMN_KEY": "UNI",
+            "EXTRA": "",
+            "COLUMN_DEFAULT": null
+        },
+        {
+            "TABLE_NAME": "advisers",
+            "COLUMN_NAME": "department",
+            "COLUMN_TYPE": "varchar(190)",
+            "IS_NULLABLE": "YES",
+            "COLUMN_KEY": "",
+            "EXTRA": "",
+            "COLUMN_DEFAULT": "NULL"
+        },
+        {
+            "TABLE_NAME": "advisers",
+            "COLUMN_NAME": "assigned_groups",
+            "COLUMN_TYPE": "varchar(255)",
+            "IS_NULLABLE": "YES",
+            "COLUMN_KEY": "",
+            "EXTRA": "",
+            "COLUMN_DEFAULT": "NULL"
+        },
+        {
+            "TABLE_NAME": "advisers",
+            "COLUMN_NAME": "status",
+            "COLUMN_TYPE": "varchar(20)",
+            "IS_NULLABLE": "NO",
+            "COLUMN_KEY": "",
+            "EXTRA": "",
+            "COLUMN_DEFAULT": "'Active'"
+        },
+        {
+            "TABLE_NAME": "advisers",
+            "COLUMN_NAME": "user_id",
+            "COLUMN_TYPE": "int(11)",
+            "IS_NULLABLE": "YES",
+            "COLUMN_KEY": "MUL",
+            "EXTRA": "",
+            "COLUMN_DEFAULT": "NULL"
+        },
+        {
+            "TABLE_NAME": "advisers",
+            "COLUMN_NAME": "created_at",
+            "COLUMN_TYPE": "datetime",
+            "IS_NULLABLE": "NO",
+            "COLUMN_KEY": "",
+            "EXTRA": "",
+            "COLUMN_DEFAULT": "current_timestamp()"
+        },
+        {
+            "TABLE_NAME": "advisers",
+            "COLUMN_NAME": "updated_at",
+            "COLUMN_TYPE": "datetime",
+            "IS_NULLABLE": "NO",
+            "COLUMN_KEY": "",
+            "EXTRA": "on update current_timestamp()",
+            "COLUMN_DEFAULT": "current_timestamp()"
+        },
+        {
+            "TABLE_NAME": "advisers",
+            "COLUMN_NAME": "archived_at",
+            "COLUMN_TYPE": "datetime",
+            "IS_NULLABLE": "YES",
+            "COLUMN_KEY": "MUL",
+            "EXTRA": "",
+            "COLUMN_DEFAULT": "NULL"
+        },
+        {
+            "TABLE_NAME": "advisers",
+            "COLUMN_NAME": "retention_hold",
+            "COLUMN_TYPE": "tinyint(1)",
+            "IS_NULLABLE": "NO",
+            "COLUMN_KEY": "",
+            "EXTRA": "",
+            "COLUMN_DEFAULT": "0"
+        },
+        {
+            "TABLE_NAME": "advisers",
+            "COLUMN_NAME": "retention_hold_at",
+            "COLUMN_TYPE": "datetime",
+            "IS_NULLABLE": "YES",
+            "COLUMN_KEY": "",
+            "EXTRA": "",
+            "COLUMN_DEFAULT": "NULL"
+        },
+        {
+            "TABLE_NAME": "advisers",
+            "COLUMN_NAME": "retention_hold_by",
+            "COLUMN_TYPE": "int(11)",
+            "IS_NULLABLE": "YES",
+            "COLUMN_KEY": "",
+            "EXTRA": "",
+            "COLUMN_DEFAULT": "NULL"
+        },
+        {
+            "TABLE_NAME": "advisers",
+            "COLUMN_NAME": "retention_hold_reason",
+            "COLUMN_TYPE": "varchar(500)",
+            "IS_NULLABLE": "YES",
+            "COLUMN_KEY": "",
+            "EXTRA": "",
+            "COLUMN_DEFAULT": "NULL"
+        },
+        {
+            "TABLE_NAME": "advisers",
+            "COLUMN_NAME": "purge_postponed_at",
+            "COLUMN_TYPE": "datetime",
+            "IS_NULLABLE": "YES",
+            "COLUMN_KEY": "",
+            "EXTRA": "",
+            "COLUMN_DEFAULT": "NULL"
+        },
+        {
+            "TABLE_NAME": "advisers",
+            "COLUMN_NAME": "purge_postponed_reason",
+            "COLUMN_TYPE": "varchar(255)",
+            "IS_NULLABLE": "YES",
+            "COLUMN_KEY": "",
+            "EXTRA": "",
+            "COLUMN_DEFAULT": "NULL"
+        },
+        {
+            "TABLE_NAME": "advisers",
+            "COLUMN_NAME": "restored_at",
+            "COLUMN_TYPE": "datetime",
+            "IS_NULLABLE": "YES",
+            "COLUMN_KEY": "",
+            "EXTRA": "",
+            "COLUMN_DEFAULT": "NULL"
+        },
+        {
+            "TABLE_NAME": "advisers",
+            "COLUMN_NAME": "profile_completed_at",
+            "COLUMN_TYPE": "datetime",
+            "IS_NULLABLE": "YES",
+            "COLUMN_KEY": "MUL",
+            "EXTRA": "",
+            "COLUMN_DEFAULT": "NULL"
+        },
+        {
+            "TABLE_NAME": "ai_outputs",
+            "COLUMN_NAME": "id",
+            "COLUMN_TYPE": "varchar(40)",
+            "IS_NULLABLE": "NO",
+            "COLUMN_KEY": "PRI",
+            "EXTRA": "",
+            "COLUMN_DEFAULT": null
+        },
+        {
+            "TABLE_NAME": "ai_outputs",
+            "COLUMN_NAME": "type",
+            "COLUMN_TYPE": "varchar(20)",
+            "IS_NULLABLE": "NO",
+            "COLUMN_KEY": "",
+            "EXTRA": "",
+            "COLUMN_DEFAULT": null
+        },
+        {
+            "TABLE_NAME": "ai_outputs",
+            "COLUMN_NAME": "source_ref",
+            "COLUMN_TYPE": "varchar(255)",
+            "IS_NULLABLE": "YES",
+            "COLUMN_KEY": "",
+            "EXTRA": "",
+            "COLUMN_DEFAULT": "NULL"
+        },
+        {
+            "TABLE_NAME": "ai_outputs",
+            "COLUMN_NAME": "prompt",
+            "COLUMN_TYPE": "text",
+            "IS_NULLABLE": "YES",
+            "COLUMN_KEY": "",
+            "EXTRA": "",
+            "COLUMN_DEFAULT": "NULL"
+        },
+        {
+            "TABLE_NAME": "ai_outputs",
+            "COLUMN_NAME": "output",
+            "COLUMN_TYPE": "mediumtext",
+            "IS_NULLABLE": "YES",
+            "COLUMN_KEY": "",
+            "EXTRA": "",
+            "COLUMN_DEFAULT": "NULL"
+        },
+        {
+            "TABLE_NAME": "ai_outputs",
+            "COLUMN_NAME": "status",
+            "COLUMN_TYPE": "varchar(20)",
+            "IS_NULLABLE": "NO",
+            "COLUMN_KEY": "",
+            "EXTRA": "",
+            "COLUMN_DEFAULT": "'Draft'"
+        },
+        {
+            "TABLE_NAME": "ai_outputs",
+            "COLUMN_NAME": "created_by",
+            "COLUMN_TYPE": "varchar(190)",
+            "IS_NULLABLE": "YES",
+            "COLUMN_KEY": "",
+            "EXTRA": "",
+            "COLUMN_DEFAULT": "NULL"
+        },
+        {
+            "TABLE_NAME": "ai_outputs",
+            "COLUMN_NAME": "created_at",
+            "COLUMN_TYPE": "datetime",
+            "IS_NULLABLE": "NO",
+            "COLUMN_KEY": "",
+            "EXTRA": "",
+            "COLUMN_DEFAULT": "current_timestamp()"
+        },
+        {
+            "TABLE_NAME": "ai_outputs",
+            "COLUMN_NAME": "approved_at",
+            "COLUMN_TYPE": "datetime",
+            "IS_NULLABLE": "YES",
+            "COLUMN_KEY": "",
+            "EXTRA": "",
+            "COLUMN_DEFAULT": "NULL"
+        },
+        {
+            "TABLE_NAME": "ai_outputs",
+            "COLUMN_NAME": "owner_student_id",
+            "COLUMN_TYPE": "int(11)",
+            "IS_NULLABLE": "YES",
+            "COLUMN_KEY": "MUL",
+            "EXTRA": "",
+            "COLUMN_DEFAULT": "NULL"
+        },
+        {
+            "TABLE_NAME": "ai_outputs",
+            "COLUMN_NAME": "owner_document_id",
+            "COLUMN_TYPE": "varchar(40)",
+            "IS_NULLABLE": "YES",
+            "COLUMN_KEY": "MUL",
+            "EXTRA": "",
+            "COLUMN_DEFAULT": "NULL"
+        },
+        {
+            "TABLE_NAME": "calendar_deadlines",
+            "COLUMN_NAME": "id",
+            "COLUMN_TYPE": "int(11)",
+            "IS_NULLABLE": "NO",
+            "COLUMN_KEY": "PRI",
+            "EXTRA": "auto_increment",
+            "COLUMN_DEFAULT": null
+        },
+        {
+            "TABLE_NAME": "calendar_deadlines",
+            "COLUMN_NAME": "creator_user_id",
+            "COLUMN_TYPE": "int(11)",
+            "IS_NULLABLE": "YES",
+            "COLUMN_KEY": "MUL",
+            "EXTRA": "",
+            "COLUMN_DEFAULT": "NULL"
+        },
+        {
+            "TABLE_NAME": "calendar_deadlines",
+            "COLUMN_NAME": "title",
+            "COLUMN_TYPE": "varchar(190)",
+            "IS_NULLABLE": "NO",
+            "COLUMN_KEY": "",
+            "EXTRA": "",
+            "COLUMN_DEFAULT": null
+        },
+        {
+            "TABLE_NAME": "calendar_deadlines",
+            "COLUMN_NAME": "description",
+            "COLUMN_TYPE": "text",
+            "IS_NULLABLE": "YES",
+            "COLUMN_KEY": "",
+            "EXTRA": "",
+            "COLUMN_DEFAULT": "NULL"
+        },
+        {
+            "TABLE_NAME": "calendar_deadlines",
+            "COLUMN_NAME": "deadline_date",
+            "COLUMN_TYPE": "date",
+            "IS_NULLABLE": "NO",
+            "COLUMN_KEY": "MUL",
+            "EXTRA": "",
+            "COLUMN_DEFAULT": null
+        },
+        {
+            "TABLE_NAME": "calendar_deadlines",
+            "COLUMN_NAME": "target_scope",
+            "COLUMN_TYPE": "enum('all','groups')",
+            "IS_NULLABLE": "NO",
+            "COLUMN_KEY": "",
+            "EXTRA": "",
+            "COLUMN_DEFAULT": null
+        },
+        {
+            "TABLE_NAME": "calendar_deadlines",
+            "COLUMN_NAME": "status",
+            "COLUMN_TYPE": "enum('Active','Cancelled')",
+            "IS_NULLABLE": "NO",
+            "COLUMN_KEY": "",
+            "EXTRA": "",
+            "COLUMN_DEFAULT": "'Active'"
+        },
+        {
+            "TABLE_NAME": "calendar_deadlines",
+            "COLUMN_NAME": "created_at",
+            "COLUMN_TYPE": "datetime",
+            "IS_NULLABLE": "NO",
+            "COLUMN_KEY": "",
+            "EXTRA": "",
+            "COLUMN_DEFAULT": "current_timestamp()"
+        },
+        {
+            "TABLE_NAME": "calendar_deadlines",
+            "COLUMN_NAME": "updated_at",
+            "COLUMN_TYPE": "datetime",
+            "IS_NULLABLE": "NO",
+            "COLUMN_KEY": "",
+            "EXTRA": "on update current_timestamp()",
+            "COLUMN_DEFAULT": "current_timestamp()"
+        },
+        {
+            "TABLE_NAME": "calendar_deadlines",
+            "COLUMN_NAME": "creator_name",
+            "COLUMN_TYPE": "varchar(190)",
+            "IS_NULLABLE": "YES",
+            "COLUMN_KEY": "",
+            "EXTRA": "",
+            "COLUMN_DEFAULT": "NULL"
+        },
+        {
+            "TABLE_NAME": "calendar_deadline_groups",
+            "COLUMN_NAME": "deadline_id",
+            "COLUMN_TYPE": "int(11)",
+            "IS_NULLABLE": "NO",
+            "COLUMN_KEY": "PRI",
+            "EXTRA": "",
+            "COLUMN_DEFAULT": null
+        },
+        {
+            "TABLE_NAME": "calendar_deadline_groups",
+            "COLUMN_NAME": "research_group",
+            "COLUMN_TYPE": "varchar(190)",
+            "IS_NULLABLE": "NO",
+            "COLUMN_KEY": "PRI",
+            "EXTRA": "",
+            "COLUMN_DEFAULT": null
+        },
+        {
+            "TABLE_NAME": "calendar_deadline_recipients",
+            "COLUMN_NAME": "deadline_id",
+            "COLUMN_TYPE": "int(11)",
+            "IS_NULLABLE": "NO",
+            "COLUMN_KEY": "PRI",
+            "EXTRA": "",
+            "COLUMN_DEFAULT": null
+        },
+        {
+            "TABLE_NAME": "calendar_deadline_recipients",
+            "COLUMN_NAME": "student_id",
+            "COLUMN_TYPE": "int(11)",
+            "IS_NULLABLE": "NO",
+            "COLUMN_KEY": "PRI",
+            "EXTRA": "",
+            "COLUMN_DEFAULT": null
+        },
+        {
+            "TABLE_NAME": "documents",
+            "COLUMN_NAME": "id",
+            "COLUMN_TYPE": "varchar(40)",
+            "IS_NULLABLE": "NO",
+            "COLUMN_KEY": "PRI",
+            "EXTRA": "",
+            "COLUMN_DEFAULT": null
+        },
+        {
+            "TABLE_NAME": "documents",
+            "COLUMN_NAME": "student_id",
+            "COLUMN_TYPE": "int(11)",
+            "IS_NULLABLE": "YES",
+            "COLUMN_KEY": "MUL",
+            "EXTRA": "",
+            "COLUMN_DEFAULT": "NULL"
+        },
+        {
+            "TABLE_NAME": "documents",
+            "COLUMN_NAME": "student_name",
+            "COLUMN_TYPE": "varchar(190)",
+            "IS_NULLABLE": "YES",
+            "COLUMN_KEY": "",
+            "EXTRA": "",
+            "COLUMN_DEFAULT": "NULL"
+        },
+        {
+            "TABLE_NAME": "documents",
+            "COLUMN_NAME": "uploaded_by",
+            "COLUMN_TYPE": "varchar(190)",
+            "IS_NULLABLE": "YES",
+            "COLUMN_KEY": "",
+            "EXTRA": "",
+            "COLUMN_DEFAULT": "NULL"
+        },
+        {
+            "TABLE_NAME": "documents",
+            "COLUMN_NAME": "uploaded_by_role",
+            "COLUMN_TYPE": "varchar(20)",
+            "IS_NULLABLE": "YES",
+            "COLUMN_KEY": "",
+            "EXTRA": "",
+            "COLUMN_DEFAULT": "NULL"
+        },
+        {
+            "TABLE_NAME": "documents",
+            "COLUMN_NAME": "original_name",
+            "COLUMN_TYPE": "varchar(255)",
+            "IS_NULLABLE": "NO",
+            "COLUMN_KEY": "",
+            "EXTRA": "",
+            "COLUMN_DEFAULT": null
+        },
+        {
+            "TABLE_NAME": "documents",
+            "COLUMN_NAME": "stored_name",
+            "COLUMN_TYPE": "varchar(255)",
+            "IS_NULLABLE": "NO",
+            "COLUMN_KEY": "MUL",
+            "EXTRA": "",
+            "COLUMN_DEFAULT": null
+        },
+        {
+            "TABLE_NAME": "documents",
+            "COLUMN_NAME": "mime",
+            "COLUMN_TYPE": "varchar(120)",
+            "IS_NULLABLE": "YES",
+            "COLUMN_KEY": "",
+            "EXTRA": "",
+            "COLUMN_DEFAULT": "NULL"
+        },
+        {
+            "TABLE_NAME": "documents",
+            "COLUMN_NAME": "size",
+            "COLUMN_TYPE": "int(11)",
+            "IS_NULLABLE": "YES",
+            "COLUMN_KEY": "",
+            "EXTRA": "",
+            "COLUMN_DEFAULT": "NULL"
+        },
+        {
+            "TABLE_NAME": "documents",
+            "COLUMN_NAME": "document_type",
+            "COLUMN_TYPE": "varchar(100)",
+            "IS_NULLABLE": "YES",
+            "COLUMN_KEY": "",
+            "EXTRA": "",
+            "COLUMN_DEFAULT": "NULL"
+        },
+        {
+            "TABLE_NAME": "documents",
+            "COLUMN_NAME": "stage",
+            "COLUMN_TYPE": "varchar(20)",
+            "IS_NULLABLE": "YES",
+            "COLUMN_KEY": "",
+            "EXTRA": "",
+            "COLUMN_DEFAULT": "NULL"
+        },
+        {
+            "TABLE_NAME": "documents",
+            "COLUMN_NAME": "version_no",
+            "COLUMN_TYPE": "int(11)",
+            "IS_NULLABLE": "NO",
+            "COLUMN_KEY": "",
+            "EXTRA": "",
+            "COLUMN_DEFAULT": "1"
+        },
+        {
+            "TABLE_NAME": "documents",
+            "COLUMN_NAME": "is_current",
+            "COLUMN_TYPE": "tinyint(1)",
+            "IS_NULLABLE": "NO",
+            "COLUMN_KEY": "",
+            "EXTRA": "",
+            "COLUMN_DEFAULT": "1"
+        },
+        {
+            "TABLE_NAME": "documents",
+            "COLUMN_NAME": "supersedes_id",
+            "COLUMN_TYPE": "varchar(40)",
+            "IS_NULLABLE": "YES",
+            "COLUMN_KEY": "MUL",
+            "EXTRA": "",
+            "COLUMN_DEFAULT": "NULL"
+        },
+        {
+            "TABLE_NAME": "documents",
+            "COLUMN_NAME": "notes",
+            "COLUMN_TYPE": "text",
+            "IS_NULLABLE": "YES",
+            "COLUMN_KEY": "",
+            "EXTRA": "",
+            "COLUMN_DEFAULT": "NULL"
+        },
+        {
+            "TABLE_NAME": "documents",
+            "COLUMN_NAME": "review_status",
+            "COLUMN_TYPE": "varchar(30)",
+            "IS_NULLABLE": "NO",
+            "COLUMN_KEY": "",
+            "EXTRA": "",
+            "COLUMN_DEFAULT": "'Submitted'"
+        },
+        {
+            "TABLE_NAME": "documents",
+            "COLUMN_NAME": "review_remarks",
+            "COLUMN_TYPE": "text",
+            "IS_NULLABLE": "YES",
+            "COLUMN_KEY": "",
+            "EXTRA": "",
+            "COLUMN_DEFAULT": "NULL"
+        },
+        {
+            "TABLE_NAME": "documents",
+            "COLUMN_NAME": "reviewed_by",
+            "COLUMN_TYPE": "varchar(190)",
+            "IS_NULLABLE": "YES",
+            "COLUMN_KEY": "",
+            "EXTRA": "",
+            "COLUMN_DEFAULT": "NULL"
+        },
+        {
+            "TABLE_NAME": "documents",
+            "COLUMN_NAME": "reviewed_at",
+            "COLUMN_TYPE": "datetime",
+            "IS_NULLABLE": "YES",
+            "COLUMN_KEY": "",
+            "EXTRA": "",
+            "COLUMN_DEFAULT": "NULL"
+        },
+        {
+            "TABLE_NAME": "documents",
+            "COLUMN_NAME": "detected_approval_date",
+            "COLUMN_TYPE": "date",
+            "IS_NULLABLE": "YES",
+            "COLUMN_KEY": "",
+            "EXTRA": "",
+            "COLUMN_DEFAULT": "NULL"
+        },
+        {
+            "TABLE_NAME": "documents",
+            "COLUMN_NAME": "approval_date_source",
+            "COLUMN_TYPE": "varchar(20)",
+            "IS_NULLABLE": "YES",
+            "COLUMN_KEY": "",
+            "EXTRA": "",
+            "COLUMN_DEFAULT": "NULL"
+        },
+        {
+            "TABLE_NAME": "documents",
+            "COLUMN_NAME": "ai_summary",
+            "COLUMN_TYPE": "text",
+            "IS_NULLABLE": "YES",
+            "COLUMN_KEY": "",
+            "EXTRA": "",
+            "COLUMN_DEFAULT": "NULL"
+        },
+        {
+            "TABLE_NAME": "documents",
+            "COLUMN_NAME": "uploaded_at",
+            "COLUMN_TYPE": "datetime",
+            "IS_NULLABLE": "NO",
+            "COLUMN_KEY": "",
+            "EXTRA": "",
+            "COLUMN_DEFAULT": "current_timestamp()"
+        },
+        {
+            "TABLE_NAME": "documents",
+            "COLUMN_NAME": "rpms_submitted_at",
+            "COLUMN_TYPE": "datetime",
+            "IS_NULLABLE": "YES",
+            "COLUMN_KEY": "",
+            "EXTRA": "",
+            "COLUMN_DEFAULT": "NULL"
+        },
+        {
+            "TABLE_NAME": "documents",
+            "COLUMN_NAME": "rpms_submitted_by",
+            "COLUMN_TYPE": "varchar(190)",
+            "IS_NULLABLE": "YES",
+            "COLUMN_KEY": "",
+            "EXTRA": "",
+            "COLUMN_DEFAULT": "NULL"
+        },
+        {
+            "TABLE_NAME": "documents",
+            "COLUMN_NAME": "admin_override",
+            "COLUMN_TYPE": "tinyint(1)",
+            "IS_NULLABLE": "NO",
+            "COLUMN_KEY": "",
+            "EXTRA": "",
+            "COLUMN_DEFAULT": "0"
+        },
+        {
+            "TABLE_NAME": "documents",
+            "COLUMN_NAME": "override_reason",
+            "COLUMN_TYPE": "text",
+            "IS_NULLABLE": "YES",
+            "COLUMN_KEY": "",
+            "EXTRA": "",
+            "COLUMN_DEFAULT": "NULL"
+        },
+        {
+            "TABLE_NAME": "documents",
+            "COLUMN_NAME": "override_by",
+            "COLUMN_TYPE": "varchar(190)",
+            "IS_NULLABLE": "YES",
+            "COLUMN_KEY": "",
+            "EXTRA": "",
+            "COLUMN_DEFAULT": "NULL"
+        },
+        {
+            "TABLE_NAME": "documents",
+            "COLUMN_NAME": "override_at",
+            "COLUMN_TYPE": "datetime",
+            "IS_NULLABLE": "YES",
+            "COLUMN_KEY": "",
+            "EXTRA": "",
+            "COLUMN_DEFAULT": "NULL"
+        },
+        {
+            "TABLE_NAME": "ierb_history",
+            "COLUMN_NAME": "id",
+            "COLUMN_TYPE": "int(11)",
+            "IS_NULLABLE": "NO",
+            "COLUMN_KEY": "PRI",
+            "EXTRA": "auto_increment",
+            "COLUMN_DEFAULT": null
+        },
+        {
+            "TABLE_NAME": "ierb_history",
+            "COLUMN_NAME": "student_id",
+            "COLUMN_TYPE": "int(11)",
+            "IS_NULLABLE": "NO",
+            "COLUMN_KEY": "MUL",
+            "EXTRA": "",
+            "COLUMN_DEFAULT": null
+        },
+        {
+            "TABLE_NAME": "ierb_history",
+            "COLUMN_NAME": "stage",
+            "COLUMN_TYPE": "varchar(20)",
+            "IS_NULLABLE": "YES",
+            "COLUMN_KEY": "",
+            "EXTRA": "",
+            "COLUMN_DEFAULT": "NULL"
+        },
+        {
+            "TABLE_NAME": "ierb_history",
+            "COLUMN_NAME": "status",
+            "COLUMN_TYPE": "varchar(30)",
+            "IS_NULLABLE": "YES",
+            "COLUMN_KEY": "",
+            "EXTRA": "",
+            "COLUMN_DEFAULT": "NULL"
+        },
+        {
+            "TABLE_NAME": "ierb_history",
+            "COLUMN_NAME": "note",
+            "COLUMN_TYPE": "text",
+            "IS_NULLABLE": "YES",
+            "COLUMN_KEY": "",
+            "EXTRA": "",
+            "COLUMN_DEFAULT": "NULL"
+        },
+        {
+            "TABLE_NAME": "ierb_history",
+            "COLUMN_NAME": "requirements",
+            "COLUMN_TYPE": "varchar(255)",
+            "IS_NULLABLE": "YES",
+            "COLUMN_KEY": "",
+            "EXTRA": "",
+            "COLUMN_DEFAULT": "NULL"
+        },
+        {
+            "TABLE_NAME": "ierb_history",
+            "COLUMN_NAME": "submission_date",
+            "COLUMN_TYPE": "date",
+            "IS_NULLABLE": "YES",
+            "COLUMN_KEY": "",
+            "EXTRA": "",
+            "COLUMN_DEFAULT": "NULL"
+        },
+        {
+            "TABLE_NAME": "ierb_history",
+            "COLUMN_NAME": "actor",
+            "COLUMN_TYPE": "varchar(190)",
+            "IS_NULLABLE": "YES",
+            "COLUMN_KEY": "",
+            "EXTRA": "",
+            "COLUMN_DEFAULT": "NULL"
+        },
+        {
+            "TABLE_NAME": "ierb_history",
+            "COLUMN_NAME": "created_at",
+            "COLUMN_TYPE": "datetime",
+            "IS_NULLABLE": "NO",
+            "COLUMN_KEY": "",
+            "EXTRA": "",
+            "COLUMN_DEFAULT": "current_timestamp()"
+        },
+        {
+            "TABLE_NAME": "notifications",
+            "COLUMN_NAME": "id",
+            "COLUMN_TYPE": "int(11)",
+            "IS_NULLABLE": "NO",
+            "COLUMN_KEY": "PRI",
+            "EXTRA": "auto_increment",
+            "COLUMN_DEFAULT": null
+        },
+        {
+            "TABLE_NAME": "notifications",
+            "COLUMN_NAME": "recipient_type",
+            "COLUMN_TYPE": "varchar(20)",
+            "IS_NULLABLE": "NO",
+            "COLUMN_KEY": "MUL",
+            "EXTRA": "",
+            "COLUMN_DEFAULT": null
+        },
+        {
+            "TABLE_NAME": "notifications",
+            "COLUMN_NAME": "recipient_id",
+            "COLUMN_TYPE": "int(11)",
+            "IS_NULLABLE": "YES",
+            "COLUMN_KEY": "",
+            "EXTRA": "",
+            "COLUMN_DEFAULT": "NULL"
+        },
+        {
+            "TABLE_NAME": "notifications",
+            "COLUMN_NAME": "recipient_email",
+            "COLUMN_TYPE": "varchar(190)",
+            "IS_NULLABLE": "YES",
+            "COLUMN_KEY": "",
+            "EXTRA": "",
+            "COLUMN_DEFAULT": "NULL"
+        },
+        {
+            "TABLE_NAME": "notifications",
+            "COLUMN_NAME": "recipient_name",
+            "COLUMN_TYPE": "varchar(190)",
+            "IS_NULLABLE": "YES",
+            "COLUMN_KEY": "",
+            "EXTRA": "",
+            "COLUMN_DEFAULT": "NULL"
+        },
+        {
+            "TABLE_NAME": "notifications",
+            "COLUMN_NAME": "subject",
+            "COLUMN_TYPE": "varchar(255)",
+            "IS_NULLABLE": "YES",
+            "COLUMN_KEY": "",
+            "EXTRA": "",
+            "COLUMN_DEFAULT": "NULL"
+        },
+        {
+            "TABLE_NAME": "notifications",
+            "COLUMN_NAME": "message",
+            "COLUMN_TYPE": "text",
+            "IS_NULLABLE": "NO",
+            "COLUMN_KEY": "",
+            "EXTRA": "",
+            "COLUMN_DEFAULT": null
+        },
+        {
+            "TABLE_NAME": "notifications",
+            "COLUMN_NAME": "type",
+            "COLUMN_TYPE": "varchar(50)",
+            "IS_NULLABLE": "NO",
+            "COLUMN_KEY": "",
+            "EXTRA": "",
+            "COLUMN_DEFAULT": "'Status Update'"
+        },
+        {
+            "TABLE_NAME": "notifications",
+            "COLUMN_NAME": "status",
+            "COLUMN_TYPE": "varchar(20)",
+            "IS_NULLABLE": "NO",
+            "COLUMN_KEY": "",
+            "EXTRA": "",
+            "COLUMN_DEFAULT": "'Sent'"
+        },
+        {
+            "TABLE_NAME": "notifications",
+            "COLUMN_NAME": "delivery_info",
+            "COLUMN_TYPE": "text",
+            "IS_NULLABLE": "YES",
+            "COLUMN_KEY": "",
+            "EXTRA": "",
+            "COLUMN_DEFAULT": "NULL"
+        },
+        {
+            "TABLE_NAME": "notifications",
+            "COLUMN_NAME": "scheduled_at",
+            "COLUMN_TYPE": "datetime",
+            "IS_NULLABLE": "YES",
+            "COLUMN_KEY": "",
+            "EXTRA": "",
+            "COLUMN_DEFAULT": "NULL"
+        },
+        {
+            "TABLE_NAME": "notifications",
+            "COLUMN_NAME": "sent_at",
+            "COLUMN_TYPE": "datetime",
+            "IS_NULLABLE": "YES",
+            "COLUMN_KEY": "",
+            "EXTRA": "",
+            "COLUMN_DEFAULT": "NULL"
+        },
+        {
+            "TABLE_NAME": "notifications",
+            "COLUMN_NAME": "read_at",
+            "COLUMN_TYPE": "datetime",
+            "IS_NULLABLE": "YES",
+            "COLUMN_KEY": "",
+            "EXTRA": "",
+            "COLUMN_DEFAULT": "NULL"
+        },
+        {
+            "TABLE_NAME": "notifications",
+            "COLUMN_NAME": "created_by",
+            "COLUMN_TYPE": "varchar(190)",
+            "IS_NULLABLE": "YES",
+            "COLUMN_KEY": "",
+            "EXTRA": "",
+            "COLUMN_DEFAULT": "NULL"
+        },
+        {
+            "TABLE_NAME": "notifications",
+            "COLUMN_NAME": "created_at",
+            "COLUMN_TYPE": "datetime",
+            "IS_NULLABLE": "NO",
+            "COLUMN_KEY": "",
+            "EXTRA": "",
+            "COLUMN_DEFAULT": "current_timestamp()"
+        },
+        {
+            "TABLE_NAME": "notifications",
+            "COLUMN_NAME": "sending_started_at",
+            "COLUMN_TYPE": "datetime",
+            "IS_NULLABLE": "YES",
+            "COLUMN_KEY": "",
+            "EXTRA": "",
+            "COLUMN_DEFAULT": "NULL"
+        },
+        {
+            "TABLE_NAME": "password_resets",
+            "COLUMN_NAME": "id",
+            "COLUMN_TYPE": "int(11)",
+            "IS_NULLABLE": "NO",
+            "COLUMN_KEY": "PRI",
+            "EXTRA": "auto_increment",
+            "COLUMN_DEFAULT": null
+        },
+        {
+            "TABLE_NAME": "password_resets",
+            "COLUMN_NAME": "user_id",
+            "COLUMN_TYPE": "int(11)",
+            "IS_NULLABLE": "NO",
+            "COLUMN_KEY": "MUL",
+            "EXTRA": "",
+            "COLUMN_DEFAULT": null
+        },
+        {
+            "TABLE_NAME": "password_resets",
+            "COLUMN_NAME": "token",
+            "COLUMN_TYPE": "varchar(128)",
+            "IS_NULLABLE": "NO",
+            "COLUMN_KEY": "UNI",
+            "EXTRA": "",
+            "COLUMN_DEFAULT": null
+        },
+        {
+            "TABLE_NAME": "password_resets",
+            "COLUMN_NAME": "expires_at",
+            "COLUMN_TYPE": "datetime",
+            "IS_NULLABLE": "NO",
+            "COLUMN_KEY": "",
+            "EXTRA": "",
+            "COLUMN_DEFAULT": null
+        },
+        {
+            "TABLE_NAME": "password_resets",
+            "COLUMN_NAME": "used",
+            "COLUMN_TYPE": "tinyint(1)",
+            "IS_NULLABLE": "NO",
+            "COLUMN_KEY": "",
+            "EXTRA": "",
+            "COLUMN_DEFAULT": "0"
+        },
+        {
+            "TABLE_NAME": "password_resets",
+            "COLUMN_NAME": "created_at",
+            "COLUMN_TYPE": "datetime",
+            "IS_NULLABLE": "NO",
+            "COLUMN_KEY": "",
+            "EXTRA": "",
+            "COLUMN_DEFAULT": "current_timestamp()"
+        },
+        {
+            "TABLE_NAME": "reports",
+            "COLUMN_NAME": "id",
+            "COLUMN_TYPE": "varchar(40)",
+            "IS_NULLABLE": "NO",
+            "COLUMN_KEY": "PRI",
+            "EXTRA": "",
+            "COLUMN_DEFAULT": null
+        },
+        {
+            "TABLE_NAME": "reports",
+            "COLUMN_NAME": "title",
+            "COLUMN_TYPE": "varchar(255)",
+            "IS_NULLABLE": "NO",
+            "COLUMN_KEY": "",
+            "EXTRA": "",
+            "COLUMN_DEFAULT": null
+        },
+        {
+            "TABLE_NAME": "reports",
+            "COLUMN_NAME": "type",
+            "COLUMN_TYPE": "varchar(50)",
+            "IS_NULLABLE": "NO",
+            "COLUMN_KEY": "",
+            "EXTRA": "",
+            "COLUMN_DEFAULT": null
+        },
+        {
+            "TABLE_NAME": "reports",
+            "COLUMN_NAME": "filename",
+            "COLUMN_TYPE": "varchar(255)",
+            "IS_NULLABLE": "NO",
+            "COLUMN_KEY": "MUL",
+            "EXTRA": "",
+            "COLUMN_DEFAULT": null
+        },
+        {
+            "TABLE_NAME": "reports",
+            "COLUMN_NAME": "generated_by",
+            "COLUMN_TYPE": "varchar(190)",
+            "IS_NULLABLE": "YES",
+            "COLUMN_KEY": "",
+            "EXTRA": "",
+            "COLUMN_DEFAULT": "NULL"
+        },
+        {
+            "TABLE_NAME": "reports",
+            "COLUMN_NAME": "generated_by_user_id",
+            "COLUMN_TYPE": "int(11)",
+            "IS_NULLABLE": "YES",
+            "COLUMN_KEY": "",
+            "EXTRA": "",
+            "COLUMN_DEFAULT": "NULL"
+        },
+        {
+            "TABLE_NAME": "reports",
+            "COLUMN_NAME": "generated_at",
+            "COLUMN_TYPE": "datetime",
+            "IS_NULLABLE": "NO",
+            "COLUMN_KEY": "",
+            "EXTRA": "",
+            "COLUMN_DEFAULT": "current_timestamp()"
+        },
+        {
+            "TABLE_NAME": "reports",
+            "COLUMN_NAME": "owner_student_id",
+            "COLUMN_TYPE": "int(11)",
+            "IS_NULLABLE": "YES",
+            "COLUMN_KEY": "MUL",
+            "EXTRA": "",
+            "COLUMN_DEFAULT": "NULL"
+        },
+        {
+            "TABLE_NAME": "schema_meta",
+            "COLUMN_NAME": "k",
+            "COLUMN_TYPE": "varchar(40)",
+            "IS_NULLABLE": "NO",
+            "COLUMN_KEY": "PRI",
+            "EXTRA": "",
+            "COLUMN_DEFAULT": null
+        },
+        {
+            "TABLE_NAME": "schema_meta",
+            "COLUMN_NAME": "v",
+            "COLUMN_TYPE": "varchar(40)",
+            "IS_NULLABLE": "NO",
+            "COLUMN_KEY": "",
+            "EXTRA": "",
+            "COLUMN_DEFAULT": null
+        },
+        {
+            "TABLE_NAME": "stage_labels",
+            "COLUMN_NAME": "stage_key",
+            "COLUMN_TYPE": "varchar(20)",
+            "IS_NULLABLE": "NO",
+            "COLUMN_KEY": "PRI",
+            "EXTRA": "",
+            "COLUMN_DEFAULT": null
+        },
+        {
+            "TABLE_NAME": "stage_labels",
+            "COLUMN_NAME": "label",
+            "COLUMN_TYPE": "varchar(190)",
+            "IS_NULLABLE": "NO",
+            "COLUMN_KEY": "",
+            "EXTRA": "",
+            "COLUMN_DEFAULT": null
+        },
+        {
+            "TABLE_NAME": "stage_labels",
+            "COLUMN_NAME": "updated_at",
+            "COLUMN_TYPE": "datetime",
+            "IS_NULLABLE": "NO",
+            "COLUMN_KEY": "",
+            "EXTRA": "on update current_timestamp()",
+            "COLUMN_DEFAULT": "current_timestamp()"
+        },
+        {
+            "TABLE_NAME": "students",
+            "COLUMN_NAME": "id",
+            "COLUMN_TYPE": "int(11)",
+            "IS_NULLABLE": "NO",
+            "COLUMN_KEY": "PRI",
+            "EXTRA": "auto_increment",
+            "COLUMN_DEFAULT": null
+        },
+        {
+            "TABLE_NAME": "students",
+            "COLUMN_NAME": "student_id",
+            "COLUMN_TYPE": "varchar(100)",
+            "IS_NULLABLE": "YES",
+            "COLUMN_KEY": "UNI",
+            "EXTRA": "",
+            "COLUMN_DEFAULT": "NULL"
+        },
+        {
+            "TABLE_NAME": "students",
+            "COLUMN_NAME": "full_name",
+            "COLUMN_TYPE": "varchar(190)",
+            "IS_NULLABLE": "YES",
+            "COLUMN_KEY": "",
+            "EXTRA": "",
+            "COLUMN_DEFAULT": "NULL"
+        },
+        {
+            "TABLE_NAME": "students",
+            "COLUMN_NAME": "email",
+            "COLUMN_TYPE": "varchar(190)",
+            "IS_NULLABLE": "NO",
+            "COLUMN_KEY": "UNI",
+            "EXTRA": "",
+            "COLUMN_DEFAULT": null
+        },
+        {
+            "TABLE_NAME": "students",
+            "COLUMN_NAME": "research_title",
+            "COLUMN_TYPE": "varchar(255)",
+            "IS_NULLABLE": "YES",
+            "COLUMN_KEY": "",
+            "EXTRA": "",
+            "COLUMN_DEFAULT": "NULL"
+        },
+        {
+            "TABLE_NAME": "students",
+            "COLUMN_NAME": "research_group",
+            "COLUMN_TYPE": "varchar(190)",
+            "IS_NULLABLE": "YES",
+            "COLUMN_KEY": "",
+            "EXTRA": "",
+            "COLUMN_DEFAULT": "NULL"
+        },
+        {
+            "TABLE_NAME": "students",
+            "COLUMN_NAME": "course",
+            "COLUMN_TYPE": "varchar(255)",
+            "IS_NULLABLE": "YES",
+            "COLUMN_KEY": "",
+            "EXTRA": "",
+            "COLUMN_DEFAULT": "NULL"
+        },
+        {
+            "TABLE_NAME": "students",
+            "COLUMN_NAME": "adviser_id",
+            "COLUMN_TYPE": "int(11)",
+            "IS_NULLABLE": "YES",
+            "COLUMN_KEY": "MUL",
+            "EXTRA": "",
+            "COLUMN_DEFAULT": "NULL"
+        },
+        {
+            "TABLE_NAME": "students",
+            "COLUMN_NAME": "stage",
+            "COLUMN_TYPE": "varchar(20)",
+            "IS_NULLABLE": "NO",
+            "COLUMN_KEY": "",
+            "EXTRA": "",
+            "COLUMN_DEFAULT": "'Stage 1'"
+        },
+        {
+            "TABLE_NAME": "students",
+            "COLUMN_NAME": "status",
+            "COLUMN_TYPE": "varchar(30)",
+            "IS_NULLABLE": "NO",
+            "COLUMN_KEY": "",
+            "EXTRA": "",
+            "COLUMN_DEFAULT": "'On Track'"
+        },
+        {
+            "TABLE_NAME": "students",
+            "COLUMN_NAME": "requirements",
+            "COLUMN_TYPE": "varchar(255)",
+            "IS_NULLABLE": "YES",
+            "COLUMN_KEY": "",
+            "EXTRA": "",
+            "COLUMN_DEFAULT": "NULL"
+        },
+        {
+            "TABLE_NAME": "students",
+            "COLUMN_NAME": "protocol_code",
+            "COLUMN_TYPE": "varchar(100)",
+            "IS_NULLABLE": "YES",
+            "COLUMN_KEY": "",
+            "EXTRA": "",
+            "COLUMN_DEFAULT": "NULL"
+        },
+        {
+            "TABLE_NAME": "students",
+            "COLUMN_NAME": "is_principal_investigator",
+            "COLUMN_TYPE": "tinyint(1)",
+            "IS_NULLABLE": "NO",
+            "COLUMN_KEY": "",
+            "EXTRA": "",
+            "COLUMN_DEFAULT": "0"
+        },
+        {
+            "TABLE_NAME": "students",
+            "COLUMN_NAME": "last_submission_date",
+            "COLUMN_TYPE": "date",
+            "IS_NULLABLE": "YES",
+            "COLUMN_KEY": "",
+            "EXTRA": "",
+            "COLUMN_DEFAULT": "NULL"
+        },
+        {
+            "TABLE_NAME": "students",
+            "COLUMN_NAME": "user_id",
+            "COLUMN_TYPE": "int(11)",
+            "IS_NULLABLE": "YES",
+            "COLUMN_KEY": "MUL",
+            "EXTRA": "",
+            "COLUMN_DEFAULT": "NULL"
+        },
+        {
+            "TABLE_NAME": "students",
+            "COLUMN_NAME": "created_at",
+            "COLUMN_TYPE": "datetime",
+            "IS_NULLABLE": "NO",
+            "COLUMN_KEY": "",
+            "EXTRA": "",
+            "COLUMN_DEFAULT": "current_timestamp()"
+        },
+        {
+            "TABLE_NAME": "students",
+            "COLUMN_NAME": "updated_at",
+            "COLUMN_TYPE": "datetime",
+            "IS_NULLABLE": "NO",
+            "COLUMN_KEY": "",
+            "EXTRA": "on update current_timestamp()",
+            "COLUMN_DEFAULT": "current_timestamp()"
+        },
+        {
+            "TABLE_NAME": "students",
+            "COLUMN_NAME": "academic_unit_key",
+            "COLUMN_TYPE": "varchar(64)",
+            "IS_NULLABLE": "YES",
+            "COLUMN_KEY": "",
+            "EXTRA": "",
+            "COLUMN_DEFAULT": "NULL"
+        },
+        {
+            "TABLE_NAME": "students",
+            "COLUMN_NAME": "program_key",
+            "COLUMN_TYPE": "varchar(80)",
+            "IS_NULLABLE": "YES",
+            "COLUMN_KEY": "",
+            "EXTRA": "",
+            "COLUMN_DEFAULT": "NULL"
+        },
+        {
+            "TABLE_NAME": "students",
+            "COLUMN_NAME": "year_level",
+            "COLUMN_TYPE": "varchar(40)",
+            "IS_NULLABLE": "YES",
+            "COLUMN_KEY": "",
+            "EXTRA": "",
+            "COLUMN_DEFAULT": "NULL"
+        },
+        {
+            "TABLE_NAME": "students",
+            "COLUMN_NAME": "academic_year",
+            "COLUMN_TYPE": "varchar(9)",
+            "IS_NULLABLE": "YES",
+            "COLUMN_KEY": "",
+            "EXTRA": "",
+            "COLUMN_DEFAULT": "NULL"
+        },
+        {
+            "TABLE_NAME": "students",
+            "COLUMN_NAME": "archived_at",
+            "COLUMN_TYPE": "datetime",
+            "IS_NULLABLE": "YES",
+            "COLUMN_KEY": "MUL",
+            "EXTRA": "",
+            "COLUMN_DEFAULT": "NULL"
+        },
+        {
+            "TABLE_NAME": "students",
+            "COLUMN_NAME": "retention_hold",
+            "COLUMN_TYPE": "tinyint(1)",
+            "IS_NULLABLE": "NO",
+            "COLUMN_KEY": "",
+            "EXTRA": "",
+            "COLUMN_DEFAULT": "0"
+        },
+        {
+            "TABLE_NAME": "students",
+            "COLUMN_NAME": "retention_hold_at",
+            "COLUMN_TYPE": "datetime",
+            "IS_NULLABLE": "YES",
+            "COLUMN_KEY": "",
+            "EXTRA": "",
+            "COLUMN_DEFAULT": "NULL"
+        },
+        {
+            "TABLE_NAME": "students",
+            "COLUMN_NAME": "retention_hold_by",
+            "COLUMN_TYPE": "int(11)",
+            "IS_NULLABLE": "YES",
+            "COLUMN_KEY": "",
+            "EXTRA": "",
+            "COLUMN_DEFAULT": "NULL"
+        },
+        {
+            "TABLE_NAME": "students",
+            "COLUMN_NAME": "retention_hold_reason",
+            "COLUMN_TYPE": "varchar(500)",
+            "IS_NULLABLE": "YES",
+            "COLUMN_KEY": "",
+            "EXTRA": "",
+            "COLUMN_DEFAULT": "NULL"
+        },
+        {
+            "TABLE_NAME": "students",
+            "COLUMN_NAME": "purge_postponed_at",
+            "COLUMN_TYPE": "datetime",
+            "IS_NULLABLE": "YES",
+            "COLUMN_KEY": "",
+            "EXTRA": "",
+            "COLUMN_DEFAULT": "NULL"
+        },
+        {
+            "TABLE_NAME": "students",
+            "COLUMN_NAME": "purge_postponed_reason",
+            "COLUMN_TYPE": "varchar(255)",
+            "IS_NULLABLE": "YES",
+            "COLUMN_KEY": "",
+            "EXTRA": "",
+            "COLUMN_DEFAULT": "NULL"
+        },
+        {
+            "TABLE_NAME": "students",
+            "COLUMN_NAME": "restored_at",
+            "COLUMN_TYPE": "datetime",
+            "IS_NULLABLE": "YES",
+            "COLUMN_KEY": "",
+            "EXTRA": "",
+            "COLUMN_DEFAULT": "NULL"
+        },
+        {
+            "TABLE_NAME": "students",
+            "COLUMN_NAME": "profile_completed_at",
+            "COLUMN_TYPE": "datetime",
+            "IS_NULLABLE": "YES",
+            "COLUMN_KEY": "MUL",
+            "EXTRA": "",
+            "COLUMN_DEFAULT": "NULL"
+        },
+        {
+            "TABLE_NAME": "users",
+            "COLUMN_NAME": "id",
+            "COLUMN_TYPE": "int(11)",
+            "IS_NULLABLE": "NO",
+            "COLUMN_KEY": "PRI",
+            "EXTRA": "auto_increment",
+            "COLUMN_DEFAULT": null
+        },
+        {
+            "TABLE_NAME": "users",
+            "COLUMN_NAME": "username",
+            "COLUMN_TYPE": "varchar(100)",
+            "IS_NULLABLE": "YES",
+            "COLUMN_KEY": "UNI",
+            "EXTRA": "",
+            "COLUMN_DEFAULT": "NULL"
+        },
+        {
+            "TABLE_NAME": "users",
+            "COLUMN_NAME": "password_hash",
+            "COLUMN_TYPE": "varchar(255)",
+            "IS_NULLABLE": "NO",
+            "COLUMN_KEY": "",
+            "EXTRA": "",
+            "COLUMN_DEFAULT": null
+        },
+        {
+            "TABLE_NAME": "users",
+            "COLUMN_NAME": "role",
+            "COLUMN_TYPE": "enum('admin','adviser','student')",
+            "IS_NULLABLE": "NO",
+            "COLUMN_KEY": "",
+            "EXTRA": "",
+            "COLUMN_DEFAULT": null
+        },
+        {
+            "TABLE_NAME": "users",
+            "COLUMN_NAME": "full_name",
+            "COLUMN_TYPE": "varchar(190)",
+            "IS_NULLABLE": "YES",
+            "COLUMN_KEY": "",
+            "EXTRA": "",
+            "COLUMN_DEFAULT": "NULL"
+        },
+        {
+            "TABLE_NAME": "users",
+            "COLUMN_NAME": "email",
+            "COLUMN_TYPE": "varchar(190)",
+            "IS_NULLABLE": "NO",
+            "COLUMN_KEY": "UNI",
+            "EXTRA": "",
+            "COLUMN_DEFAULT": null
+        },
+        {
+            "TABLE_NAME": "users",
+            "COLUMN_NAME": "ref_id",
+            "COLUMN_TYPE": "varchar(100)",
+            "IS_NULLABLE": "YES",
+            "COLUMN_KEY": "",
+            "EXTRA": "",
+            "COLUMN_DEFAULT": "NULL"
+        },
+        {
+            "TABLE_NAME": "users",
+            "COLUMN_NAME": "status",
+            "COLUMN_TYPE": "varchar(20)",
+            "IS_NULLABLE": "NO",
+            "COLUMN_KEY": "",
+            "EXTRA": "",
+            "COLUMN_DEFAULT": "'Active'"
+        },
+        {
+            "TABLE_NAME": "users",
+            "COLUMN_NAME": "must_change_password",
+            "COLUMN_TYPE": "tinyint(1)",
+            "IS_NULLABLE": "NO",
+            "COLUMN_KEY": "",
+            "EXTRA": "",
+            "COLUMN_DEFAULT": "0"
+        },
+        {
+            "TABLE_NAME": "users",
+            "COLUMN_NAME": "created_at",
+            "COLUMN_TYPE": "datetime",
+            "IS_NULLABLE": "NO",
+            "COLUMN_KEY": "",
+            "EXTRA": "",
+            "COLUMN_DEFAULT": "current_timestamp()"
+        }
+    ],
+    "indexes": [
+        {
+            "TABLE_NAME": "account_invitations",
+            "INDEX_NAME": "invitation_inviter",
+            "NON_UNIQUE": 1,
+            "SEQ_IN_INDEX": 1,
+            "COLUMN_NAME": "invited_by_user_id",
+            "SUB_PART": null,
+            "INDEX_TYPE": "BTREE"
+        },
+        {
+            "TABLE_NAME": "account_invitations",
+            "INDEX_NAME": "PRIMARY",
+            "NON_UNIQUE": 0,
+            "SEQ_IN_INDEX": 1,
+            "COLUMN_NAME": "user_id",
+            "SUB_PART": null,
+            "INDEX_TYPE": "BTREE"
+        },
+        {
+            "TABLE_NAME": "account_invitations",
+            "INDEX_NAME": "token_hash",
+            "NON_UNIQUE": 0,
+            "SEQ_IN_INDEX": 1,
+            "COLUMN_NAME": "token_hash",
+            "SUB_PART": null,
+            "INDEX_TYPE": "BTREE"
+        },
+        {
+            "TABLE_NAME": "account_purge_jobs",
+            "INDEX_NAME": "PRIMARY",
+            "NON_UNIQUE": 0,
+            "SEQ_IN_INDEX": 1,
+            "COLUMN_NAME": "id",
+            "SUB_PART": null,
+            "INDEX_TYPE": "BTREE"
+        },
+        {
+            "TABLE_NAME": "account_purge_jobs",
+            "INDEX_NAME": "purge_job_status",
+            "NON_UNIQUE": 1,
+            "SEQ_IN_INDEX": 1,
+            "COLUMN_NAME": "status",
+            "SUB_PART": null,
+            "INDEX_TYPE": "BTREE"
+        },
+        {
+            "TABLE_NAME": "account_purge_jobs",
+            "INDEX_NAME": "purge_job_status",
+            "NON_UNIQUE": 1,
+            "SEQ_IN_INDEX": 2,
+            "COLUMN_NAME": "created_at",
+            "SUB_PART": null,
+            "INDEX_TYPE": "BTREE"
+        },
+        {
+            "TABLE_NAME": "activity_logs",
+            "INDEX_NAME": "lifecycle_entity",
+            "NON_UNIQUE": 1,
+            "SEQ_IN_INDEX": 1,
+            "COLUMN_NAME": "entity_type",
+            "SUB_PART": null,
+            "INDEX_TYPE": "BTREE"
+        },
+        {
+            "TABLE_NAME": "activity_logs",
+            "INDEX_NAME": "lifecycle_entity",
+            "NON_UNIQUE": 1,
+            "SEQ_IN_INDEX": 2,
+            "COLUMN_NAME": "entity_id",
+            "SUB_PART": null,
+            "INDEX_TYPE": "BTREE"
+        },
+        {
+            "TABLE_NAME": "activity_logs",
+            "INDEX_NAME": "lifecycle_student",
+            "NON_UNIQUE": 1,
+            "SEQ_IN_INDEX": 1,
+            "COLUMN_NAME": "student_id",
+            "SUB_PART": null,
+            "INDEX_TYPE": "BTREE"
+        },
+        {
+            "TABLE_NAME": "activity_logs",
+            "INDEX_NAME": "PRIMARY",
+            "NON_UNIQUE": 0,
+            "SEQ_IN_INDEX": 1,
+            "COLUMN_NAME": "id",
+            "SUB_PART": null,
+            "INDEX_TYPE": "BTREE"
+        },
+        {
+            "TABLE_NAME": "advisers",
+            "INDEX_NAME": "adviser_archive_lifecycle",
+            "NON_UNIQUE": 1,
+            "SEQ_IN_INDEX": 1,
+            "COLUMN_NAME": "archived_at",
+            "SUB_PART": null,
+            "INDEX_TYPE": "BTREE"
+        },
+        {
+            "TABLE_NAME": "advisers",
+            "INDEX_NAME": "adviser_archive_lifecycle",
+            "NON_UNIQUE": 1,
+            "SEQ_IN_INDEX": 2,
+            "COLUMN_NAME": "retention_hold",
+            "SUB_PART": null,
+            "INDEX_TYPE": "BTREE"
+        },
+        {
+            "TABLE_NAME": "advisers",
+            "INDEX_NAME": "adviser_profile_completion",
+            "NON_UNIQUE": 1,
+            "SEQ_IN_INDEX": 1,
+            "COLUMN_NAME": "profile_completed_at",
+            "SUB_PART": null,
+            "INDEX_TYPE": "BTREE"
+        },
+        {
+            "TABLE_NAME": "advisers",
+            "INDEX_NAME": "email",
+            "NON_UNIQUE": 0,
+            "SEQ_IN_INDEX": 1,
+            "COLUMN_NAME": "email",
+            "SUB_PART": null,
+            "INDEX_TYPE": "BTREE"
+        },
+        {
+            "TABLE_NAME": "advisers",
+            "INDEX_NAME": "employee_id",
+            "NON_UNIQUE": 0,
+            "SEQ_IN_INDEX": 1,
+            "COLUMN_NAME": "employee_id",
+            "SUB_PART": null,
+            "INDEX_TYPE": "BTREE"
+        },
+        {
+            "TABLE_NAME": "advisers",
+            "INDEX_NAME": "PRIMARY",
+            "NON_UNIQUE": 0,
+            "SEQ_IN_INDEX": 1,
+            "COLUMN_NAME": "id",
+            "SUB_PART": null,
+            "INDEX_TYPE": "BTREE"
+        },
+        {
+            "TABLE_NAME": "advisers",
+            "INDEX_NAME": "user_id",
+            "NON_UNIQUE": 1,
+            "SEQ_IN_INDEX": 1,
+            "COLUMN_NAME": "user_id",
+            "SUB_PART": null,
+            "INDEX_TYPE": "BTREE"
+        },
+        {
+            "TABLE_NAME": "ai_outputs",
+            "INDEX_NAME": "ai_owner_document",
+            "NON_UNIQUE": 1,
+            "SEQ_IN_INDEX": 1,
+            "COLUMN_NAME": "owner_document_id",
+            "SUB_PART": null,
+            "INDEX_TYPE": "BTREE"
+        },
+        {
+            "TABLE_NAME": "ai_outputs",
+            "INDEX_NAME": "ai_owner_student",
+            "NON_UNIQUE": 1,
+            "SEQ_IN_INDEX": 1,
+            "COLUMN_NAME": "owner_student_id",
+            "SUB_PART": null,
+            "INDEX_TYPE": "BTREE"
+        },
+        {
+            "TABLE_NAME": "ai_outputs",
+            "INDEX_NAME": "PRIMARY",
+            "NON_UNIQUE": 0,
+            "SEQ_IN_INDEX": 1,
+            "COLUMN_NAME": "id",
+            "SUB_PART": null,
+            "INDEX_TYPE": "BTREE"
+        },
+        {
+            "TABLE_NAME": "calendar_deadlines",
+            "INDEX_NAME": "deadline_creator",
+            "NON_UNIQUE": 1,
+            "SEQ_IN_INDEX": 1,
+            "COLUMN_NAME": "creator_user_id",
+            "SUB_PART": null,
+            "INDEX_TYPE": "BTREE"
+        },
+        {
+            "TABLE_NAME": "calendar_deadlines",
+            "INDEX_NAME": "deadline_date_status",
+            "NON_UNIQUE": 1,
+            "SEQ_IN_INDEX": 1,
+            "COLUMN_NAME": "deadline_date",
+            "SUB_PART": null,
+            "INDEX_TYPE": "BTREE"
+        },
+        {
+            "TABLE_NAME": "calendar_deadlines",
+            "INDEX_NAME": "deadline_date_status",
+            "NON_UNIQUE": 1,
+            "SEQ_IN_INDEX": 2,
+            "COLUMN_NAME": "status",
+            "SUB_PART": null,
+            "INDEX_TYPE": "BTREE"
+        },
+        {
+            "TABLE_NAME": "calendar_deadlines",
+            "INDEX_NAME": "PRIMARY",
+            "NON_UNIQUE": 0,
+            "SEQ_IN_INDEX": 1,
+            "COLUMN_NAME": "id",
+            "SUB_PART": null,
+            "INDEX_TYPE": "BTREE"
+        },
+        {
+            "TABLE_NAME": "calendar_deadline_groups",
+            "INDEX_NAME": "deadline_group_lookup",
+            "NON_UNIQUE": 1,
+            "SEQ_IN_INDEX": 1,
+            "COLUMN_NAME": "research_group",
+            "SUB_PART": null,
+            "INDEX_TYPE": "BTREE"
+        },
+        {
+            "TABLE_NAME": "calendar_deadline_groups",
+            "INDEX_NAME": "deadline_group_lookup",
+            "NON_UNIQUE": 1,
+            "SEQ_IN_INDEX": 2,
+            "COLUMN_NAME": "deadline_id",
+            "SUB_PART": null,
+            "INDEX_TYPE": "BTREE"
+        },
+        {
+            "TABLE_NAME": "calendar_deadline_groups",
+            "INDEX_NAME": "PRIMARY",
+            "NON_UNIQUE": 0,
+            "SEQ_IN_INDEX": 1,
+            "COLUMN_NAME": "deadline_id",
+            "SUB_PART": null,
+            "INDEX_TYPE": "BTREE"
+        },
+        {
+            "TABLE_NAME": "calendar_deadline_groups",
+            "INDEX_NAME": "PRIMARY",
+            "NON_UNIQUE": 0,
+            "SEQ_IN_INDEX": 2,
+            "COLUMN_NAME": "research_group",
+            "SUB_PART": null,
+            "INDEX_TYPE": "BTREE"
+        },
+        {
+            "TABLE_NAME": "calendar_deadline_recipients",
+            "INDEX_NAME": "deadline_recipient_student",
+            "NON_UNIQUE": 1,
+            "SEQ_IN_INDEX": 1,
+            "COLUMN_NAME": "student_id",
+            "SUB_PART": null,
+            "INDEX_TYPE": "BTREE"
+        },
+        {
+            "TABLE_NAME": "calendar_deadline_recipients",
+            "INDEX_NAME": "deadline_recipient_student",
+            "NON_UNIQUE": 1,
+            "SEQ_IN_INDEX": 2,
+            "COLUMN_NAME": "deadline_id",
+            "SUB_PART": null,
+            "INDEX_TYPE": "BTREE"
+        },
+        {
+            "TABLE_NAME": "calendar_deadline_recipients",
+            "INDEX_NAME": "PRIMARY",
+            "NON_UNIQUE": 0,
+            "SEQ_IN_INDEX": 1,
+            "COLUMN_NAME": "deadline_id",
+            "SUB_PART": null,
+            "INDEX_TYPE": "BTREE"
+        },
+        {
+            "TABLE_NAME": "calendar_deadline_recipients",
+            "INDEX_NAME": "PRIMARY",
+            "NON_UNIQUE": 0,
+            "SEQ_IN_INDEX": 2,
+            "COLUMN_NAME": "student_id",
+            "SUB_PART": null,
+            "INDEX_TYPE": "BTREE"
+        },
+        {
+            "TABLE_NAME": "documents",
+            "INDEX_NAME": "document_previous_version",
+            "NON_UNIQUE": 1,
+            "SEQ_IN_INDEX": 1,
+            "COLUMN_NAME": "supersedes_id",
+            "SUB_PART": null,
+            "INDEX_TYPE": "BTREE"
+        },
+        {
+            "TABLE_NAME": "documents",
+            "INDEX_NAME": "document_stored_file",
+            "NON_UNIQUE": 1,
+            "SEQ_IN_INDEX": 1,
+            "COLUMN_NAME": "stored_name",
+            "SUB_PART": null,
+            "INDEX_TYPE": "BTREE"
+        },
+        {
+            "TABLE_NAME": "documents",
+            "INDEX_NAME": "PRIMARY",
+            "NON_UNIQUE": 0,
+            "SEQ_IN_INDEX": 1,
+            "COLUMN_NAME": "id",
+            "SUB_PART": null,
+            "INDEX_TYPE": "BTREE"
+        },
+        {
+            "TABLE_NAME": "documents",
+            "INDEX_NAME": "student_id",
+            "NON_UNIQUE": 1,
+            "SEQ_IN_INDEX": 1,
+            "COLUMN_NAME": "student_id",
+            "SUB_PART": null,
+            "INDEX_TYPE": "BTREE"
+        },
+        {
+            "TABLE_NAME": "ierb_history",
+            "INDEX_NAME": "PRIMARY",
+            "NON_UNIQUE": 0,
+            "SEQ_IN_INDEX": 1,
+            "COLUMN_NAME": "id",
+            "SUB_PART": null,
+            "INDEX_TYPE": "BTREE"
+        },
+        {
+            "TABLE_NAME": "ierb_history",
+            "INDEX_NAME": "student_id",
+            "NON_UNIQUE": 1,
+            "SEQ_IN_INDEX": 1,
+            "COLUMN_NAME": "student_id",
+            "SUB_PART": null,
+            "INDEX_TYPE": "BTREE"
+        },
+        {
+            "TABLE_NAME": "notifications",
+            "INDEX_NAME": "notification_recipient",
+            "NON_UNIQUE": 1,
+            "SEQ_IN_INDEX": 1,
+            "COLUMN_NAME": "recipient_type",
+            "SUB_PART": null,
+            "INDEX_TYPE": "BTREE"
+        },
+        {
+            "TABLE_NAME": "notifications",
+            "INDEX_NAME": "notification_recipient",
+            "NON_UNIQUE": 1,
+            "SEQ_IN_INDEX": 2,
+            "COLUMN_NAME": "recipient_id",
+            "SUB_PART": null,
+            "INDEX_TYPE": "BTREE"
+        },
+        {
+            "TABLE_NAME": "notifications",
+            "INDEX_NAME": "PRIMARY",
+            "NON_UNIQUE": 0,
+            "SEQ_IN_INDEX": 1,
+            "COLUMN_NAME": "id",
+            "SUB_PART": null,
+            "INDEX_TYPE": "BTREE"
+        },
+        {
+            "TABLE_NAME": "password_resets",
+            "INDEX_NAME": "PRIMARY",
+            "NON_UNIQUE": 0,
+            "SEQ_IN_INDEX": 1,
+            "COLUMN_NAME": "id",
+            "SUB_PART": null,
+            "INDEX_TYPE": "BTREE"
+        },
+        {
+            "TABLE_NAME": "password_resets",
+            "INDEX_NAME": "token",
+            "NON_UNIQUE": 0,
+            "SEQ_IN_INDEX": 1,
+            "COLUMN_NAME": "token",
+            "SUB_PART": null,
+            "INDEX_TYPE": "BTREE"
+        },
+        {
+            "TABLE_NAME": "password_resets",
+            "INDEX_NAME": "user_id",
+            "NON_UNIQUE": 1,
+            "SEQ_IN_INDEX": 1,
+            "COLUMN_NAME": "user_id",
+            "SUB_PART": null,
+            "INDEX_TYPE": "BTREE"
+        },
+        {
+            "TABLE_NAME": "reports",
+            "INDEX_NAME": "PRIMARY",
+            "NON_UNIQUE": 0,
+            "SEQ_IN_INDEX": 1,
+            "COLUMN_NAME": "id",
+            "SUB_PART": null,
+            "INDEX_TYPE": "BTREE"
+        },
+        {
+            "TABLE_NAME": "reports",
+            "INDEX_NAME": "report_owner_student",
+            "NON_UNIQUE": 1,
+            "SEQ_IN_INDEX": 1,
+            "COLUMN_NAME": "owner_student_id",
+            "SUB_PART": null,
+            "INDEX_TYPE": "BTREE"
+        },
+        {
+            "TABLE_NAME": "reports",
+            "INDEX_NAME": "report_stored_file",
+            "NON_UNIQUE": 1,
+            "SEQ_IN_INDEX": 1,
+            "COLUMN_NAME": "filename",
+            "SUB_PART": null,
+            "INDEX_TYPE": "BTREE"
+        },
+        {
+            "TABLE_NAME": "schema_meta",
+            "INDEX_NAME": "PRIMARY",
+            "NON_UNIQUE": 0,
+            "SEQ_IN_INDEX": 1,
+            "COLUMN_NAME": "k",
+            "SUB_PART": null,
+            "INDEX_TYPE": "BTREE"
+        },
+        {
+            "TABLE_NAME": "stage_labels",
+            "INDEX_NAME": "PRIMARY",
+            "NON_UNIQUE": 0,
+            "SEQ_IN_INDEX": 1,
+            "COLUMN_NAME": "stage_key",
+            "SUB_PART": null,
+            "INDEX_TYPE": "BTREE"
+        },
+        {
+            "TABLE_NAME": "students",
+            "INDEX_NAME": "adviser_id",
+            "NON_UNIQUE": 1,
+            "SEQ_IN_INDEX": 1,
+            "COLUMN_NAME": "adviser_id",
+            "SUB_PART": null,
+            "INDEX_TYPE": "BTREE"
+        },
+        {
+            "TABLE_NAME": "students",
+            "INDEX_NAME": "email",
+            "NON_UNIQUE": 0,
+            "SEQ_IN_INDEX": 1,
+            "COLUMN_NAME": "email",
+            "SUB_PART": null,
+            "INDEX_TYPE": "BTREE"
+        },
+        {
+            "TABLE_NAME": "students",
+            "INDEX_NAME": "PRIMARY",
+            "NON_UNIQUE": 0,
+            "SEQ_IN_INDEX": 1,
+            "COLUMN_NAME": "id",
+            "SUB_PART": null,
+            "INDEX_TYPE": "BTREE"
+        },
+        {
+            "TABLE_NAME": "students",
+            "INDEX_NAME": "student_archive_lifecycle",
+            "NON_UNIQUE": 1,
+            "SEQ_IN_INDEX": 1,
+            "COLUMN_NAME": "archived_at",
+            "SUB_PART": null,
+            "INDEX_TYPE": "BTREE"
+        },
+        {
+            "TABLE_NAME": "students",
+            "INDEX_NAME": "student_archive_lifecycle",
+            "NON_UNIQUE": 1,
+            "SEQ_IN_INDEX": 2,
+            "COLUMN_NAME": "retention_hold",
+            "SUB_PART": null,
+            "INDEX_TYPE": "BTREE"
+        },
+        {
+            "TABLE_NAME": "students",
+            "INDEX_NAME": "student_id",
+            "NON_UNIQUE": 0,
+            "SEQ_IN_INDEX": 1,
+            "COLUMN_NAME": "student_id",
+            "SUB_PART": null,
+            "INDEX_TYPE": "BTREE"
+        },
+        {
+            "TABLE_NAME": "students",
+            "INDEX_NAME": "student_profile_completion",
+            "NON_UNIQUE": 1,
+            "SEQ_IN_INDEX": 1,
+            "COLUMN_NAME": "profile_completed_at",
+            "SUB_PART": null,
+            "INDEX_TYPE": "BTREE"
+        },
+        {
+            "TABLE_NAME": "students",
+            "INDEX_NAME": "user_id",
+            "NON_UNIQUE": 1,
+            "SEQ_IN_INDEX": 1,
+            "COLUMN_NAME": "user_id",
+            "SUB_PART": null,
+            "INDEX_TYPE": "BTREE"
+        },
+        {
+            "TABLE_NAME": "users",
+            "INDEX_NAME": "email",
+            "NON_UNIQUE": 0,
+            "SEQ_IN_INDEX": 1,
+            "COLUMN_NAME": "email",
+            "SUB_PART": null,
+            "INDEX_TYPE": "BTREE"
+        },
+        {
+            "TABLE_NAME": "users",
+            "INDEX_NAME": "PRIMARY",
+            "NON_UNIQUE": 0,
+            "SEQ_IN_INDEX": 1,
+            "COLUMN_NAME": "id",
+            "SUB_PART": null,
+            "INDEX_TYPE": "BTREE"
+        },
+        {
+            "TABLE_NAME": "users",
+            "INDEX_NAME": "username",
+            "NON_UNIQUE": 0,
+            "SEQ_IN_INDEX": 1,
+            "COLUMN_NAME": "username",
+            "SUB_PART": null,
+            "INDEX_TYPE": "BTREE"
+        }
+    ],
+    "foreign_keys": [
+        {
+            "TABLE_SCHEMA": "{PRISM}",
+            "TABLE_NAME": "account_invitations",
+            "COLUMN_NAME": "invited_by_user_id",
+            "CONSTRAINT_NAME": "invitation_inviter",
+            "REFERENCED_TABLE_SCHEMA": "{PRISM}",
+            "REFERENCED_TABLE_NAME": "users",
+            "REFERENCED_COLUMN_NAME": "id",
+            "UPDATE_RULE": "RESTRICT",
+            "DELETE_RULE": "SET NULL"
+        },
+        {
+            "TABLE_SCHEMA": "{PRISM}",
+            "TABLE_NAME": "account_invitations",
+            "COLUMN_NAME": "user_id",
+            "CONSTRAINT_NAME": "invitation_user",
+            "REFERENCED_TABLE_SCHEMA": "{PRISM}",
+            "REFERENCED_TABLE_NAME": "users",
+            "REFERENCED_COLUMN_NAME": "id",
+            "UPDATE_RULE": "RESTRICT",
+            "DELETE_RULE": "CASCADE"
+        },
+        {
+            "TABLE_SCHEMA": "{PRISM}",
+            "TABLE_NAME": "advisers",
+            "COLUMN_NAME": "user_id",
+            "CONSTRAINT_NAME": "advisers_ibfk_1",
+            "REFERENCED_TABLE_SCHEMA": "{PRISM}",
+            "REFERENCED_TABLE_NAME": "users",
+            "REFERENCED_COLUMN_NAME": "id",
+            "UPDATE_RULE": "RESTRICT",
+            "DELETE_RULE": "SET NULL"
+        },
+        {
+            "TABLE_SCHEMA": "{PRISM}",
+            "TABLE_NAME": "calendar_deadlines",
+            "COLUMN_NAME": "creator_user_id",
+            "CONSTRAINT_NAME": "calendar_deadlines_ibfk_1",
+            "REFERENCED_TABLE_SCHEMA": "{PRISM}",
+            "REFERENCED_TABLE_NAME": "users",
+            "REFERENCED_COLUMN_NAME": "id",
+            "UPDATE_RULE": "RESTRICT",
+            "DELETE_RULE": "SET NULL"
+        },
+        {
+            "TABLE_SCHEMA": "{PRISM}",
+            "TABLE_NAME": "calendar_deadline_groups",
+            "COLUMN_NAME": "deadline_id",
+            "CONSTRAINT_NAME": "calendar_deadline_groups_ibfk_1",
+            "REFERENCED_TABLE_SCHEMA": "{PRISM}",
+            "REFERENCED_TABLE_NAME": "calendar_deadlines",
+            "REFERENCED_COLUMN_NAME": "id",
+            "UPDATE_RULE": "RESTRICT",
+            "DELETE_RULE": "CASCADE"
+        },
+        {
+            "TABLE_SCHEMA": "{PRISM}",
+            "TABLE_NAME": "calendar_deadline_recipients",
+            "COLUMN_NAME": "deadline_id",
+            "CONSTRAINT_NAME": "calendar_deadline_recipients_ibfk_1",
+            "REFERENCED_TABLE_SCHEMA": "{PRISM}",
+            "REFERENCED_TABLE_NAME": "calendar_deadlines",
+            "REFERENCED_COLUMN_NAME": "id",
+            "UPDATE_RULE": "RESTRICT",
+            "DELETE_RULE": "CASCADE"
+        },
+        {
+            "TABLE_SCHEMA": "{PRISM}",
+            "TABLE_NAME": "calendar_deadline_recipients",
+            "COLUMN_NAME": "student_id",
+            "CONSTRAINT_NAME": "calendar_deadline_recipients_ibfk_2",
+            "REFERENCED_TABLE_SCHEMA": "{PRISM}",
+            "REFERENCED_TABLE_NAME": "students",
+            "REFERENCED_COLUMN_NAME": "id",
+            "UPDATE_RULE": "RESTRICT",
+            "DELETE_RULE": "RESTRICT"
+        },
+        {
+            "TABLE_SCHEMA": "{PRISM}",
+            "TABLE_NAME": "documents",
+            "COLUMN_NAME": "student_id",
+            "CONSTRAINT_NAME": "documents_ibfk_1",
+            "REFERENCED_TABLE_SCHEMA": "{PRISM}",
+            "REFERENCED_TABLE_NAME": "students",
+            "REFERENCED_COLUMN_NAME": "id",
+            "UPDATE_RULE": "RESTRICT",
+            "DELETE_RULE": "SET NULL"
+        },
+        {
+            "TABLE_SCHEMA": "{PRISM}",
+            "TABLE_NAME": "ierb_history",
+            "COLUMN_NAME": "student_id",
+            "CONSTRAINT_NAME": "ierb_history_ibfk_1",
+            "REFERENCED_TABLE_SCHEMA": "{PRISM}",
+            "REFERENCED_TABLE_NAME": "students",
+            "REFERENCED_COLUMN_NAME": "id",
+            "UPDATE_RULE": "RESTRICT",
+            "DELETE_RULE": "CASCADE"
+        },
+        {
+            "TABLE_SCHEMA": "{PRISM}",
+            "TABLE_NAME": "password_resets",
+            "COLUMN_NAME": "user_id",
+            "CONSTRAINT_NAME": "password_resets_ibfk_1",
+            "REFERENCED_TABLE_SCHEMA": "{PRISM}",
+            "REFERENCED_TABLE_NAME": "users",
+            "REFERENCED_COLUMN_NAME": "id",
+            "UPDATE_RULE": "RESTRICT",
+            "DELETE_RULE": "CASCADE"
+        },
+        {
+            "TABLE_SCHEMA": "{PRISM}",
+            "TABLE_NAME": "students",
+            "COLUMN_NAME": "adviser_id",
+            "CONSTRAINT_NAME": "students_ibfk_1",
+            "REFERENCED_TABLE_SCHEMA": "{PRISM}",
+            "REFERENCED_TABLE_NAME": "advisers",
+            "REFERENCED_COLUMN_NAME": "id",
+            "UPDATE_RULE": "RESTRICT",
+            "DELETE_RULE": "SET NULL"
+        },
+        {
+            "TABLE_SCHEMA": "{PRISM}",
+            "TABLE_NAME": "students",
+            "COLUMN_NAME": "user_id",
+            "CONSTRAINT_NAME": "students_ibfk_2",
+            "REFERENCED_TABLE_SCHEMA": "{PRISM}",
+            "REFERENCED_TABLE_NAME": "users",
+            "REFERENCED_COLUMN_NAME": "id",
+            "UPDATE_RULE": "RESTRICT",
+            "DELETE_RULE": "SET NULL"
+        }
+    ],
+    "triggers": [],
+    "schema_version": "9"
+}

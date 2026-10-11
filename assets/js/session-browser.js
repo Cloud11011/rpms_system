@@ -30,7 +30,14 @@
       headers.set('X-PRISM-Generation', generation);
       options = {...options, headers};
     }
-    return originalFetch(input, options);
+    return originalFetch(input, options).then(async response => {
+      if (url.origin === location.origin && response.status === 403
+          && response.headers.get('content-type')?.includes('application/json')) {
+        const data = await response.clone().json().catch(() => null);
+        if (data?.code === 'legal_acceptance_required') location.assign('legal_consent.php');
+      }
+      return response;
+    });
   };
   document.addEventListener('submit', event => {
     const form = event.target;

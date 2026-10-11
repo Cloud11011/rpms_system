@@ -172,7 +172,7 @@ function fixtureApi(file, action) {
   if(process.argv.includes('--batch5b-only')&&file==='documents_api.php'&&action==='upload') {
     const request=requests.findLast(r=>r.file===file&&r.action===action);
     const names=[...request.body.matchAll(/filename="([^"]+)"/g)].map(m=>m[1]);
-    const results=names.map(name=>({name,ok:name.endsWith('.txt'),message:name.endsWith('.txt')?'Pending Adviser Review':'Unsupported file type'}));
+    const results=names.map(name=>({name,ok:name.endsWith('.pdf'),message:name.endsWith('.pdf')?'Pending Adviser Review':'Only PDF and DOCX files are allowed.'}));
     const uploaded=results.filter(r=>r.ok).length;return {ok:uploaded>0,message:`${uploaded} of ${names.length} files uploaded successfully.`,results,uploaded,failed:names.length-uploaded};
   }
   if(process.argv.includes('--batch45-only') && scenario==='verification-invalid' && file==='account_lifecycle_api.php' && action==='availability')return {ok:true,available:false,message:'Deployment verification required.'};
@@ -315,9 +315,13 @@ async function serve(req, res) {
     const url = new URL(req.url, origin);
     const file = decodeURIComponent(url.pathname.slice(1));
     if (['privacy.php','terms.php'].includes(file)) {
-      const rendered=spawnSync(php,[path.join(root,file)],{cwd:root,encoding:'utf8',windowsHide:true});
+      const rendered=spawnSync(php,[path.join(root,'tests/v10-batch6-template.php'),file],{cwd:root,encoding:'utf8',windowsHide:true});
       assert.equal(rendered.status,0,rendered.stderr);assert.equal(rendered.stderr,'');
       res.writeHead(200,{...securityHeaders,'Content-Type':'text/html; charset=utf-8'});res.end(rendered.stdout);
+    } else if (['legal_consent.php','admin_legal_policies.php'].includes(file)) {
+      const rendered=spawnSync(php,[path.join(root,'tests/v10-batch6-template.php'),file,scenario],{cwd:root,encoding:'utf8',windowsHide:true});
+      assert.equal(rendered.status,0,rendered.stderr);assert.equal(rendered.stderr,'');
+      res.writeHead(200,{...securityHeaders,'Set-Cookie':'prism_generation='+ 'a'.repeat(32)+'; Path=/; SameSite=Lax','Content-Type':'text/html; charset=utf-8'});res.end(rendered.stdout);
     } else if (file==='login.php') {
       res.writeHead(200,{...securityHeaders,'Content-Type':'text/html; charset=utf-8'});res.end(fixtureLogin());
     } else if (['complete_profile.php','account_setup.php'].includes(file)) {
@@ -410,7 +414,8 @@ async function navigate(file, width, dark, data = 'empty', viewer = 'admin', scr
   await command('Page.navigate', { url: `${origin}/${file}?fixture=${Date.now()}${filterQuery}` });
   file = pageWrappers[file] || file;
   const ready = { 'privacy.php':'#legalContent','terms.php':'#legalContent','login.php': '.login-card', 'admin_notifications.php': '#noticeHistory > *', 'admin_ai.php': '#aiHistory > *', 'ierbprog.php': '#stageChart > *', 'account.php': '#activityList > *', 'dashboard.php':'#ierbMonitorBody > *', 'research_adviser.php':'#adviserQueue > *', 'role_portal.php':'#studentDashboardState', 'admin_people.php':'#recordRows > *', 'documents.php':'#documentsTableBody > *', 'reports.php':'#reportTableBody > *', 'calendar.php':'#monthGrid > *', 'data_export.php':'.data-export-card','complete_profile.php':'#completeProfileForm','account_setup.php':'[name=token]' }[file];
-  await waitFor(`document.readyState === 'complete' && !!document.querySelector(${JSON.stringify(ready)})`,process.argv.includes('--visual-only')?300:100);
+  const legalReady={'legal_consent.php':'main','admin_legal_policies.php':'#legalManagement'}[file];
+  await waitFor(`document.readyState === 'complete' && !!document.querySelector(${JSON.stringify(legalReady||ready)})`,process.argv.includes('--visual-only')?300:100);
   if (file === 'role_portal.php') await waitFor('document.getElementById("studentDashboardState").getAttribute("aria-busy")==="false"');
   if (file === 'research_adviser.php') await waitFor('document.getElementById("adviserQueue").getAttribute("aria-busy")==="false"');
   if (file === 'admin_ai.php' && role === 'admin' && data !== 'error') await waitFor('document.querySelectorAll("#stageLabelEditor input").length === 6');
@@ -2289,7 +2294,7 @@ async function run() {
   await once(server, 'listening');
   origin = `http://127.0.0.1:${server.address().port}`;
   profileDir = fs.mkdtempSync(path.join(os.tmpdir(), 'prism-ui-audit-'));
-  child = spawn(browser, ['--headless=new', '--remote-debugging-port=0', `--user-data-dir=${profileDir}`, '--no-first-run', '--no-default-browser-check', '--disable-background-networking', '--disable-sync', '--disable-extensions', '--disable-component-update', '--password-store=basic', 'about:blank'], { windowsHide: true, stdio: ['ignore', 'ignore', 'pipe'] });
+  child = spawn(browser, ['--headless=new', '--disable-gpu', '--no-sandbox', '--remote-debugging-port=0', `--user-data-dir=${profileDir}`, '--no-first-run', '--no-default-browser-check', '--disable-background-networking', '--disable-sync', '--disable-extensions', '--disable-component-update', '--password-store=basic', 'about:blank'], { windowsHide: true, stdio: ['ignore', 'ignore', 'pipe'] });
   const debuggerUrl = await new Promise((resolve, reject) => {
     let output = '';
     const timer = setTimeout(() => reject(new Error('Chrome debugging endpoint did not start')), 15000);
@@ -2328,6 +2333,7 @@ async function run() {
   await command('Log.enable');
   await command('Fetch.enable', { patterns: [{ urlPattern: '*' }] });
   await command('Browser.setDownloadBehavior', { behavior: 'deny' }, true);
+  if(process.argv.includes('--batch6-only')) {await require('./v10-batch6-ui.cjs').run({check,evaluate,waitFor,navigate,command,keyPress,errors});console.log(checks+' batch 6 browser checks; '+failures.length+' failures.');for(const f of failures)console.error('FAIL '+f);if(failures.length)process.exitCode=1;return;}
   if(process.argv.includes('--batch5b-only')) {await require('./v10-batch5b-ui.cjs').run({check,evaluate,waitFor,navigate,command,keyPress,errors,getRequests:()=>requests,setDelay:value=>{apiDelay=value;}});console.log(checks+' batch 5B browser checks; '+failures.length+' failures.');for(const f of failures)console.error('FAIL '+f);if(failures.length)process.exitCode=1;return;}
   if(process.argv.includes('--batch5a-only')) {await require('./v10-batch5a-ui.cjs').run({check,evaluate,waitFor,navigate,command,keyPress,errors,getRequests:()=>requests});console.log(checks+' batch 5A browser checks; '+failures.length+' failures.');for(const f of failures)console.error('FAIL '+f);if(failures.length)process.exitCode=1;return;}
   if(process.argv.includes('--batch45-only')) {await require('./v10-batch45-ui.cjs').run({check,evaluate,waitFor,navigate,command,keyPress,errors,getRequests:()=>requests,setManagement:value=>{managementFixture=value;},setDelay:value=>{apiDelay=value;}});console.log(checks+' batch 4.5 browser checks; '+failures.length+' failures.');for(const f of failures)console.error('FAIL '+f);if(failures.length)process.exitCode=1;return;}

@@ -5,6 +5,7 @@ $fixture=json_decode($argv[1],true,512,JSON_THROW_ON_ERROR);
 if (!str_contains($fixture['dsn'],'dbname=hardening_test_lifecycle') || !is_dir($fixture['datadir'])) exit(1);
 $pdo=new PDO($fixture['dsn'],$fixture['dbUser']??'root',$fixture['password'],[PDO::ATTR_ERRMODE=>PDO::ERRMODE_EXCEPTION,PDO::ATTR_DEFAULT_FETCH_MODE=>PDO::FETCH_ASSOC]);
 if (realpath($pdo->query('SELECT @@datadir')->fetchColumn())!==realpath($fixture['datadir'])) exit(1);
+define('PRISM_LIFECYCLE_MANIFEST_FILE',__DIR__.'/../tools/schema-v9-contract.json');
 define('STORAGE_DIR',dirname(realpath($fixture['datadir'])).DIRECTORY_SEPARATOR.'storage');
 foreach ([STORAGE_DIR,STORAGE_DIR.DIRECTORY_SEPARATOR.'documents',STORAGE_DIR.DIRECTORY_SEPARATOR.'reports'] as $privateDir) {
     if (!is_dir($privateDir) && !mkdir($privateDir,0700) && !is_dir($privateDir)) exit(1);

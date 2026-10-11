@@ -1,7 +1,7 @@
 <?php
 $extendedStart=$GLOBALS['checks'];
 function retention_test_bulk(string $type,string $action): array {
-    $selection=retention_selection(db(),retention_test_actor(),['accountType'=>$type,'filters'=>[]]);
+    $selection=retention_selection(db(),retention_test_actor(),['accountType'=>$type,'filters'=>['lifecycle'=>$action==='archive'?'active':'archived']]);
     $preview=retention_bulk_preview(db(),retention_test_actor(),['selectionToken'=>$selection['selectionToken'],'selectionMode'=>'all_matching','bulkAction'=>$action]);
     return [$preview,['previewToken'=>$preview['previewToken'],'cursor'=>0,'currentPassword'=>$GLOBALS['fixturePassword'],'confirmation'=>$preview['phrase'],'confirmed'=>true]];
 }
@@ -70,7 +70,7 @@ retention_test_reset();$insert=$pdo->prepare('INSERT INTO students (id,student_i
 $pdo->beginTransaction();for($i=1000;$i<11000;$i++)$insert->execute([$i,'L'.$i,'Synthetic Large '.$i,'l'.$i.'@example.invalid']);$pdo->commit();
 try {retention_selection($pdo,retention_test_actor(),['accountType'=>'student','filters'=>['lifecycle'=>'archived']]);throw new RuntimeException('Oversize selection accepted');}
 catch(AccountLifecycleValidation $e) {reset_migration_expect(true,str_contains($e->getMessage(),'10,000'),'10,001 matching accounts bounded before fetch');}
-$selection=retention_selection($pdo,retention_test_actor(),['accountType'=>'student','filters'=>['q'=>'Synthetic Large']]);reset_migration_expect(10000,$selection['total'],'Exactly 10,000 matching accounts resolved');
+$selection=retention_selection($pdo,retention_test_actor(),['accountType'=>'student','filters'=>['q'=>'Synthetic Large','lifecycle'=>'archived']]);reset_migration_expect(10000,$selection['total'],'Exactly 10,000 matching accounts resolved');
 $preview=retention_bulk_preview($pdo,retention_test_actor(),['selectionToken'=>$selection['selectionToken'],'selectionMode'=>'all_matching','bulkAction'=>'retention_cleanup']);
 reset_migration_expect(10000,$preview['eligible'],'Large server preview');reset_migration_expect('PURGE 10000 ACCOUNTS',$preview['phrase'],'Large server count confirmation');
 $execute=['previewToken'=>$preview['previewToken'],'cursor'=>0,'currentPassword'=>$fixturePassword,'confirmation'=>$preview['phrase'],'confirmed'=>true];

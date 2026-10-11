@@ -1,6 +1,7 @@
 <?php
 /** Actual endpoint + real scoped SQLite SQL, existing guards/delivery; no config/bootstrap/live services. */
 if (PHP_SAPI !== 'cli') exit(1);
+function legal_acceptance_required(...$args): bool { return false; }
 function check(bool $ok, string $label): void { $GLOBALS['checks']++; if (!$ok) throw new RuntimeException($label); }
 function function_source(string $source, string $name): string {
     $source = str_replace("\r\n", "\n", $source); $start = strpos($source, 'function ' . $name . '(');
