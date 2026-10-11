@@ -6,10 +6,24 @@ require_once __DIR__ . '/includes/research_groups.php';
 $user = api_require_login(['admin', 'adviser', 'student']);
 $pdo = db();
 $action = $_GET['action'] ?? 'list';
-$mutations=['mark_read','mark_all_read','archive','restore','delete','campaign_archive','campaign_restore','campaign_delete','campaign_cancel','recipients_preview','send'];
+$mutations=['mark_read','mark_all_read','archive','restore','delete','campaign_archive','campaign_restore','campaign_delete','campaign_cancel','recipients_preview','send','support_respond'];
 if (in_array($action,$mutations,true)) {
     require_post_same_origin();
     require_session_generation(true);
+}
+if (in_array($action,['support_context','support_respond'],true)) {
+    api_require_login('admin');
+    require_session_generation(true);
+    try {
+        if ($action==='support_respond') json_out(support_respond($pdo,$user,json_body()));
+        $target=support_response_target($pdo,$user,support_id($_GET['id']??null));
+        json_out(['ok'=>true,'recipient_name'=>$target['user']['full_name'],
+            'subject'=>$target['request']['subject'],'category'=>$target['request']['support_category']]);
+    } catch (NotificationLifecycleError $e) { json_out(['ok'=>false,'message'=>$e->getMessage()],$e->status); }
+    catch (Throwable $e) {
+        log_api_error('support_response','Support response could not complete.');
+        json_out(['ok'=>false,'message'=>'Support response is temporarily unavailable. Please try again.'],503);
+    }
 }
 try {
     if (in_array($action,['list','sent_history','legacy_history'],true)) json_out(notification_list($pdo,$user,$_GET,$action));

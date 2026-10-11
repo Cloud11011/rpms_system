@@ -46,7 +46,7 @@ $identityKey = hash('sha256', $portalRole . '|' . $userId);
 <li><a href="#prismResourcesTitle" data-prism-resources-link>Research Resources</a></li>
 </ul>
 <div class="portal-nav-right">
-<button class="portal-help" id="helpButton" type="button" title="Help and support" aria-label="Help and support"><i class="fa-regular fa-circle-question"></i></button>
+<a class="portal-help" href="help_support.php" title="Help and support" aria-label="Help and support"><i class="fa-regular fa-circle-question" aria-hidden="true"></i></a>
 <button class="portal-notification" type="button" data-go="notifications" title="Notifications" aria-label="Notifications"><i class="fa-solid fa-bell"></i><b class="nav-badge" id="navBadge">0</b></button>
 <div class="portal-profile-menu">
 <button class="portal-profile-btn" id="portalProfileToggle" type="button" aria-expanded="false" aria-controls="portalProfileLinks" aria-label="Account menu"><img id="navProfileImage" src="<?php echo htmlspecialchars($profileImg, ENT_QUOTES); ?>" alt="Profile picture"><span><strong id="sideName"><?php echo htmlspecialchars($userName); ?></strong><small><?php echo htmlspecialchars($portalRole); ?></small></span><i class="fa-solid fa-chevron-down"></i></button>
@@ -112,7 +112,6 @@ $identityKey = hash('sha256', $portalRole . '|' . $userId);
 <?php require __DIR__ . '/includes/ceu_footer.php'; ?>
 </main>
 </div>
-<div class="support-modal" id="supportModal" hidden><div class="support-modal-card" role="dialog" aria-modal="true" aria-labelledby="supportModalTitle"><div class="support-modal-head"><div><span>Help &amp; Support</span><h2 id="supportModalTitle">Contact RPMS staff</h2></div><button id="closeSupportModal" type="button" aria-label="Close help form"><i class="fa-solid fa-xmark"></i></button></div><p>Prepare a message in your email app to report a problem or ask the RPMS team a question.</p><form id="supportForm"><label>How can we help?<select id="supportType" required><option value="Ask RPMS staff">Ask RPMS staff</option><option value="Report a problem">Report a problem</option></select></label><label>Subject<input id="supportSubject" maxlength="120" required placeholder="Briefly describe your concern"></label><label>Message<textarea id="supportMessage" rows="5" maxlength="1000" required placeholder="Add the details RPMS staff will need..."></textarea></label><div class="support-modal-actions"><button id="cancelSupport" type="button">Cancel</button><button class="primary-btn" type="submit"><i class="fa-solid fa-paper-plane"></i> Open email app</button></div></form></div></div>
 <div class="toast" id="toast" role="status"></div>
 <script src="<?php echo htmlspecialchars(asset_url('assets/js/script.js'), ENT_QUOTES, 'UTF-8'); ?>"></script>
 <script>

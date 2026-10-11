@@ -17,7 +17,7 @@ if (!$outstanding) { header('Location: index.php'); exit; }
 $_SESSION['legal_csrf']??=bin2hex(random_bytes(32));
 ?>
 <!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Review Privacy &amp; Terms | PRISM</title><link rel="icon" href="assets/images/prismicon.png"><link rel="stylesheet" href="<?= legal_escape(asset_url('assets/css/public-legal.css')) ?>"><script>try{if(localStorage.getItem('prismTheme')==='dark')document.documentElement.classList.add('dark-theme')}catch(_){}</script></head>
-<body><div class="legal-shell"><header class="legal-header"><a class="legal-brand" href="index.php"><img src="assets/images/prismlogo1.png" alt="PRISM"></a><a href="logout.php">Log out</a></header>
+<body class="public-legal-page"><div class="legal-shell"><?php $legalBackUrl='index.php'; $legalBackLabel='Back to PRISM'; $legalShowLogout=true; require __DIR__.'/includes/legal_header.php'; ?>
 <main><h1>Review Privacy &amp; Terms</h1><p>Before continuing to PRISM, please review the current Privacy Policy and Terms of Service.</p><p>Signed in as <?= legal_escape($user['email']) ?>.</p>
 <?php if ($error): ?><p role="alert" class="legal-notice"><?= legal_escape($error) ?></p><?php endif; ?>
 <ul><?php foreach ($current as $key=>$version): ?><li><a href="<?= $key ?>.php" target="_blank" rel="noopener">View <?= legal_escape($version['title']) ?> (version <?= (int)$version['version_number'] ?>)</a><?= isset($outstanding[$key])?' — review required':' — already acknowledged/agreed' ?></li><?php endforeach; ?></ul>
@@ -25,4 +25,4 @@ $_SESSION['legal_csrf']??=bin2hex(random_bytes(32));
 <?php if (isset($outstanding['privacy'])): ?><label class="legal-checkbox"><input type="checkbox" name="privacy" value="1" required> <span>I have read and acknowledge the PRISM Privacy Policy.</span></label><?php endif; ?>
 <?php if (isset($outstanding['terms'])): ?><label class="legal-checkbox"><input type="checkbox" name="terms" value="1" required> <span>I agree to the PRISM Terms of Service.</span></label><?php endif; ?>
 <button type="submit">Continue to PRISM</button></form><p>You can read both policies or log out without agreeing. Normal PRISM access requires the outstanding acknowledgment/agreement.</p></main></div>
-<?php require __DIR__.'/includes/session_browser.php'; ?></body></html>
+<script src="<?= legal_escape(asset_url('assets/js/legal-theme.js')) ?>"></script><?php require __DIR__.'/includes/session_browser.php'; ?></body></html>

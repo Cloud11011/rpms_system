@@ -102,7 +102,7 @@ if (($argv[1] ?? '') === '--case') {
     $source = str_replace("require_once __DIR__ . '/workflow.php';", '', $source);
     $delivery = file_get_contents(__DIR__ . '/../includes/notification_delivery.php');
     $delivery = str_replace("require_once __DIR__.'/student_snapshot.php';",'',$delivery);
-    $delivery = str_replace("require_once __DIR__.'/notification_lifecycle.php';",'',$delivery);
+    $delivery = str_replace(["require_once __DIR__.'/notification_lifecycle.php';","require_once __DIR__.'/help_support.php';"],'',$delivery);
     $lifecycle=file_get_contents(__DIR__.'/../includes/notification_lifecycle.php');
     eval('namespace '.__NAMESPACE__.'; use \\PDO; use \\Throwable; use \\RuntimeException; use \\LogicException; '.preg_replace('/^<\?php\s*/','',$lifecycle));
     eval('namespace ' . __NAMESPACE__ . '; use \\PDO; use \\Throwable; ' . preg_replace('/^<\?php\s*/', '', $delivery));

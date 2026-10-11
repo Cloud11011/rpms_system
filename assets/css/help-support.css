@@ -1,0 +1,17 @@
+.support-shell { max-width:1080px; }
+.help-support-page select { width:100%; min-height:44px; padding:10px; font:inherit; color:var(--legal-text); background:var(--legal-card); border:1px solid var(--legal-border); border-radius:8px; }
+.help-support-page :is(select,textarea,input,button):focus-visible { outline:3px solid var(--legal-link); outline-offset:3px; }
+.help-support-page .notification-filters { display:flex; flex-wrap:wrap; gap:12px; }
+.help-support-page .notification-filters label { flex:1 1 140px; min-width:0; }
+.help-support-page .notification-filters select { display:block; }
+.help-support-page .history-item { padding:16px 0; border-top:1px solid var(--legal-border); }
+.help-support-page .notification-history-meta,.help-support-page .notification-copy-actions { display:flex; flex-wrap:wrap; gap:10px; margin-top:10px; }
+.help-support-page :is(.history-item,#supportDetailBody) { overflow-wrap:anywhere; }
+.help-support-page #supportDetailBody { white-space:pre-wrap; }
+.help-support-page dialog { width:min(680px,calc(100vw - 32px)); max-height:calc(100svh - 32px); margin:auto; padding:24px; overflow:auto; overflow-wrap:anywhere; color:var(--legal-text); background:var(--legal-card); border:1px solid var(--legal-border); border-radius:16px; }
+.help-support-page dialog::backdrop { background:rgba(12,14,63,.65); }
+.help-support-page .prism-overlay { position:fixed; inset:0; z-index:100; display:flex; align-items:center; justify-content:center; padding:16px; background:rgba(12,14,63,.65); }
+.help-support-page .prism-dialog { width:min(480px,100%); padding:24px; color:var(--legal-text); background:var(--legal-card); border-radius:16px; }
+.help-support-page .prism-dialog-actions { display:flex; flex-wrap:wrap; gap:10px; margin-top:16px; }
+.help-support-page .prism-pagination { display:flex; flex-wrap:wrap; align-items:center; gap:10px; margin-top:16px; }
+@media(min-width:769px) { .help-support-page .notification-history-scroll { max-height:65vh; overflow-y:auto; } }

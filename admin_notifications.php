@@ -2,6 +2,7 @@
 require __DIR__ . '/config.php';
 $authUser = require_login(['admin', 'adviser']);
 $user_email = $authUser['email'];
+require_once __DIR__.'/includes/help_support.php';
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -38,7 +39,11 @@ $user_email = $authUser['email'];
             <section class="management-card admin-tool-form">
                 <div class="management-card-head"><div><h2>Send notification</h2><p>Choose the recipients, write the message, then send it now or schedule it.</p></div></div>
                 <form id="notificationForm" class="notification-form-grid">
-                    <label>Recipients
+                    <input id="noticeSupportToken" type="hidden" value="<?= htmlspecialchars(support_token(),ENT_QUOTES,'UTF-8') ?>">
+                    <p id="noticeSupportContext" class="notification-recipient-preview" hidden role="status"></p>
+                    <label id="noticeSupportSubjectLabel" hidden>Support response subject<input id="noticeSupportSubject" maxlength="255"></label>
+                    <button id="noticeSupportExit" type="button" class="notification-secondary" hidden>Cancel Support Response</button>
+                    <label id="noticeAudienceLabel">Recipients
                         <select id="noticeAudience">
                             <?php if ($authUser['role'] === 'admin'): ?>
                                 <option value="All Students">All Students</option>
@@ -50,7 +55,7 @@ $user_email = $authUser['email'];
                             <option value="Specific Research Group">Specific Research Group</option>
                         </select>
                     </label>
-                    <label>Notification type
+                    <label id="noticeTypeLabel">Notification type
                         <select id="noticeType">
                             <option>Status Update</option>
                             <option>Reminder</option>
@@ -82,7 +87,7 @@ $user_email = $authUser['email'];
     <dl id="notificationDetailMeta" class="notification-detail-meta"></dl>
     <section class="notification-detail-section"><h3>Message</h3><p id="notificationDetailMessage"></p></section>
     <section class="notification-detail-section"><h3>Delivery information</h3><p id="notificationDetailDelivery"></p></section>
-    <form method="dialog" class="notification-detail-actions"><button id="closeNotificationDetail" class="management-primary" autofocus>Close details</button></form>
+    <form method="dialog" class="notification-detail-actions"><button id="respondSupport" class="management-primary" type="button" hidden>Respond</button><button id="closeNotificationDetail" class="management-primary" autofocus>Close details</button></form>
 </dialog>
 <script src="<?php echo htmlspecialchars(asset_url('assets/js/prism-ui.js'), ENT_QUOTES, 'UTF-8'); ?>"></script>
 <script src="<?php echo htmlspecialchars(asset_url('assets/js/notification-history.js'), ENT_QUOTES, 'UTF-8'); ?>"></script>

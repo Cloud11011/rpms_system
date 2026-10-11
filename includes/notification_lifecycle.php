@@ -121,7 +121,6 @@ function notification_transition(PDO $pdo, array $actor, string $action, int $id
     if (!in_array($operation,['mark_read','archive','restore','delete','cancel'],true) || (!$campaign && $operation==='cancel')) {
         throw new NotificationLifecycleError('Invalid notification action.',422);
     }
-    if ($campaign && !in_array($actor['role'],['admin','adviser'],true)) throw new NotificationLifecycleError('Sender action is not permitted.',403);
     $mutex=($campaign?'prism_campaign_':'prism_notification_').$id;
     notification_mutex($pdo,$mutex);
     try {
@@ -130,6 +129,10 @@ function notification_transition(PDO $pdo, array $actor, string $action, int $id
         $rows=notification_rows($pdo,"SELECT * FROM $table WHERE id=? FOR UPDATE",[$id]); $row=$rows[0]??null;
         if (!$row || ($campaign ? (int)$row['sender_user_id']!==(int)$actor['id'] : !notification_owns_copy($pdo,$actor,$row))) {
             throw new NotificationLifecycleError('Notification not found.',404);
+        }
+        if ($campaign && !in_array($actor['role'],['admin','adviser'],true)
+            && !(($actor['role']??'')==='student' && $row['kind']==='support')) {
+            throw new NotificationLifecycleError('Sender action is not permitted.',403);
         }
         if ($row['deleted_at']!==null) {
             if ($operation!=='delete') throw new NotificationLifecycleError('Notification not found.',404);
@@ -192,8 +195,9 @@ function notification_list(PDO $pdo, array $user, array $query, string $mode='li
         || !in_array($sort,['Newest','Oldest'],true)) throw new NotificationLifecycleError('Invalid notification filter.',422);
     foreach (['page','preview'] as $key) if (isset($query[$key]) && ((!is_int($query[$key]) && !is_string($query[$key]))
         || !preg_match('/\A-?[0-9]+\z/',(string)$query[$key]))) throw new NotificationLifecycleError('Invalid notification page.',422);
-    $sender=$mode==='sent_history'; $legacy=$mode==='legacy_history';
-    if (($sender || $legacy) && !in_array($user['role'],['admin','adviser'],true)) throw new NotificationLifecycleError('History is not permitted.',403);
+    $support=in_array($mode,['support_requests','support_responses'],true);
+    $sender=in_array($mode,['sent_history','support_requests'],true); $legacy=$mode==='legacy_history';
+    if (($sender || $legacy) && !$support && !in_array($user['role'],['admin','adviser'],true)) throw new NotificationLifecycleError('History is not permitted.',403);
     $params=[];
     if ($sender) {
         $scope='FROM notification_campaigns n WHERE n.sender_user_id=:uid AND n.deleted_at IS NULL'; $params[':uid']=$user['id']; $kindSql='n.kind';
@@ -216,7 +220,12 @@ function notification_list(PDO $pdo, array $user, array $query, string $mode='li
                 AND n.status NOT IN ("Scheduled","Sending","Cancelled")';
             $params=[':uid'=>$user['id'],':email'=>$user['email']];
         }
-        $kindSql='COALESCE(c.kind,"system")'; $select='n.*, '.$kindSql.' AS kind';
+        $kindSql='COALESCE(c.kind,"system")'; $select='n.*, '.$kindSql.' AS kind,c.support_category,c.reply_to_campaign_id';
+    }
+    if ($support) {
+        $scope.=$sender ? ' AND n.kind="support" AND n.reply_to_campaign_id IS NULL'
+            : ' AND c.kind="support" AND c.reply_to_campaign_id IS NOT NULL AND n.recipient_user_id=:support_uid';
+        if (!$sender) $params[':support_uid']=$user['id'];
     }
     $scope.=$status==='Archived'?' AND n.archived_at IS NOT NULL':' AND n.archived_at IS NULL';
     if (!$sender && in_array($status,['Read','Unread'],true)) $scope.=$status==='Read'?' AND n.read_at IS NOT NULL':' AND n.read_at IS NULL';
@@ -234,7 +243,9 @@ function notification_list(PDO $pdo, array $user, array $query, string $mode='li
     unset($row);
     $unread=notification_rows($pdo,'SELECT COUNT(*) AS total FROM notifications n WHERE n.deleted_at IS NULL AND n.archived_at IS NULL
         AND n.read_at IS NULL AND n.status NOT IN ("Scheduled","Sending","Cancelled") AND
-        (n.recipient_user_id=? OR (n.recipient_user_id IS NULL AND n.recipient_email=? AND n.recipient_type<>"historical_adviser"))',[$user['id'],$user['email']]);
+        (n.recipient_user_id=? OR (n.recipient_user_id IS NULL AND n.recipient_email=? AND n.recipient_type<>"historical_adviser"))'
+        .($support ? ' AND n.recipient_user_id=? AND EXISTS (SELECT 1 FROM notification_campaigns sc WHERE sc.id=n.campaign_id AND sc.kind="support" AND sc.reply_to_campaign_id IS NOT NULL)' : ''),
+        $support ? [$user['id'],$user['email'],$user['id']] : [$user['id'],$user['email']]);
     return ['ok'=>true,'notifications'=>$rows,'total'=>$total,'page'=>$page,'pages'=>$pages,'limit'=>$limit,'offset'=>$offset,'unread_count'=>(int)$unread[0]['total']];
 }
 

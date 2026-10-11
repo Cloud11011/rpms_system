@@ -42,12 +42,43 @@ document.addEventListener('DOMContentLoaded', () => {
     let recipientRequestSequence = 0;
     let recipientPreviewTimer;
     let sending = false;
+    let supportRequestId = null;
+    const supportContext = document.getElementById('noticeSupportContext');
+    const supportSubject = document.getElementById('noticeSupportSubject');
+    const respond = document.getElementById('respondSupport');
+    function supportMode(id = null, context = null) {
+        supportRequestId = id;
+        supportContext.hidden = !id;
+        supportContext.textContent = id ? `Support Response to ${context.recipient_name} · ${context.category}. Available in PRISM only.` : '';
+        document.getElementById('noticeSupportSubjectLabel').hidden = !id;
+        supportSubject.required = !!id;
+        document.getElementById('noticeSupportExit').hidden = !id;
+        for (const node of [document.getElementById('noticeAudienceLabel'), document.getElementById('noticeTypeLabel'), recipientPreview, automated.closest('label')]) node.hidden = !!id;
+        if (id) {
+            automated.checked = false; groupLabel.hidden = true; scheduleLabel.hidden = true;
+            supportSubject.value = Array.from(`Re: ${context.subject || 'Support request'}`).slice(0, 255).join('');
+        } else refreshRecipientPreview();
+        syncScheduleUi();
+    }
+    document.getElementById('noticeSupportExit').addEventListener('click', () => { supportMode(); form.reset(); dirty.clean(); });
+    respond.addEventListener('click', async () => {
+        if (sending) return;
+        respond.disabled = true;
+        try {
+            const context = await PrismUI.request(`notifications_api.php?action=support_context&id=${respond.dataset.requestId}`,
+                { headers: { 'X-PRISM-Generation': window.PRISM_SESSION_GENERATION || '' } });
+            detailDialog.close(); supportMode(Number(respond.dataset.requestId), context);
+            form.scrollIntoView({ block: 'center' }); supportSubject.focus();
+        } catch (error) { PrismUI.toast(error.message, 'error'); }
+        finally { respond.disabled = false; }
+    });
 
     function syncMessageCount() {
         messageCount.textContent = `${Array.from(message.value).length} / 600 characters`;
     }
 
     function refreshRecipientPreview(delay = 0) {
+        if (supportRequestId) return;
         // Invalidate immediately, including while a new debounced request is waiting.
         const requestSequence = ++recipientRequestSequence;
         clearTimeout(recipientPreviewTimer);
@@ -101,6 +132,7 @@ document.addEventListener('DOMContentLoaded', () => {
             syncMessageCount();
             refreshRecipientPreview();
             dirty.clean();
+            supportMode();
         });
     });
 
@@ -130,6 +162,7 @@ document.addEventListener('DOMContentLoaded', () => {
             ['Recipient copies', notification.recipient_count],
             ['Status', notification.status],
             ['Created by', notification.created_by],
+            ['Category', notification.support_category],
             ['Created', formatNoticeDate(notification.created_at)],
             ['Scheduled for', notification.scheduled_at ? formatNoticeDate(notification.scheduled_at) : 'Not scheduled'],
             ['Sent at', notification.sent_at ? formatNoticeDate(notification.sent_at) : 'Not recorded'],
@@ -143,13 +176,15 @@ document.addEventListener('DOMContentLoaded', () => {
             metadata.append(term, description);
         });
         document.getElementById('notificationDetailMessage').textContent = notification.message || '';
-        document.getElementById('notificationDetailDelivery').textContent = deliveryStatus(notification);
+        document.getElementById('notificationDetailDelivery').textContent = notification.kind === 'support' ? 'Available in PRISM only.' : deliveryStatus(notification);
+        respond.hidden = !(document.body.dataset.userRole === 'admin' && notification.kind === 'support' && notification.type === 'Support Request' && notification.reply_to_campaign_id == null && notification.can_manage);
+        respond.dataset.requestId = notification.id;
         if (!detailDialog.open) detailDialog.showModal();
     }
     function syncScheduleUi() {
         scheduleLabel.hidden = !automated.checked;
         scheduleInput.required = automated.checked;
-        if (!sending) document.getElementById('noticeSubmitLabel').textContent = automated.checked ? 'Schedule notification' : 'Send notification';
+        if (!sending) document.getElementById('noticeSubmitLabel').textContent = supportRequestId ? 'Send Support Response' : automated.checked ? 'Schedule notification' : 'Send notification';
         if (automated.checked) {
             const now = new Date(Date.now() + 60 * 1000);
             now.setSeconds(0, 0);
@@ -167,6 +202,19 @@ document.addEventListener('DOMContentLoaded', () => {
     form.addEventListener('submit', async event => {
         event.preventDefault();
         if (sending) return;
+        if (supportRequestId) {
+            sending = true;
+            const release = PrismUI.busy(form.querySelector('[type="submit"]'), 'Sending…', document.getElementById('noticeSubmitLabel'));
+            try {
+                const data = await PrismUI.postJson('notifications_api.php?action=support_respond', {
+                    request_id: supportRequestId, subject: supportSubject.value, message: message.value,
+                    request_token: document.getElementById('noticeSupportToken').value });
+                document.getElementById('noticeSupportToken').value = data.request_token;
+                PrismUI.toast(data.message, 'success'); form.reset(); dirty.clean(); supportMode(); await history.sent();
+            } catch (error) { PrismUI.toast(error.message, 'error'); }
+            finally { sending = false; if (release) release(); syncScheduleUi(); }
+            return;
+        }
         const payload = {
             audience: audience.value,
             group: groupInput.value.trim(),

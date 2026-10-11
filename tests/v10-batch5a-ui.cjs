@@ -18,7 +18,7 @@ async function run({check,evaluate,waitFor,navigate,command,keyPress,errors,getR
       check(await evaluate("getComputedStyle(document.querySelector('#adviserNotifications')).overflowY==='auto' && document.querySelector('#adviserNotifications').tabIndex===0"),label+': independent keyboard-reachable notification scroll');
       // Stress presentation only; does not change notification API or ownership.
       await evaluate("const n=document.querySelector('#adviserNotifications');for(let i=0;i<30;i++)n.append(n.firstElementChild.cloneNode(true));n.scrollTop=100");
-      check(await evaluate("(() => {const n=document.querySelector('#adviserNotifications');return n.scrollHeight>n.clientHeight&&n.scrollTop>0&&n.clientHeight<=640;})()"),label+': long notification history stays internally scrollable');
+      check(await evaluate("(() => {const n=document.querySelector('#adviserNotifications'),p=n.closest('.adviser-notifications-panel');return n.scrollHeight>n.clientHeight&&n.scrollTop>0&&n.clientHeight<=p.clientHeight&&n.getBoundingClientRect().bottom<=p.getBoundingClientRect().bottom;})()"),label+': long notification history stays internally scrollable within available panel height');
       metrics.push({label,...geometry});
     }
     if(file==='ierbprog.php') {

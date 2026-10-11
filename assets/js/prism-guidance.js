@@ -82,18 +82,18 @@
             calendar: 'View official deadlines applicable to your research group and manage personal reminders stored in this browser.',
             notifications: 'Read RPMS and Adviser updates addressed to you.',
             profile: 'View your profile and access current account and password settings.',
-            help: 'Use Help and support when you need assistance. The current form prepares a message in your email app.',
+            help: 'Send an in-app request to RPMS Administrators and read your own Support Responses. You can use Help & Support after the password and legal requirements, including while your profile is Pending.',
             resources: 'Browse the Sustainable Development Goals, Research Agenda and IERB Portal resources.',
             logout: 'End your current PRISM session using Log out.'
         };
         function entries() {
             const selectors = role === 'student'
-                ? '#portalNav button[data-page], #portalNav a, .welcome-card [data-go="submit"], .portal-nav-right [data-go="notifications"], #helpButton, #portalProfileLinks [data-go="profile"], #portalProfileLinks a[href="logout.php"]'
+                ? '#portalNav button[data-page], #portalNav a, .welcome-card [data-go="submit"], .portal-nav-right [data-go="notifications"], .portal-help, #portalProfileLinks [data-go="profile"], #portalProfileLinks a[href="logout.php"]'
                 : '#prismPrimaryNavigation a, .prism-sidebar-utilities a, .portal-nav-right a, #prismAccountLinks a';
             const seen = new Set();
             return [...document.querySelectorAll(selectors)].flatMap(target => {
                 const href = target.getAttribute('href');
-                const id = target.id === 'helpButton' ? 'help' : href?.includes('prismResourcesTitle') ? 'resources'
+                const id = href === 'help_support.php' ? 'help' : href?.includes('prismResourcesTitle') ? 'resources'
                     : href === 'logout.php' ? 'logout' : target.dataset.page || target.dataset.go || href;
                 const description = descriptions[id];
                 const label = target.textContent.trim() || target.getAttribute('aria-label') || target.title;

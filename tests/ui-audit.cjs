@@ -91,6 +91,11 @@ function fixtureTemplate(file) {
   const requireConfig = file === 'role_portal.php' ? /require_once __DIR__ \. '\/config\.php';/g : /require __DIR__ \. '\/config\.php';/g;
   assert.equal([...source.matchAll(requireConfig)].length, 1, `${file}: expected one config include`);
   let isolated = source.replace(requireConfig, '/* Configuration replaced by isolated test fixture. */');
+  if (file === 'admin_notifications.php') {
+    const supportInclude = "require_once __DIR__.'/includes/help_support.php';";
+    assert.equal(isolated.split(supportInclude).length - 1, 1, 'Exact support helper boundary');
+    isolated = isolated.replace(supportInclude, '');
+  }
   // Exact reviewed path only. Every other include remains forbidden below.
   const navigationInclude = "require __DIR__ . '/includes/prism-navigation.php';";
   assert.equal(isolated.split(navigationInclude).length - 1, file === 'role_portal.php' ? 0 : 1, `${file}: expected one navigation partial`);
@@ -148,6 +153,7 @@ function fixtureTemplate(file) {
     const STAGE_SEQUENCE = ['Stage 1','Stage 2','Stage 3','Stage 4','Stage 5','Completed'];
     $_SESSION = ['user_id'=>1,'login_generation'=>str_repeat('a',32),'account_type' => '${role}', 'user_role' => '${role === 'admin' ? 'RPMS Administrator' : 'Research Adviser'}'];
     function require_login($roles) { return ['id'=>1, 'email'=>'fixture@example.test', 'full_name'=>'UI Audit Fixture', 'role'=>'${role}', 'ref_id'=>'FIXTURE', 'username'=>'fixture']; }
+    function support_token() { return 'fixture-support-token'; }
     function db() { return new class { function query($sql) { return new class { function fetchColumn() { return 0; } }; } }; }
     function stage_labels_map() { return json_decode('${JSON.stringify(labelsForScenario())}', true); }
     const ALLOWED_EMAIL_DOMAINS = ['example.invalid', 'example.test'];
@@ -169,6 +175,7 @@ async function checkRetentionRedesign() {
   await retentionUIAudit.run({check,evaluate,waitFor,navigate,command,keyPress,setManagement:value=>{managementFixture=value;},getRequests:()=>requests,errors});
 }
 function fixtureApi(file, action) {
+  if (process.argv.includes('--batch8-only')) { const response=require('./v10-batch8-ui.cjs').mockApi(file,action,requests.findLast(r=>r.file===file&&r.action===action),role);if(response)return response; }
   if (process.argv.includes('--batch7-only')) {const response=require('./v10-batch7-ui.cjs').mockApi(file,action,requests.findLast(r=>r.file===file&&r.action===action),role);if(response)return response;}
   if(process.argv.includes('--batch5b-only')&&file==='documents_api.php'&&action==='upload') {
     const request=requests.findLast(r=>r.file===file&&r.action===action);
@@ -260,6 +267,7 @@ function fixtureApi(file, action) {
   if (file === 'audit_api.php') return { ok: true, entries: populated ? [{ id: 1, action: 'document_override', actionLabel: 'Document override', at: '2026-09-24 08:00:00', actorName: attack, actorEmail: 'fixture@example.test', actorRole: role, studentName: attack, protocolCode: 'P-001', override: true, details: 'Fixture details ' + attack, reason: 'Fixture reason ' + attack }] : [] };
   if (file === 'profile_api.php') return { ok: true, user: { name: 'UI Audit Fixture', email: 'fixture@example.test', role, refId: 'FIXTURE' }, message: action === 'change_password' ? 'Password updated.' : 'Updated.' };
   if (file === 'send_followup.php') return { ok: true, message: 'Fixture follow-up sent.' };
+  if (file === 'help_support_api.php' && ['requests','responses'].includes(action)) return {ok:true,notifications:[],total:0,page:1,pages:1,limit:10,unread_count:0};
   throw new Error(`Unexpected mock endpoint ${file}`);
 }
 
@@ -315,7 +323,11 @@ async function serve(req, res) {
   try {
     const url = new URL(req.url, origin);
     const file = decodeURIComponent(url.pathname.slice(1));
-    if (['privacy.php','terms.php'].includes(file)) {
+    if (file === 'help_support.php') {
+      const rendered=spawnSync(php,[path.join(root,'tests/v10-batch8-template.php'),scenario,role],{cwd:root,encoding:'utf8',windowsHide:true});
+      assert.equal(rendered.status,0,rendered.stderr);assert.equal(rendered.stderr,'');
+      res.writeHead(200,{...securityHeaders,'Set-Cookie':'prism_generation='+ 'a'.repeat(32)+'; Path=/; SameSite=Lax','Content-Type':'text/html; charset=utf-8'});res.end(rendered.stdout);
+    } else if (['privacy.php','terms.php'].includes(file)) {
       const rendered=spawnSync(php,[path.join(root,'tests/v10-batch6-template.php'),file],{cwd:root,encoding:'utf8',windowsHide:true});
       assert.equal(rendered.status,0,rendered.stderr);assert.equal(rendered.stderr,'');
       res.writeHead(200,{...securityHeaders,'Content-Type':'text/html; charset=utf-8'});res.end(rendered.stdout);
@@ -333,7 +345,7 @@ async function serve(req, res) {
       const html = fixtureTemplate(file);
       res.writeHead(200, { ...securityHeaders, 'Set-Cookie':'prism_generation='+ 'a'.repeat(32)+'; Path=/; SameSite=Lax', 'Content-Type': 'text/html; charset=utf-8' });
       res.end(html);
-    } else if (/^(notifications|reports|stage_labels|ierb|audit|profile|documents|students|advisers|calendar_deadlines|account_lifecycle|account_invitation)_api\.php$/.test(file) || file === 'send_followup.php') {
+    } else if (/^(help_support|notifications|reports|stage_labels|ierb|audit|profile|documents|students|advisers|calendar_deadlines|account_lifecycle|account_invitation)_api\.php$/.test(file) || file === 'send_followup.php') {
       let body = '';
       for await (const chunk of req) body += chunk;
       requests.push({ file, action: url.searchParams.get('action'), query: Object.fromEntries(url.searchParams), method: req.method, body, headers:req.headers });
@@ -409,12 +421,13 @@ function checkPayload(file, action, expected, label) {
 async function navigate(file, width, dark, data = 'empty', viewer = 'admin', scriptsDisabled = false, filterQuery = '') {
   scenario = data;
   role = viewer;
+    await command('Emulation.setScriptExecutionDisabled', { value: scriptsDisabled });
   if(file==='research_adviser.php') reviewedStatus=null;
   if(file==='role_portal.php') studentSubmitted=false;
   await command('Emulation.setDeviceMetricsOverride', { width, height: 1000, deviceScaleFactor: 1, mobile: false });
   await command('Page.navigate', { url: `${origin}/${file}?fixture=${Date.now()}${filterQuery}` });
   file = pageWrappers[file] || file;
-  const ready = { 'privacy.php':'#legalContent','terms.php':'#legalContent','login.php': '.login-card', 'admin_notifications.php': '#noticeHistory > *', 'admin_ai.php': '#aiHistory > *', 'ierbprog.php': '#stageChart > *', 'account.php': '#activityList > *', 'dashboard.php':'#ierbMonitorBody > *', 'research_adviser.php':'#adviserQueue > *', 'role_portal.php':'#studentDashboardState', 'admin_people.php':'#recordRows > *', 'documents.php':'#documentsTableBody > *', 'reports.php':'#reportTableBody > *', 'calendar.php':'#monthGrid > *', 'data_export.php':'.data-export-card','complete_profile.php':'#completeProfileForm','account_setup.php':'[name=token]' }[file];
+  const ready = { 'help_support.php':'#supportForm', 'privacy.php':'#legalContent','terms.php':'#legalContent','login.php': '.login-card', 'admin_notifications.php': '#noticeHistory > *', 'admin_ai.php': '#aiHistory > *', 'ierbprog.php': '#stageChart > *', 'account.php': '#activityList > *', 'dashboard.php':'#ierbMonitorBody > *', 'research_adviser.php':'#adviserQueue > *', 'role_portal.php':'#studentDashboardState', 'admin_people.php':'#recordRows > *', 'documents.php':'#documentsTableBody > *', 'reports.php':'#reportTableBody > *', 'calendar.php':'#monthGrid > *', 'data_export.php':'.data-export-card','complete_profile.php':'#completeProfileForm','account_setup.php':'[name=token]' }[file];
   const legalReady={'legal_consent.php':'main','admin_legal_policies.php':'#legalManagement'}[file];
   await waitFor(`document.readyState === 'complete' && !!document.querySelector(${JSON.stringify(legalReady||ready)})`,process.argv.includes('--visual-only')?300:100);
   if (file === 'role_portal.php') await waitFor('document.getElementById("studentDashboardState").getAttribute("aria-busy")==="false"');
@@ -545,7 +558,7 @@ async function checkListRequestRaces(file, endpoint) {
   }
 }
 
-async function keyPress(key, code, virtualKey) {
+async function keyPress(key, code = key, virtualKey = ({ Enter:13, Tab:9, Escape:27 })[key]) {
   await command('Input.dispatchKeyEvent', { type:'keyDown', key, code, windowsVirtualKeyCode:virtualKey });
   // CDP needs the Enter character event for native button activation.
   if (key === 'Enter') await command('Input.dispatchKeyEvent', { type:'char', key, code, text:'\r', windowsVirtualKeyCode:virtualKey });
@@ -2334,6 +2347,7 @@ async function run() {
   await command('Log.enable');
   await command('Fetch.enable', { patterns: [{ urlPattern: '*' }] });
   await command('Browser.setDownloadBehavior', { behavior: 'deny' }, true);
+  if(process.argv.includes('--batch8-only')) {await require('./v10-batch8-ui.cjs').run({check,evaluate,waitFor,navigate,command,keyPress,errors,getRequests:()=>requests,setDelay:value=>{apiDelay=value;}});console.log(checks+' batch 8 browser checks; '+failures.length+' failures.');for(const f of failures)console.error('FAIL '+f);if(failures.length)process.exitCode=1;return;}
   if(process.argv.includes('--batch7-only')) {await require('./v10-batch7-ui.cjs').run({check,evaluate,waitFor,navigate,command,keyPress,errors,getRequests:()=>requests});console.log(checks+' batch 7 browser checks; '+failures.length+' failures.');for(const f of failures)console.error('FAIL '+f);if(failures.length)process.exitCode=1;return;}
   if(process.argv.includes('--batch6-only')) {await require('./v10-batch6-ui.cjs').run({check,evaluate,waitFor,navigate,command,keyPress,errors});console.log(checks+' batch 6 browser checks; '+failures.length+' failures.');for(const f of failures)console.error('FAIL '+f);if(failures.length)process.exitCode=1;return;}
   if(process.argv.includes('--batch5b-only')) {await require('./v10-batch5b-ui.cjs').run({check,evaluate,waitFor,navigate,command,keyPress,errors,getRequests:()=>requests,setDelay:value=>{apiDelay=value;}});console.log(checks+' batch 5B browser checks; '+failures.length+' failures.');for(const f of failures)console.error('FAIL '+f);if(failures.length)process.exitCode=1;return;}
@@ -2810,6 +2824,11 @@ run().catch(e => { console.error(e.stack || e); process.exitCode = 1; }).finally
     const resolved = path.resolve(profileDir);
     assert.equal(path.dirname(resolved), path.resolve(os.tmpdir()));
     assert(path.basename(resolved).startsWith('prism-ui-audit-'));
-    fs.rmSync(resolved, { recursive: true, force: true, maxRetries: 10, retryDelay: 200 });
+    try {
+      fs.rmSync(resolved, { recursive: true, force: true, maxRetries: 10, retryDelay: 200 });
+    } catch (error) {
+      if (!['EPERM','EBUSY'].includes(error.code)) throw error;
+      console.warn('Browser checks completed; Windows retained the locked temporary profile: '+resolved);
+    }
   }
 });

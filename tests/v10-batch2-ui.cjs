@@ -67,7 +67,7 @@ async function run({check,evaluate,waitFor,navigate,command,keyPress,errors,getR
     await keyPress('Enter','Enter',13);
     check(await bounds(),label+': navigation guide fits');
     const guideLabels=await evaluate('[...document.querySelectorAll(".prism-guide-list dt")].map(e=>e.textContent)');
-    const currentLabels=await evaluate(`(() => {const nodes=document.querySelectorAll(${JSON.stringify(role==='student'?'#portalNav button[data-page], #portalNav a, .welcome-card [data-go=submit], .portal-nav-right [data-go=notifications], #helpButton, #portalProfileLinks [data-go=profile], #portalProfileLinks a[href="logout.php"]':'#prismPrimaryNavigation a, .prism-sidebar-utilities a, .portal-nav-right a, #prismAccountLinks a')});return [...nodes].map(e=>e.textContent.trim()||e.getAttribute('aria-label')||e.title);})()`);
+    const currentLabels=await evaluate(`(() => {const nodes=document.querySelectorAll(${JSON.stringify(role==='student'?'#portalNav button[data-page], #portalNav a, .welcome-card [data-go=submit], .portal-nav-right [data-go=notifications], .portal-help, #portalProfileLinks [data-go=profile], #portalProfileLinks a[href="logout.php"]':'#prismPrimaryNavigation a, .prism-sidebar-utilities a, .portal-nav-right a, #prismAccountLinks a')});return [...nodes].map(e=>e.textContent.trim()||e.getAttribute('aria-label')||e.title);})()`);
     check(currentLabels.every(l=>guideLabels.includes(l)),label+': guide labels match every real navigation item');
     if(width===375){const png=await command('Page.captureScreenshot',{format:'png'});fs.writeFileSync(path.join(shots,`${role}-${dark?'dark':'light'}-guide.png`),Buffer.from(png.data,'base64'));}
     await keyPress('Escape','Escape',27);
@@ -124,9 +124,8 @@ async function run({check,evaluate,waitFor,navigate,command,keyPress,errors,getR
   await keyPress('Escape','Escape',27); await waitFor('!document.querySelector(".prism-readonly-dialog")');
   await evaluate('document.querySelector("[data-prism-guide]").click()');
   await clickText('Help and support');
-  await waitFor('!document.querySelector(".prism-readonly-dialog") && !document.getElementById("supportModal").hidden');
-  check(await evaluate('document.activeElement.id==="supportSubject"'),'Guide activation preserves existing Help form focus');
-  await evaluate('document.getElementById("closeSupportModal").click()');
+  await waitFor('location.pathname.endsWith("/help_support.php") && !!document.getElementById("supportForm")');
+  check(await evaluate('!!document.getElementById("supportSubject") && !document.getElementById("supportModal")'),'Guide activation opens the internal Support form');
   check(!getRequests().some(r=>r.method!=='GET'),'All Batch 2 interactions introduce no state-changing requests');
   for(const role of ['student','adviser']) {
     await navigate('complete_profile.php',375,false,'populated',role);

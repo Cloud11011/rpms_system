@@ -1181,7 +1181,7 @@ function require_login($roles = null): array
         }
     }
     if (in_array($user['role'],['student','adviser'],true)
-        && !in_array($currentScript,['complete_profile.php','legal_consent.php','change_password_required.php','logout.php'],true)
+        && !in_array($currentScript,['complete_profile.php','help_support.php','legal_consent.php','change_password_required.php','logout.php','privacy.php','terms.php'],true)
         && !onboarding_complete(db(),$user)) {
         header('Location: complete_profile.php'); exit;
     }
@@ -1225,6 +1225,8 @@ function api_require_login($roles = null): array
     }
     $pendingAllowed=$script==='account_invitation_api.php' && in_array($_GET['action']??'', ['me','complete'],true);
     $pendingAllowed=$pendingAllowed || ($script==='profile_api.php' && in_array($_GET['action']??'', ['me','change_password'],true));
+    $pendingAllowed=$pendingAllowed || ($script==='help_support_api.php' && in_array($_GET['action']??'responses',
+        ['submit','requests','responses','mark_read','archive','restore','delete','campaign_archive','campaign_restore','campaign_delete'],true));
     if (in_array($user['role'],['student','adviser'],true) && !$pendingAllowed && !onboarding_complete(db(),$user)) {
         json_out(['ok'=>false,'code'=>'profile_completion_required','message'=>'Complete your PRISM profile before using the workspace.'],403);
     }

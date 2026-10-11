@@ -1,0 +1,10 @@
+/* One viewport-framed campus image and glow for Login, public policies, consent and Support. */
+body:is(.unified-login,.public-legal-page,.help-support-page) { isolation:isolate; background:#f2f1f8; }
+body:is(.unified-login,.public-legal-page,.help-support-page)::before {
+    content:""; position:fixed; inset:0; z-index:-1; pointer-events:none;
+    background:radial-gradient(ellipse at 18% 20%,rgba(132,94,219,.28),transparent 55%),
+        radial-gradient(ellipse at 85% 78%,rgba(246,82,150,.28),transparent 55%),
+        linear-gradient(rgba(12,14,63,.45),rgba(238,18,128,.20)),
+        url('../images/ceu_bg.png') center center / cover no-repeat;
+}
+html.dark-theme body:is(.public-legal-page,.help-support-page) { background:#171625; }

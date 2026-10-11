@@ -425,10 +425,10 @@ body.prism-workspace .view-switch { padding:0; height:38px; align-items:center; 
 body.prism-workspace .view-switch button { width:36px; height:36px; }
 
 /* Research Resources: native, equal-height stacked disclosures in all roles. */
-body.prism-workspace .prism-resource-grid { display:grid; grid-template-columns:minmax(0,1fr); gap:12px; }
+body.prism-workspace .prism-resource-grid { display:grid; grid-template-columns:minmax(0,1fr); gap:8px; }
 body.prism-workspace .prism-resource { width:100%; min-width:0; border:1px solid var(--prism-border); border-radius:10px; background:var(--prism-card); }
 body.prism-workspace .prism-resource > summary {
-    display:flex; align-items:center; justify-content:space-between; gap:12px; min-height:58px; padding:16px 20px;
+    display:flex; align-items:center; justify-content:space-between; gap:12px; min-height:44px; padding:8px 12px;
     list-style:none; color:var(--prism-text); font-size:var(--prism-font-subheading); cursor:pointer;
     transition:background-color 160ms ease;
 }
@@ -475,7 +475,7 @@ body.prism-workspace .account-lifecycle #adminLifecycleResult { max-width:480px;
 body.prism-workspace .account-lifecycle [data-lifecycle-result] { margin:0; color:var(--prism-danger-fg); line-height:1.5; }
 body.prism-workspace .account-lifecycle [data-lifecycle-result]:empty { display:none; }
 @media(max-width:600px) {
-    body.prism-workspace .prism-resource > summary { min-height:92px; padding:12px; font-size:14px; line-height:1.5; }
+    body.prism-workspace .prism-resource > summary { min-height:60px; padding:8px 12px; font-size:14px; line-height:1.5; }
 }
 body.prism-workspace .prism-action-trigger { white-space:nowrap; }
 /* Review and file controls share the existing Actions menu. */
@@ -582,7 +582,7 @@ body.prism-workspace.adviser-dashboard-page .adviser-content-grid {
 body.prism-workspace.adviser-dashboard-page .adviser-review-panel { min-width:0; }
 body.prism-workspace.adviser-dashboard-page .adviser-notifications-panel { display:flex; flex-direction:column; min-height:0; }
 body.prism-workspace.adviser-dashboard-page #adviserNotifications {
-    flex:1 1 0; min-height:180px; max-height:640px; overflow-y:auto; overscroll-behavior:contain;
+    flex:1 1 0; min-height:0; max-height:none; overflow-y:auto;
 }
 body.prism-workspace.adviser-dashboard-page .adviser-side-panels {
     grid-template-columns:repeat(2,minmax(0,1fr)); align-items:start; margin-top:20px;

@@ -5,6 +5,7 @@ if (PHP_SAPI!=='cli' || !in_array($argv[1]??'', ['privacy.php','terms.php','lega
 require_once __DIR__.'/../includes/legal_policy.php';
 require_once __DIR__.'/../includes/assets.php';
 require_once __DIR__.'/../security.php';
+function current_user(): ?array { return null; }
 function db(): \PDO { return new class extends \PDO { public function __construct() {} }; }
 function require_login($roles=null): array { return ['id'=>1,'email'=>'fixture@example.invalid','role'=>'admin','full_name'=>'Fixture Admin','username'=>'FIXTURE','status'=>'Active','must_change_password'=>0,'password_hash'=>password_hash('fixture',PASSWORD_DEFAULT)]; }
 function legal_current(...$args): array { return $GLOBALS['current']; }
@@ -28,5 +29,6 @@ if ($count!==1) throw new \RuntimeException('Exact configuration boundary requir
 $source=str_replace("require __DIR__.'/includes/session_browser.php';",'', $source);
 // The public renderer reads only owner placeholder data; keep its exact source-relative path.
 $source=str_replace("require __DIR__.'/legal_placeholders.php'", "require ".var_export(__DIR__.'/../includes/legal_placeholders.php',true),$source);
+$source=str_replace(["require __DIR__.'/legal_header.php';","require __DIR__.'/includes/legal_header.php';"], "require ".var_export(__DIR__.'/../includes/legal_header.php',true).";",$source);
 if (preg_match('/config\.local|\/config\.php/',$source)) throw new \RuntimeException('Unexpected configuration in fixture.');
 eval('namespace '.__NAMESPACE__.'; '.preg_replace('/^<\?php\s*/','',$source));

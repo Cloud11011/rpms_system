@@ -2,6 +2,7 @@
 /** Shared frozen-v10 persistence and best-effort email. Config is loaded by the caller. */
 require_once __DIR__.'/student_snapshot.php';
 require_once __DIR__.'/notification_lifecycle.php';
+require_once __DIR__.'/help_support.php';
 
 /** Low-level delivery; production callers claim through notification_dispatch first. */
 function deliver_notification_email(PDO $pdo, int $id, string $email, string $subject, string $body,
@@ -11,7 +12,8 @@ function deliver_notification_email(PDO $pdo, int $id, string $email, string $su
     try { notification_mutex($pdo,$name); }
     catch (NotificationLifecycleError $e) { return ['ok'=>true,'status'=>'Skipped','message'=>'Delivery is busy.']; }
     try {
-        $rows=notification_rows($pdo,'SELECT status,deleted_at FROM notifications WHERE id=?',[$id]); $row=$rows[0]??null;
+        $rows=notification_rows($pdo,'SELECT n.status,n.deleted_at,c.kind FROM notifications n LEFT JOIN notification_campaigns c ON c.id=n.campaign_id WHERE n.id=?',[$id]); $row=$rows[0]??null;
+        if (($row['kind']??'')==='support') return ['ok'=>true,'status'=>'Skipped','message'=>'Support is available in PRISM only.'];
         if (!$row || $row['deleted_at']!==null || $row['status']!=='Sending') return ['ok'=>true,'status'=>'Skipped','message'=>'Delivery was cancelled or is not claimed.'];
         try { $result=send_notification_email($email,$subject,$body,false,false); }
         catch (Throwable $e) { $result=['ok'=>false,'message'=>'External notification delivery failed.']; }
@@ -40,6 +42,10 @@ function notification_dispatch(PDO $pdo, int $id, ?string $staleCutoff=null, ?ar
         }
         $pdo->beginTransaction();
         $rows=notification_rows($pdo,'SELECT * FROM notifications WHERE id=? FOR UPDATE',[$id]); $row=$rows[0]??null;
+        if ($campaignId) {
+            $kind=notification_rows($pdo,'SELECT kind FROM notification_campaigns WHERE id=?',[$campaignId]);
+            if (($kind[0]['kind']??'')==='support') { $pdo->commit(); return ['ok'=>true,'status'=>'Skipped']; }
+        }
         $due=$row && $row['status']==='Scheduled' && $row['scheduled_at']!==null && strtotime($row['scheduled_at'])<=time();
         $recover=$row && $staleCutoff!==null && $row['status']==='Sending' && $row['sending_started_at']!==null && $row['sending_started_at']<$staleCutoff;
         if (!$row || $row['deleted_at']!==null || $row['archived_at']!==null || (!$due && !$recover)) {

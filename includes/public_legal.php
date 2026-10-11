@@ -24,14 +24,10 @@ $legalEscape = static function (string $text) use ($legalPlaceholders): string {
 <link rel="stylesheet" href="<?= $legalEscape(asset_url('assets/css/public-legal.css')) ?>">
 <script>try { if (localStorage.getItem('prismTheme') === 'dark') document.documentElement.classList.add('dark-theme'); } catch (_) {}</script>
 </head>
-<body>
+<body class="public-legal-page">
 <a class="legal-skip" href="#legalContent">Skip to policy content</a>
 <div class="legal-shell">
-<header class="legal-header">
-<a class="legal-brand" href="index.php"><img src="assets/images/prismlogo1.png" alt="PRISM"><span>PRISM</span></a>
-<a href="login.php">Back to Login / PRISM</a>
-<button type="button" id="legalTheme" aria-label="Switch theme">Theme</button>
-</header>
+<?php $legalBackUrl=current_user()?'index.php':'login.php'; $legalBackLabel=$legalBackUrl==='index.php'?'Back to PRISM':'Back to Login'; require __DIR__.'/legal_header.php'; ?>
 <main id="legalContent" tabindex="-1">
 <h1><?= $legalEscape($legalTitle) ?></h1>
 <p class="legal-effective">Version <?= (int)$legalVersion['version_number'] ?> · Published/effective: <time><?= $legalEscape($legalVersion['published_at']) ?></time> (Asia/Manila)</p>
@@ -41,6 +37,6 @@ echo legal_render($legalText);
 </main>
 <footer><a href="privacy.php">Privacy Policy</a><span aria-hidden="true"> · </span><a href="terms.php">Terms of Service</a></footer>
 </div>
-<script>document.getElementById('legalTheme').addEventListener('click', () => { const dark = document.documentElement.classList.toggle('dark-theme'); try { localStorage.setItem('prismTheme', dark ? 'dark' : 'light'); } catch (_) {} });</script>
+<script src="<?= $legalEscape(asset_url('assets/js/legal-theme.js')) ?>"></script>
 </body>
 </html>

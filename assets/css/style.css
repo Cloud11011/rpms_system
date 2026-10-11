@@ -1,3 +1,4 @@
+@import url('auth-background.css');
 *{
     margin:0;
     padding:0;
@@ -586,7 +587,7 @@ body.unified-login{
     min-height:100vh;
     min-height:100svh;
     padding:24px 16px;
-    background:linear-gradient(rgba(12,14,63,.45),rgba(238,18,128,.20));
+    background:transparent;
 }
 
 .unified-login .login-card,

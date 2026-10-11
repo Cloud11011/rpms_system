@@ -64,6 +64,7 @@ try {
     require __DIR__.'/v10-batch7-lifecycle.php';
     require __DIR__.'/v10-batch7-concurrency.php';
     require __DIR__.'/v10-batch7-purge.php';
+    if (in_array('--batch8',$argv,true)) require __DIR__.'/v10-batch8-native.php';
     echo 'PASS: '.($GLOBALS['nativeChecks']??0)." native concurrency, FK and account-purge assertions.\n";
 } catch (Throwable $error) {
     $failure = $error;

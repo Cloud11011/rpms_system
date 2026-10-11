@@ -13,7 +13,7 @@
 .dashboard-page .card h1 { font-size:clamp(23px,2.3vw,34px); overflow-wrap:anywhere; }
 .dashboard-page .card p { font-size:var(--prism-font-body); line-height:1.6; }
 .dashboard-page .content { grid-template-columns:minmax(0,1fr) minmax(255px,.42fr); gap:20px; }
-.dashboard-page .content { align-items:start; }
+.dashboard-page .content { align-items:stretch; }
 .dashboard-page .content > :is(.dashboard-attention,.dashboard-monitor,.dashboard-repository) { grid-column:1 / -1; }
 .dashboard-page .content > :is(.pipeline-card,.calendar-box) { margin:0; }
 .dashboard-page :is(.left-column,.right-column,.content-box,.pipeline-card) { min-width:0; }
@@ -33,7 +33,8 @@
 .dashboard-page .dashboard-table-scroll :is(th,td):is(:nth-child(4),:nth-child(7),:nth-child(8)) { white-space:nowrap; word-break:normal; overflow-wrap:normal; }
 .dashboard-page .data-table td { overflow-wrap:normal; word-break:normal; }
 .dashboard-page .data-table td:first-child { overflow-wrap:anywhere; }
-.dashboard-page .pipeline-steps { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:10px; }
+.dashboard-page .pipeline-card { display:flex; flex-direction:column; }
+.dashboard-page .pipeline-steps { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:14px; flex:1; }
 .dashboard-page .step-item { min-width:0; display:flex; flex-direction:column; gap:12px; padding:18px 16px; border:1px solid var(--border-color); border-top:3px solid var(--accent-purple); border-radius:12px; background:var(--card-bg); }
 .dashboard-page .step-item.delayed { border-left-color:var(--border-color); border-top-color:#c67822; }
 .dashboard-page .step-item.approved { border-left-color:var(--border-color); border-top-color:#319052; }
@@ -42,7 +43,7 @@
 .dashboard-page .step-item strong { overflow-wrap:anywhere; }
 .dashboard-page .recent-ai-reports a { display:flex; align-items:center; gap:8px; color:inherit; text-decoration:none; width:100%; }
 .dashboard-page :is(a,button,input,select,[tabindex]):focus-visible { outline:2px solid var(--accent-pink); outline-offset:3px; }
-@media(max-width:1200px) { .dashboard-page .content { grid-template-columns:minmax(0,1fr); } .dashboard-page .cards { grid-template-columns:repeat(2,minmax(0,1fr)); } }
+@media(max-width:1200px) { .dashboard-page .content { grid-template-columns:minmax(0,1fr); align-items:start; } .dashboard-page .pipeline-steps { flex:0 1 auto; } .dashboard-page .cards { grid-template-columns:repeat(2,minmax(0,1fr)); } }
 @media(max-width:600px) {
  .dashboard-page .cards { grid-template-columns:minmax(0,1fr); }
  .dashboard-page .pipeline-steps { grid-template-columns:repeat(2,minmax(0,1fr)); }

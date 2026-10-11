@@ -53,7 +53,7 @@ async function run({check,evaluate,waitFor,navigate,command,keyPress,errors,getR
           info.resources=await evaluate('[...document.querySelectorAll(".prism-resource")].map(e=>{const r=e.getBoundingClientRect();return {name:e.dataset.resource,width:r.width,height:r.height,y:r.y,bottom:r.bottom};})');
         }
         check(info.resources.map(r=>r.name).join(',')==='ierb,sdg,agenda',label+': resource order');
-        check(info.resources.every(r=>Math.abs(r.width-info.resources[0].width)<1 && Math.abs(r.height-info.resources[0].height)<1) && info.resources.every((r,i)=>!i||r.y>=info.resources[i-1].bottom+10),label+': three equal rows stacked');
+        check(info.resources.every(r=>Math.abs(r.width-info.resources[0].width)<1 && Math.abs(r.height-info.resources[0].height)<1) && info.resources.every((r,i)=>!i||r.y>=info.resources[i-1].bottom+8),label+': three equal rows stacked with compact resource spacing');
         check(await evaluate('document.querySelector("[data-resource=agenda] img").getAttribute("src")==="assets/images/research-agenda-2023-2028.png"'),label+': official Agenda retained');
         await evaluate('document.querySelector("[data-resource=ierb] summary").focus()');await keyPress('Enter','Enter',13);
         check(await evaluate('document.querySelector("[data-resource=ierb]").open'),label+': native keyboard accordion expansion');await keyPress('Enter','Enter',13);

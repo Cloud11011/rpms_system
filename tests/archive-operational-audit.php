@@ -100,6 +100,12 @@ if (($argv[1]??'')==='--case') {
     }
     if (!empty($case['empty'])) foreach (['documents','students','advisers'] as $table) $pdo->exec('DELETE FROM '.$table);
     require_once __DIR__.'/retention-fixture-support.php';retention_fixture_support(__NAMESPACE__,true);
+    if (!empty($case['supportSentinel'])) {
+        $pdo->exec('CREATE TABLE IF NOT EXISTS notification_campaigns(id INTEGER PRIMARY KEY,kind TEXT,message TEXT)');
+        $columns=array_column($pdo->query('PRAGMA table_info(notifications)')->fetchAll(PDO::FETCH_ASSOC),'name');
+        foreach (['id'=>'INTEGER','campaign_id'=>'INTEGER','message'=>'TEXT'] as $name=>$type) if (!in_array($name,$columns,true)) $pdo->exec('ALTER TABLE notifications ADD COLUMN '.$name.' '.$type);
+        $pdo->exec("INSERT INTO notification_campaigns(id,kind,message) VALUES (1,'support','B8_SUPPORT_PRIVATE_SENTINEL'); INSERT INTO notifications(id,campaign_id,message) VALUES (1,1,'B8_SUPPORT_PRIVATE_SENTINEL')");
+    }
     $snapshot=[]; foreach (['students','advisers','documents','ierb_history','activity_logs'] as $table) $snapshot[$table]=$pdo->query('SELECT * FROM '.$table)->fetchAll();
     ob_start(); register_shutdown_function(function() use($pdo,$temp,$snapshot) {
         $body=ob_get_clean(); $pdf=''; foreach (glob($temp.'/*.pdf') as $file) { $pdf.=file_get_contents($file); unlink($file); } rmdir($temp);

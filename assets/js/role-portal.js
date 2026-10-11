@@ -482,23 +482,6 @@ document.addEventListener('DOMContentLoaded', () => {
         $('navProfileImage').src = 'assets/images/default-avatar.svg';
     });
 
-    // ------------------------------------------------------------------
-    // Help / support (kept lightweight: emails the RPMS office directly)
-    // ------------------------------------------------------------------
-    const supportModal = $('supportModal');
-    const closeSupport = () => { supportModal.hidden = true; $('supportForm').reset(); };
-    $('helpButton').addEventListener('click', () => { supportModal.hidden = false; $('supportSubject').focus(); });
-    $('closeSupportModal').addEventListener('click', closeSupport);
-    $('cancelSupport').addEventListener('click', closeSupport);
-    supportModal.addEventListener('click', e => { if (e.target === supportModal) closeSupport(); });
-    $('supportForm').addEventListener('submit', event => {
-        event.preventDefault();
-        const subject = encodeURIComponent(`PRISM Support: ${$('supportSubject').value.trim()}`);
-        const bodyText = encodeURIComponent(`${$('supportType').value}\n\n${$('supportMessage').value.trim()}\n\nFrom: ${body.dataset.name} (${body.dataset.email})`);
-        window.location.href = `mailto:rpms@ceu.edu.ph?subject=${subject}&body=${bodyText}`;
-        closeSupport();
-    });
-
     $('themeToggle').addEventListener('click', () => {
         const isDark = document.documentElement.classList.toggle('dark-theme');
         try { localStorage.setItem('prismTheme', isDark ? 'dark' : 'light'); } catch (_) {}
