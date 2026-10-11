@@ -114,12 +114,49 @@ function lifecycle_shared_hosting_visibility(PDO $pdo): array
         'visible_metadata_sha256'=>hash('sha256',json_encode([$tables,$keys,$rules,$triggers],JSON_THROW_ON_ERROR))];
 }
 
+/** A separate random 256-bit key identifies this installation; never emit it with evidence. */
+function lifecycle_verification_key(): string
+{
+    $key=defined('PRISM_HARD_DELETE_VERIFICATION_KEY')?PRISM_HARD_DELETE_VERIFICATION_KEY:getenv('PRISM_SCHEMA_VERIFY_KEY');
+    if(!is_string($key) || !preg_match('/\A[0-9a-f]{64}\z/D',$key)) {
+        throw new AccountLifecycleConflict('A deployment-specific verification key is required.');
+    }
+    return hex2bin($key);
+}
+
+/** Bind the verifier implementation and, for v10, its additional frozen constraint checks. */
+function lifecycle_verification_contract_hash(): string
+{
+    $files=[__FILE__];
+    $manifest=json_decode(file_get_contents(defined('PRISM_LIFECYCLE_MANIFEST_FILE')?PRISM_LIFECYCLE_MANIFEST_FILE:__DIR__.'/account_lifecycle_schema.json'),true,512,JSON_THROW_ON_ERROR);
+    if(($manifest['schema_version']??null)==='10') {
+        $files[]=__DIR__.'/schema_v10.php'; $files[]=__DIR__.'/schema_v10_plan.json';
+    }
+    $hashes=[];
+    foreach($files as $file) {
+        $hash=hash_file('sha256',$file);
+        if(!is_string($hash)) throw new AccountLifecycleConflict('Verification contract is unreadable.');
+        $hashes[]=basename($file).':'.$hash;
+    }
+    return hash('sha256',implode("\n",$hashes));
+}
+
+function lifecycle_authenticate_evidence(array $evidence): array
+{
+    unset($evidence['authenticator']);
+    $evidence['authenticator']=hash_hmac('sha256',json_encode($evidence,JSON_THROW_ON_ERROR),lifecycle_verification_key());
+    return $evidence;
+}
+
 function lifecycle_verification_evidence(PDO $pdo, string $mode): array
 {
-    $issued=time();
-    return ['evidence_version'=>2,'verification_mode'=>$mode,'manifest_sha256'=>lifecycle_manifest_hash(),
+    if((int)$pdo->query('SELECT @@SESSION.foreign_key_checks')->fetchColumn()!==1) {
+        throw new AccountLifecycleConflict('Verification requires database foreign-key enforcement.');
+    }
+    return ['evidence_version'=>3,'validity_policy'=>'deployment_invariants','verification_mode'=>$mode,'manifest_sha256'=>lifecycle_manifest_hash(),
+        'verification_contract_sha256'=>lifecycle_verification_contract_hash(),
         'database'=>lifecycle_database_binding($pdo),'schema_changes_excluded'=>true,
-        'issued_at'=>$issued,'expires_at'=>$issued+86400];
+        'issued_at'=>time()];
 }
 
 /** CLI/operator use only. This mode retains the original global visibility prerequisite. */
@@ -134,7 +171,8 @@ function lifecycle_privileged_verification(PDO $pdo): array
     }
     if(!$globalSelect || !$globalTrigger) throw new AccountLifecycleConflict('Complete server metadata visibility is not established. Permanent deletion must remain disabled.');
     lifecycle_compare_schema($pdo);
-    return lifecycle_verification_evidence($pdo,'globally_privileged')+['complete_visibility'=>true];
+    lifecycle_shared_hosting_visibility($pdo);
+    return lifecycle_authenticate_evidence(lifecycle_verification_evidence($pdo,'globally_privileged')+['complete_visibility'=>true]);
 }
 
 /** Hidden cross-schema references require an explicit operational assurance, not a metadata claim. */
@@ -143,33 +181,60 @@ function lifecycle_shared_hosting_verification(PDO $pdo, bool $externalDependenc
     if(!$externalDependenciesExcluded) throw new AccountLifecycleConflict('Shared-hosting verification requires explicit exclusion of hidden external dependencies.');
     $visibility=lifecycle_shared_hosting_visibility($pdo);
     lifecycle_compare_schema($pdo);
-    return lifecycle_verification_evidence($pdo,'schema_scoped_shared_hosting')+[
+    return lifecycle_authenticate_evidence(lifecycle_verification_evidence($pdo,'schema_scoped_shared_hosting')+[
         'complete_visibility'=>false,'external_dependencies_excluded'=>true,
-        'external_dependency_policy'=>'operator_excludes_hidden_cross_schema_references','visibility'=>$visibility];
+        'external_dependency_policy'=>'operator_excludes_hidden_cross_schema_references','visibility'=>$visibility]);
 }
 
 function lifecycle_verify_schema(PDO $pdo): void
 {
+    try { lifecycle_validate_verification($pdo); }
+    catch(Throwable $error) {
+        // Protected operator diagnostics, never database bindings or evidence contents.
+        error_log('PRISM deployment verification refused ('.get_class($error).'): '.$error->getMessage());
+        throw new AccountLifecycleConflict('Permanent deletion is unavailable because deployment verification is required. Contact the system operator.',0,$error);
+    }
+}
+
+function lifecycle_validate_verification(PDO $pdo): void
+{
     $verification=defined('PRISM_HARD_DELETE_VERIFICATION')?PRISM_HARD_DELETE_VERIFICATION:[];
     if(!defined('PRISM_HARD_DELETE_SCHEMA_VERIFIED') || PRISM_HARD_DELETE_SCHEMA_VERIFIED!==true
-        || !is_array($verification) || ($verification['evidence_version']??null)!==2
+        || !is_array($verification) || ($verification['evidence_version']??null)!==3) {
+        throw new AccountLifecycleConflict('Persistent version-3 verification is required.');
+    }
+    $authenticator=$verification['authenticator']??null;
+    if(!is_string($authenticator) || !preg_match('/\A[0-9a-f]{64}\z/D',$authenticator)
+        || !hash_equals(lifecycle_authenticate_evidence($verification)['authenticator'],$authenticator)) {
+        throw new AccountLifecycleConflict('Verification authentication failed.');
+    }
+    if(($verification['validity_policy']??null)!=='deployment_invariants'
+        || array_key_exists('expires_at',$verification)
+        || !is_int($verification['issued_at']??null) || $verification['issued_at']<1
         || ($verification['schema_changes_excluded']??false)!==true
         || !is_string($verification['manifest_sha256']??null)
         || !hash_equals(lifecycle_manifest_hash(),$verification['manifest_sha256'])
+        || !is_string($verification['verification_contract_sha256']??null)
+        || !hash_equals(lifecycle_verification_contract_hash(),$verification['verification_contract_sha256'])
         || ($verification['database']??null)!==lifecycle_database_binding($pdo)) {
         throw new AccountLifecycleConflict('Permanent deletion is disabled: valid deployment-bound schema verification is required. Retain the account using Archive.');
     }
-    if(!is_int($verification['issued_at']??null) || !is_int($verification['expires_at']??null)
-        || $verification['issued_at']>time()+60 || $verification['expires_at']!==$verification['issued_at']+86400
-        || $verification['expires_at']<=time()) {
-        throw new AccountLifecycleConflict('Permanent deletion is disabled: schema verification evidence has expired or has invalid dates. Repeat operator verification.');
-    }
     $mode=$verification['verification_mode']??null;
+    $fields=['evidence_version','validity_policy','verification_mode','manifest_sha256','verification_contract_sha256',
+        'database','schema_changes_excluded','issued_at','complete_visibility','authenticator'];
+    if($mode==='schema_scoped_shared_hosting') {
+        $fields=array_merge($fields,['external_dependencies_excluded','external_dependency_policy','visibility']);
+    }
+    $present=array_keys($verification); sort($present); sort($fields);
+    if($present!==$fields) throw new AccountLifecycleConflict('Verification evidence fields are invalid.');
     if($mode==='globally_privileged') {
         if(($verification['complete_visibility']??null)!==true || isset($verification['visibility'])
             || isset($verification['external_dependency_policy']) || isset($verification['external_dependencies_excluded'])) {
             throw new AccountLifecycleConflict('Global schema verification evidence is invalid.');
         }
+        // The web connection may be scoped even after a global operator review.
+        // Direct visibility is still mandatory for every application schema it can see.
+        lifecycle_shared_hosting_visibility($pdo);
     } elseif($mode==='schema_scoped_shared_hosting') {
         if(($verification['complete_visibility']??null)!==false || ($verification['external_dependencies_excluded']??false)!==true
             || ($verification['external_dependency_policy']??null)!=='operator_excludes_hidden_cross_schema_references'
@@ -191,7 +256,7 @@ function lifecycle_schema_availability(PDO $pdo): array
     try {
         lifecycle_verify_schema($pdo);
         return ['available'=>true,'verificationMode'=>PRISM_HARD_DELETE_VERIFICATION['verification_mode'],
-            'message'=>'Schema verification is valid. Each deletion still requires all account safety checks.'];
+            'message'=>'Permanent deletion available. Each account must still meet retention and eligibility requirements.'];
     } catch(AccountLifecycleConflict $error) {
         return ['available'=>false,'message'=>$error->getMessage()];
     } catch(Throwable $error) {

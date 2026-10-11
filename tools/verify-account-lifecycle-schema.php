@@ -10,7 +10,7 @@ require dirname(__DIR__).'/includes/account_identity.php';
 require dirname(__DIR__).'/includes/account_lifecycle_schema.php';
 try {
     // Credentials are supplied only through the operator environment; no application bootstrap.
-    foreach(['PRISM_SCHEMA_VERIFY_HOST','PRISM_SCHEMA_VERIFY_DATABASE','PRISM_SCHEMA_VERIFY_USER','PRISM_SCHEMA_VERIFY_PASSWORD'] as $key) {
+    foreach(['PRISM_SCHEMA_VERIFY_HOST','PRISM_SCHEMA_VERIFY_DATABASE','PRISM_SCHEMA_VERIFY_USER','PRISM_SCHEMA_VERIFY_PASSWORD','PRISM_SCHEMA_VERIFY_KEY'] as $key) {
         if(getenv($key)===false || getenv($key)==='') throw new RuntimeException('Verifier configuration is incomplete.');
     }
     $pdo=new PDO('mysql:host='.getenv('PRISM_SCHEMA_VERIFY_HOST').';port='.(getenv('PRISM_SCHEMA_VERIFY_PORT')?:3306).
@@ -20,7 +20,7 @@ try {
     $pdo->beginTransaction();
     $verification=$argv[1]==='--verify'?lifecycle_privileged_verification($pdo):lifecycle_shared_hosting_verification($pdo,true);
     $pdo->rollBack();
-    echo 'Verified mode: '.$verification['verification_mode'].". Evidence expires in 24 hours.\n";
+    echo 'Verified mode: '.$verification['verification_mode'].". Persistent evidence; reverify only after a protected deployment invariant changes.\n";
     if($argv[1]==='--verify-shared-hosting') {
         echo "Visibility is schema-scoped; hidden external references are excluded by operator assurance, not proven by metadata.\n";
         echo 'Visible application schemas: '.implode(', ',$verification['visibility']['visible_schemas'])."\n";

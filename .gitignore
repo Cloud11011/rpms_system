@@ -119,3 +119,7 @@ storage/.purge/
 !/tests/v10-batch10-http.php
 !/tests/v10-batch10-ui.cjs
 !/tests/v10-batch10-legal.php
+!/tests/v10-batch105-native.php
+!/tests/v10-batch105-worker.php
+!/tests/v10-batch105-http.php
+!/tests/v10-batch105-results.json

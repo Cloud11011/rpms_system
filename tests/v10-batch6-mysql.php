@@ -201,6 +201,7 @@ b6_expect(24,(int)$pdo->query('SELECT TIMESTAMPDIFF(HOUR,acknowledged_at,expires
 $consume="UPDATE staff_registration_code SET state='consumed',consumed_at=NOW(),consumed_by_user_id=3,verifier_hash=NULL WHERE slot=1 AND state='acknowledged' AND expires_at>NOW()";
 b6_expect(1,$pdo->exec($consume),'First transactional consume'); b6_expect(0,$pdo->exec($consume),'Second consume denied');
 // Exercise actual purge authorization/schema verifier with all new references present.
+define('PRISM_HARD_DELETE_VERIFICATION_KEY',str_repeat('a',64));
 define('PRISM_HARD_DELETE_SCHEMA_VERIFIED',true);
 define('PRISM_HARD_DELETE_VERIFICATION',lifecycle_privileged_verification($pdo));
 // Full v10 Student/Adviser lifecycle uses only this runner's private storage.

@@ -61,11 +61,13 @@ try {
     echo 'Temporary MariaDB version: ' . $pdo->query('SELECT VERSION()')->fetchColumn() . "\n";
 
     require __DIR__.'/v10-batch7-native-fixture.php';
-    if (!in_array('--only9',$argv,true) && !in_array('--only10',$argv,true)) {
+    if (!in_array('--only9',$argv,true) && !in_array('--only10',$argv,true) && !in_array('--only105',$argv,true) && !in_array('--http105',$argv,true)) {
         require __DIR__.'/v10-batch7-lifecycle.php';
         require __DIR__.'/v10-batch7-concurrency.php';
         require __DIR__.'/v10-batch7-purge.php';
     }
+    if (in_array('--batch105',$argv,true)) require __DIR__.'/v10-batch105-native.php';
+    if (in_array('--http105',$argv,true)) require __DIR__.'/v10-batch105-http.php';
     if (in_array('--batch8',$argv,true)) require __DIR__.'/v10-batch8-native.php';
     if (in_array('--batch9',$argv,true)) require __DIR__.'/v10-batch9-native.php';
     if (in_array('--batch10',$argv,true)) require __DIR__.'/v10-batch10-native.php';

@@ -22,6 +22,7 @@ file_put_contents($dest.'/metadata.json',json_encode($metadata,JSON_PRETTY_PRINT
 echo 'PASS: read-only metadata verified '.count($metadata['tables']).' tables, '.count($metadata['columns']).' columns, '.count($metadata['indexes']).' index components, '.count($actual)." foreign keys; zero triggers.\n";
 if ($argv[1] === '--lifecycle-metadata') return;
 require_once __DIR__.'/../includes/account_lifecycle.php';
+define('PRISM_HARD_DELETE_VERIFICATION_KEY',str_repeat('a',64));
 define('PRISM_HARD_DELETE_SCHEMA_VERIFIED',true);
 define('PRISM_HARD_DELETE_VERIFICATION',lifecycle_privileged_verification($pdo));
 require __DIR__.'/../workflow.php';

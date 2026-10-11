@@ -75,14 +75,14 @@
     let returnFocus = null;
     let records = [];
     let loadError = false;
-    let deletionAvailability = {available:false,message:'Checking permanent-delete schema verification...'};
+    let deletionAvailability = {available:false,message:'Checking permanent-deletion availability...'};
     async function loadDeletionAvailability() {
         if(loggedInRole!=='admin' || !archiveWorkspace) return;
         try {
             const data=await PrismUI.request('account_lifecycle_api.php?action=availability');
             deletionAvailability={available:data.available===true,message:data.message || 'Permanent deletion is unavailable.'};
         } catch(_) {
-            deletionAvailability={available:false,message:'Schema verification could not be checked. Permanent deletion is unavailable; use Archive.'};
+            deletionAvailability={available:false,message:'Permanent deletion is unavailable because deployment verification is required. Contact the system operator.'};
         }
         document.getElementById('permanentDeleteAvailability').textContent=deletionAvailability.message;
         render();

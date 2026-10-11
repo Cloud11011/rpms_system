@@ -19,7 +19,7 @@ function retention_http_config(?array $verification=null): void {
     $values=['DB_HOST'=>'127.0.0.1','DB_PORT'=>$port,'DB_NAME'=>'hardening_test_lifecycle','DB_USER'=>'root','DB_PASS'=>$password,
         'APP_ENV'=>'development','APP_BASE_URL'=>$httpBase,'ALLOWED_EMAIL_DOMAINS'=>['example.invalid'],
         'GMAIL_CLIENT_ID'=>'','GMAIL_CLIENT_SECRET'=>'','GMAIL_REFRESH_TOKEN'=>'','OPENROUTER_API_KEY'=>'',
-        'PRISM_HARD_DELETE_SCHEMA_VERIFIED'=>true,'PRISM_HARD_DELETE_VERIFICATION'=>$verification??PRISM_HARD_DELETE_VERIFICATION];
+        'PRISM_HARD_DELETE_VERIFICATION_KEY'=>PRISM_HARD_DELETE_VERIFICATION_KEY,'PRISM_HARD_DELETE_SCHEMA_VERIFIED'=>true,'PRISM_HARD_DELETE_VERIFICATION'=>$verification??PRISM_HARD_DELETE_VERIFICATION];
     $text="<?php\n";foreach($values as $key=>$value)$text.='define('.var_export($key,true).','.var_export($value,true).");\n";
     file_put_contents($httpRoot.'/config.local.php',$text);
 }
@@ -134,7 +134,7 @@ try {
     reset_migration_expect($bulk['data'],retention_http_request('account_lifecycle_api.php',$input,$cookie)['data'],'HTTP retry idempotent');
     retention_test_reset();
     $oldEvidence=PRISM_HARD_DELETE_VERIFICATION;$oldEvidence['issued_at']=time()-86401;$oldEvidence['expires_at']=time()-1;retention_http_config($oldEvidence);
-    reset_migration_expect(409,retention_http_request('account_lifecycle_api.php',retention_test_input(),$cookie)['status'],'Actual expired verification refused');retention_http_config();
+    reset_migration_expect(409,retention_http_request('account_lifecycle_api.php',retention_test_input(),$cookie)['status'],'Actual tampered verification refused');retention_http_config();
     $state=retention_http_request('account_lifecycle_api.php?action=account_state&accountType=student&targetId=100',[],$cookie,['method'=>'GET']);
     reset_migration_expect(true,$state['data']['lifecycle']['manualEligible'],'Server state authoritative');
     // Real list page and sort output share canonical filter logic with selection.

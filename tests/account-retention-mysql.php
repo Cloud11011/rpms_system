@@ -23,6 +23,7 @@ if ($argv[1]==='--retention-manifest') {
 }
 require __DIR__.'/account-retention-migration.php';
 lifecycle_compare_schema($pdo);
+define('PRISM_HARD_DELETE_VERIFICATION_KEY',str_repeat('a',64));
 define('PRISM_HARD_DELETE_SCHEMA_VERIFIED',true);
 define('PRISM_HARD_DELETE_VERIFICATION',lifecycle_privileged_verification($pdo));
 define('STORAGE_DIR',$root.DIRECTORY_SEPARATOR.'storage');

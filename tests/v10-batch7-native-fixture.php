@@ -46,6 +46,7 @@ foreach ($seed as $policy=>$value) {
     $pdo->prepare('UPDATE legal_policies SET current_version_id=? WHERE id=?')->execute([$id,$policy]);
 }
 lifecycle_compare_schema($pdo);
+define('PRISM_HARD_DELETE_VERIFICATION_KEY',str_repeat('a',64));
 define('PRISM_HARD_DELETE_SCHEMA_VERIFIED',true);
 define('PRISM_HARD_DELETE_VERIFICATION',lifecycle_privileged_verification($pdo));
 define('STORAGE_DIR',$root.'/storage'); mkdir(STORAGE_DIR);

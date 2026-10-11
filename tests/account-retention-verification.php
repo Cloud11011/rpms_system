@@ -12,7 +12,7 @@ catch(AccountLifecycleConflict $e) { reset_migration_expect(true,str_contains($e
 $evidence=lifecycle_shared_hosting_verification($scoped,true);
 reset_migration_expect(false,$evidence['complete_visibility'],'Scoped mode never claims global visibility');
 reset_migration_expect('schema_scoped_shared_hosting',$evidence['verification_mode'],'Explicit scoped mode');
-reset_migration_expect(86400,$evidence['expires_at']-$evidence['issued_at'],'24-hour lifetime preserved');
+reset_migration_expect(false,array_key_exists('expires_at',$evidence),'Persistent evidence has no expiration');
 $scopedFixture=['dbUser'=>'retention_scoped','password'=>$scopedSecret,'verification'=>$evidence];
 foreach (['student','adviser'] as $type) {
     retention_test_reset();$r=retention_worker_finish(retention_worker_start(retention_test_input($type),1,$scopedFixture));
@@ -21,8 +21,8 @@ foreach (['student','adviser'] as $type) {
 $bad=[];
 foreach (['db','host','port','server_id','version'] as $key) {$v=$evidence;$v['database'][$key]='wrong';$bad['binding '.$key]=$v;}
 $bad+=[
-    'expired'=>array_replace($evidence,['issued_at'=>time()-86401,'expires_at'=>time()-1]),
-    'future'=>array_replace($evidence,['issued_at'=>time()+3600,'expires_at'=>time()+90000]),
+    'legacy expiry field'=>array_replace($evidence,['issued_at'=>time()-86401,'expires_at'=>time()-1]),
+    'unauthenticated timestamp edit'=>array_replace($evidence,['issued_at'=>time()+3600,'expires_at'=>time()+90000]),
     'extended'=>array_replace($evidence,['expires_at'=>time()+172800]),
     'hash'=>array_replace($evidence,['manifest_sha256'=>str_repeat('0',64)]),
     'global claim'=>array_replace($evidence,['complete_visibility'=>true]),
@@ -52,7 +52,7 @@ copy(__DIR__.'/../includes/account_lifecycle_schema.php',$v9VerifierRoot.'/inclu
 copy(__DIR__.'/../includes/account_identity.php',$v9VerifierRoot.'/includes/account_identity.php');
 copy(__DIR__.'/../tools/schema-v9-contract.json',$v9VerifierRoot.'/includes/account_lifecycle_schema.json');
 foreach ([['root',$password,'--verify'],['retention_scoped',$scopedSecret,'--verify-shared-hosting']] as [$name,$secret,$mode]) {
-    $environment=array_merge(getenv(),['PRISM_SCHEMA_VERIFY_HOST'=>'127.0.0.1','PRISM_SCHEMA_VERIFY_PORT'=>(string)$port,
+    $environment=array_merge(getenv(),['PRISM_SCHEMA_VERIFY_KEY'=>PRISM_HARD_DELETE_VERIFICATION_KEY,'PRISM_SCHEMA_VERIFY_HOST'=>'127.0.0.1','PRISM_SCHEMA_VERIFY_PORT'=>(string)$port,
         'PRISM_SCHEMA_VERIFY_DATABASE'=>'hardening_test_lifecycle','PRISM_SCHEMA_VERIFY_USER'=>$name,'PRISM_SCHEMA_VERIFY_PASSWORD'=>$secret]);
     $args=[PHP_BINARY,$v9VerifierRoot.'/tools/verify-account-lifecycle-schema.php',$mode,'--schema-changes-excluded'];if($mode==='--verify-shared-hosting')$args[]='--external-dependencies-excluded';
     $process=proc_open($args,[0=>['pipe','r'],1=>['pipe','w'],2=>['pipe','w']],$pipes,__DIR__,$environment,['bypass_shell'=>true,'create_new_console'=>false]);

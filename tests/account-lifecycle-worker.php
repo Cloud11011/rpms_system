@@ -36,6 +36,7 @@ if(isset($fixture['foreignKeyChecks'])) $pdo->exec('SET SESSION FOREIGN_KEY_CHEC
 $actor=$pdo->query('SELECT * FROM users WHERE id='.(int)$fixture['actor'])->fetch();
 require __DIR__.'/../includes/account_lifecycle.php';
 require_once __DIR__.'/../includes/account_onboarding.php';
+define('PRISM_HARD_DELETE_VERIFICATION_KEY',$fixture['verificationKey']??str_repeat('a',64));
 define('PRISM_HARD_DELETE_SCHEMA_VERIFIED',($fixture['verified']??true)===true);
 if(empty($fixture['omitVerification'])) define('PRISM_HARD_DELETE_VERIFICATION',$fixture['verification']??[]);
 define('STAGE_SEQUENCE',['Stage 1','Stage 2','Stage 3','Stage 4','Stage 5','Completed']);

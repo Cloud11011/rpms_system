@@ -60,8 +60,8 @@ $badEvidence=$badBindings+[
     'unknown mode'=>array_replace($scopedEvidence,['verification_mode'=>'shared']),
     'false global visibility claim'=>array_replace($scopedEvidence,['complete_visibility'=>true]),
     'missing scoped visibility'=>array_replace($scopedEvidence,['visibility'=>[]]),
-    'expired evidence'=>array_replace($scopedEvidence,['issued_at'=>time()-86401,'expires_at'=>time()-1]),
-    'future evidence'=>array_replace($scopedEvidence,['issued_at'=>time()+3600,'expires_at'=>time()+90000]),
+    'legacy expiry field'=>array_replace($scopedEvidence,['issued_at'=>time()-86401,'expires_at'=>time()-1]),
+    'unauthenticated timestamp edit'=>array_replace($scopedEvidence,['issued_at'=>time()+3600,'expires_at'=>time()+90000]),
     'extended expiry'=>array_replace($scopedEvidence,['expires_at'=>time()+172800]),
     'obsolete evidence'=>array_replace($scopedEvidence,['evidence_version'=>1]),
 ];
@@ -161,7 +161,7 @@ foreach([
     [['--verify-shared-hosting','--schema-changes-excluded'],1],
     [['--verify-shared-hosting','--schema-changes-excluded','--external-dependencies-excluded'],0],
 ] as [$arguments,$expectedExit]) {
-    $environment=array_merge(getenv(),['PRISM_SCHEMA_VERIFY_HOST'=>'127.0.0.1','PRISM_SCHEMA_VERIFY_PORT'=>(string)$port,
+    $environment=array_merge(getenv(),['PRISM_SCHEMA_VERIFY_KEY'=>PRISM_HARD_DELETE_VERIFICATION_KEY,'PRISM_SCHEMA_VERIFY_HOST'=>'127.0.0.1','PRISM_SCHEMA_VERIFY_PORT'=>(string)$port,
         'PRISM_SCHEMA_VERIFY_DATABASE'=>'hardening_test_lifecycle','PRISM_SCHEMA_VERIFY_USER'=>'lifecycle_scoped','PRISM_SCHEMA_VERIFY_PASSWORD'=>$scopedPassword]);
     $process=proc_open(array_merge([PHP_BINARY,__DIR__.'/../tools/verify-account-lifecycle-schema.php'],$arguments),
         [0=>['pipe','r'],1=>['pipe','w'],2=>['pipe','w']],$pipes,__DIR__,$environment,['bypass_shell'=>true,'create_new_console'=>false]);

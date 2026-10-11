@@ -76,6 +76,10 @@ foreach(['student','adviser'] as $role)foreach(['create','cancel'] as $action) {
     $case=['role'=>$role,'action'=>$action,'method'=>$role==='student'?'POST':'GET','data'=>['id'=>1],'sql'=>$deadlineSql];
     $r=fixture('calendar-deadlines-audit.php',$case);verify(in_array($r['status'],[403,405],true)&&!$r['notifications'],'Popup GET cannot mutate; Student mutation role denied');
 }
+$verificationLog=tempnam(sys_get_temp_dir(),'prism-closed-gate-');
+if($verificationLog===false) throw new RuntimeException('Cannot allocate private diagnostic fixture');
+ini_set('error_log',$verificationLog);
+register_shutdown_function(static function() use($verificationLog): void { if(is_file($verificationLog)) unlink($verificationLog); });
 require_once __DIR__.'/../includes/account_lifecycle.php';
 class ClosedGateStatement extends PDOStatement {public function fetchColumn(int $column=0): mixed {return 1;}}
 class ClosedGatePDO extends PDO {
@@ -88,7 +92,9 @@ class ClosedGatePDO extends PDO {
 $pdo=new ClosedGatePDO();
 foreach(['student','adviser'] as $type) {
     try {retention_purge($pdo,['role'=>'admin','id'=>1],['accountType'=>$type,'targetId'=>1,'action'=>'permanent_delete','currentPassword'=>'fixture','confirmation'=>'S1','confirmed'=>true]);verify(false,'Invalid verification accepted');}
-    catch(AccountLifecycleConflict $e) {verify(str_contains($e->getMessage(),'verification')&&$pdo->writes===0,'Invalid deployment verification blocks purge before mutation');}
+    catch(AccountLifecycleConflict $e) {
+        verify($e->getMessage()==='Permanent deletion is unavailable because deployment verification is required. Contact the system operator.'&&$pdo->writes===0,'Invalid deployment verification blocks purge before mutation with sanitized diagnostics');
+    }
     foreach(['manual','retention_cleanup','grace_period_override'] as $method) {
         try {retention_require_eligible(['archived_at'=>null,'employee_id'=>'A1','status'=>'Active','grace_elapsed'=>1,'retention_elapsed'=>1],$method);verify(false,'Active purge accepted');}
         catch(AccountLifecycleConflict $e) {verify(str_contains($e->getMessage(),'Archive first'),'Direct active purge rejected: '.$method);}
@@ -96,4 +102,5 @@ foreach(['student','adviser'] as $type) {
         catch(AccountLifecycleConflict $e) {verify(str_contains($e->getMessage(),'Hold'),'Hold blocks all methods: '.$method);}
     }
 }
+verify(substr_count(file_get_contents($verificationLog),'Persistent version-3 verification is required.')===2,'Both gate refusals retain protected operator diagnostics');
 echo "PASS: $checks Batch 4.5 route, list/bulk, deadline-scope/reassignment and purge-gate checks; no application DB loaded.\n";

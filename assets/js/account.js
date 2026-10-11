@@ -196,7 +196,7 @@ document.addEventListener('DOMContentLoaded', () => {
         PrismUI.request('account_lifecycle_api.php?action=availability').then(data=>{
             $('adminDeleteAvailability').textContent=data.message || 'Permanent deletion is unavailable.';
             $('adminDeleteForm').querySelector('[type="submit"]').disabled=data.available!==true;
-        }).catch(()=>{ $('adminDeleteAvailability').textContent='Schema verification could not be checked. Permanent deletion is unavailable; use Archive.'; });
+        }).catch(()=>{ $('adminDeleteAvailability').textContent='Permanent deletion is unavailable because deployment verification is required. Contact the system operator.'; });
     }
     for (const [formId, action] of [['adminArchiveForm','archive'],['adminDeleteForm','permanent_delete']]) {
         $(formId)?.addEventListener('submit', async event => {

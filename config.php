@@ -90,6 +90,8 @@ if (!defined('DB_PASS')) define('DB_PASS', getenv('DB_PASS') ?: '');
 // Never enable this during schema changes. Archive is independent of this gate.
 if (!defined('PRISM_HARD_DELETE_SCHEMA_VERIFIED')) define('PRISM_HARD_DELETE_SCHEMA_VERIFIED', false);
 if (!defined('PRISM_HARD_DELETE_VERIFICATION')) define('PRISM_HARD_DELETE_VERIFICATION', []);
+// Set a unique random 64-character lowercase hex key in protected config.local.php.
+if (!defined('PRISM_HARD_DELETE_VERIFICATION_KEY')) define('PRISM_HARD_DELETE_VERIFICATION_KEY', '');
 
 // Canonical public URL used for security-sensitive absolute links (for example password resets).
 // Never derive these links from the request Host header.

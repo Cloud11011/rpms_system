@@ -21,7 +21,7 @@ function remediation_http_config(bool $verified=true,bool $deniedAudit=false,?ar
         'DB_USER'=>$deniedAudit?'lifecycle_restricted':'root','DB_PASS'=>$deniedAudit?$restrictedPassword:$password,
         'APP_ENV'=>'development','APP_BASE_URL'=>$httpBase,'ALLOWED_EMAIL_DOMAINS'=>['example.invalid'],
         'GMAIL_CLIENT_ID'=>'','GMAIL_CLIENT_SECRET'=>'','GMAIL_REFRESH_TOKEN'=>'','OPENROUTER_API_KEY'=>'',
-        'PRISM_HARD_DELETE_SCHEMA_VERIFIED'=>$verified,'PRISM_HARD_DELETE_VERIFICATION'=>$verification??PRISM_HARD_DELETE_VERIFICATION];
+        'PRISM_HARD_DELETE_VERIFICATION_KEY'=>PRISM_HARD_DELETE_VERIFICATION_KEY,'PRISM_HARD_DELETE_SCHEMA_VERIFIED'=>$verified,'PRISM_HARD_DELETE_VERIFICATION'=>$verification??PRISM_HARD_DELETE_VERIFICATION];
     if($connection) $values=array_replace($values,$connection);
     $source="<?php\n"; foreach($values as $key=>$value) $source.='define('.var_export($key,true).','.var_export($value,true).");\n";
     file_put_contents($httpRoot.'/config.local.php',$source);

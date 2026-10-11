@@ -73,7 +73,7 @@ if ($isAdmin && legal_admin_eligible($authUser)) {
 </form>
 <details class="lifecycle-destructive"><summary>Permanently delete my Admin account</summary>
 <form id="adminDeleteForm" class="account-form lifecycle-form"><p><strong>This cannot be undone.</strong> Your own login and password reset/setup tokens will be removed. Institutional history and audit evidence remain. Accounts needed by official deadlines cannot be deleted; use Archive.</p>
-<p id="adminDeleteAvailability" role="status">Checking permanent-delete schema verification...</p>
+<p id="adminDeleteAvailability" role="status">Checking permanent-deletion availability...</p>
 <div class="lifecycle-form-group"><label for="adminDeletePassword">Current password</label><div class="lifecycle-password"><input id="adminDeletePassword" name="currentPassword" type="password" autocomplete="current-password" maxlength="200" required><button type="button" class="toggle-password lifecycle-password-toggle" data-lifecycle-password aria-label="Show password" aria-controls="adminDeletePassword" aria-pressed="false"><i id="adminDeletePasswordEye" class="fa-solid fa-eye" aria-hidden="true"></i></button></div></div>
 <div class="lifecycle-form-group"><label for="adminDeleteConfirmation">Type DELETE to confirm</label><input id="adminDeleteConfirmation" name="confirmation" autocomplete="off" maxlength="100" required></div>
 <label class="lifecycle-check"><input name="confirmed" type="checkbox" required><span>I understand that permanent deletion cannot be undone.</span></label>
