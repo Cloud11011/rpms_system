@@ -5,6 +5,8 @@ $httpRoot=$root.'/http';mkdir($httpRoot);mkdir($httpRoot.'/includes');mkdir($htt
 foreach (glob(__DIR__.'/../includes/*.php') as $file) copy($file,$httpRoot.'/includes/'.basename($file));
 foreach (glob(__DIR__.'/../includes/*.json') as $file) copy($file,$httpRoot.'/includes/'.basename($file));
 foreach (['security.php','auth_rate_limit.php','register.php','register_process.php','staff_registration_manage.php','index.php','login.php','login_process.php','legal_consent.php','logout.php'] as $file) copy(__DIR__.'/../'.$file,$httpRoot.'/'.$file);
+// Production placement pages and their read APIs use the same private fixture connection.
+foreach (['account.php','admin_people.php','admin_students.php','admin_advisers.php','workflow.php','profile_api.php','audit_api.php','account_lifecycle_api.php','students_api.php','advisers_api.php'] as $file) copy(__DIR__.'/../'.$file,$httpRoot.'/'.$file);
 file_put_contents($httpRoot.'/config.local.php',"<?php\ndefine('ALLOWED_EMAIL_DOMAINS',['example.invalid']);\ndefine('APP_BASE_URL','http://127.0.0.1');\ndefine('APP_ENV','development');\ndefine('ADMIN_REGISTRATION_CODE','obsolete-static-fixture-code');\n");
 $config=file_get_contents(__DIR__.'/../config.php');
 $start=strpos($config,'function db(): PDO');$end=strpos($config,'// Bump this whenever',$start);
@@ -85,6 +87,24 @@ try {
     b9_expect(false,str_contains(file_get_contents($root.'/http-server.log'),$httpCode),'HTTP logs no code');
     b9_expect(false,is_file($httpRoot.'/storage/mail.log'),'no mail transport');
     b9_expect(false,str_contains(b9_http('login.php',null,'anonymous')['body'],'href="register.php"'),'Login no Register link');
+    // Additional placement checks; all Staff Code security assertions above remain unchanged.
+    $pdo->exec("INSERT INTO advisers(employee_id,full_name,email,user_id,status,profile_completed_at) VALUES ('B9-93','Batch9 93','b9-93@example.invalid',93,'Active',NOW())");
+    foreach ([9701=>['Pending','Pending Admin'],9702=>['Active','']] as $uid=>[$status,$name]) {
+        $pdo->prepare("INSERT INTO users(id,username,ref_id,full_name,email,role,status,password_hash,must_change_password) SELECT ?,?,?,?,?,'admin',?,password_hash,0 FROM users WHERE id=90")
+            ->execute([$uid,'B9-'.$uid,'B9-'.$uid,$name,'b9-'.$uid.'@example.invalid',$status]);
+    }
+    $ineligible=lifecycle_rows($pdo,'SELECT * FROM users WHERE id=9702')[0];
+    legal_accept($pdo,$ineligible,['privacy'=>true,'terms'=>true,'snapshot'=>legal_snapshot(legal_current($pdo))]);
+    foreach ([92=>'student.php',93=>null,94=>'login.php',95=>'legal_consent.php',9701=>'login.php',9702=>null] as $uid=>$location) {
+        b9_http('fixture-auth.php',['uid'=>$uid]);$r=b9_http('account.php');
+        b9_expect(false,str_contains($r['body'],'staff-registration-entry'),'Account card withheld from ineligible identity '.$uid);
+        b9_expect(false,str_contains($r['body'],'staff_registration_manage.php'),'Account management link withheld '.$uid);
+        b9_expect($location===null?200:302,$r['status'],'Account identity routing '.$uid);
+        if ($location!==null) b9_expect(true,str_contains($r['headers'],'Location: '.$location),'Account canonical gate '.$uid);
+    }
+    b9_http('fixture-auth.php',['uid'=>90]);$r=b9_http('account.php');
+    b9_expect(200,$r['status'],'eligible Admin Account page');
+    b9_expect(1,substr_count($r['body'],'class="management-card account-card staff-registration-entry"'),'single Admin entry card');
     // Browser checks use the real source pages while this isolated server is alive.
     if (in_array('--browser9',$argv,true)) {
         $browser=proc_open(['node',__DIR__.'/v10-batch9-ui.cjs',$origin,$httpRoot],[0=>['pipe','r'],1=>['pipe','w'],2=>['pipe','w']],$browserPipes,null,null,['bypass_shell'=>true,'create_new_console'=>false]);

@@ -34,8 +34,46 @@ async function run(){
     for(const [width,height] of matrix)for(const dark of [false,true]){
         await command('Emulation.setDeviceMetricsOverride',{width,height,deviceScaleFactor:1,mobile:false});
         await evaluate('localStorage.setItem("prismTheme",'+JSON.stringify(dark?'dark':'light')+')');
+        for(const uid of [92,93,94,95,9701,9702]){
+            await navigate('logout.php');await post('fixture-auth.php',{uid});
+            if(uid===93||uid===9702){
+                await navigate('account.php');
+                check(await evaluate('!document.querySelector(".staff-registration-entry,a[href=\\"staff_registration_manage.php\\"]")&&!document.body.textContent.includes("Staff Registration")'),'Account card withheld '+uid+'/'+width+'/'+dark);
+                check(await evaluate('document.documentElement.scrollWidth<=innerWidth+1'),'restricted Account fits '+uid+'/'+width+'/'+dark);
+            }else{
+                check(await evaluate('fetch("account.php",{redirect:"manual"}).then(r=>r.type==="opaqueredirect")'),'Account gate for Student/pending/inactive/unaccepted '+uid+'/'+width+'/'+dark);
+            }
+        }
+        await navigate('logout.php');await post('fixture-auth.php',{uid:90});
+        for(const page of ['admin_students.php','admin_advisers.php']){
+            await navigate(page);
+            check(await evaluate('!document.body.textContent.includes("Staff Registration")&&!document.querySelector("a[href=\\"staff_registration_manage.php\\"]")'),'Staff Registration absent from '+page+'/'+width+'/'+dark);
+            check(await evaluate('!document.querySelector(".sidebar").textContent.includes("Staff Registration")'),'no Staff sidebar entry '+page+'/'+width+'/'+dark);
+        }
         for(const state of ['none','pending','acknowledged','expired','consumed','invalidated']){
-            await post('fixture-state.php',{state});await navigate('staff_registration_manage.php');
+            await post('fixture-state.php',{state});await navigate('account.php');
+            const entryLabel='Account '+state+'/'+width+'/'+dark;
+            const status={none:'No Current Code',pending:'Pending Confirmation',acknowledged:'Active',expired:'Expired',consumed:'Consumed',invalidated:'Invalidated'}[state];
+            check(await evaluate('document.querySelectorAll(".staff-registration-entry").length===1'),entryLabel+' one Admin card');
+            check(await evaluate('document.querySelector("#staffStatus strong").textContent==='+JSON.stringify(status)),entryLabel+' readable textual status');
+            check(await evaluate('!document.querySelector(".staff-registration-entry form,#staffPlaintext,[name=proof],[name=mutation_token]")'),entryLabel+' concise safe entry');
+            check(await evaluate('!document.querySelector(".sidebar").textContent.includes("Staff Registration")&&!document.querySelector(".sidebar a[href=\\"staff_registration_manage.php\\"]")'),entryLabel+' no sidebar addition');
+            check(await evaluate('!![...document.querySelectorAll(".sidebar a")].find(a=>a.getAttribute("href")==="account.php"&&a.textContent.trim()==="Account & Activity")'),entryLabel+' existing navigation route');
+            check(await evaluate('(()=>{const card=document.querySelector(".staff-registration-entry"),h=getComputedStyle(card.querySelector("h2")),p=getComputedStyle(document.querySelector("#profile h2"));return h.fontSize===p.fontSize&&h.fontFamily===p.fontFamily&&getComputedStyle(card).padding===getComputedStyle(document.querySelector("#profile")).padding;})()'),entryLabel+' matching account typography and padding');
+            check(await evaluate('document.documentElement.scrollWidth<=innerWidth+1&&document.querySelector(".staff-registration-entry").scrollWidth<=document.querySelector(".staff-registration-entry").clientWidth+1'),entryLabel+' no horizontal overflow');
+            check(await evaluate('document.documentElement.classList.contains("dark-theme")==='+dark),entryLabel+' requested theme');
+            await evaluate('const heading=document.getElementById("staffTitle");heading.tabIndex=-1;heading.focus()');
+            await command('Input.dispatchKeyEvent',{type:'keyDown',key:'Tab',code:'Tab',windowsVirtualKeyCode:9});
+            await command('Input.dispatchKeyEvent',{type:'keyUp',key:'Tab',code:'Tab',windowsVirtualKeyCode:9});
+            check(await evaluate('document.activeElement.matches(".staff-registration-entry a")&&document.activeElement.textContent==="Manage Staff Registration"&&parseFloat(getComputedStyle(document.activeElement).outlineWidth)>=3'),entryLabel+' keyboard Manage link and visible focus');
+            if(state==='acknowledged'&&((width===375&&dark)||(width===1920&&!dark))){
+                await evaluate('document.querySelector(".staff-registration-entry").scrollIntoView({block:"center"})');
+                const shot=await command('Page.captureScreenshot',{format:'png'});fs.writeFileSync(path.join(out,'account-entry-'+width+'-'+(dark?'dark':'light')+'.png'),Buffer.from(shot.data,'base64'));
+            }
+            await command('Input.dispatchKeyEvent',{type:'keyDown',key:'Enter',code:'Enter',windowsVirtualKeyCode:13});
+            await command('Input.dispatchKeyEvent',{type:'keyUp',key:'Enter',code:'Enter',windowsVirtualKeyCode:13});
+            await waitFor('location.href==='+JSON.stringify(origin+'/staff_registration_manage.php')+'&&document.readyState==="complete"');
+            check(await evaluate('!!document.querySelector(".staff-registration")&&!![...document.querySelectorAll("main a")].find(a=>a.getAttribute("href")==="account.php"&&a.textContent==="Back to Account & Activity")'),entryLabel+' Manage reaches dedicated route and returns to Account');
             const label=state+'/'+width+'/'+dark;
             check(await evaluate('document.documentElement.scrollWidth<=innerWidth+1'),label+' no overflow');
             check(await evaluate('!document.querySelector("#staffPlaintext,[name=proof]")'),label+' no recoverable code or proof');

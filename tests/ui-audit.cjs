@@ -91,6 +91,9 @@ function fixtureTemplate(file) {
   const requireConfig = file === 'role_portal.php' ? /require_once __DIR__ \. '\/config\.php';/g : /require __DIR__ \. '\/config\.php';/g;
   assert.equal([...source.matchAll(requireConfig)].length, 1, `${file}: expected one config include`);
   let isolated = source.replace(requireConfig, '/* Configuration replaced by isolated test fixture. */');
+  const staffInclude = "require_once __DIR__ . '/includes/staff_registration.php';";
+  assert.equal(isolated.split(staffInclude).length - 1, file === 'account.php' ? 1 : 0, `${file}: exact Staff status service boundary`);
+  isolated = isolated.replace(staffInclude, '/* Staff status service replaced by presentation fixture; real gates covered by native B9. */');
   if (file === 'admin_notifications.php') {
     const supportInclude = "require_once __DIR__.'/includes/help_support.php';";
     assert.equal(isolated.split(supportInclude).length - 1, 1, 'Exact support helper boundary');
@@ -126,6 +129,7 @@ function fixtureTemplate(file) {
   }
   // Only these reviewed presentation paths may be expanded, on these exact pages.
   for (const partial of [
+    { include: "require __DIR__ . '/includes/staff_registration_card.php';", path: 'includes/staff_registration_card.php', pages: ['account.php'] },
     { include: "require __DIR__ . '/includes/ceu_footer.php';", path: 'includes/ceu_footer.php', pages: [...pages, ...extraPages] },
     { include: "require __DIR__ . '/includes/research_resources.php';", path: 'includes/research_resources.php', pages: ['dashboard.php', 'research_adviser.php', 'role_portal.php'] },
   ]) {
@@ -154,6 +158,9 @@ function fixtureTemplate(file) {
     $_SESSION = ['user_id'=>1,'login_generation'=>str_repeat('a',32),'account_type' => '${role}', 'user_role' => '${role === 'admin' ? 'RPMS Administrator' : 'Research Adviser'}'];
     function require_login($roles) { return ['id'=>1, 'email'=>'fixture@example.test', 'full_name'=>'UI Audit Fixture', 'role'=>'${role}', 'ref_id'=>'FIXTURE', 'username'=>'fixture']; }
     function support_token() { return 'fixture-support-token'; }
+    function legal_admin_eligible($user) { return $user['role']==='admin'; }
+    function staff_overview($pdo,$user) { return null; }
+    function legal_escape($value) { return htmlspecialchars((string)$value,ENT_QUOTES,'UTF-8'); }
     function db() { return new class { function query($sql) { return new class { function fetchColumn() { return 0; } }; } }; }
     function stage_labels_map() { return json_decode('${JSON.stringify(labelsForScenario())}', true); }
     const ALLOWED_EMAIL_DOMAINS = ['example.invalid', 'example.test'];

@@ -5,6 +5,16 @@ $user_name = $authUser['full_name'];
 $user_email = $authUser['email'];
 $user_role = $_SESSION['user_role'] ?? ucfirst($authUser['role']);
 $isAdmin = $authUser['role'] === 'admin';
+$showStaffRegistration = false;
+if ($isAdmin && legal_admin_eligible($authUser)) {
+    require_once __DIR__ . '/includes/staff_registration.php';
+    try {
+        $staffState = staff_overview(db(), $authUser);
+        $showStaffRegistration = true;
+    } catch (Throwable $error) {
+        // Fail closed if current eligibility or safe status cannot be verified.
+    }
+}
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -49,6 +59,9 @@ $isAdmin = $authUser['role'] === 'admin';
 <button class="management-primary" type="submit"><i class="fa-solid fa-key"></i> Change password</button>
 </form><p class="account-note">Use at least 12 characters and choose a password different from your current one.</p></section>
 </div>
+<?php if ($showStaffRegistration): ?>
+<?php $staffEntryOnly = true; require __DIR__ . '/includes/staff_registration_card.php'; ?>
+<?php endif; ?>
 <?php if ($isAdmin): ?>
 <section class="management-card account-card account-lifecycle" id="lifecycle" data-user-id="<?php echo (int)$authUser['id']; ?>">
 <div class="management-card-head"><div><h2>My account lifecycle</h2><p>Archive is the recommended option. Another active Admin must remain.</p></div></div>

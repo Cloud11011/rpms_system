@@ -309,6 +309,19 @@ html.dark-theme .ai-report-page .report-history-action {
     padding: 18px;
 }
 
+.account-page .staff-registration-entry {
+    margin-block: 16px;
+}
+
+.account-page .staff-registration-entry > .management-card-head {
+    padding: 0;
+    margin-bottom: 12px;
+}
+
+.account-page .staff-registration-entry .account-note {
+    margin-bottom: 12px;
+}
+
 .account-page .account-form {
     display: grid;
     gap: 12px;

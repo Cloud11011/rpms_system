@@ -2,6 +2,16 @@
 // Presentation only. Controller supplies safe metadata and immediate, unpersisted response material.
 $labels=['pending'=>'Pending Confirmation','acknowledged'=>'Active','expired'=>'Expired','consumed'=>'Consumed','invalidated'=>'Invalidated'];
 $state=$staffState['state']??'';
+if (!empty($staffEntryOnly)):
+?>
+<section class="management-card account-card staff-registration-entry" aria-labelledby="staffTitle">
+<div class="management-card-head"><div><h2 id="staffTitle">Staff Registration</h2><p>Manage the single-use code for creating a new administrator.</p></div></div>
+<p id="staffStatus" class="account-note">Current status: <strong><?= legal_escape($labels[$state]??'No Current Code') ?></strong></p>
+<a class="prism-btn prism-btn-secondary" href="staff_registration_manage.php">Manage Staff Registration</a>
+</section>
+<?php
+return;
+endif;
 $hiddenFields='<input type="hidden" name="prism_generation" value="'.legal_escape(prism_session_generation()).'">'
     .'<input type="hidden" name="mutation_token" value="'.legal_escape($_SESSION['staff_mutation_token']).'">'
     .'<input type="hidden" name="generation_id" value="'.legal_escape($staffState['generation_id']??'').'">';

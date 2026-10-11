@@ -6,7 +6,7 @@ header('Cache-Control: no-store, max-age=0');
 header('Referrer-Policy: same-origin');
 $user_name=$authUser['full_name']; $user_email=$authUser['email'];
 $user_role='RPMS Administrator'; $profile_img='assets/images/default-avatar.svg';
-$prismCurrentPage='admin_advisers.php';
+$prismCurrentPage='account.php';
 $display=null; $message=''; $error='';
 if (!isset($_SESSION['staff_mutation_token'])) $_SESSION['staff_mutation_token']=bin2hex(random_bytes(32));
 if (($_SERVER['REQUEST_METHOD']??'GET')==='POST') {
@@ -46,7 +46,7 @@ $registrationLink=PRISM_PUBLIC_BASE_URL.'register.php';
 </head><body class="prism-workspace admin-shell"><div class="container"><aside class="sidebar prism-sidebar">
 <?php require __DIR__.'/includes/prism-navigation.php'; ?></aside>
 <main class="main-content management-page"><header class="topbar"><div><h1>Staff Registration</h1><p>Create a single-use code for one new administrator.</p></div><div class="top-controls"><button type="button" id="themeToggle" class="theme-toggle" aria-label="Toggle light or dark theme"><i class="fa-solid fa-sun light-icon" aria-hidden="true"></i><i class="fa-solid fa-moon dark-icon" aria-hidden="true"></i></button></div></header>
-<p><a class="prism-btn prism-btn-secondary" href="admin_advisers.php">Back to Account Management</a></p>
+<p><a class="prism-btn prism-btn-secondary" href="account.php">Back to Account &amp; Activity</a></p>
 <?php require __DIR__.'/includes/staff_registration_card.php'; ?>
 </main></div><script src="<?= legal_escape(asset_url('assets/js/prism-workspace.js')) ?>" defer></script>
 <?php require __DIR__.'/includes/session_browser.php'; ?>
