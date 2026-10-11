@@ -7,7 +7,8 @@ if (!$user) {
     exit;
 }
 
-if(empty($user['must_change_password']) && !onboarding_complete(db(),$user)) { header('Location: complete_profile.php'); exit; }
-$target = $user['role'] === 'student' ? 'student.php' : ($user['role'] === 'adviser' ? 'ierbprog.php' : 'dashboard.php');
+if (!empty($user['must_change_password'])) { header('Location: change_password_required.php'); exit; }
+if (!onboarding_complete(db(),$user)) { header('Location: complete_profile.php'); exit; }
+$target = $user['role'] === 'student' ? 'student.php' : ($user['role'] === 'adviser' ? 'research_adviser.php' : 'dashboard.php');
 header("Location: $target");
 exit;

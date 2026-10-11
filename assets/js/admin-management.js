@@ -236,19 +236,22 @@
                     <td>${escapeHtml(record.studentId || '—')}</td>
                     <td>${escapeHtml(record.research || 'Not set')}<br><small>${escapeHtml(record.group || 'No group')}</small></td>
                     <td>${escapeHtml(record.adviserName || 'Unassigned')}</td>
-                    <td>${record.profileStatus==='Pending'?'Complete profile first':`<span class="stage-tag" title="${escapeHtml(record.stage)}">${escapeHtml(record.stageLabel || labelForStage(record.stage))}</span> ${PrismUI.badge(record.status)}`}</td>
-                    <td>${protocolBadge}${piBadge}</td>
+                    <td>${record.profileStatus==='Pending'?'Complete profile first':`<div class="prism-pill-row"><span class="stage-tag" title="${escapeHtml(record.stage)}">${escapeHtml(record.stageLabel || labelForStage(record.stage))}</span>${PrismUI.badge(record.status)}</div>`}</td>
+                    <td><div class="prism-pill-row">${protocolBadge}${piBadge}</div></td>
                     <td class="row-actions"></td>`;
             }
             if (isAdviser && !archiveWorkspace) {
                 const groups = Array.isArray(record.groups) ? record.groups : [];
                 const cell = tr.querySelector('.adviser-groups');
                 if (!groups.length) cell.textContent = 'No assigned research groups';
+                const groupRow = document.createElement('div');
+                groupRow.className = 'prism-pill-row';
+                if (groups.length) cell.append(groupRow);
                 groups.forEach(group => {
                     const chip = document.createElement('span');
                     chip.className = 'prism-badge adviser-group-chip';
                     chip.textContent = group;
-                    cell.append(chip);
+                    groupRow.append(chip);
                 });
             } else if (!isAdviser) PrismAcademicFields.appendSummary(tr.cells[2], record);
             const actions = document.createElement('div');

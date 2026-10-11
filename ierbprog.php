@@ -46,12 +46,12 @@ $profile_img = 'assets/images/default-avatar.svg';
         </section>
 
         <section class="ierb-controls" aria-label="IERB progress filters">
-            <label class="ierb-control-field ierb-search-field" for="ierbSearch"><span>Search records</span><span class="ierb-search"><i class="fa-solid fa-magnifying-glass"></i><input id="ierbSearch" type="search" placeholder="Student, ID, group, or research title"></span></label>
+            <label class="ierb-control-field ierb-search-field" for="ierbSearch"><span class="prism-sr-only">Search records</span><span class="ierb-search"><i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i><input id="ierbSearch" type="search" placeholder="Search records"></span></label>
             <div class="ierb-filters">
                 <label class="ierb-control-field" for="stageFilter"><span>Stage</span><select id="stageFilter"><option value="">All Stages</option><option value="Stage 1">Stage 1</option><option value="Stage 2">Stage 2</option><option value="Stage 3">Stage 3</option><option value="Stage 4">Stage 4</option><option value="Stage 5">Stage 5</option><option value="Completed">Completed</option></select></label>
                 <label class="ierb-control-field" for="ierbStatusFilter"><span>Status</span><select id="ierbStatusFilter"><option value="">All Statuses</option><option>On Track</option><option>Pending</option><option>Delayed</option></select></label>
             </div>
-            <?php if ($authUser['role'] === 'admin'): ?><div class="ierb-add-field"><span>New record</span><button type="button" class="ierb-add-link" id="addIerbEntry"><i class="fa-solid fa-plus"></i> Add IERB Entry</button></div><?php endif; ?>
+            <?php if ($authUser['role'] === 'admin'): ?><button type="button" class="ierb-add-link" id="addIerbEntry"><i class="fa-solid fa-plus" aria-hidden="true"></i> Add IERB Entry</button><?php endif; ?>
         </section>
 
         <div id="ierbMoreFilters" class="prism-record-filters" aria-label="Academic and research filters"></div>

@@ -17,6 +17,9 @@
   --prism-font-hero: clamp(26px, 2.4vw, 33px);
   --prism-font-reading: 14.5px;
   --prism-radius: 10px;
+  --prism-pill-height: 28px;
+  --prism-pill-padding: 4px 10px;
+  --prism-pill-gap: 8px;
   --prism-border: #dfe4ec;
   --prism-muted: #64708a;
   --prism-text: #1f2937;
@@ -65,7 +68,7 @@
 .prism-badge.tone-danger   { background: var(--prism-danger-bg);   color: var(--prism-danger-fg);   border-color: var(--prism-danger-bd); }
 .prism-badge.tone-neutral  { background: var(--prism-neutral-bg);  color: var(--prism-neutral-fg);  border-color: var(--prism-neutral-bd); }
 .prism-badge.tone-override { background: var(--prism-override-bg); color: var(--prism-override-fg); border-color: var(--prism-override-bd); }
-.prism-badges { display: flex; flex-wrap: wrap; gap: .3rem; margin-top: .3rem; max-width: 100%; overflow-x: auto; }
+.prism-badges { display: flex; align-items:center; flex-wrap: wrap; gap: var(--prism-pill-gap); margin-top: .3rem; max-width: 100%; }
 .prism-sub { display: block; color: var(--prism-muted); font-size:var(--prism-font-body); font-weight: 500; margin-top: .15rem; }
 
 /* ---------- Buttons ---------- */

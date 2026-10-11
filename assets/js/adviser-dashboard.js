@@ -59,7 +59,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     function openReview(doc, opener) {
         reviewDocument = doc;
-        reviewOpener = opener;
+        reviewOpener = PrismUI.actionOrigin(opener);
         byId('adviserReviewTitle').textContent = 'Review: ' + (doc.originalName || 'Document');
         reviewStatus.value = [...reviewStatus.options].some(option => option.value === doc.reviewStatus) ? doc.reviewStatus : 'Under Review';
         remarks.value = doc.reviewRemarks || '';
@@ -86,7 +86,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const caption = node('caption', 'Current submissions for your assigned students');
         const head = node('thead');
         const heading = node('tr');
-        ['Student', 'Document', 'Submission Date', 'Status', 'Action'].forEach(label => {
+        ['Student', 'Document', 'Submission Date', 'Status', 'Actions'].forEach(label => {
             const cell = node('th', label); cell.scope = 'col'; heading.append(cell);
         });
         head.append(heading);
@@ -113,12 +113,13 @@ document.addEventListener('DOMContentLoaded', () => {
             fileLink.rel = 'noopener noreferrer';
             actions.append(fileLink);
             if (doc.actions && doc.actions.review === true) {
-                const review = node('button', 'Review document', 'adviser-button prism-btn-primary');
+                const review = node('button', 'Review Document', 'adviser-button');
                 review.type = 'button';
                 review.dataset.reviewId = String(doc.id);
                 review.addEventListener('click', () => openReview(doc, review));
                 actions.append(review);
             }
+            PrismUI.actionMenu(actions);
             const actionCell = node('td'); actionCell.append(actions);
             row.append(student, card, node('td', dateText(doc.uploadedAt)), statusCell, actionCell);
             rows.append(row);

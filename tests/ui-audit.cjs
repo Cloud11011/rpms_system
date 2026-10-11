@@ -183,7 +183,7 @@ function fixtureApi(file, action) {
     return {ok:true,deadlines:scenario==='empty'?[]:[{id:1,title:attack,description:attack,deadline_date:query.from,target_scope:'groups',status:'Active',groups:role==='student'?[]:['AMT-BSIT-Y2-2627-G01'],canCancel:role!=='student'}],total:scenario==='empty'?0:1,page:1,limit:10};
   }
   if (scenario === 'error') return { ok: false, message: 'Fixture error ' + attack };
-  const populated = scenario === 'populated' || scenario === 'long-labels' || scenario.startsWith('student-');
+  const populated = scenario === 'populated' || scenario === 'long-labels' || scenario === 'review-denied' || scenario.startsWith('student-');
   if (file==='documents_api.php' && action==='submit_to_rpms') { studentSubmitted=true; return {ok:true,message:'Formally submitted to RPMS.'}; }
   if (file==='documents_api.php' && role==='student') {
     const state=studentSubmitted || scenario==='student-submitted'?'Submitted to RPMS':scenario==='student-ready'?'Ready for Formal RPMS Submission':scenario==='student-revision'?'Needs Revision':'Pending Adviser Review';
@@ -221,7 +221,7 @@ function fixtureApi(file, action) {
   if (file === 'students_api.php' && lifecycleRecords && action==='list') return {ok:true,students:lifecycleRecords};
   if (file === 'students_api.php' && academicRecord) return {ok:true,students:[academicRecord]};
   if (file === 'students_api.php') return {ok:true,students:populated?[{id:1,name:attack,research:attack,course:'Fixture Course',stage:'Stage 1',status:'On Track'}]:[]};
-  if (file === 'documents_api.php' && role === 'adviser') return {ok:true,documents:populated?[{id:'fixture-doc',originalName:attack+'LongFileName'.repeat(15)+'.pdf',student:attack,studentId:1,documentType:'Research Protocol',stage:'Stage 1',uploadedAt:'2026-09-24',workflowState:reviewedStatus==='Approved'?'Ready for Formal RPMS Submission':(['Denied','Resubmission Requested'].includes(reviewedStatus)?'Needs Revision':'Pending Adviser Review'),reviewStatus:reviewedStatus||'Submitted',reviewRemarks:attack,versionNo:1,isCurrent:true,actions:{review:true}}]:[],counts:{}};
+  if (file === 'documents_api.php' && role === 'adviser') return {ok:true,documents:populated?[{id:'fixture-doc',originalName:attack+'LongFileName'.repeat(15)+'.pdf',student:attack,studentId:1,documentType:'Research Protocol',stage:'Stage 1',uploadedAt:'2026-09-24',workflowState:reviewedStatus==='Approved'?'Ready for Formal RPMS Submission':(['Denied','Resubmission Requested'].includes(reviewedStatus)?'Needs Revision':'Pending Adviser Review'),reviewStatus:reviewedStatus||'Submitted',reviewRemarks:attack,versionNo:1,isCurrent:true,actions:{review:scenario!=='review-denied'}}]:[],counts:{}};
   if (file === 'documents_api.php') {
     const docs=populated ? [{ id:'fixture-doc', originalName:attack, aiSummary:summaryStored, student:'Fixture Student', studentId:1, documentType:'Protocol', stage:'Stage 1', stageLabel:'Initial review', uploadedAt:'2026-09-24', workflowState:'Pending Adviser Review', reviewStatus:'Submitted', versionNo:1, isCurrent:true, actions:{review:true,summarize:role==='admin'} }] : [];
     if(summaryMultiRecords&&docs.length)docs.push({...docs[0],id:'fixture-doc-second',originalName:'Second research document.pdf',aiSummary:null});
@@ -813,13 +813,13 @@ async function checkDashboard() {
   }
   await navigate('dashboard.php',1280,false,'populated');
   check(await evaluate(`document.getElementById('ierbMonitorBody').textContent.includes(${JSON.stringify(attack)}) && !document.querySelector('#ierbMonitorBody img')`), 'Dashboard hostile research/student labels stay literal');
-  await evaluateFunction(()=>{const search=document.getElementById('dashboardSearch');search.value='no matching fixture';search.dispatchEvent(new Event('input'));});
-  await waitFor("document.querySelectorAll('#ierbMonitorBody tr[data-course]').length===0");
-  check(await evaluate(`[...document.querySelectorAll('#ierbMonitorBody tr[data-course]')].every(row=>row.style.display==='none')`), 'Dashboard search filters existing authorized records');
+  check(await evaluate('!document.querySelector("#dashboardSearch,#quickActionsToggle,.quick-actions-menu-wrap,.search-box")'), 'Dashboard redundant controls and wrappers removed');
+  await navigate('ierbprog.php',1280,false,'populated');
+  await evaluateFunction(()=>{const search=document.getElementById('ierbSearch');search.value='no matching fixture';search.dispatchEvent(new Event('input'));});
+  await waitFor("document.getElementById('ierbTableBody').getAttribute('aria-busy')==='false' && document.querySelector('#ierbTableBody .ierb-empty-row')!==null");
+  check(await evaluate("document.querySelector('#ierbTableBody').textContent.includes('No matching')"), 'Equivalent authorized IERB management search remains functional');
+  await navigate('dashboard.php',1280,false,'populated');
   const summariesBefore = requests.filter(r=>r.file==='documents_api.php' && r.action==='summarize').length;
-  await evaluateFunction(()=>{
-    const search=document.getElementById('dashboardSearch');search.value='';search.dispatchEvent(new Event('input'));
-  });
   await waitFor(`!!document.querySelector('[data-monitor-action="documents"]')`);
   await evaluateFunction(()=>{
     const link=document.querySelector('[data-monitor-action="documents"]');
@@ -831,7 +831,7 @@ async function checkDashboard() {
     const link=document.querySelector('[data-monitor-action="documents"]');
     return link.tagName==='A' && link.getAttribute('href')==='documents.php' && link.textContent==='Open Documents' && !link.hasAttribute('data-id');
   }) && requests.filter(r=>r.file==='documents_api.php' && r.action==='summarize').length===summariesBefore, 'Student-row Open Documents link is keyboard accessible and never substitutes a student ID for a document ID');
-  check(await evaluate(`!!document.querySelector('#recentAiReportList a[rel*="noopener"]')`), 'Dashboard PDF history is a secure keyboard link');
+  check(await evaluate(`!!document.querySelector('a[href="reports.php"]') && !!document.querySelector('.ai-action-btn')`), 'Report history navigation and dashboard generation remain available');
 }
 
 async function checkTonightPolish() {
@@ -1089,7 +1089,7 @@ async function checkAdviserDashboard() {
   await evaluate("const b=document.querySelector('[data-review-id]');b.focus();b.click();");
   check(await evaluate('document.getElementById("adviserReviewDialog").open'),'Adviser review dialog opens');
   await keyPress('Escape','Escape',27);
-  check(await evaluate('!document.getElementById("adviserReviewDialog").open && document.activeElement.matches("[data-review-id]")'), 'Adviser review Escape returns focus');
+  check(await evaluate('!document.getElementById("adviserReviewDialog").open && document.activeElement.matches(".prism-action-trigger")'), 'Adviser review Escape returns focus to visible Actions');
   for(const status of ['Approved','Resubmission Requested','Denied']) {
     await navigate('research_adviser.php',1280,false,'populated','adviser');
     apiDelay=150;
@@ -2302,6 +2302,7 @@ async function run() {
   await command('Log.enable');
   await command('Fetch.enable', { patterns: [{ urlPattern: '*' }] });
   await command('Browser.setDownloadBehavior', { behavior: 'deny' }, true);
+  if(process.argv.includes('--batch5a-only')) {await require('./v10-batch5a-ui.cjs').run({check,evaluate,waitFor,navigate,command,keyPress,errors,getRequests:()=>requests});console.log(checks+' batch 5A browser checks; '+failures.length+' failures.');for(const f of failures)console.error('FAIL '+f);if(failures.length)process.exitCode=1;return;}
   if(process.argv.includes('--batch45-only')) {await require('./v10-batch45-ui.cjs').run({check,evaluate,waitFor,navigate,command,keyPress,errors,getRequests:()=>requests,setManagement:value=>{managementFixture=value;},setDelay:value=>{apiDelay=value;}});console.log(checks+' batch 4.5 browser checks; '+failures.length+' failures.');for(const f of failures)console.error('FAIL '+f);if(failures.length)process.exitCode=1;return;}
   if(process.argv.includes('--batch4-before') || process.argv.includes('--batch4-only')) {await require('./v10-batch4-ui.cjs').run({check,evaluate,waitFor,navigate,command,keyPress,errors,getRequests:()=>requests,setManagement:value=>{managementFixture=value;}});console.log(checks+' batch 4 browser checks; '+failures.length+' failures.');for(const f of failures)console.error('FAIL '+f);if(failures.length)process.exitCode=1;return;}
   if(process.argv.includes('--resources-only')) {checkInstitutionalPartialBoundary();await checkInstitutionalComponents();check(errors.length===0,'No resource browser exceptions',errors.join(' | '));console.log(checks+' resource browser checks; '+failures.length+' failures.');for(const f of failures)console.error('FAIL '+f);if(failures.length)process.exitCode=1;return;}

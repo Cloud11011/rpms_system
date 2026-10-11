@@ -60,31 +60,8 @@ try {
 <!-- MAIN CONTENT -->
 <main class="main-content">
 <header class="topbar">
-<div class="search-box">
-<i class="fa-solid fa-magnifying-glass"></i>
-<input id="dashboardSearch" type="search" aria-label="Search IERB records" placeholder="Search students, groups or research...">
-</div>
+<div class="dashboard-heading"><h1>Dashboard</h1></div>
 <div class="top-controls">
-<div class="quick-actions-menu-wrap">
-<button type="button" class="quick-actions-toggle" id="quickActionsToggle" title="Quick actions" aria-label="Quick actions" aria-expanded="false">
-<i class="fa-solid fa-wand-magic-sparkles"></i>
-</button>
-<div class="quick-actions-dropdown" id="quickActionsDropdown">
-<div class="quick-dropdown-heading">
-<div><span>AI workspace</span><strong>Quick Actions</strong></div>
-<i class="fa-solid fa-wand-magic-sparkles"></i>
-</div>
-<button type="button" class="quick-action" onclick="openReportModal()">
-<span class="quick-action-icon report"><i class="fa-solid fa-file-pdf"></i></span>
-<span class="quick-action-copy"><strong>Generate AI Report</strong><small>Create a consolidated RPMS PDF report</small></span>
-<i class="fa-solid fa-chevron-right action-arrow"></i>
-</button>
-<div class="recent-ai-reports" id="recentAiReports">
-<div class="recent-reports-title"><strong>Recent AI Reports</strong><i class="fa-solid fa-clock-rotate-left"></i></div>
-<ul id="recentAiReportList"></ul>
-</div>
-</div>
-</div>
 <button type="button" class="theme-toggle" id="themeToggle" title="Toggle light or dark theme" aria-label="Toggle light or dark theme"><i class="fa-solid fa-sun light-icon" aria-hidden="true"></i><i class="fa-solid fa-moon dark-icon" aria-hidden="true"></i></button>
 <div class="notification-menu-wrap">
 <button type="button" class="notification-icon" id="notificationToggle" title="Notifications and confirmations" aria-label="Notifications and confirmations" aria-expanded="false">
@@ -305,24 +282,6 @@ try {
 </div>
 
 <script>
-const quickActionsToggle = document.getElementById('quickActionsToggle');
-const quickActionsDropdown = document.getElementById('quickActionsDropdown');
-function closeQuickActions() {
-    quickActionsDropdown.classList.remove('show');
-    quickActionsToggle.setAttribute('aria-expanded', 'false');
-}
-quickActionsToggle.addEventListener('click', event => {
-    event.stopPropagation();
-    closeNotificationStatus();
-    const isOpen = quickActionsDropdown.classList.toggle('show');
-    quickActionsToggle.setAttribute('aria-expanded', String(isOpen));
-});
-quickActionsDropdown.addEventListener('click', event => event.stopPropagation());
-document.addEventListener('click', closeQuickActions);
-document.addEventListener('keydown', event => {
-    if (event.key === 'Escape') closeQuickActions();
-});
-
 const notificationToggle = document.getElementById('notificationToggle');
 const notificationDropdown = document.getElementById('notificationDropdown');
 function positionNotificationDropdown() {
@@ -340,7 +299,6 @@ function closeNotificationStatus() {
 }
 notificationToggle.addEventListener('click', event => {
     event.stopPropagation();
-    closeQuickActions();
     const isOpen = notificationDropdown.classList.toggle('show');
     notificationToggle.setAttribute('aria-expanded', String(isOpen));
     positionNotificationDropdown();
@@ -377,7 +335,7 @@ async function loadMonitorStudents() {
     const requestId = ++monitorRequest;
     progressTableBody.setAttribute('aria-busy', 'true');
     try {
-        const data = await PrismUI.request('ierb_api.php?' + new URLSearchParams({action:'list',preview:10,q:document.getElementById('dashboardSearch').value.trim(),course:courseFilter.value,sort:progressSort.value}));
+        const data = await PrismUI.request('ierb_api.php?' + new URLSearchParams({action:'list',preview:10,course:courseFilter.value,sort:progressSort.value}));
         if (requestId !== monitorRequest) return;
         monitorRecords = data.records || [];
         monitorOverview = data.overview || monitorRecords.map(r => ({stage:r.stage,status:r.status,c:1}));
@@ -476,59 +434,17 @@ async function sendMonitorFollowup(record) {
     }
 }
 
-document.getElementById('dashboardSearch').addEventListener('input', filterAndSortProgress);
 courseFilter.addEventListener('change', filterAndSortProgress);
 progressSort.addEventListener('change', filterAndSortProgress);
 
 // Modal Control Handlers
 function openReportModal() {
-    closeQuickActions();
     document.getElementById('reportModal').style.display = 'flex';
 }
 function closeReportModal() {
     document.getElementById('reportModal').style.display = 'none';
 }
 
-let reportHistory = [];
-async function loadReportHistory() {
-    try {
-        const data = await PrismUI.request('reports_api.php?action=list&preview=3&aiOnly=1');
-        reportHistory = data.ok ? data.reports : [];
-    } catch (_) {
-        reportHistory = [];
-    }
-}
-function renderReportHistory() {
-    const list = document.getElementById('recentAiReportList');
-    list.replaceChildren();
-    const history = reportHistory.slice(0, 3);
-    if (!history.length) {
-        const empty = document.createElement('li');
-        empty.className = 'recent-report-empty';
-        empty.textContent = 'No AI reports generated yet.';
-        list.appendChild(empty);
-        return;
-    }
-    history.forEach(report => {
-        const item = document.createElement('li');
-        const link = document.createElement('a');
-        link.href = report.requiresRegeneration ? 'reports.php' : `reports_api.php?action=file&id=${encodeURIComponent(report.id)}`;
-        link.target = '_blank'; link.rel = 'noopener noreferrer';
-        link.title = 'Open PDF report';
-        const icon = document.createElement('i');
-        icon.className = 'fa-regular fa-file-pdf';
-        const copy = document.createElement('span');
-        const title = document.createElement('strong');
-        title.textContent = report.title + (report.requiresRegeneration ? ' - Regenerate with Student IDs' : '');
-        const date = document.createElement('small');
-        date.textContent = new Date(report.generated_at).toLocaleString('en-PH', {
-            month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit'
-        });
-        copy.append(title, date);
-        link.append(icon, copy); item.appendChild(link);
-        list.appendChild(item);
-    });
-}
 let dashboardGenerating = false;
 async function generateAIReport(mode = 'summary', button) {
     if(dashboardGenerating)return;
@@ -537,8 +453,6 @@ async function generateAIReport(mode = 'summary', button) {
     closeReportModal();
     try {
         const data = await PrismUI.postJson('reports_api.php?action=ai_report', { mode });
-        await loadReportHistory();
-        renderReportHistory();
         PrismUI.toast(data.aiUsed
             ? 'AI report generated. Review it before distribution.'
             : 'AI service was unavailable; PRISM used the local fallback summary.', data.aiUsed ? 'success' : 'info');
@@ -876,8 +790,6 @@ renderDashboardReminders();
 (async function initDashboardData() {
     await loadMonitorStudents();
     renderIerbMonitor();
-    await loadReportHistory();
-    renderReportHistory();
 })();
 
 window.addEventListener('pageshow', () => {

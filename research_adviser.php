@@ -48,7 +48,7 @@ $authUser = require_login('adviser');
 <article class="adviser-summary-card"><p>Approved documents</p><strong id="adviserApprovedCount">Loading...</strong><span>Ready for submission or submitted to RPMS</span></article>
 </section>
 <div class="adviser-content-grid">
-<section class="adviser-panel" aria-labelledby="adviserQueueTitle">
+<section class="adviser-panel adviser-review-panel" aria-labelledby="adviserQueueTitle">
 <div class="adviser-panel-heading"><div><h2 id="adviserQueueTitle">Documents to Review</h2><p>Current document versions for your assigned students.</p></div><a href="documents.php">All document tools</a></div>
 <div class="adviser-queue-filters">
 <label for="adviserQueueSearch">Search submissions<input id="adviserQueueSearch" type="search" placeholder="Student, document or stage"></label>
@@ -56,6 +56,8 @@ $authUser = require_login('adviser');
 </div>
 <div id="adviserQueue" class="adviser-queue" aria-live="polite" aria-busy="true"><p class="adviser-panel-state">Loading current submissions...</p></div>
 </section>
+<section class="adviser-panel adviser-notifications-panel" aria-labelledby="adviserNotificationsTitle"><div class="adviser-panel-heading"><div><h2 id="adviserNotificationsTitle">Recent notifications</h2><p>Recent messages addressed to your account.</p></div><a href="admin_notifications.php">Notification Center</a></div><div id="adviserNotifications" tabindex="0" role="region" aria-label="Recent notification history" aria-live="polite" aria-busy="true"><p class="adviser-panel-state">Loading recent notifications...</p></div></section>
+</div>
 <div class="adviser-side-panels">
 <section class="adviser-panel prism-deadline-calendar" aria-labelledby="adviserCalendarTitle">
 <div class="adviser-panel-heading"><h2 id="adviserCalendarTitle">Calendar</h2><a href="calendar.php">View Calendar</a></div>
@@ -65,8 +67,6 @@ $authUser = require_login('adviser');
 <p class="prism-deadline-load" id="dashboardDeadlineState" role="status">Loading official deadlines...</p>
 </section>
 <section class="adviser-panel" aria-labelledby="adviserProfileTitle"><div class="adviser-panel-heading"><h2 id="adviserProfileTitle">Your account</h2><a href="account.php">View account</a></div><div id="adviserProfile" aria-live="polite" aria-busy="true"><p class="adviser-panel-state">Loading account...</p></div></section>
-<section class="adviser-panel" aria-labelledby="adviserNotificationsTitle"><div class="adviser-panel-heading"><div><h2 id="adviserNotificationsTitle">Recent notifications</h2><p>Recent messages addressed to your account.</p></div><a href="admin_notifications.php">Notification Center</a></div><div id="adviserNotifications" aria-live="polite" aria-busy="true"><p class="adviser-panel-state">Loading recent notifications...</p></div></section>
-</div>
 </div>
 <?php require __DIR__ . '/includes/research_resources.php'; ?>
 <?php require __DIR__ . '/includes/ceu_footer.php'; ?>

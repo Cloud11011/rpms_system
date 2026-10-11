@@ -98,13 +98,14 @@ function renderTable(){
             <td>${esc(d.uploadedBy)}</td>
             <td>${esc(date(d.uploadedAt))}</td>
             <td>${esc(d.student)}${d.course?` <small>(${esc(d.course)})</small>`:''}</td>
-            <td><div class="doc-category"><span>${esc(d.documentType)} · ${esc(d.stageLabel||d.stage)}</span><span>${PrismUI.badge(d.workflowState||d.reviewStatus,{small:true})}${d.adminOverride?' '+PrismUI.badge('Admin Override',{small:true}):''}</span>${d.reviewRemarks?`<small>${esc(d.reviewRemarks)}</small>`:''}</div></td>
+            <td><div class="doc-category"><span>${esc(d.documentType)} · ${esc(d.stageLabel||d.stage)}</span><span class="prism-pill-row">${PrismUI.badge(d.workflowState||d.reviewStatus,{small:true})}${d.adminOverride?PrismUI.badge('Admin Override',{small:true}):''}</span>${d.reviewRemarks?`<small>${esc(d.reviewRemarks)}</small>`:''}</div></td>
             <td><div class="document-row-actions">
-                ${summaryButton(d)}
                 <a class="document-action-button" href="documents_api.php?action=file&id=${encodeURIComponent(d.id)}" target="_blank" rel="noopener" title="View"><i class="fa-solid fa-eye"></i></a>
                 <a class="document-action-button" href="documents_api.php?action=file&download=1&id=${encodeURIComponent(d.id)}" title="Download"><i class="fa-solid fa-download"></i></a>
+                ${a.review?'<button class="document-action-button" data-review title="Full review / set status"><i class="fa-solid fa-clipboard-check"></i> Review Document</button>':''}
                 <button class="document-action-button" data-versions title="Version history"><i class="fa-solid fa-clock-rotate-left"></i></button>
-                ${a.review?'<button class="document-action-button approve" data-approve title="Approve"><i class="fa-solid fa-check"></i></button><button class="document-action-button deny" data-deny title="Deny"><i class="fa-solid fa-xmark"></i></button><button class="document-action-button" data-comment title="Add comment"><i class="fa-regular fa-comment"></i></button><button class="document-action-button prism-btn prism-btn-primary" data-review title="Full review / set status"><i class="fa-solid fa-clipboard-check"></i> Review Document</button>':''}
+                ${summaryButton(d)}
+                ${a.review?'<button class="document-action-button approve" data-approve title="Approve"><i class="fa-solid fa-check"></i></button><button class="document-action-button" data-comment title="Add comment"><i class="fa-regular fa-comment"></i></button><button class="document-action-button deny" data-deny title="Deny"><i class="fa-solid fa-xmark"></i></button>':''}
                 ${a.override?'<button class="document-action-button" data-override title="Admin Override"><i class="fa-solid fa-user-shield"></i></button>':''}
 
                 ${a.delete?'<button class="document-action-button delete" data-delete title="Delete"><i class="fa-solid fa-trash"></i></button>':''}
@@ -119,7 +120,7 @@ function renderTable(){
         if(a.override) tr.querySelector('[data-override]').addEventListener('click',e=>PrismUI.runAction(e.currentTarget,'Processing...',async()=>{if(await PrismUI.overrideDocument(d)) await load()}));
         if(a.delete) tr.querySelector('[data-delete]').addEventListener('click',e=>PrismUI.runAction(e.currentTarget,'Processing...',()=>remove(d)));
 
-        PrismUI.actionMenu(tr.querySelector('.document-row-actions'),{primary:tr.querySelector('[data-review]')});
+        PrismUI.actionMenu(tr.querySelector('.document-row-actions'));
         body.appendChild(tr);
     });
     bindSummaryButtons(body);

@@ -172,7 +172,8 @@ $GLOBALS['openrouterCalls'] = 0;
 
 if (($argv[1] ?? '') === '--case') {
     $case = json_decode($argv[2], true, 512, JSON_THROW_ON_ERROR);
-    $template = ['id' => 'fixture-document', 'student_id' => 4, 'adviser_id' => 2, 'student_name' => 'Fixture Student',
+    $template = ['id' => 'fixture-document', 'student_id' => 4, 'adviser_id' => $case['documentAdviserId'] ?? 2, 'student_name' => 'Fixture Student',
+        'archived_at' => !empty($case['archivedDocument']) ? '2026-10-01' : null,
         'stage' => $case['documentStage'] ?? 'Stage 1', 'is_current' => $case['current'] ?? 1,
         'review_status' => $case['beforeStatus'] ?? 'Submitted', 'review_remarks' => '', 'reviewed_by' => null,
         'reviewed_at' => null, 'rpms_submitted_at' => !empty($case['locked']) ? '2026-09-24 12:00:00' : null,
@@ -238,6 +239,11 @@ if (($argv[1] ?? '') === '--case') {
     exit;
 }
 $cases = [
+    ['name'=>'Crafted Student review is denied','action'=>'review','role'=>'student','expectedStatus'=>403],
+    ['name'=>'Crafted unassigned Adviser review is denied','action'=>'review','role'=>'adviser','documentAdviserId'=>99,'expectedStatus'=>403],
+    ['name'=>'Crafted Adviser review for archived student is denied','action'=>'review','role'=>'adviser','archivedDocument'=>true,'expectedStatus'=>403],
+    ['name'=>'Crafted Adviser review for superseded version is denied','action'=>'review','role'=>'adviser','current'=>0,'expectedStatus'=>409],
+    ['name'=>'Crafted Adviser review for submitted document is denied','action'=>'review','role'=>'adviser','locked'=>true,'expectedStatus'=>409],
     ['name'=>'Concurrent archival rejects Admin upload','action'=>'upload','archiveDuringUpload'=>true,'expectedStatus'=>409],
     ['name'=>'Concurrent archival rejects Adviser upload','action'=>'upload','role'=>'adviser','archiveDuringUpload'=>true,'expectedStatus'=>409],
     ['name'=>'Concurrent archival rejects Student upload','action'=>'upload','role'=>'student','archiveDuringUpload'=>true,'expectedStatus'=>409],

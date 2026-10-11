@@ -23,7 +23,7 @@ async function run({check,evaluate,waitFor,navigate,command,keyPress,errors,getR
       check(await evaluate('getComputedStyle(document.querySelector(".prism-sidebar")).scrollbarWidth==="none" && getComputedStyle(document.querySelector(".prism-sidebar")).overflowY==="auto"'),label+': sidebar remains scrollable');
     }
     if (file==='dashboard.php') {
-      check(await evaluate('!!document.querySelector("#dashboardSearch") && [...document.querySelectorAll(".step-item strong")].map(e=>e.id).join(",")==="initialStageCount,reviewStageCount,revisionStageCount,approvedStageCount"'),label+': working search and unchanged stage counters');
+      check(await evaluate('!document.querySelector("#dashboardSearch,.search-box,#quickActionsToggle,.quick-actions-menu-wrap") && [...document.querySelectorAll(".step-item strong")].map(e=>e.id).join(",")==="initialStageCount,reviewStageCount,revisionStageCount,approvedStageCount"'),label+': requested dashboard control removal and unchanged stage counters');
       check(await evaluate('getComputedStyle(document.querySelector(".pipeline-steps")).display==="grid" && [...document.querySelectorAll(".step-item")].every(e=>getComputedStyle(e).borderRadius==="12px")'),label+': stage summary cards');
       await evaluate('document.querySelectorAll(".prism-nav-group-toggle[aria-expanded=false]").forEach(e=>e.click());const s=document.querySelector(".prism-sidebar");s.style.height="240px";s.scrollTop=0;s.tabIndex=0;s.focus()');
       await keyPress('PageDown','PageDown',34);
@@ -47,8 +47,10 @@ async function run({check,evaluate,waitFor,navigate,command,keyPress,errors,getR
       await evaluate('document.querySelector(".prism-sidebar").style.removeProperty("height")');
     }
     if (file==='research_adviser.php') {
-      const metrics=await evaluate('(() => { const a=[...document.querySelectorAll(".adviser-document-actions .adviser-button")]; return a.length===2 && a.every(e=>e.classList.contains("adviser-button")) && a[1].classList.contains("prism-btn-primary") && Math.abs(a[0].getBoundingClientRect().height-a[1].getBoundingClientRect().height)<1 && getComputedStyle(a[0].parentElement).gap==="8px"; })()');
-      check(metrics,label+': document primary/secondary actions retain equal height and gap',JSON.stringify(await evaluate('[...document.querySelectorAll(".adviser-document-actions .adviser-button")].map(e=>({cls:e.className,height:e.getBoundingClientRect().height,gap:getComputedStyle(e.parentElement).gap}))')));
+      await evaluate('document.querySelector(".adviser-document-actions .prism-action-trigger").click()');
+      const metrics=await evaluate('(() => { const a=[...document.querySelectorAll(".adviser-document-actions .prism-action-item")]; return a.length===2 && a.every(e=>e.closest(".prism-action-panel")) && a[1].textContent==="Review Document" && Math.abs(a[0].getBoundingClientRect().height-a[1].getBoundingClientRect().height)<1 && getComputedStyle(a[0].parentElement).gap==="8px"; })()');
+      check(metrics,label+': file/review Actions items retain equal height and gap');
+      await keyPress('Escape','Escape',27);
       check(await evaluate('!!document.querySelector("#adviserQueueSearch")'),label+': working submission search remains');
     }
     if (file==='student.php') {
