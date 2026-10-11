@@ -1629,14 +1629,15 @@ function gmail_api_send(string $to, string $subject, string $body, bool $sensiti
  * logging the message to storage/mail.log so the notification workflow can
  * still be demonstrated/tested end-to-end without any live credentials.
  */
-function send_notification_email(string $to, string $subject, string $body, bool $sensitive = false): array
+function send_notification_email(string $to, string $subject, string $body, bool $sensitive = false,
+                                 bool $fallbackLogContent = true): array
 {
     if (!filter_var($to, FILTER_VALIDATE_EMAIL)) {
         return ['ok' => false, 'message' => 'A valid recipient email is required.'];
     }
 
     if (gmail_api_available()) {
-        if (gmail_api_send($to, $subject, $body, $sensitive)) {
+        if (gmail_api_send($to, $subject, $body, $sensitive || !$fallbackLogContent)) {
             return ['ok' => true, 'message' => 'Email delivered via the Gmail API.', 'channel' => 'gmail_api'];
         }
         // fall through to the local fallbacks below so the attempt is not silently lost
@@ -1650,6 +1651,15 @@ function send_notification_email(string $to, string $subject, string $body, bool
     }
 
     if ($sensitive) return ['ok' => false, 'channel' => 'none', 'message' => 'The credential email could not be delivered. Contact the RPMS office.'];
+
+    // Notifications keep the controlled Logged fallback, with no second persistent content copy.
+    if (!$fallbackLogContent) {
+        $entry = sprintf("[%s] notification_delivery_fallback status=Logged\n", date(DATE_ATOM));
+        $written = @file_put_contents(MAIL_LOG, $entry, FILE_APPEND | LOCK_EX);
+        return $written === false
+            ? ['ok'=>false, 'channel'=>'none', 'message'=>'External delivery failed; the fallback record could not be written.']
+            : ['ok'=>true, 'channel'=>'log', 'message'=>'External delivery unavailable; a metadata-only fallback record was logged.'];
+    }
 
     // No live mail transport configured/reachable in this environment: log it instead of failing the workflow.
     $entry = sprintf(

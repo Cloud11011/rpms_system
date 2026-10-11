@@ -749,7 +749,7 @@ dashboardDayModal.addEventListener('click', event => {
 
 (async function loadNotificationBell() {
     try {
-        const data = await PrismUI.request('notifications_api.php?action=list&preview=5');
+        const data = await PrismUI.request('notifications_api.php?action=list&preview=5&personal=1');
         const items = data.ok ? data.notifications.slice(0, 5) : [];
         if (!items.length) return;
         document.getElementById('notificationEmptyState').style.display = 'none';

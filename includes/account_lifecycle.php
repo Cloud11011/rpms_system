@@ -4,6 +4,7 @@ require_once __DIR__.'/account_identity.php';
 require_once __DIR__.'/account_lifecycle_schema.php';
 require_once __DIR__.'/account_retention.php';
 require_once __DIR__.'/account_retention_bulk.php';
+require_once __DIR__.'/notification_lifecycle.php';
 
 /** Must succeed on this transaction/connection; never use best-effort audit_log(). */
 function lifecycle_audit(PDO $pdo, array $actor, string $action, string $type, int $id, string $identifier): void
@@ -62,7 +63,7 @@ function lifecycle_execute(PDO $pdo, array $actor, array $data): array
     if (!is_string($data['currentPassword']??null) || !is_string($data['confirmation']??null)
         || ($data['confirmed']??false)!==true) throw new AccountLifecycleValidation('Password and explicit confirmation are required.');
     if (strlen($data['currentPassword'])>200 || strlen($data['confirmation'])>100) throw new AccountLifecycleValidation('Invalid password or confirmation length.');
-    $schemaLock=false;
+    $schemaLock=false; $notificationMutexes=[];
     if ($action==='permanent_delete') {
         $schemaLock=(int)$pdo->query("SELECT GET_LOCK('prism_migrate',0)")->fetchColumn()===1;
         if(!$schemaLock) throw new AccountLifecycleConflict('Schema maintenance or another permanent deletion is in progress. Retain the account using Archive and retry after review.');
@@ -107,6 +108,8 @@ function lifecycle_execute(PDO $pdo, array $actor, array $data): array
                 // Reports retain their original author ID and human attribution. No institutional rows are nulled.
                 lifecycle_audit($pdo,$actor,'admin_self_deleted','user',$id,$actor['username']);
                 $pdo->prepare('DELETE FROM password_resets WHERE user_id=:id')->execute([':id'=>$id]);
+                notification_purge_sender($pdo,$id,$notificationMutexes);
+                notification_purge_recipient($pdo,$id,$notificationMutexes);
                 $pdo->prepare('DELETE FROM users WHERE id=:id AND role="admin"')->execute([':id'=>$id]);
             }
             $remaining=lifecycle_rows($pdo,'SELECT id,role,status FROM users WHERE id IN ('.implode(',',array_fill(0,count($adminIds),'?')).') ORDER BY id FOR UPDATE',$adminIds);
@@ -124,6 +127,7 @@ function lifecycle_execute(PDO $pdo, array $actor, array $data): array
         }
         throw $error;
     } finally {
+        foreach (array_reverse($notificationMutexes) as $name) notification_unlock($pdo,$name);
         if($schemaLock) {
             try { $pdo->query("SELECT RELEASE_LOCK('prism_migrate')"); }
             catch(PDOException $error) { error_log('PRISM lifecycle schema coordination release failed.'); }

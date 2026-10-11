@@ -124,34 +124,28 @@ function deadline_targets(PDO $pdo, array $user, array $data): array
 function deadline_notify(PDO $pdo, array $user, array $deadline, array $groups): array
 {
     $result = ['recipients' => 0, 'notificationFailures' => 0, 'emailFailures' => 0, 'queued' => 0];
+    $owned=!$pdo->inTransaction();
     try {
-        $stmt = $pdo->prepare('SELECT s.id, s.email, s.full_name FROM students s
-            JOIN calendar_deadline_recipients r ON r.student_id = s.id
-            WHERE r.deadline_id = :id AND s.archived_at IS NULL AND s.profile_completed_at IS NOT NULL');
-        $stmt->execute([':id' => $deadline['id']]);
-        $seen = [];
-        while ($student = $stmt->fetch()) {
-            if (isset($seen[$student['id']])) continue;
-            $seen[$student['id']] = true; $result['recipients']++;
-            $cancelled = $deadline['status'] === 'Cancelled';
-            $subject = $cancelled ? 'Official deadline cancelled' : 'New official deadline';
-            $message = $subject . ' (Deadline #' . $deadline['id'] . ").\nTitle: " . $deadline['title']
-                . "\nDeadline date: " . $deadline['deadline_date']
-                . ($deadline['description'] !== '' ? "\nDetails: " . $deadline['description'] : '')
-                . "\nView your PRISM Calendar for the current official record.";
-            try {
-                $delivery = create_notification($pdo, 'student', (int)$student['id'], (string)$student['email'],
-                    (string)$student['full_name'], $subject, $message, 'Reminder', (string)$user['full_name'], null, date('Y-m-d H:i:s'));
-                if (($delivery['status'] ?? '') === 'Scheduled') $result['queued']++;
-                if (empty($delivery['ok'])) $result['emailFailures']++;
-            } catch (Throwable $e) {
-                $result['notificationFailures']++;
-                log_api_error('deadline_notification', $e->getMessage());
+        if ($owned) $pdo->beginTransaction();
+        $stmt=$pdo->prepare('SELECT s.id,s.email,s.full_name FROM students s JOIN calendar_deadline_recipients r ON r.student_id=s.id
+            WHERE r.deadline_id=? AND s.archived_at IS NULL AND s.profile_completed_at IS NOT NULL ORDER BY s.id');
+        $stmt->execute([$deadline['id']]); $recipients=$stmt->fetchAll(); $result['recipients']=count($recipients);
+        $subject=$deadline['status']==='Cancelled'?'Official deadline cancelled':'New official deadline';
+        $message=$subject.' (Deadline #'.$deadline['id'].").\nTitle: ".$deadline['title']."\nDeadline date: ".$deadline['deadline_date']
+            .($deadline['description']!==''?"\nDetails: ".$deadline['description']:'')."\nView your PRISM Calendar for the current official record.";
+        if ($recipients) {
+            $campaign=notification_create_campaign($pdo,$user,'system',$subject,$message,date('Y-m-d H:i:s'));
+            foreach ($recipients as $student) {
+                $delivery=create_notification($pdo,'student',(int)$student['id'],(string)$student['email'],(string)$student['full_name'],
+                    $subject,$message,'Reminder',(string)$user['full_name'],null,date('Y-m-d H:i:s'),null,'system',$campaign);
+                if (isset($delivery['id'])) { $result['queued']++; }
             }
         }
+        if ($owned) $pdo->commit();
     } catch (Throwable $e) {
-        $result['notificationFailures']++;
-        log_api_error('deadline_recipients', $e->getMessage());
+        if ($owned && $pdo->inTransaction()) $pdo->rollBack();
+        $result['notificationFailures']+=max(1,count($recipients??[])); $result['queued']=0;
+        log_api_error('deadline_notification','Deadline notification records could not be saved.');
     }
     return $result;
 }

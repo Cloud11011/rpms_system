@@ -21,7 +21,7 @@ document.addEventListener('DOMContentLoaded', () => {
     let myHistory = [], historyState = {total:0,page:1}, historySequence = 0;
     const historyCount = document.createElement('p'); $('progressHistory').insertAdjacentElement('beforebegin',historyCount);
     const historyPager = PrismUI.recordPager($('progressHistory'),historyCount,[],refreshHistory);
-    let myNotifications = [];
+    let myNotifications = [], unreadNotifications = 0;
     let notificationHistory = { records: [], error: false, total: 0, page: 1 };
     let notificationSequence = 0;
     let loadErrors = { progress: false, history: false, documents: false, notifications: false };
@@ -120,7 +120,7 @@ document.addEventListener('DOMContentLoaded', () => {
         try {
             const data = await PrismUI.request(`notifications_api.php?action=list&page=${page}`);
             if (!Array.isArray(data.notifications)) throw new Error('Notifications unavailable');
-            return { records: data.notifications, error: false, total: data.total ?? data.notifications.length, page: data.page ?? 1 };
+            return { records: data.notifications, error: false, total: data.total ?? data.notifications.length, page: data.page ?? 1, unread: data.unread_count ?? 0 };
         } catch (_) {
             return { records: [], error: true };
         }
@@ -174,7 +174,7 @@ document.addEventListener('DOMContentLoaded', () => {
         $('studentReviewRemarks').textContent = loadErrors.documents ? 'Reviewer remarks could not be loaded.' : latestDoc?.reviewRemarks || '';
         $('studentReviewRemarks').hidden = !loadErrors.documents && !latestDoc?.reviewRemarks;
 
-        const unread = myNotifications.filter(n => !n.read_at).length;
+        const unread = unreadNotifications;
         $('navBadge').textContent = loadErrors.notifications ? '!' : unread;
         $('navBadge').hidden = !loadErrors.notifications && !unread;
         $('navBadge').title = loadErrors.notifications ? 'Notifications unavailable' : `${unread} unread notifications`;
@@ -262,27 +262,15 @@ document.addEventListener('DOMContentLoaded', () => {
         return `<div class="list-item notice ${unread ? 'unread' : ''}"><i class="fa-solid fa-bell"></i><div><strong>${esc(n.type)}</strong><span>${esc(n.message)}</span><time>${fmt(n.created_at)}</time></div>${unread && includeAction ? `<button data-read="${esc(n.id)}" title="Mark read"><i class="fa-solid fa-check"></i></button>` : ''}</div>`;
     }
 
-    function renderNotifications() {
-        $('notificationList').innerHTML = notificationHistory.error ? empty('Unable to load notifications. Please try again.') : notificationHistory.records.map(n => noticeItem(n)).join('') || empty('You have no notifications.');
-        $('markAllRead').disabled = notificationHistory.error || !notificationHistory.records.some(n => !n.read_at);
-        if (notificationHistory.error) {
-            $('studentNotificationCount').textContent = 'Notifications unavailable';
-            $('studentNotificationPagination').replaceChildren();
-        } else {
-            PrismUI.pagination($('studentNotificationPagination'), $('studentNotificationCount'), notificationHistory, changeNotificationPage, 'notifications');
-        }
+    const notificationCenter = PrismNotifications.mount({ list: $('notificationList'), count: $('studentNotificationCount'),
+        pager: $('studentNotificationPagination'), markAll: $('markAllRead'), onChange: refreshNotificationOverview });
+    async function refreshNotificationOverview() {
+        const data = await loadNotifications();
+        myNotifications = data.records; unreadNotifications = data.unread ?? 0;
+        loadErrors.notifications = data.error;
+        render();
     }
-
-    async function changeNotificationPage(page) {
-        const sequence = ++notificationSequence;
-        $('studentNotificationPagination').querySelectorAll('button').forEach(button => { button.disabled = true; });
-        $('notificationList').setAttribute('aria-busy', 'true');
-        const data = await loadNotifications(page);
-        if (sequence !== notificationSequence) return;
-        notificationHistory = data;
-        renderNotifications();
-        $('notificationList').setAttribute('aria-busy', 'false');
-    }
+    function renderNotifications() { notificationCenter.load(); }
 
     async function fillProfile() {
         const profile = await loadProfile();
@@ -320,7 +308,7 @@ document.addEventListener('DOMContentLoaded', () => {
         documentHistory = documents;
         dashboardDocumentTotal = documents.total ?? documents.records.length;
         docPager.reset();
-        myNotifications = notifications.records;
+        myNotifications = notifications.records; unreadNotifications = notifications.unread ?? 0;
         notificationHistory = notifications;
         $('notificationList').setAttribute('aria-busy', 'false');
         loadErrors = { progress: progress.error, history: progress.historyError, documents: documents.error, notifications: notifications.error };
@@ -433,29 +421,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if(doc)PrismUI.runAction(button,'Submitting...',()=>PrismUI.submitToRpms(doc));
     });
 
-    $('notificationList').addEventListener('click', async e => {
-        const btn = e.target.closest('[data-read]');
-        if (!btn) return;
-        try {
-            const data = await PrismUI.request('notifications_api.php?action=mark_read', {
-                method: 'POST', headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ id: Number(btn.dataset.read) }),
-            });
-            if (!data.ok) throw new Error('Unable to mark this notification as read.');
-            await refreshAll();
-        } catch (_) { toast('Unable to mark this notification as read.'); }
-    });
 
-    $('markAllRead').addEventListener('click', async () => {
-        try {
-            const data = await PrismUI.request('notifications_api.php?action=mark_all_read', { method: 'POST' });
-            if (!data.ok) throw new Error('Unable to mark notifications as read.');
-            await refreshAll();
-            toast('All notifications marked as read.');
-        } catch (_) {
-            toast('Could not reach the server.');
-        }
-    });
 
     // ------------------------------------------------------------------
     // Profile

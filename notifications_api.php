@@ -6,53 +6,26 @@ require_once __DIR__ . '/includes/research_groups.php';
 $user = api_require_login(['admin', 'adviser', 'student']);
 $pdo = db();
 $action = $_GET['action'] ?? 'list';
-if (in_array($action, ['mark_read', 'mark_all_read', 'recipients_preview', 'send'], true)) {
+$mutations=['mark_read','mark_all_read','archive','restore','delete','campaign_archive','campaign_restore','campaign_delete','campaign_cancel','recipients_preview','send'];
+if (in_array($action,$mutations,true)) {
     require_post_same_origin();
+    require_session_generation(true);
 }
-
-if ($action === 'list') {
-    $scope = ' FROM notifications n';
-    $params = [];
-    if ($user['role'] === 'student') {
-        $scope .= ' WHERE n.recipient_email = :e AND n.recipient_type <> "historical_adviser"';
-        $params[':e'] = $user['email'];
-    } elseif ($user['role'] === 'adviser') {
-        $scope .= ' LEFT JOIN students s ON n.recipient_type = "student" AND n.recipient_id = s.id
-            LEFT JOIN advisers a ON a.id = s.adviser_id
-            WHERE (n.recipient_email = :self AND n.recipient_type <> "historical_adviser")
-               OR (n.recipient_type = "student" AND a.email = :self AND s.archived_at IS NULL AND s.profile_completed_at IS NOT NULL)';
-        $params[':self'] = $user['email'];
+try {
+    if (in_array($action,['list','sent_history','legacy_history'],true)) json_out(notification_list($pdo,$user,$_GET,$action));
+    if ($action==='mark_all_read') json_out(notification_mark_all_read($pdo,$user));
+    if (in_array($action,['mark_read','archive','restore','delete','campaign_archive','campaign_restore','campaign_delete','campaign_cancel'],true)) {
+        $data=json_body();
+        $id=$data['id']??null;
+        if ((!is_int($id)&&!is_string($id)) || !preg_match('/\A[1-9][0-9]{0,9}\z/',(string)$id) || (int)$id>2147483647) {
+            throw new NotificationLifecycleError('Invalid notification ID.',422);
+        }
+        json_out(notification_transition($pdo,$user,$action,(int)$id,($data['confirmed']??false)===true));
     }
-    if (isset($_GET['preview']) && !empty($_GET['personal'])) {
-        $scope = ' FROM notifications n WHERE n.recipient_email = :personal AND n.recipient_type <> "historical_adviser"';
-        $params = [':personal' => $user['email']];
-    }
-    $count = $pdo->prepare('SELECT COUNT(*)' . $scope);
-    $count->execute($params);
-    $total = (int)$count->fetchColumn();
-    $limit = isset($_GET['preview']) ? max(1, min(5, (int)$_GET['preview'])) : 10;
-    $pages = max(1, (int)ceil($total / $limit));
-    $page = max(1, min($pages, (int)($_GET['page'] ?? 1)));
-    $offset = ($page - 1) * $limit;
-    $stmt = $pdo->prepare('SELECT n.*' . $scope . ' ORDER BY n.created_at DESC, n.id DESC LIMIT ' . $limit . ' OFFSET ' . $offset);
-    $stmt->execute($params);
-    json_out(['ok' => true, 'notifications' => $stmt->fetchAll(), 'total' => $total,
-        'page' => $page, 'pages' => $pages, 'limit' => $limit, 'offset' => $offset]);
-}
-
-if ($action === 'mark_read') {
-    $data = json_body();
-    $id = (int)($data['id'] ?? 0);
-    $stmt = $pdo->prepare('UPDATE notifications SET read_at = NOW()
-        WHERE id = :id AND recipient_email = :e AND recipient_type <> "historical_adviser"');
-    $stmt->execute([':id' => $id, ':e' => $user['email']]);
-    json_out(['ok' => true]);
-}
-
-if ($action === 'mark_all_read') {
-    $pdo->prepare('UPDATE notifications SET read_at = NOW()
-        WHERE recipient_email = :e AND recipient_type <> "historical_adviser" AND read_at IS NULL')->execute([':e' => $user['email']]);
-    json_out(['ok' => true]);
+} catch (NotificationLifecycleError $e) { json_out(['ok'=>false,'message'=>$e->getMessage()],$e->status); }
+catch (Throwable $e) {
+    log_api_error('notification_lifecycle','Notification operation failed.');
+    json_out(['ok'=>false,'message'=>'Notification operation could not complete. Retry shortly.'],503);
 }
 
 // Sending is an RPMS (and, for follow-ups only, research adviser) responsibility.
@@ -118,13 +91,15 @@ if ($action === 'send') {
     $pdo->beginTransaction();
     try {
     $recipients=notification_lock_recipients($pdo,$recipients);
+    if (!$recipients) throw new NotificationLifecycleError('No current recipients remain.');
+    $campaignId=notification_create_campaign($pdo,$user,'staff',$subject,$message,date('Y-m-d H:i:s',strtotime($isScheduled ? $scheduleAt : 'now')));
     foreach ($recipients as $recipient) {
         $body = "Hello {$recipient['name']},\n\n{$message}\n\n"
             . "This is an automated notification from the CEU Malolos Research Planning and Monitoring Section (RPMS) via PRISM.\n";
         $result = create_notification($pdo, $recipient['type'], (int)$recipient['id'],
             (string)($recipient['email'] ?? ''), (string)$recipient['name'], $subject, $message, $type,
-            $user['full_name'], $body, $isScheduled ? date('Y-m-d H:i:s', strtotime($scheduleAt)) : date('Y-m-d H:i:s'));
-        $persisted[] = ['id'=>(int)$pdo->lastInsertId(), 'email'=>(string)$recipient['email'], 'body'=>$body];
+            $user['full_name'], $body, $isScheduled ? date('Y-m-d H:i:s', strtotime($scheduleAt)) : date('Y-m-d H:i:s'), null, 'staff', $campaignId);
+        if (isset($result['id'])) $persisted[] = ['id'=>$result['id']];
     }
     $pdo->commit();
     } catch (Throwable $e) {
@@ -134,19 +109,14 @@ if ($action === 'send') {
     }
     // Every in-app record is committed before any provider call.
     foreach ($isScheduled ? [] : $persisted as $notice) {
-        // Use the same atomic Scheduled claim as the worker; never race an overlapping cron.
-        $claim = $pdo->prepare("UPDATE notifications SET status = 'Sending', sending_started_at = NOW()
-            WHERE id = :id AND status = 'Scheduled'");
-        $claim->execute([':id'=>$notice['id']]);
-        if ($claim->rowCount() !== 1) continue;
-        $result = deliver_notification_email($pdo, $notice['id'], $notice['email'], $subject, $notice['body'], true);
+        $result = notification_dispatch($pdo, $notice['id']);
         if ($result['status'] === 'Sent') $sentCount++;
         if ($result['status'] === 'Logged') $loggedCount++;
     }
 
     audit_log($user, 'notification_sent', ['entity_type'=>'notification_batch', 'after'=>$isScheduled ? 'Scheduled' : 'Attempted', 'details'=>"audience=$audience type=$type recipients=" . count($recipients)]);
     json_out(['ok' => true, 'sent' => $sentCount, 'logged' => $loggedCount,
-        'total' => count($recipients), 'scheduled' => $isScheduled, 'queued' => $queued]);
+        'campaign_id' => $campaignId, 'total' => count($recipients), 'scheduled' => $isScheduled, 'queued' => $queued]);
 }
 
 function resolve_recipients(PDO $pdo, array $user, string $audience, string $group): array

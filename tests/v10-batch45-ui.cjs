@@ -44,7 +44,7 @@ async function run({check,evaluate,waitFor,navigate,command,keyPress,errors,getR
       check(await evaluate('document.querySelector(".retention-toolbar p").textContent.startsWith("0 accounts selected")'),label+': search immediately clears selection');
       // Await the debounced search response before testing a menu on a row it replaces.
       await evaluate('new Promise(r=>setTimeout(r,300))');
-      await waitFor('document.querySelector(".prism-action-trigger") && !document.getElementById("recordCount").textContent.includes("Loading") && !document.querySelector("#recordRows [data-retention-id=\"3\"]")');
+      await waitFor(`document.querySelector(".prism-action-trigger") && !document.getElementById("recordCount").textContent.includes("Loading") && !document.querySelector('#recordRows [data-retention-id="3"]')`);
       await evaluate('document.getElementById("retentionSelectionMode").click()');
       await evaluate('new Promise(r=>setTimeout(r,250))');
       const before=await geometry();await evaluate('document.getElementById("prismSidebarToggle").click()');await evaluate('new Promise(r=>setTimeout(r,240))');const after=await geometry();

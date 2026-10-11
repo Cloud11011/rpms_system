@@ -59,6 +59,8 @@ if (($argv[1] ?? '') === '--case') {
     $pdo->exec('ALTER TABLE advisers ADD COLUMN employee_id TEXT');
     $pdo->exec('ALTER TABLE students ADD COLUMN student_id TEXT');
     $pdo->exec("ALTER TABLE advisers ADD COLUMN status TEXT DEFAULT 'Active'");
+    require_once __DIR__.'/notification-v10-fixture.php';
+    notification_fixture_sqlite($pdo);
     foreach ($case['lateSql'] ?? [] as $sql) $pdo->exec($sql);
     require __DIR__.'/../security.php';
     $config=file_get_contents(__DIR__.'/../config.php');

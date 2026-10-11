@@ -13,13 +13,22 @@ require_once __DIR__ . '/../includes/research_groups.php';
 class GroupDb extends PDO
 {
     public array $rows = [], $writes = [];
-    public function __construct() {}
-    public function lastInsertId(?string $name = null): string|false { return (string)count($this->writes); }
-    public function beginTransaction(): bool { return true; }
-    public function commit(): bool { return true; }
-    public function inTransaction(): bool { return false; }
-    public function rollBack(): bool { return true; }
-    public function prepare(string $query, array $options = []): PDOStatement|false { return new GroupStatement($this, $query); }
+    public PDO $noticeDb; public bool $transaction=false;
+    public function __construct() {
+        require_once __DIR__.'/notification-v10-fixture.php';
+        $this->noticeDb=new \NotificationV10FixturePDO('sqlite::memory:',null,null,[PDO::ATTR_ERRMODE=>PDO::ERRMODE_EXCEPTION,PDO::ATTR_DEFAULT_FETCH_MODE=>PDO::FETCH_ASSOC]);
+        \notification_fixture_sqlite($this->noticeDb);
+        $this->noticeDb->exec("INSERT INTO users(id,role,email,full_name,status) VALUES (100,'admin','admin@example.test','Admin','Active'),(101,'adviser','own@example.test','Adviser','Active')");
+    }
+    public function lastInsertId(?string $name = null): string|false { return $this->noticeDb->lastInsertId(); }
+    public function beginTransaction(): bool { $this->transaction=true; return $this->noticeDb->beginTransaction(); }
+    public function commit(): bool { $this->transaction=false; return $this->noticeDb->commit(); }
+    public function inTransaction(): bool { return $this->transaction; }
+    public function rollBack(): bool { $this->transaction=false; return $this->noticeDb->rollBack(); }
+    public function prepare(string $query, array $options = []): PDOStatement|false {
+        if (preg_match('/notifications|notification_campaigns|FROM users|GET_LOCK|RELEASE_LOCK|SELECT \* FROM students WHERE id=/', $query)) return $this->noticeDb->prepare($query,$options);
+        return new GroupStatement($this, $query);
+    }
 }
 class GroupStatement extends PDOStatement
 {
@@ -65,10 +74,12 @@ function rejects(callable $call): bool
 function db(): PDO { return $GLOBALS['pdo']; }
 function api_require_login($roles): array { return $GLOBALS['actor']; }
 function require_post_same_origin(): void {}
+function require_session_generation(bool $required=false): void {}
+function log_api_error(...$args): void {}
 function json_body(): array { return $GLOBALS['payload']; }
 function json_out(array $body, int $status = 200): never
 {
-    echo json_encode(['status' => $status, 'body' => $body, 'writes' => $GLOBALS['pdo']->writes]); exit;
+    echo json_encode(['status' => $status, 'body' => $body, 'writes' => array_map(fn($r)=>[':rid'=>$r['recipient_id']],$GLOBALS['pdo']->noticeDb->query('SELECT * FROM notifications')->fetchAll(PDO::FETCH_ASSOC))]); exit;
 }
 function send_notification_email(...$args): array { return ['ok' => true, 'channel' => 'fixture', 'message' => 'Fixture']; }
 function log_activity(...$args): void {}
@@ -77,19 +88,23 @@ function audit_log(...$args): void {}
 $checks = 0;
 $a = academic_validate(['academicUnitKey' => 'amt', 'programKey' => 'bsit', 'yearLevel' => '4th Year', 'academicYear' => '2026-2027']);
 $pdo = new GroupDb();
-$admin = ['role' => 'admin', 'email' => 'admin@example.test', 'full_name' => 'Admin'];
-$adviser = ['role' => 'adviser', 'email' => 'own@example.test', 'full_name' => 'Adviser'];
+$admin = ['id'=>100,'role' => 'admin', 'email' => 'admin@example.test', 'full_name' => 'Admin'];
+$adviser = ['id'=>101,'role' => 'adviser', 'email' => 'own@example.test', 'full_name' => 'Adviser'];
 $g1 = 'AMT-BSIT-Y4-2627-G01'; $g2 = 'AMT-BSIT-Y4-2627-G02';
 $pdo->rows = [fixture_row($g1, $a), fixture_row($g2, $a, 2, 'other@example.test'), fixture_row('Legacy group', $a, 3), fixture_row(strtolower($g1), $a, 4)];
 if (($argv[1] ?? '') === '--case') {
     $case = json_decode($argv[2], true, 512, JSON_THROW_ON_ERROR);
     $actor = $case['role'] === 'admin' ? $admin : $adviser;
+    foreach ($pdo->rows as $r) $pdo->noticeDb->prepare('INSERT INTO students(id,student_id,email,full_name,profile_completed_at) VALUES (?,?,?,?,?)')->execute([$r['id'],'FIXTURE-'.$r['id'],$r['email'],$r['full_name'],'2026-01-01']);
     $payload = ['audience' => 'Specific Research Group', 'group' => $case['group'], 'message' => 'Fixture notice'];
     $_GET = ['action' => $case['action']];
     $source = file_get_contents(__DIR__ . '/../notifications_api.php');
     $source = str_replace("require_once __DIR__ . '/workflow.php';", '', $source);
     $delivery = file_get_contents(__DIR__ . '/../includes/notification_delivery.php');
     $delivery = str_replace("require_once __DIR__.'/student_snapshot.php';",'',$delivery);
+    $delivery = str_replace("require_once __DIR__.'/notification_lifecycle.php';",'',$delivery);
+    $lifecycle=file_get_contents(__DIR__.'/../includes/notification_lifecycle.php');
+    eval('namespace '.__NAMESPACE__.'; use \\PDO; use \\Throwable; use \\RuntimeException; use \\LogicException; '.preg_replace('/^<\?php\s*/','',$lifecycle));
     eval('namespace ' . __NAMESPACE__ . '; use \\PDO; use \\Throwable; ' . preg_replace('/^<\?php\s*/', '', $delivery));
     foreach (["require __DIR__ . '/config.php';", "require_once __DIR__ . '/includes/research_groups.php';", "require_once __DIR__ . '/includes/notification_delivery.php';"] as $require) $source = str_replace($require, '', $source);
     eval('namespace ' . __NAMESPACE__ . '; use \\PDO; ' . preg_replace('/^<\?php\s*/', '', $source));

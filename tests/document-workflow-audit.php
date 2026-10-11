@@ -11,12 +11,17 @@ if (PHP_SAPI !== 'cli') { http_response_code(404); exit; }
 class FixtureDb extends PDO
 {
     public bool $transaction = false;
+    public PDO $noticeDb;
     public array $events = [], $writes = [], $snapshot = [];
     public array $notifications = [], $uploadParams = [];
     public array $student;
     public ?array $document;
     public function __construct()
     {
+        require_once __DIR__.'/notification-v10-fixture.php';
+        $this->noticeDb=new \NotificationV10FixturePDO('sqlite::memory:',null,null,[PDO::ATTR_ERRMODE=>PDO::ERRMODE_EXCEPTION,PDO::ATTR_DEFAULT_FETCH_MODE=>PDO::FETCH_ASSOC]);
+        \notification_fixture_sqlite($this->noticeDb);
+        $this->noticeDb->exec("INSERT INTO users(id,email,full_name,role,status) VALUES (1,'admin1@example.test','Admin One','admin','Active'),(2,'admin2@example.test','Admin Two','admin','Active')");
         $this->student = ['id' => 4, 'full_name' => 'Fixture Student', 'email' => 'student@example.test',
             'adviser_id' => 2, 'stage' => $GLOBALS['case']['studentStage'] ?? 'Stage 1', 'status' => 'On Track',
             'research_title'=>'Authoritative title', 'research_group'=>'AMT-BSIT-Y2-2627-G01'];
@@ -27,18 +32,21 @@ class FixtureDb extends PDO
         if (!empty($GLOBALS['case']['archiveDuringUpload'])) $this->student['archived_at']='2026-10-02';
         if (!empty($GLOBALS['case']['stageChanged'])) $this->student['stage'] = 'Stage 2';
         $this->snapshot = [$this->student, $this->document, $GLOBALS['audit'], $GLOBALS['history']];
-        $this->events[] = 'BEGIN'; $this->transaction = true; return true;
+        $this->noticeDb->beginTransaction(); $this->events[] = 'BEGIN'; $this->transaction = true; return true;
     }
     public function inTransaction(): bool { return $this->transaction; }
-    public function lastInsertId(?string $name = null): string|false { return (string)count($this->notifications); }
-    public function commit(): bool { $this->events[] = 'COMMIT'; $this->transaction = false; return true; }
+    public function lastInsertId(?string $name = null): string|false { return $this->noticeDb->lastInsertId(); }
+    public function commit(): bool { $this->noticeDb->commit(); $this->events[] = 'COMMIT'; $this->transaction = false; return true; }
     public function rollBack(): bool
     {
         [$this->student, $this->document, $GLOBALS['audit'], $GLOBALS['history']] = $this->snapshot;
-        $this->events[] = 'ROLLBACK'; $this->transaction = false; return true;
+        $this->noticeDb->rollBack(); $this->events[] = 'ROLLBACK'; $this->transaction = false; return true;
     }
     public function prepare(string $query, array $options = []): PDOStatement|false
-    { return new FixtureStatement($this, preg_replace('/\s+/', ' ', $query)); }
+    {
+        if (preg_match('/notifications|notification_campaigns|FROM users|GET_LOCK|RELEASE_LOCK/', $query)) return $this->noticeDb->prepare($query,$options);
+        return new FixtureStatement($this, preg_replace('/\s+/', ' ', $query));
+    }
     public function query(string $query, ?int $fetchMode = null, mixed ...$fetchModeArgs): PDOStatement|false
     { $s = $this->prepare($query); $s->execute(); return $s; }
 }
@@ -144,7 +152,7 @@ function send_notification_email($to, $subject, $body): array
 {
     if ($GLOBALS['fixtureDb']->transaction) throw new RuntimeException('Admin email before commit.');
     $GLOBALS['fixtureDb']->events[] = 'ADMIN EMAIL';
-    if (count($GLOBALS['fixtureDb']->notifications) <= count($GLOBALS['emails'])) throw new RuntimeException('Email before in-app record.');
+    if ((int)$GLOBALS['fixtureDb']->noticeDb->query('SELECT COUNT(*) FROM notifications')->fetchColumn() <= count($GLOBALS['emails'])) throw new RuntimeException('Email before in-app record.');
     $GLOBALS['emails'][] = compact('to', 'subject', 'body');
     if (!empty($GLOBALS['case']['emailThrows'])) throw new RuntimeException('Fixture mail exception.');
     return ['ok' => empty($GLOBALS['case']['emailFails']), 'message' => 'Fixture delivery'];
@@ -211,6 +219,9 @@ if (($argv[1] ?? '') === '--case') {
     $workflow = str_replace("\r\n", "\n", file_get_contents(__DIR__ . '/../workflow.php'));
     $delivery = file_get_contents(__DIR__ . '/../includes/notification_delivery.php');
     $delivery = str_replace("require_once __DIR__.'/student_snapshot.php';",'',$delivery);
+    $delivery = str_replace("require_once __DIR__.'/notification_lifecycle.php';",'',$delivery);
+    $lifecycle=file_get_contents(__DIR__.'/../includes/notification_lifecycle.php');
+    eval('namespace '.__NAMESPACE__.'; use \\PDO; use \\Throwable; use \\RuntimeException; use \\LogicException; '.preg_replace('/^<\?php\s*/','',$lifecycle));
     eval('namespace ' . __NAMESPACE__ . '; use \\PDO; use \\Throwable; ' . preg_replace('/^<\?php\s*/', '', $delivery));
     foreach (['document_workflow_state', 'document_is_locked', 'override_reason_valid', 'override_reason_message', 'advance_stage_for_document', 'notify_rpms_admins', 'notify_in_app'] as $name) {
         $start = strpos($workflow, 'function ' . $name . '(');
@@ -226,7 +237,7 @@ if (($argv[1] ?? '') === '--case') {
             'events' => $GLOBALS['fixtureDb']->events, 'writes' => $GLOBALS['fixtureDb']->writes,
             'transaction' => $GLOBALS['fixtureDb']->transaction, 'audit' => $GLOBALS['audit'], 'history' => $GLOBALS['history'],
             'notices' => $GLOBALS['notices'], 'emails' => $GLOBALS['emails'], 'errors' => $GLOBALS['errors'], 'stored' => $GLOBALS['stored'],
-            'notifications' => array_values($GLOBALS['fixtureDb']->notifications),
+            'notifications' => array_map(fn($r)=>[':status'=>$r['status']]+$r,$GLOBALS['fixtureDb']->noticeDb->query('SELECT * FROM notifications')->fetchAll(PDO::FETCH_ASSOC)),
             'uploadParams' => $GLOBALS['fixtureDb']->uploadParams, 'openrouterCalls' => $GLOBALS['openrouterCalls'],
             'originChecks' => $GLOBALS['originChecks'], 'unexpected' => $unexpected]);
     });

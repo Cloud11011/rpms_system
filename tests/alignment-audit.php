@@ -23,6 +23,7 @@ function stage_label(string $stage):string{return stage_labels_map()[$stage]??$s
 function stage_labels_map(): array { return array_combine(STAGE_SEQUENCE,STAGE_SEQUENCE); }
 function audit_action_label(string $code): string { return $code; }
 function log_activity(...$args): void {}
+function log_api_error(...$args): void {}
 function audit_log(...$args): void {}
 function openrouter_generate(...$args): ?string { if($GLOBALS['pdo']->inTransaction()) throw new RuntimeException('Provider called inside persistence transaction'); $GLOBALS['aiCalls']++; return empty($GLOBALS['case']['fallback']) ? '# Fixture narrative' : null; }
 function file_put_contents(string $path, string $data, int $flags = 0): int { $GLOBALS['pdf'] = $data; return strlen($data); }
@@ -98,6 +99,14 @@ if (($argv[1] ?? '') === '--case') {
     require_once __DIR__.'/retention-fixture-support.php';retention_fixture_support(__NAMESPACE__,true);
     eval('namespace ' . __NAMESPACE__ . '; use \PDO; ' . preg_replace('/^<\?php\s*/','',\file_get_contents(__DIR__ . '/../includes/pagination.php')));
     eval('namespace ' . __NAMESPACE__ . '; use \PDO; ' . preg_replace('/^<\?php\s*/','',\file_get_contents(__DIR__ . '/../includes/record_filters.php')));
+    if ($case['file']==='notifications_api.php') {
+        require_once __DIR__.'/notification-v10-fixture.php';
+        \notification_fixture_sqlite($pdo);
+        $pdo->exec("UPDATE notifications SET status='Sent'");
+        $lifecycle=\file_get_contents(__DIR__.'/../includes/notification_lifecycle.php');
+        eval('namespace '.__NAMESPACE__.'; use \\PDO; use \\Throwable; use \\RuntimeException; use \\LogicException; '.preg_replace('/^<\?php\s*/','',$lifecycle));
+        if ($actor['role']!=='student') $_GET['action']='legacy_history';
+    }
     $source = \file_get_contents(__DIR__ . '/../' . $case['file']);
     $source=str_replace(["require_once __DIR__.'/includes/account_lifecycle.php';","require_once __DIR__ . '/includes/account_lifecycle.php';"],'',$source);
     $source = str_replace("require_once __DIR__ . '/includes/office_container.php';", '', $source);

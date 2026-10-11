@@ -51,6 +51,7 @@
     'Logged':                           ['neutral', 'fa-file-lines'],
     'Sending':                          ['info', 'fa-spinner'],
     'Failed':                           ['danger', 'fa-circle-exclamation'],
+    'Archived':                         ['neutral', 'fa-box-archive'],
 
     // Administrative
     'Admin Override':                   ['override', 'fa-user-shield']

@@ -92,3 +92,14 @@ storage/.purge/
 !/tests/v10-batch6-ui.cjs
 !/tests/v10-batch6-browser-session.cjs
 !/tests/fixtures/batch6-valid.pdf
+
+!/tests/email-format-audit.php
+!/tests/notification-v10-fixture.php
+!/tests/v10-batch7-api.php
+!/tests/v10-batch7-lifecycle.php
+!/tests/v10-batch7-native.php
+!/tests/v10-batch7-native-fixture.php
+!/tests/v10-batch7-concurrency.php
+!/tests/v10-batch7-purge.php
+!/tests/v10-batch7-worker.php
+!/tests/v10-batch7-ui.cjs

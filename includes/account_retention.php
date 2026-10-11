@@ -260,6 +260,10 @@ function retention_purge_plan(PDO $pdo,array $r,string $type,?array $login,array
             throw new AccountLifecycleConflict('AI ownership crosses account/document boundaries; Admin review required.');
         }
     }
+    if ($login) {
+        notification_purge_sender($pdo,(int)$login['id'],$mutexes);
+        notification_purge_recipient($pdo,(int)$login['id'],$mutexes);
+    }
     return ['documents'=>$docs,'reports'=>$reports,'notifications'=>$notices,'files'=>$files];
 }
 

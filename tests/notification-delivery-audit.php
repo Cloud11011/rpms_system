@@ -9,11 +9,13 @@ function db(): PDO { return $GLOBALS['pdo']; }
 function log_api_error(...$args): void { $GLOBALS['errors'][] = $args; }
 function log_activity(...$args): void {}
 function stage_label(string $stage): string { return $stage; }
-function api_require_login(array $roles): array { return ['role' => 'admin', 'full_name' => 'Admin', 'email' => 'admin@example.test']; }
+function api_require_login(array $roles): array { return ['id'=>3,'role' => 'admin', 'full_name' => 'Admin', 'email' => 'admin@example.test']; }
 function require_post_same_origin(): void {}
+function require_session_generation(bool $required=false): void {}
 function json_body(): array { return $GLOBALS['payload']; }
-function send_notification_email(string $to, string $subject, string $body): array
+function send_notification_email(string $to, string $subject, string $body, bool $sensitive=false, bool $fallbackLogContent=true): array
 {
+    if ($sensitive || $fallbackLogContent) throw new LogicException('All notification paths must explicitly request metadata-only fallback.');
     if (db()->inTransaction()) throw new LogicException('Email must follow persistence commit.');
     $rows = db()->query('SELECT * FROM notifications')->fetchAll();
     if (!$rows || count($rows) <= count($GLOBALS['emails'])) throw new LogicException('Email attempted before record persisted.');
@@ -82,6 +84,10 @@ function reset_fixture(): void
     db()->exec('ALTER TABLE students ADD COLUMN archived_at TEXT');
     foreach(['students','advisers'] as $table) db()->exec("ALTER TABLE $table ADD COLUMN profile_completed_at TEXT DEFAULT '2026-01-01 00:00:00'");
     db()->exec('ALTER TABLE advisers ADD COLUMN archived_at TEXT');
+    foreach (['recipient_user_id INTEGER','campaign_id INTEGER','archived_at TEXT','deleted_at TEXT','read_at TEXT','created_at TEXT'] as $column) db()->exec('ALTER TABLE notifications ADD COLUMN '.$column);
+    foreach (['username TEXT','ref_id TEXT'] as $column) db()->exec('ALTER TABLE users ADD COLUMN '.$column);
+    db()->exec('ALTER TABLE advisers ADD COLUMN employee_id TEXT');
+    db()->exec("CREATE TABLE notification_campaigns(id INTEGER PRIMARY KEY AUTOINCREMENT,sender_user_id INTEGER,kind TEXT,subject TEXT,message TEXT,status TEXT,scheduled_at TEXT,sent_at TEXT,archived_at TEXT,deleted_at TEXT,created_at TEXT DEFAULT CURRENT_TIMESTAMP,support_category TEXT,reply_to_campaign_id INTEGER)");
     $GLOBALS['emails'] = $GLOBALS['errors'] = [];
     $GLOBALS['mode'] = 'gmail_api';
     $GLOBALS['overlap'] = false;

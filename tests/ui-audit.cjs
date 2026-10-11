@@ -169,6 +169,7 @@ async function checkRetentionRedesign() {
   await retentionUIAudit.run({check,evaluate,waitFor,navigate,command,keyPress,setManagement:value=>{managementFixture=value;},getRequests:()=>requests,errors});
 }
 function fixtureApi(file, action) {
+  if (process.argv.includes('--batch7-only')) {const response=require('./v10-batch7-ui.cjs').mockApi(file,action,requests.findLast(r=>r.file===file&&r.action===action),role);if(response)return response;}
   if(process.argv.includes('--batch5b-only')&&file==='documents_api.php'&&action==='upload') {
     const request=requests.findLast(r=>r.file===file&&r.action===action);
     const names=[...request.body.matchAll(/filename="([^"]+)"/g)].map(m=>m[1]);
@@ -2333,6 +2334,7 @@ async function run() {
   await command('Log.enable');
   await command('Fetch.enable', { patterns: [{ urlPattern: '*' }] });
   await command('Browser.setDownloadBehavior', { behavior: 'deny' }, true);
+  if(process.argv.includes('--batch7-only')) {await require('./v10-batch7-ui.cjs').run({check,evaluate,waitFor,navigate,command,keyPress,errors,getRequests:()=>requests});console.log(checks+' batch 7 browser checks; '+failures.length+' failures.');for(const f of failures)console.error('FAIL '+f);if(failures.length)process.exitCode=1;return;}
   if(process.argv.includes('--batch6-only')) {await require('./v10-batch6-ui.cjs').run({check,evaluate,waitFor,navigate,command,keyPress,errors});console.log(checks+' batch 6 browser checks; '+failures.length+' failures.');for(const f of failures)console.error('FAIL '+f);if(failures.length)process.exitCode=1;return;}
   if(process.argv.includes('--batch5b-only')) {await require('./v10-batch5b-ui.cjs').run({check,evaluate,waitFor,navigate,command,keyPress,errors,getRequests:()=>requests,setDelay:value=>{apiDelay=value;}});console.log(checks+' batch 5B browser checks; '+failures.length+' failures.');for(const f of failures)console.error('FAIL '+f);if(failures.length)process.exitCode=1;return;}
   if(process.argv.includes('--batch5a-only')) {await require('./v10-batch5a-ui.cjs').run({check,evaluate,waitFor,navigate,command,keyPress,errors,getRequests:()=>requests});console.log(checks+' batch 5A browser checks; '+failures.length+' failures.');for(const f of failures)console.error('FAIL '+f);if(failures.length)process.exitCode=1;return;}

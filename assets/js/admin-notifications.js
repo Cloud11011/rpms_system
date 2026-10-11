@@ -126,7 +126,8 @@ document.addEventListener('DOMContentLoaded', () => {
             ['Recipient type', notification.recipient_type],
             ['Recipient ID', notification.recipient_id],
             ['Notification ID', notification.id],
-            ['Type', notification.type],
+            ['Type', notification.type || notification.kind],
+            ['Recipient copies', notification.recipient_count],
             ['Status', notification.status],
             ['Created by', notification.created_by],
             ['Created', formatNoticeDate(notification.created_at)],
@@ -159,67 +160,9 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     automated.addEventListener('change', syncScheduleUi);
 
-    let historyRequestSequence = 0;
-    async function loadHistory(page = 1) {
-        const requestSequence = ++historyRequestSequence;
-        historyCount.textContent = 'Loading notifications...';
-        historyList.setAttribute('aria-busy', 'true');
-        const pager = document.getElementById('noticePagination');
-        pager.querySelectorAll('button').forEach(button => { button.disabled = true; });
-        try {
-            const data = await PrismUI.request(`notifications_api.php?action=list&page=${page}`);
-            if (requestSequence !== historyRequestSequence) return;
-            const items = data.notifications || [];
-            PrismUI.pagination(pager, historyCount, { ...data, total: data.total ?? items.length }, loadHistory, 'notifications');
-            historyList.replaceChildren();
-            if (!items.length) {
-                showHistoryState('fa-bell', 'No notifications yet', 'Sent and scheduled notifications will appear here with their recipients and delivery status.');
-                return;
-            }
-            items.forEach(n => {
-                const card = document.createElement('article');
-                card.className = 'history-item';
-                const heading = document.createElement('strong');
-                heading.textContent = n.subject || n.type || 'Notification';
-                const metadata = document.createElement('small');
-                metadata.className = 'notification-history-meta';
-                const recipient = document.createElement('span');
-                recipient.textContent = n.recipient_name || n.recipient_email || 'Recipient not recorded';
-                const kind = document.createElement('span');
-                kind.textContent = n.type || 'Notification';
-                const status = PrismUI.badgeElement(n.status || 'Status not recorded');
-                const when = document.createElement('span');
-                when.textContent = n.status === 'Scheduled' && n.scheduled_at
-                    ? `Scheduled for ${formatNoticeDate(n.scheduled_at)}`
-                    : formatNoticeDate(n.created_at);
-                metadata.append(recipient, kind, status, when);
-                const content = document.createElement('p');
-                content.textContent = n.message || '';
-                card.append(heading, metadata, content);
-                if (n.delivery_info) {
-                    const delivery = document.createElement('small');
-                    delivery.textContent = deliveryStatus(n);
-                    card.appendChild(delivery);
-                }
-                const detailButton = document.createElement('button');
-                detailButton.type = 'button';
-                detailButton.className = 'notification-detail-button';
-                detailButton.dataset.noticeDetail = String(n.id ?? '');
-                detailButton.textContent = 'View details';
-                detailButton.setAttribute('aria-label', `View details for ${n.subject || n.type || 'notification'} to ${n.recipient_name || n.recipient_email || 'recipient'}`);
-                detailButton.addEventListener('click', () => showNoticeDetail(n));
-                card.appendChild(detailButton);
-                historyList.appendChild(card);
-            });
-        } catch (e) {
-            if (requestSequence !== historyRequestSequence) return;
-            historyCount.textContent = 'History unavailable';
-            pager.replaceChildren();
-            showHistoryState('fa-triangle-exclamation', 'Could not load notification history', e.message);
-        } finally {
-            if (requestSequence === historyRequestSequence) historyList.setAttribute('aria-busy', 'false');
-        }
-    }
+    const history = PrismNotifications.mount({list: historyList, count: historyCount,
+        pager: document.getElementById('noticePagination'), allowSent: true, detail: showNoticeDetail});
+    async function loadHistory(page = 1) { return history.load(page); }
 
     form.addEventListener('submit', async event => {
         event.preventDefault();
@@ -256,11 +199,11 @@ document.addEventListener('DOMContentLoaded', () => {
             const deliveryText = data.queued ? `Queued for delivery to ${data.total} recipient(s).` : data.scheduled
                 ? `Scheduled for ${data.total} recipient(s).`
                 : (data.logged
-                    ? `Delivered to ${data.sent}; logged locally for ${data.logged} recipient(s) because live email is not configured.`
+                    ? `Delivered to ${data.sent}; recorded a metadata-only fallback for ${data.logged} recipient(s).`
                     : `Sent to ${data.sent} of ${data.total} recipient(s).`);
             PrismUI.toast(deliveryText, data.logged ? 'info' : 'success');
             form.reset(); dirty.clean();
-            await loadHistory();
+            await history.sent();
         } catch (e) {
             PrismUI.toast(e.message, 'error');
         } finally {

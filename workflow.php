@@ -214,7 +214,7 @@ function notify_in_app(PDO $pdo, string $recipientType, ?int $recipientId, strin
         create_notification($pdo, $recipientType, $recipientId, $email, $name,
             $subject, $message, $type, $createdBy, $emailBody, null, $emailSubject);
     } catch (Throwable $e) {
-        log_api_error('notify_in_app', $e->getMessage());
+        log_api_error('notify_in_app', 'Workflow notification records could not be saved.');
     }
 }
 
@@ -244,15 +244,24 @@ function notify_adviser_of_student(PDO $pdo, int $studentDbId, string $subject, 
 function notify_rpms_admins(PDO $pdo, string $subject, string $message, string $type, string $createdBy,
                             ?string $emailBody = null, ?string $emailSubject = null): void
 {
+    $owned=!$pdo->inTransaction(); $ids=[];
     try {
-        $admins = $pdo->query("SELECT id, email, full_name FROM users WHERE role = 'admin' AND status = 'Active'")->fetchAll();
+        if ($owned) $pdo->beginTransaction();
+        $admins=notification_rows($pdo,"SELECT id,email,full_name FROM users WHERE role='admin' AND status='Active' ORDER BY id FOR UPDATE");
+        if ($admins) {
+            $campaign=notification_create_campaign($pdo,notification_sender(),'workflow',$subject,$message,date('Y-m-d H:i:s'));
+            foreach ($admins as $a) {
+                $copy=create_notification($pdo,'admin',(int)$a['id'],(string)($a['email']??''),(string)$a['full_name'],
+                    $subject,$message,$type,$createdBy,$emailBody,date('Y-m-d H:i:s'),$emailSubject,'workflow',$campaign);
+                if (isset($copy['id'])) $ids[]=$copy['id'];
+            }
+        }
+        if ($owned) $pdo->commit();
     } catch (Throwable $e) {
-        return;
+        if ($owned && $pdo->inTransaction()) $pdo->rollBack();
+        log_api_error('notify_rpms_admins','Workflow notification records could not be saved.'); return;
     }
-    foreach ($admins as $a) {
-        notify_in_app($pdo, 'admin', (int)$a['id'], (string)($a['email'] ?? ''), (string)$a['full_name'],
-            $subject, $message, $type, $createdBy, $emailBody, $emailSubject);
-    }
+    if ($owned) foreach ($ids as $id) notification_dispatch($pdo,$id,null,[$emailSubject??$subject,$emailBody??$message]);
 }
 
 // ---------------------------------------------------------------------

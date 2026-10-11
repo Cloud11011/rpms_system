@@ -42,7 +42,7 @@ if ($requirements !== '') {
 $message .= "\nPlease send your latest update to the RPMS office.\n\nThank you.";
 
 $result = create_notification($pdo, 'student', $studentDbId, $email, $safeName,
-    $subject, $message, 'Follow-up', $user['full_name']);
+    $subject, $message, 'Follow-up', $user['full_name'], null, null, null, 'staff');
 
 log_activity($user['email'], 'followup_sent', "student=$studentId");
 

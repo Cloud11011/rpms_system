@@ -85,6 +85,7 @@ $user_email = $authUser['email'];
     <form method="dialog" class="notification-detail-actions"><button id="closeNotificationDetail" class="management-primary" autofocus>Close details</button></form>
 </dialog>
 <script src="<?php echo htmlspecialchars(asset_url('assets/js/prism-ui.js'), ENT_QUOTES, 'UTF-8'); ?>"></script>
+<script src="<?php echo htmlspecialchars(asset_url('assets/js/notification-history.js'), ENT_QUOTES, 'UTF-8'); ?>"></script>
 <script src="<?php echo htmlspecialchars(asset_url('assets/js/admin-notifications.js'), ENT_QUOTES, 'UTF-8'); ?>"></script>
 </body>
 </html>
