@@ -1,4 +1,9 @@
-<?php require __DIR__ . '/config.php'; ?>
+<?php
+require __DIR__ . '/config.php';
+header('Cache-Control: no-store');
+header('Referrer-Policy: same-origin');
+if (current_user()) { header('Location: index.php'); exit; }
+?>
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -43,10 +48,6 @@
         }
         ?>
 
-        <?php if (ADMIN_REGISTRATION_CODE === ''): ?>
-        <div class="error-message">RPMS staff self-registration is currently disabled. Ask an existing RPMS administrator to create your account or enable the private registration code.</div>
-        <div class="register-text"><a href="login.php">Login</a></div>
-        <?php else: ?>
         <form action="register_process.php" method="POST">
 
             <div class="input-group">
@@ -56,6 +57,8 @@
                 <input
                     type="text"
                     name="registration_code"
+                    aria-label="Staff Registration Code"
+                    maxlength="100"
                     placeholder="Staff Registration Code"
                     autocomplete="off"
                     required>
@@ -69,6 +72,7 @@
                 <input
                     type="text"
                     name="employee_id"
+                    aria-label="Employee ID (used as your username)"
                     placeholder="Employee ID"
                     maxlength="100"
                     required>
@@ -82,6 +86,7 @@
                 <input
                     type="text"
                     name="fullname"
+                    aria-label="Full name"
                     placeholder="Enter your full name"
                     maxlength="190"
                     required>
@@ -95,6 +100,8 @@
                 <input
                     type="email"
                     name="email"
+                    aria-label="Institutional email"
+                    maxlength="190"
                     placeholder="<?php echo htmlspecialchars(allowed_email_domains_hint(), ENT_QUOTES, 'UTF-8'); ?> email"
                     autocomplete="email"
                     required>
@@ -108,6 +115,7 @@
                 <input
                     type="password"
                     name="password"
+                    aria-label="Password"
                     id="password"
                     placeholder="Password (12+ characters)"
                     minlength="12"
@@ -130,6 +138,7 @@
                 <input
                     type="password"
                     name="confirm_password"
+                    aria-label="Confirm password"
                     id="confirmPassword"
                     placeholder="Confirm Password"
                     minlength="12"
@@ -160,7 +169,7 @@
             </div>
 
         </form>
-        <?php endif; ?>
+        <p class="register-text"><a href="privacy.php">Privacy Policy</a> &middot; <a href="terms.php">Terms of Service</a></p>
 
     </div>
 

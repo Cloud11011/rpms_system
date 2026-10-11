@@ -7,6 +7,12 @@ require_once __DIR__ . '/../includes/assets.php';
 // This harness's credential cases start logged out; authenticated second-login
 // behavior is exercised independently by the Batch 5B session/HTTP suites.
 function current_user(): ?array { return null; }
+// Endpoint orchestration fixture; real verification/transactions are exercised by B9 native/HTTP tests.
+class StaffRegistrationError extends \RuntimeException {}
+function staff_register(FixtureDb $pdo, array $data): array {
+    if (($data['registration_code']??'')!=='fixture-code') throw new StaffRegistrationError('The Staff Registration Code is invalid, expired, or unavailable.');
+    $GLOBALS['creations']++; return $GLOBALS['fixtureUser'];
+}
 
 class FixtureDb
 {
@@ -141,7 +147,6 @@ if (($argv[1] ?? '') === '--case') {
         $_POST = array_replace(['employee_id' => 'FIXTURE-1', 'fullname' => 'Fixture Admin',
             'email' => 'fixture@example.test', 'password' => 'Fixture-next-42!', 'confirm_password' => 'Fixture-next-42!',
             'registration_code' => 'fixture-code'], $case['post'] ?? []);
-        define(__NAMESPACE__ . '\\ADMIN_REGISTRATION_CODE', 'fixture-code');
     }
     $body = ['currentPassword' => 'Fixture-current-42!', 'newPassword' => 'Fixture-next-42!'];
     define(__NAMESPACE__ . '\\APP_BASE_URL', 'https://fixture.test');
@@ -189,6 +194,7 @@ if (($argv[1] ?? '') === '--case') {
     $source = file_get_contents(__DIR__ . '/../' . $case['file']);
     $source = str_replace("require __DIR__ . '/config.php';", '', $source, $includes);
     $source = str_replace("require_once __DIR__ . '/workflow.php';", '', $source);
+    $source = str_replace("require_once __DIR__.'/includes/staff_registration.php';", '', $source);
     if ($includes !== 1) throw new \RuntimeException('Expected exactly one config require.');
     $source = preg_replace('/^<\?php\s*/', '', $source);
     eval('namespace ' . __NAMESPACE__ . '; use \\Throwable; ' . $source);
@@ -285,9 +291,9 @@ $cases[] = ['name' => 'Registration throttle blocks before code verification', '
     'error' => 'Too many registration attempts. Please try again later.'];
 $cases[] = ['name' => 'Wrong registration code consumes an attempt', 'file' => 'register_process.php',
     'post' => ['registration_code' => 'wrong'], 'creations' => 0, 'attempts' => ['admin_registration_ip'],
-    'error' => 'Invalid staff registration code.'];
-$cases[] = ['name' => 'Valid registration retains provisioning behavior', 'file' => 'register_process.php',
-    'unknown' => true, 'creations' => 1, 'attempts' => ['admin_registration_ip'], 'location' => 'Location: login_admin.php'];
+    'error' => 'The Staff Registration Code is invalid, expired, or unavailable.'];
+$cases[] = ['name' => 'Valid registration provisions and establishes a credential-bound session', 'file' => 'register_process.php',
+    'unknown' => true, 'creations' => 1, 'rotations'=>1, 'binding'=>true, 'attempts' => ['admin_registration_ip'], 'location' => 'Location: index.php'];
 $confirmations = [];
 foreach ($cases as $case) {
     $process = proc_open([PHP_BINARY, __FILE__, '--case', json_encode($case)],

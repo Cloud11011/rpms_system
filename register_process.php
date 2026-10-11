@@ -1,85 +1,40 @@
 <?php
 require __DIR__ . '/config.php';
+require_once __DIR__.'/includes/staff_registration.php';
 
-if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-    header('Location: register.php');
-    exit;
-}
-
+if ($_SERVER['REQUEST_METHOD'] !== 'POST') { header('Location: register.php'); exit; }
 require_post_same_origin();
+header('Cache-Control: no-store');
+header('Referrer-Policy: same-origin');
+if (current_user()) { header('Location: index.php'); exit; }
 
 function back_with_error(string $message): void
 {
-    $_SESSION['error'] = $message;
-    header('Location: register.php');
-    exit;
+    $_SESSION['error']=$message;
+    header('Location: register.php',true,303); exit;
 }
 
-$employeeId = trim((string)($_POST['employee_id'] ?? ''));
-$fullname   = trim((string)($_POST['fullname'] ?? ''));
-$email      = strtolower(trim((string)($_POST['email'] ?? '')));
-$username   = $employeeId;
-$password   = (string)($_POST['password'] ?? '');
-$confirm    = (string)($_POST['confirm_password'] ?? '');
-$regCode    = (string)($_POST['registration_code'] ?? '');
-
-// Bound code guesses even when the submitted email/employee ID changes.
-if (!consume_auth_attempt('admin_registration_ip', (string)($_SERVER['REMOTE_ADDR'] ?? 'unknown'), 8, 900)) {
+if (!consume_auth_attempt('admin_registration_ip',(string)($_SERVER['REMOTE_ADDR']??'unknown'),8,900)) {
     back_with_error('Too many registration attempts. Please try again later.');
 }
+try { $user=staff_register(db(),$_POST); }
+catch (StaffRegistrationError $e) { back_with_error($e->getMessage()); }
+catch (Throwable $e) { back_with_error('Registration is temporarily unavailable. Please try again later.'); }
 
-if (ADMIN_REGISTRATION_CODE === '') {
-    back_with_error('Self-registration is currently disabled. Ask an existing RPMS administrator to set ADMIN_REGISTRATION_CODE in config.local.php to enable it, or to create your account for you.');
-}
-if (!hash_equals(ADMIN_REGISTRATION_CODE, $regCode)) {
-    back_with_error('Invalid staff registration code.');
-}
-if ($employeeId === '' || $fullname === '' || $email === '' || $password === '') {
-    back_with_error('Please complete all fields.');
-}
-if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
-    back_with_error('Please enter a valid CEU email address.');
-}
-if (!is_allowed_email_domain($email)) {
-    back_with_error('Only ' . allowed_email_domains_hint() . ' email addresses may register for an RPMS account.');
-}
-if (mb_strlen($employeeId) > 100 || mb_strlen($fullname) > 190 || mb_strlen($email) > 190) {
-    back_with_error('One or more fields are too long.');
-}
-if ($password !== $confirm) {
-    back_with_error('Password and confirmation do not match.');
-}
-if (!new_password_is_valid($password)) {
-    back_with_error('Password must be 12 to 200 characters long; a passphrase is welcome.');
-}
-if (strlen($password) > 200) {
-    back_with_error('Password is too long.');
-}
-
-$pdo = db();
-try { onboarding_email_available($pdo,$email); } catch(AccountLifecycleConflict $e) { back_with_error($e->getMessage()); }
-
-$check = $pdo->prepare('SELECT id FROM users WHERE username = :u OR email = :e');
-$check->execute([':u' => $username, ':e' => $email]);
-if ($check->fetch()) {
-    back_with_error('That username or email is already registered.');
-}
-
-try {
-    $stmt = $pdo->prepare('INSERT INTO users (username, password_hash, role, full_name, email, ref_id)
-        VALUES (:u, :p, "admin", :n, :e, :ref)');
-    $stmt->execute([
-        ':u' => $username,
-        ':p' => password_hash($password, PASSWORD_DEFAULT),
-        ':n' => $fullname,
-        ':e' => $email,
-        ':ref' => $employeeId,
-    ]);
-} catch (PDOException $e) {
-    back_with_error('This account could not be created. The employee ID may already be in use.');
-}
-
-log_activity($email, 'register_admin', "employee_id=$employeeId");
-$_SESSION['success'] = 'Your RPMS account has been created. You may now log in.';
-header('Location: login_admin.php');
-exit;
+// Fresh authentication boundary matching login_process.php and the B5B credential binding.
+session_regenerate_id(true);
+$_SESSION=[];
+$_SESSION['login_generation']=bin2hex(random_bytes(16));
+$_SESSION['user_id']=$user['id'];
+prism_publish_session_generation();
+$_SESSION['last_activity_at']=time();
+$_SESSION['credential_fingerprint']=hash('sha256',$user['password_hash']);
+$_SESSION['user_name']=$user['full_name'];
+$_SESSION['user_email']=$user['email'];
+$_SESSION['user_role']='RPMS Administrator';
+$_SESSION['account_type']='admin';
+$_SESSION['username']=$user['username'];
+$_SESSION['ref_id']=$user['ref_id'];
+$_SESSION['must_change_password']=0;
+// No acceptance rows: canonical router sends the new Admin through current legal consent.
+header('Location: index.php',true,303); exit;

@@ -137,15 +137,6 @@ if (!defined('GMAIL_REFRESH_TOKEN')) define('GMAIL_REFRESH_TOKEN', getenv('GMAIL
 if (!defined('GMAIL_SENDER_EMAIL')) define('GMAIL_SENDER_EMAIL', getenv('GMAIL_SENDER_EMAIL') ?: '');
 if (!defined('MAIL_FROM_NAME')) define('MAIL_FROM_NAME', 'CEU-Malolos RPMS / PRISM');
 
-// Gate for RPMS staff self-registration (register.php). Empty by default,
-// which DISABLES self-registration entirely — set this in config.local.php
-// to a private value and share it only with staff you want to be able to
-// create their own admin account. The seeded rpms_admin account (see
-// seed() below) is always available to bootstrap the system regardless.
-if (!defined('ADMIN_REGISTRATION_CODE')) {
-    define('ADMIN_REGISTRATION_CODE', getenv('ADMIN_REGISTRATION_CODE') ?: '');
-}
-
 // Only accounts with an email ending in one of these domains may be
 // created or log in (feature request: email domain restriction). Adjust
 // these to the real CEU Malolos and MLS domains used by your office --

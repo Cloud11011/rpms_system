@@ -24,7 +24,7 @@ function mockApi(file,action,req,role) {
 async function run({check,evaluate,waitFor,navigate,command,keyPress,errors,getRequests,setDelay}) {
   const out=path.join(__dirname,'v10-batch8-results');fs.mkdirSync(out,{recursive:true});
   const matrix=[[1920,1080],[1366,768],[1024,768],[768,1024],[390,844],[375,812]],metrics=[];
-  const baseline=spawnSync('git',['show','HEAD:assets/css/research-resources.css'],{cwd:path.resolve(__dirname,'..'),encoding:'utf8',windowsHide:true});
+  const baseline=spawnSync('git',['show','04dafae:assets/css/research-resources.css'],{cwd:path.resolve(__dirname,'..'),encoding:'utf8',windowsHide:true});
   if(baseline.status!==0)throw new Error('Cannot read baseline resources');
   const screen=async(file,width,height,dark,role='admin',scenario='populated')=>{
     await navigate(file,width,dark,scenario,role);await command('Emulation.setDeviceMetricsOverride',{width,height,deviceScaleFactor:1,mobile:false});
@@ -79,7 +79,7 @@ async function run({check,evaluate,waitFor,navigate,command,keyPress,errors,getR
     check(width>1200?Math.abs(geom.stage.bottom-geom.calendar.bottom)<1:geom.calendar.y>=geom.stage.bottom+19,'Stage/calendar stretch on desktop and natural stack '+label);
     check(Math.abs(geom.monitor.width-geom.content.width)<1&&geom.monitor.y>=geom.calendar.bottom+19,'IERB full width below stage/calendar '+label);
     const resources=await evaluate('document.querySelector(".prism-research-resources").getBoundingClientRect().height');
-    await evaluate(`{const s=document.createElement('style');s.id='baselineResources';s.textContent=${JSON.stringify(baseline.stdout+spawnSync('git',['show','HEAD:assets/css/prism-workspace.css'],{cwd:path.resolve(__dirname,'..'),encoding:'utf8',windowsHide:true}).stdout)};document.head.append(s);}`);
+    await evaluate(`{const s=document.createElement('style');s.id='baselineResources';s.textContent=${JSON.stringify(baseline.stdout+spawnSync('git',['show','04dafae:assets/css/prism-workspace.css'],{cwd:path.resolve(__dirname,'..'),encoding:'utf8',windowsHide:true}).stdout)};document.head.append(s);}`);
     const previous=await evaluate('document.querySelector(".prism-research-resources").getBoundingClientRect().height');
     await evaluate('document.getElementById("baselineResources").remove()');
     const reduction=(previous-resources)/previous*100;

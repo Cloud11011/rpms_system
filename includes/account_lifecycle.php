@@ -99,6 +99,12 @@ function lifecycle_execute(PDO $pdo, array $actor, array $data): array
             if ($otherActive<1) throw new AccountLifecycleConflict('Another active Admin must remain. The last active Admin cannot archive or delete themselves.');
             $expected=$action==='archive'?'ARCHIVE':'DELETE';
             if ($data['confirmation']!==$expected) throw new AccountLifecycleValidation('Type '.$expected.' exactly to confirm.');
+            // v10 only: invalidate a lost Pending creator flow atomically with archive/purge.
+            // Acknowledged global codes retain the frozen SET NULL behavior on purge.
+            if (defined('SCHEMA_VERSION') && SCHEMA_VERSION===10) {
+                require_once __DIR__.'/staff_registration.php';
+                staff_pending_creator_departed($pdo,$actor);
+            }
             if ($action==='archive') {
                 $pdo->prepare('UPDATE users SET status="Inactive" WHERE id=:id')->execute([':id'=>$id]);
                 $pdo->prepare('UPDATE password_resets SET used=1 WHERE user_id=:id')->execute([':id'=>$id]);

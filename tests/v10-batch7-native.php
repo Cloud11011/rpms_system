@@ -8,8 +8,8 @@ function reset_migration_expect(mixed $expected,mixed $actual,string $message): 
 }
 $bin = dirname(PHP_BINARY, 2) . '/mysql/bin/';
 // Optional portable binaries still start a fresh private datadir/port with the same ownership checks.
-if($argc===4) {
-    $resolvedBin=realpath($argv[3]);
+if($argc>=4) {
+    $resolvedBin=realpath($argv[$argc-1]);
     if($resolvedBin===false) throw new RuntimeException('Portable MariaDB binary directory not found.');
     $bin=rtrim($resolvedBin,'\\/').'/';
 }
@@ -61,10 +61,13 @@ try {
     echo 'Temporary MariaDB version: ' . $pdo->query('SELECT VERSION()')->fetchColumn() . "\n";
 
     require __DIR__.'/v10-batch7-native-fixture.php';
-    require __DIR__.'/v10-batch7-lifecycle.php';
-    require __DIR__.'/v10-batch7-concurrency.php';
-    require __DIR__.'/v10-batch7-purge.php';
+    if (!in_array('--only9',$argv,true)) {
+        require __DIR__.'/v10-batch7-lifecycle.php';
+        require __DIR__.'/v10-batch7-concurrency.php';
+        require __DIR__.'/v10-batch7-purge.php';
+    }
     if (in_array('--batch8',$argv,true)) require __DIR__.'/v10-batch8-native.php';
+    if (in_array('--batch9',$argv,true)) require __DIR__.'/v10-batch9-native.php';
     echo 'PASS: '.($GLOBALS['nativeChecks']??0)." native concurrency, FK and account-purge assertions.\n";
 } catch (Throwable $error) {
     $failure = $error;
