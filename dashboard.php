@@ -123,8 +123,7 @@ try {
 </section>
 <!-- CONTENT GRID -->
 <section class="content">
-<div class="left-column">
-<div class="content-box">
+<div class="content-box dashboard-attention">
 <div class="table-header">
 <h3><i class="fa-solid fa-bell-concierge"></i> Students Needing Attention <span data-prism-tip="Delayed students, documents waiting too long for an adviser, approved documents not yet submitted to RPMS, and students with no recent activity."></span></h3>
 <a class="prism-btn is-secondary is-sm" href="ierbprog.php">Open IERB Progress</a>
@@ -155,48 +154,6 @@ try {
 </div>
 </div>
 </div>
-<!-- REAL-TIME IERB TRACKING TABLE -->
-<div class="content-box">
-<div class="table-header">
-<h3><i class="fa-solid fa-list-check"></i> IERB Progress Monitor</h3>
-<div class="header-actions">
-<a href="ierbprog.php" class="prism-btn">View All Progress</a>
-<select class="table-filter" id="courseFilter" aria-label="Filter by course">
-<option value="">All courses</option>
-</select>
-<select class="table-filter" id="progressSort" aria-label="Sort by group progress">
-<option value="default">Sort: Group progress</option>
-<option value="high-to-low">Progress: High to low</option>
-<option value="low-to-high">Progress: Low to high</option>
-</select>
-<a class="prism-btn is-secondary" href="ierb_api.php?action=export_csv" title="Download the student progress list as a CSV file"><i class="fa-solid fa-file-arrow-down"></i> Export CSV</a>
-</div>
-</div>
-<div class="dashboard-table-scroll" tabindex="0" role="region" aria-label="IERB progress records"><table class="data-table">
-<thead>
-<tr>
-<th>Protocol Code / Group</th>
-<th>Course</th>
-<th>Research Title</th>
-<th>Stage</th>
-<th>Pending Requirements</th>
-<th>Overall Progress</th>
-<th>Status & Email Log</th>
-<th>Action</th>
-</tr>
-</thead>
-<tbody id="ierbMonitorBody"></tbody>
-</table></div>
-</div>
-<!-- DOCUMENT REPOSITORY SUMMARY -->
-<div class="content-box">
-<h3><i class="fa-solid fa-folder-tree"></i> Recent Repository Uploads</h3>
-<div class="repo-list">
-<p>No documents yet. Uploads from students and advisers will appear here.</p>
-</div>
-</div>
-</div>
-<div class="right-column">
 <!-- INTERACTIVE CALENDAR WITH MONTH AND YEAR VIEWS -->
 <div class="content-box calendar-box">
 <div class="calendar-top-bar">
@@ -234,6 +191,45 @@ try {
 </div>
 <ul class="reminder-list" id="dashboardReminderList"></ul>
 </div>
+</div>
+<!-- REAL-TIME IERB TRACKING TABLE -->
+<div class="content-box dashboard-monitor">
+<div class="table-header">
+<h3><i class="fa-solid fa-list-check"></i> IERB Progress Monitor</h3>
+<div class="header-actions">
+<a href="ierbprog.php" class="prism-btn">View All Progress</a>
+<select class="table-filter" id="courseFilter" aria-label="Filter by course">
+<option value="">All courses</option>
+</select>
+<select class="table-filter" id="progressSort" aria-label="Sort by group progress">
+<option value="default">Sort: Group progress</option>
+<option value="high-to-low">Progress: High to low</option>
+<option value="low-to-high">Progress: Low to high</option>
+</select>
+<a class="prism-btn is-secondary" href="ierb_api.php?action=export_csv" title="Download the student progress list as a CSV file"><i class="fa-solid fa-file-arrow-down"></i> Export CSV</a>
+</div>
+</div>
+<div class="dashboard-table-scroll" tabindex="0" role="region" aria-label="IERB progress records"><table class="data-table">
+<thead>
+<tr>
+<th>Protocol Code / Group</th>
+<th>Course</th>
+<th>Research Title</th>
+<th>Stage</th>
+<th>Pending Requirements</th>
+<th>Overall Progress</th>
+<th>Status & Email Log</th>
+<th>Action</th>
+</tr>
+</thead>
+<tbody id="ierbMonitorBody"></tbody>
+</table></div>
+</div>
+<!-- DOCUMENT REPOSITORY SUMMARY -->
+<div class="content-box dashboard-repository">
+<h3><i class="fa-solid fa-folder-tree"></i> Recent Repository Uploads</h3>
+<div class="repo-list">
+<p>No documents yet. Uploads from students and advisers will appear here.</p>
 </div>
 </div>
 </section>

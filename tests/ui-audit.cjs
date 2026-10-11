@@ -94,7 +94,21 @@ function fixtureTemplate(file) {
   // Exact reviewed path only. Every other include remains forbidden below.
   const navigationInclude = "require __DIR__ . '/includes/prism-navigation.php';";
   assert.equal(isolated.split(navigationInclude).length - 1, file === 'role_portal.php' ? 0 : 1, `${file}: expected one navigation partial`);
-  const navigationSource = fs.readFileSync(path.join(root, 'includes/prism-navigation.php'), 'utf8');
+  let navigationSource = fs.readFileSync(path.join(root, 'includes/prism-navigation.php'), 'utf8');
+  const sessionInclude="require __DIR__.'/session_browser.php';";
+  assert.equal(navigationSource.split(sessionInclude).length-1,1,'Exact session presentation include');
+  const sessionSource=fs.readFileSync(path.join(root,'includes/session_browser.php'),'utf8').replace("require_once __DIR__.'/../security.php';",'');
+  assert(!/\b(?:require|include)(?:_once)?\s*(?:\(|["'$])/i.test(sessionSource),'No unexpected session bootstrap');
+  navigationSource=navigationSource.replace(sessionInclude,()=> '?>'+sessionSource+'<?php ');
+  isolated=isolated.replace("<?php require __DIR__.'/includes/session_browser.php'; ?>",()=>sessionSource);
+  const catalogInclude="<?php require __DIR__.'/includes/document_catalog_client.php'; ?>";
+  const catalogAllowed=['documents.php','role_portal.php'].includes(file);
+  assert.equal(isolated.split(catalogInclude).length-1,catalogAllowed?1:0,'Exact catalog presentation include');
+  if(catalogAllowed) {
+    const catalogSource=fs.readFileSync(path.join(root,'includes/document_catalog_client.php'),'utf8').replace("require_once __DIR__.'/document_catalog.php';",'');
+    assert(!/\b(?:require|include)(?:_once)?\s*(?:\(|["'$])/i.test(catalogSource),'No unexpected catalog bootstrap');
+    isolated=isolated.replace(catalogInclude,()=>catalogSource);
+  }
   assert(!/\b(?:require|include)(?:_once)?\s*(?:\(|["'$])/i.test(navigationSource), 'Unexpected nested include in navigation partial');
   isolated = isolated.replace(navigationInclude, () => '?>' + navigationSource + '<?php ');
   const academicInclude = "require_once __DIR__ . '/includes/academic_catalog.php';";
@@ -128,9 +142,11 @@ function fixtureTemplate(file) {
   assert(!/\b(?:require|include)(?:_once)?\s*(?:\(|["'$])/i.test(isolated), `${file}: unexpected include in fixture`);
   const stub = `<?php
     require_once ${JSON.stringify(path.join(root, 'includes/assets.php'))};
+    require_once ${JSON.stringify(path.join(root, 'security.php'))};
+    require_once ${JSON.stringify(path.join(root, 'includes/document_catalog.php'))};
     $managementType = '${managementFixture}'; $_GET=['type'=>'${managementFixture}'];
     const STAGE_SEQUENCE = ['Stage 1','Stage 2','Stage 3','Stage 4','Stage 5','Completed'];
-    $_SESSION = ['account_type' => '${role}', 'user_role' => '${role === 'admin' ? 'RPMS Administrator' : 'Research Adviser'}'];
+    $_SESSION = ['user_id'=>1,'login_generation'=>str_repeat('a',32),'account_type' => '${role}', 'user_role' => '${role === 'admin' ? 'RPMS Administrator' : 'Research Adviser'}'];
     function require_login($roles) { return ['id'=>1, 'email'=>'fixture@example.test', 'full_name'=>'UI Audit Fixture', 'role'=>'${role}', 'ref_id'=>'FIXTURE', 'username'=>'fixture']; }
     function db() { return new class { function query($sql) { return new class { function fetchColumn() { return 0; } }; } }; }
     function stage_labels_map() { return json_decode('${JSON.stringify(labelsForScenario())}', true); }
@@ -153,6 +169,12 @@ async function checkRetentionRedesign() {
   await retentionUIAudit.run({check,evaluate,waitFor,navigate,command,keyPress,setManagement:value=>{managementFixture=value;},getRequests:()=>requests,errors});
 }
 function fixtureApi(file, action) {
+  if(process.argv.includes('--batch5b-only')&&file==='documents_api.php'&&action==='upload') {
+    const request=requests.findLast(r=>r.file===file&&r.action===action);
+    const names=[...request.body.matchAll(/filename="([^"]+)"/g)].map(m=>m[1]);
+    const results=names.map(name=>({name,ok:name.endsWith('.txt'),message:name.endsWith('.txt')?'Pending Adviser Review':'Unsupported file type'}));
+    const uploaded=results.filter(r=>r.ok).length;return {ok:uploaded>0,message:`${uploaded} of ${names.length} files uploaded successfully.`,results,uploaded,failed:names.length-uploaded};
+  }
   if(process.argv.includes('--batch45-only') && scenario==='verification-invalid' && file==='account_lifecycle_api.php' && action==='availability')return {ok:true,available:false,message:'Deployment verification required.'};
   if(process.argv.includes('--onboarding-only')) {const data=onboardingUIAudit.mockApi(file,action,requests.findLast(r=>r.file===file));if(data)return data;}
   if (process.argv.includes('--retention-only')) { const response=retentionMockApi(file,action);if(response)return response; }
@@ -292,7 +314,11 @@ async function serve(req, res) {
   try {
     const url = new URL(req.url, origin);
     const file = decodeURIComponent(url.pathname.slice(1));
-    if (file==='login.php') {
+    if (['privacy.php','terms.php'].includes(file)) {
+      const rendered=spawnSync(php,[path.join(root,file)],{cwd:root,encoding:'utf8',windowsHide:true});
+      assert.equal(rendered.status,0,rendered.stderr);assert.equal(rendered.stderr,'');
+      res.writeHead(200,{...securityHeaders,'Content-Type':'text/html; charset=utf-8'});res.end(rendered.stdout);
+    } else if (file==='login.php') {
       res.writeHead(200,{...securityHeaders,'Content-Type':'text/html; charset=utf-8'});res.end(fixtureLogin());
     } else if (['complete_profile.php','account_setup.php'].includes(file)) {
       let body='';for await(const chunk of req)body+=chunk;
@@ -300,12 +326,12 @@ async function serve(req, res) {
       res.writeHead(200,{...securityHeaders,'Content-Type':'text/html; charset=utf-8'});res.end(fixtureOnboarding(file));
     } else if (pages.includes(file) || extraPages.includes(file) || Object.hasOwn(pageWrappers, file)) {
       const html = fixtureTemplate(file);
-      res.writeHead(200, { ...securityHeaders, 'Content-Type': 'text/html; charset=utf-8' });
+      res.writeHead(200, { ...securityHeaders, 'Set-Cookie':'prism_generation='+ 'a'.repeat(32)+'; Path=/; SameSite=Lax', 'Content-Type': 'text/html; charset=utf-8' });
       res.end(html);
     } else if (/^(notifications|reports|stage_labels|ierb|audit|profile|documents|students|advisers|calendar_deadlines|account_lifecycle|account_invitation)_api\.php$/.test(file) || file === 'send_followup.php') {
       let body = '';
       for await (const chunk of req) body += chunk;
-      requests.push({ file, action: url.searchParams.get('action'), query: Object.fromEntries(url.searchParams), method: req.method, body });
+      requests.push({ file, action: url.searchParams.get('action'), query: Object.fromEntries(url.searchParams), method: req.method, body, headers:req.headers });
       if (apiDelay) await new Promise(resolve => setTimeout(resolve, apiDelay));
       if (managementFailure && ['students_api.php','advisers_api.php'].includes(file) && url.searchParams.get('action') === 'list') {
         if (managementFailure === 'network') { res.destroy(); return; }
@@ -383,7 +409,7 @@ async function navigate(file, width, dark, data = 'empty', viewer = 'admin', scr
   await command('Emulation.setDeviceMetricsOverride', { width, height: 1000, deviceScaleFactor: 1, mobile: false });
   await command('Page.navigate', { url: `${origin}/${file}?fixture=${Date.now()}${filterQuery}` });
   file = pageWrappers[file] || file;
-  const ready = { 'login.php': '.login-card', 'admin_notifications.php': '#noticeHistory > *', 'admin_ai.php': '#aiHistory > *', 'ierbprog.php': '#stageChart > *', 'account.php': '#activityList > *', 'dashboard.php':'#ierbMonitorBody > *', 'research_adviser.php':'#adviserQueue > *', 'role_portal.php':'#studentDashboardState', 'admin_people.php':'#recordRows > *', 'documents.php':'#documentsTableBody > *', 'reports.php':'#reportTableBody > *', 'calendar.php':'#monthGrid > *', 'data_export.php':'.data-export-card','complete_profile.php':'#completeProfileForm','account_setup.php':'[name=token]' }[file];
+  const ready = { 'privacy.php':'#legalContent','terms.php':'#legalContent','login.php': '.login-card', 'admin_notifications.php': '#noticeHistory > *', 'admin_ai.php': '#aiHistory > *', 'ierbprog.php': '#stageChart > *', 'account.php': '#activityList > *', 'dashboard.php':'#ierbMonitorBody > *', 'research_adviser.php':'#adviserQueue > *', 'role_portal.php':'#studentDashboardState', 'admin_people.php':'#recordRows > *', 'documents.php':'#documentsTableBody > *', 'reports.php':'#reportTableBody > *', 'calendar.php':'#monthGrid > *', 'data_export.php':'.data-export-card','complete_profile.php':'#completeProfileForm','account_setup.php':'[name=token]' }[file];
   await waitFor(`document.readyState === 'complete' && !!document.querySelector(${JSON.stringify(ready)})`,process.argv.includes('--visual-only')?300:100);
   if (file === 'role_portal.php') await waitFor('document.getElementById("studentDashboardState").getAttribute("aria-busy")==="false"');
   if (file === 'research_adviser.php') await waitFor('document.getElementById("adviserQueue").getAttribute("aria-busy")==="false"');
@@ -2302,6 +2328,7 @@ async function run() {
   await command('Log.enable');
   await command('Fetch.enable', { patterns: [{ urlPattern: '*' }] });
   await command('Browser.setDownloadBehavior', { behavior: 'deny' }, true);
+  if(process.argv.includes('--batch5b-only')) {await require('./v10-batch5b-ui.cjs').run({check,evaluate,waitFor,navigate,command,keyPress,errors,getRequests:()=>requests,setDelay:value=>{apiDelay=value;}});console.log(checks+' batch 5B browser checks; '+failures.length+' failures.');for(const f of failures)console.error('FAIL '+f);if(failures.length)process.exitCode=1;return;}
   if(process.argv.includes('--batch5a-only')) {await require('./v10-batch5a-ui.cjs').run({check,evaluate,waitFor,navigate,command,keyPress,errors,getRequests:()=>requests});console.log(checks+' batch 5A browser checks; '+failures.length+' failures.');for(const f of failures)console.error('FAIL '+f);if(failures.length)process.exitCode=1;return;}
   if(process.argv.includes('--batch45-only')) {await require('./v10-batch45-ui.cjs').run({check,evaluate,waitFor,navigate,command,keyPress,errors,getRequests:()=>requests,setManagement:value=>{managementFixture=value;},setDelay:value=>{apiDelay=value;}});console.log(checks+' batch 4.5 browser checks; '+failures.length+' failures.');for(const f of failures)console.error('FAIL '+f);if(failures.length)process.exitCode=1;return;}
   if(process.argv.includes('--batch4-before') || process.argv.includes('--batch4-only')) {await require('./v10-batch4-ui.cjs').run({check,evaluate,waitFor,navigate,command,keyPress,errors,getRequests:()=>requests,setManagement:value=>{managementFixture=value;}});console.log(checks+' batch 4 browser checks; '+failures.length+' failures.');for(const f of failures)console.error('FAIL '+f);if(failures.length)process.exitCode=1;return;}

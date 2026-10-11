@@ -13,6 +13,9 @@
 .dashboard-page .card h1 { font-size:clamp(23px,2.3vw,34px); overflow-wrap:anywhere; }
 .dashboard-page .card p { font-size:var(--prism-font-body); line-height:1.6; }
 .dashboard-page .content { grid-template-columns:minmax(0,1fr) minmax(255px,.42fr); gap:20px; }
+.dashboard-page .content { align-items:start; }
+.dashboard-page .content > :is(.dashboard-attention,.dashboard-monitor,.dashboard-repository) { grid-column:1 / -1; }
+.dashboard-page .content > :is(.pipeline-card,.calendar-box) { margin:0; }
 .dashboard-page :is(.left-column,.right-column,.content-box,.pipeline-card) { min-width:0; }
 .dashboard-page .content-box { padding:20px; border-radius:12px; box-shadow:none; }
 .dashboard-page .table-header { align-items:flex-start; flex-wrap:wrap; gap:14px; }

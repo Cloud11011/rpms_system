@@ -150,6 +150,11 @@ function send_notification_email($to, $subject, $body): array
     return ['ok' => empty($GLOBALS['case']['emailFails']), 'message' => 'Fixture delivery'];
 }
 function log_api_error(...$args): void { $GLOBALS['errors'][] = $args; }
+function require_session_generation(bool $required=false): void {}
+function prism_session_generation(): string { return str_repeat('a',32); }
+function is_uploaded_file(string $path): bool { return true; }
+function filesize(string $path): int { return 10; }
+function fopen(string $path, string $mode) { return \fopen('php://memory','w+'); }
 function move_uploaded_file(string $from, string $to): bool { $GLOBALS['stored'] = true; return true; }
 function is_file(string $path): bool { return $GLOBALS['stored']; }
 function unlink(string $path): bool
@@ -191,9 +196,10 @@ if (($argv[1] ?? '') === '--case') {
     $fixtureDb = new FixtureDb();
     $_GET = ['action' => $case['action']];
     $_SERVER = ['REQUEST_METHOD' => 'POST'];
-    $_POST = ['studentDbId' => 4, 'documentType' => 'Protocol', 'stage' => 'Stage 1'];
+    $_SESSION=[];
+    $_POST = ['studentDbId' => '4', 'documentType' => 'Study Protocol', 'stage' => 'Stage 1'];
     $_POST = array_replace($_POST, $case['craftedUpload'] ?? []);
-    $_FILES = ['document' => ['error' => UPLOAD_ERR_OK, 'size' => 10, 'name' => 'Fixture.txt', 'tmp_name' => 'fixture-upload']];
+    $_FILES = ['document' => ['error' => UPLOAD_ERR_OK, 'size' => 10, 'name' => 'Fixture.txt', 'tmp_name' => 'fixture-upload', 'type'=>'text/plain']];
     define('STAGE_ADVANCE_TRIGGER', $case['mode'] ?? 'approval');
     define('STAGE_SEQUENCE', ['Stage 1', 'Stage 2', 'Completed']);
     define('DOCS_DIR', 'fixture-storage');
@@ -226,9 +232,14 @@ if (($argv[1] ?? '') === '--case') {
     });
     require_once __DIR__ . '/../includes/office_container.php';
     require_once __DIR__.'/retention-fixture-support.php';retention_fixture_support(__NAMESPACE__);
+    foreach (['document_catalog','document_upload'] as $helper) {
+        $helperSource=file_get_contents(__DIR__.'/../includes/'.$helper.'.php');
+        eval('namespace '.__NAMESPACE__.'; use \\RuntimeException; '.preg_replace('/^<\?php\s*/','',$helperSource));
+    }
     $source = file_get_contents(__DIR__ . '/../documents_api.php');
     $source = str_replace("require_once __DIR__ . '/includes/account_lifecycle.php';", '', $source);
     $source = str_replace("require_once __DIR__ . '/includes/office_container.php';", '', $source);
+    $source = str_replace(["require_once __DIR__ . '/includes/document_catalog.php';","require_once __DIR__ . '/includes/document_upload.php';"], '', $source);
     foreach (["require __DIR__ . '/config.php';", "require_once __DIR__ . '/ai_helpers.php';", "require_once __DIR__ . '/workflow.php';"] as $require) {
         $source = str_replace($require, '', $source, $count);
         if ($count !== 1) throw new RuntimeException('Unexpected endpoint bootstrap.');
@@ -276,7 +287,7 @@ $cases = [
     ['name' => 'Stage failure rolls back approval and audit', 'action' => 'override_review', 'failStage' => true, 'expectedStatus' => 500],
     ['name' => 'Student upload retains its stage', 'action' => 'upload', 'role' => 'student', 'version' => 1],
     ['name'=>'Student upload ignores forged institutional/workflow metadata','action'=>'upload','role'=>'student','version'=>1,
-      'craftedUpload'=>['studentDbId'=>999,'studentId'=>'CHANGED','name'=>'Fake','researchTitle'=>'Forged','researchGroup'=>'Other Group','adviserId'=>999,'stage'=>'Completed','reviewStatus'=>'Approved','protocolCode'=>'FAKE','uploadedAt'=>'1990-01-01','rpmsSubmittedAt'=>'1990-01-01','documentId'=>'forged-id','notes'=>'Editable reviewer note','documentType'=>'Research Protocol']],
+      'craftedUpload'=>['studentDbId'=>'999','studentId'=>'CHANGED','name'=>'Fake','researchTitle'=>'Forged','researchGroup'=>'Other Group','adviserId'=>999,'stage'=>'Completed','reviewStatus'=>'Approved','protocolCode'=>'FAKE','uploadedAt'=>'1990-01-01','rpmsSubmittedAt'=>'1990-01-01','documentId'=>'forged-id','notes'=>'Editable reviewer note','documentType'=>'Study Protocol']],
     ['name' => 'Stage change rejects student upload and removes file', 'action' => 'upload', 'role' => 'student', 'stageChanged' => true, 'expectedStatus' => 409],
     ['name'=>'Adviser upload uses local detection','action'=>'upload','role'=>'adviser','version'=>1],
     ['name'=>'Upload succeeds without detected date','action'=>'upload','role'=>'student','version'=>1,'text'=>'No date'],
@@ -319,7 +330,7 @@ foreach ($cases as $case) {
         else $pass = $pass && $r['document'] === null;
         if (!empty($case['craftedUpload']) && $expected === 200) {
             $p=$r['uploadParams']; $pass=$pass && $p[':sid']===4 && $p[':sname']==='Fixture Student'
-              && $p[':type']==='Research Protocol' && $p[':review']==='Submitted'
+              && $p[':type']==='Study Protocol' && $p[':review']==='Submitted'
               && $p[':notes']==='Research title: Authoritative title | Group: AMT-BSIT-Y2-2627-G01 | Reviewer note: Editable reviewer note'
               && $p[':id']!=='forged-id' && $r['student']['adviser_id']===2;
         }

@@ -78,3 +78,8 @@ storage/.purge/
 !/tests/v10-batch45-security.php
 !/tests/v10-batch5a-routing.php
 !/tests/v10-batch5a-ui.cjs
+!/tests/v10-batch5b-session.php
+!/tests/v10-batch5b-upload-validation.php
+!/tests/v10-batch5b-router.php
+!/tests/v10-batch5b-http.cjs
+!/tests/v10-batch5b-ui.cjs

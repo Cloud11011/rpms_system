@@ -1,6 +1,39 @@
 <?php
 /** Security helpers only; no configuration, database or service bootstrap. */
 
+/** A public, non-authorizing marker; the HttpOnly PHP cookie remains the identity authority. */
+function prism_session_generation(): string
+{
+    if (empty($_SESSION['user_id'])) return '';
+    if (!is_string($_SESSION['login_generation'] ?? null)) {
+        $_SESSION['login_generation'] = bin2hex(random_bytes(16));
+    }
+    return $_SESSION['login_generation'];
+}
+
+function prism_publish_session_generation(): void
+{
+    setcookie('prism_generation', prism_session_generation(), [
+        'expires' => 0, 'path' => '/', 'secure' => request_uses_https(),
+        'httponly' => false, 'samesite' => 'Lax',
+    ]);
+}
+
+/** Supplements, and never replaces, same-origin, authentication and ownership checks. */
+function require_session_generation(bool $required = false): void
+{
+    if (empty($_SESSION['user_id'])) return;
+    $marker = $_SERVER['HTTP_X_PRISM_GENERATION'] ?? $_POST['prism_generation'] ?? null;
+    if ($marker === null && !$required) return; // Older clients retain their existing request guards.
+    if (!is_string($marker) || !hash_equals(prism_session_generation(), $marker)) {
+        http_response_code(409);
+        header('Content-Type: application/json; charset=UTF-8');
+        echo json_encode(['ok' => false, 'code' => 'session_changed',
+            'message' => 'Your PRISM session changed in another tab. Reload this page to continue.']);
+        exit;
+    }
+}
+
 function request_uses_https(): bool
 {
     return (!empty($_SERVER['HTTPS']) && strtolower((string)$_SERVER['HTTPS']) !== 'off')

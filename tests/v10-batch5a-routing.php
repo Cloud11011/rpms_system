@@ -35,6 +35,9 @@ if (($argv[1] ?? '') === '--case') {
     $_SESSION = !empty($case['anonymous']) ? [] : ['user_id'=>1,'last_activity_at'=>time(),
         'credential_fingerprint'=>hash('sha256', $identity['password_hash'])];
     if (!empty($case['staleCredential'])) $_SESSION['credential_fingerprint']='invalid';
+    // Credential acceptance cases must start unauthenticated. Batch 5B intentionally
+    // redirects a signed-in account's reauthentication before credential processing.
+    if ($case['file']==='login_process.php') $_SESSION=[];
     $_SERVER = ['SCRIPT_NAME'=>$case['file'],'REQUEST_METHOD'=>'POST','HTTP_HOST'=>'fixture.test','HTTP_ORIGIN'=>'http://fixture.test'];
     if (isset($case['origin'])) $_SERVER['HTTP_ORIGIN']=$case['origin'];
     if (!empty($case['missingOrigin'])) unset($_SERVER['HTTP_ORIGIN']);

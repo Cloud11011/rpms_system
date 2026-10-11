@@ -7,6 +7,8 @@ if ($user) {
 }
 
 $_SESSION = [];
+setcookie('prism_generation', '', ['expires' => time() - 42000, 'path' => '/',
+    'secure' => request_uses_https(), 'httponly' => false, 'samesite' => 'Lax']);
 if (ini_get('session.use_cookies')) {
     $params = session_get_cookie_params();
     setcookie(session_name(), '', [

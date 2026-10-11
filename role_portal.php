@@ -11,6 +11,8 @@ $identityKey = hash('sha256', $portalRole . '|' . $userId);
 <!DOCTYPE html>
 <html lang="en">
 <head>
+<?php require __DIR__.'/includes/document_catalog_client.php'; ?>
+<?php require __DIR__.'/includes/session_browser.php'; ?>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title><?php echo htmlspecialchars($portalRole); ?> Portal | PRISM</title>
@@ -83,7 +85,7 @@ $identityKey = hash('sha256', $portalRole . '|' . $userId);
 </section>
 <section class="portal-page" data-section="submit">
 <div data-prism-hint="student-submit"></div>
-<article class="panel form-panel"><h2>Submit a document</h2><p>Research and identity information comes from your student record. Upload a requirement for review. PDF, Word, text, RTF, ODT, PNG, or JPG up to 20 MB.</p><form id="submissionForm"><div class="form-grid"><label class="wide">Research title<input id="submissionResearchTitle" readonly placeholder="Not recorded"></label><label class="wide">Research group<input id="submissionResearchGroup" readonly placeholder="Not recorded"></label><label>Student ID<input id="submissionStudentId" readonly></label><label>Current stage<input id="submissionStage" readonly></label><label>Assigned adviser<input id="submissionAdviser" readonly></label><label>Protocol Code<input id="submissionProtocol" readonly></label><label>Document type<select id="documentType" required><option value="">Select a document type</option></select></label><label>File<input id="documentFile" type="file" accept=".pdf,.doc,.docx,.txt,.rtf,.odt,.png,.jpg,.jpeg" required></label><label class="wide">Notes for reviewer<textarea id="documentNotes" rows="4" maxlength="500" placeholder="Optional context about this submission"></textarea></label></div><button class="primary-btn" type="submit"><i class="fa-solid fa-paper-plane"></i> Submit for review</button></form></article>
+<article class="panel form-panel"><h2>Submit a document</h2><p>Research and identity information comes from your student record. Upload a requirement for review. PDF, Word, text, RTF, ODT, PNG, or JPG up to 20 MB.</p><form id="submissionForm"><div class="form-grid"><label class="wide">Research title<input id="submissionResearchTitle" readonly placeholder="Not recorded"></label><label class="wide">Research group<input id="submissionResearchGroup" readonly placeholder="Not recorded"></label><label>Student ID<input id="submissionStudentId" readonly></label><label>Current stage<input id="submissionStage" readonly></label><label>Assigned adviser<input id="submissionAdviser" readonly></label><label>Protocol Code<input id="submissionProtocol" readonly></label><label>Document type<select id="documentType" required><option value="">Select a document type</option></select></label><label>Choose Files<input aria-label="Choose files" aria-describedby="uploadSelection uploadResults" id="documentFile" type="file" multiple accept=".pdf,.doc,.docx,.txt,.rtf,.odt,.png,.jpg,.jpeg" required></label><label class="wide">Notes for reviewer<textarea id="documentNotes" rows="4" maxlength="500" placeholder="Optional context about this submission"></textarea></label></div><div id="uploadSelection" role="status"></div><div id="uploadResults" role="status" aria-live="polite" tabindex="-1"></div><button class="primary-btn" type="submit"><i class="fa-solid fa-paper-plane"></i> Submit for review</button></form></article>
 </section>
 <section class="portal-page" data-section="documents">
 <div id="protocolCodeCard" class="protocol-code-card" hidden><i class="fa-solid fa-shield-halved"></i><div><span>Approved Protocol Code</span><strong id="protocolCodeValue"></strong></div></div>
@@ -119,6 +121,7 @@ togglePassword('newPassword', 'togglePortalNewPassword');
 togglePassword('confirmPassword', 'togglePortalConfirmPassword');
 </script>
 <script src="<?php echo htmlspecialchars(asset_url('assets/js/prism-ui.js'), ENT_QUOTES, 'UTF-8'); ?>"></script>
+<script src="<?php echo htmlspecialchars(asset_url('assets/js/document-upload.js'), ENT_QUOTES, 'UTF-8'); ?>"></script>
 <script src="<?php echo htmlspecialchars(asset_url('assets/js/role-portal.js'), ENT_QUOTES, 'UTF-8'); ?>"></script>
 <script src="<?php echo htmlspecialchars(asset_url('assets/js/calendar-deadlines.js'), ENT_QUOTES, 'UTF-8'); ?>"></script>
 <script src="<?php echo htmlspecialchars(asset_url('assets/js/role-calendar.js'), ENT_QUOTES, 'UTF-8'); ?>"></script>

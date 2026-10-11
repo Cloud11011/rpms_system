@@ -12,14 +12,7 @@
 
   const STAGES = ['Stage 1', 'Stage 2', 'Stage 3', 'Stage 4', 'Stage 5', 'Completed'];
   // New-upload labels only. Historical records and filter values remain literal.
-  const DOCUMENT_TYPES = Object.freeze([
-    'Form 11 Review Checklist', 'Form 12 Registration and Application Form',
-    'Form 14 Informed Consent Assessment', 'Form 13 Study Protocol Assessment Form',
-    'Study Protocol', 'Letter to IERB Chair', 'Certificate of Ethics', 'Payment',
-    'Informed Consent - Local Language', 'Informed Consent - English',
-    'Data Collection Questionnaire', 'Diagrammatic Workflow', 'Curriculum Vitae',
-    'Other Supporting Document'
-  ]);
+  const DOCUMENT_TYPES = Object.freeze(Array.isArray(root.PRISM_DOCUMENT_TYPES) ? root.PRISM_DOCUMENT_TYPES.slice() : []);
 
   // label -> [tone, icon]. One place that defines how every status looks across the system.
  const BADGES = {

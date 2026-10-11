@@ -23,6 +23,8 @@ require_once __DIR__ . '/includes/account_onboarding.php';
 install_application_security();
 
 if (session_status() !== PHP_SESSION_ACTIVE) {
+    ini_set('session.use_strict_mode', '1');
+    ini_set('session.use_only_cookies', '1');
     $isHttps = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off')
         || (($_SERVER['HTTP_X_FORWARDED_PROTO'] ?? '') === 'https');
     session_set_cookie_params([
@@ -1163,6 +1165,7 @@ function require_login($roles = null): array
         && !onboarding_complete(db(),$user)) {
         header('Location: complete_profile.php'); exit;
     }
+    prism_publish_session_generation();
     return $user;
 }
 
@@ -1225,6 +1228,7 @@ function require_post_same_origin(): void
         echo json_encode(['ok' => false, 'message' => 'Cross-site request blocked.']);
         exit;
     }
+    require_session_generation();
 }
 
 /**

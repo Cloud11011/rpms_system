@@ -2,6 +2,7 @@
 /** Actual guards, endpoints and retention services; memory-only fixtures, no config bootstrap. */
 if (PHP_SAPI !== 'cli') exit(1);
 if (($argv[1] ?? '') === '--route') {
+    require_once __DIR__.'/../security.php';
     $role=$argv[2] === 'anonymous' ? null : $argv[2];$reached=false;$dbCalls=0;
     function current_user(): ?array {return $GLOBALS['role'] ? ['role'=>$GLOBALS['role']] : null;}
     function db(): PDO {++$GLOBALS['dbCalls'];throw new RuntimeException('Unexpected DB bootstrap');}

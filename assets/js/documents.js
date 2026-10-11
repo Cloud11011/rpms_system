@@ -152,21 +152,20 @@ async function load(){
 }
 uploadForm.addEventListener('submit',async e=>{
     e.preventDefault();
-    const file=document.getElementById('documentFile').files[0];
-    if(!file){toast('Choose a document to upload.','error');return}
-    if(file.size>20*1024*1024){toast('Files must be 20 MB or smaller.','error');return}
-    const ext=(file.name.split('.').pop()||'').toLowerCase();
-    const allowed=['pdf','doc','docx','txt','rtf','odt','png','jpg','jpeg'];
-    if(!allowed.includes(ext)){toast('Use PDF, Word, text, RTF, ODT, PNG or JPG.','error');return}
+    const files=document.getElementById('documentFile').files;
+    if(!files.length){toast('Choose documents to upload.','error');return}
     const button=uploadForm.querySelector('[type="submit"]');
     if(button.disabled)return;
     const original=button.innerHTML;
     button.disabled=true;
     button.innerHTML='<i class="fa-solid fa-spinner fa-spin"></i> Uploading...';
     try{
-        const data=await api('upload',{method:'POST',body:new FormData(uploadForm)});
-        closeModal(uploadModal);uploadForm.reset();await load();toast(data.message||'Document uploaded successfully.')
-    }catch(err){toast(err.message,'error')}
+        const data=await api('upload',{method:'POST',body:PrismUpload.prepare(new FormData(uploadForm),files.length)});
+        PrismUpload.render(data);uploadForm.reset();document.getElementById('uploadSelection').textContent='';await load();toast(data.message,data.failed?'error':'success')
+    }catch(err){
+        PrismUpload.render(err.data||{message:err.message+' Check Documents before selecting files again; some uploads may have completed.'});
+        document.getElementById('documentFile').value='';document.getElementById('uploadSelection').textContent='';await load();toast(err.message,'error')
+    }
     finally{button.disabled=false;button.innerHTML=original}
 });
 async function remove(d){

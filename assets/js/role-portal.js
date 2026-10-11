@@ -373,12 +373,11 @@ document.addEventListener('DOMContentLoaded', () => {
     // ------------------------------------------------------------------
     $('submissionForm').addEventListener('submit', async event => {
         event.preventDefault();
-        const file = $('documentFile').files[0];
-        if (!file) { toast('Please choose a file.'); return; }
-        if (file.size > 20 * 1024 * 1024) { toast('File must be 20 MB or smaller.'); return; }
-
+        const files = $('documentFile').files;
+        if (!files.length) { toast('Please choose files.'); return; }
         const formData = new FormData();
-        formData.append('document', file);
+        Array.from(files).forEach(file => formData.append('document[]', file));
+        PrismUpload.prepare(formData, files.length);
         formData.append('documentType', $('documentType').value);
         formData.append('stage', myRecord?.stage || 'Stage 1');
         formData.append('notes', $('documentNotes').value.trim());
@@ -390,10 +389,14 @@ document.addEventListener('DOMContentLoaded', () => {
             const data = await PrismUI.request('documents_api.php?action=upload', { method: 'POST', body: formData });
             event.target.reset();
             await refreshAll();
-            go('documents');
-            toast(data.message || 'Document submitted successfully.');
+            $('uploadSelection').textContent='';
+            PrismUpload.render(data);
+            toast(data.message);
         } catch (e) {
-            toast(e.message || 'Could not reach the server to submit this document.');
+            $('documentFile').value='';$('uploadSelection').textContent='';
+            PrismUpload.render(e.data||{message:e.message+' Check Documents before selecting files again; some uploads may have completed.'});
+            await refreshAll();
+            toast(e.message);
         } finally {
             release();
         }

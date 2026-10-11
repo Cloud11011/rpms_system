@@ -7,6 +7,29 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
 }
 require_post_same_origin();
 
+$signedIn = current_user();
+if ($signedIn) {
+    // Reject before parsing credentials, throttling, regenerating, or changing auth fields.
+    // The canonical router retains password/profile/account gate precedence.
+    $submittedEmail = $_POST['email'] ?? $_POST['username'] ?? null;
+    if (!is_string($submittedEmail) || strcasecmp(trim($submittedEmail), (string)$signedIn['email']) !== 0) {
+        http_response_code(409);
+        header('Content-Type: text/html; charset=UTF-8');
+        echo '<!doctype html><html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">'
+            . '<title>PRISM account already signed in</title><h1>Another PRISM account is already signed in in this browser.</h1>'
+            . '<p>Please log out before signing in with a different account.</p><p><a href="index.php">Back to PRISM</a> · <a href="logout.php">Log out</a></p></html>';
+        exit;
+    }
+    header('Location: index.php');
+    exit;
+}
+
+if (!is_string($_POST['email'] ?? $_POST['username'] ?? '') || !is_string($_POST['password'] ?? '')) {
+    $_SESSION['error'] = 'Please enter your email and password.';
+    header('Location: login.php');
+    exit;
+}
+
 $email = strtolower(trim((string)($_POST['email'] ?? $_POST['username'] ?? '')));
 $password = (string)($_POST['password'] ?? '');
 
@@ -55,7 +78,9 @@ if (strcasecmp((string)$user['status'], 'Active') !== 0) {
 $accountType = $user['role'];
 
 session_regenerate_id(true);
+$_SESSION['login_generation'] = bin2hex(random_bytes(16));
 $_SESSION['user_id'] = $user['id'];
+prism_publish_session_generation();
 $_SESSION['last_activity_at'] = time();
 $_SESSION['credential_fingerprint'] = hash('sha256', $user['password_hash']);
 $_SESSION['user_name'] = $user['full_name'];

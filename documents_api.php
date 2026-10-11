@@ -6,6 +6,8 @@ require_once __DIR__ . '/ai_helpers.php';
 require_once __DIR__ . '/workflow.php';
 require_once __DIR__ . '/includes/account_lifecycle.php';
 require_once __DIR__ . '/includes/office_container.php';
+require_once __DIR__ . '/includes/document_catalog.php';
+require_once __DIR__ . '/includes/document_upload.php';
 
 $user = api_require_login(['admin', 'adviser', 'student']);
 $pdo = db();
@@ -199,23 +201,11 @@ if ($action === 'list') {
 // ---------------------------------------------------------------------
 // upload (a re-upload for the same student + stage + type becomes a new version)
 // ---------------------------------------------------------------------
-if ($action === 'upload') {
-    if ($_SERVER['REQUEST_METHOD'] !== 'POST' || !isset($_FILES['document'])) {
-        json_out(['ok' => false, 'message' => 'No document was provided. Choose a file and try again.'], 400);
-    }
-    $file = $_FILES['document'];
-    if ($file['error'] !== UPLOAD_ERR_OK) {
-        json_out(['ok' => false, 'message' => 'The upload did not complete. Please try again.'], 400);
-    }
-    if ($file['size'] > 20 * 1024 * 1024) {
-        json_out(['ok' => false, 'message' => 'Files must be 20 MB or smaller.'], 413);
-    }
-    $ext = strtolower(pathinfo($file['name'], PATHINFO_EXTENSION));
-    $allowed = ['pdf', 'doc', 'docx', 'txt', 'rtf', 'odt', 'png', 'jpg', 'jpeg'];
-    if (!in_array($ext, $allowed, true)) {
-        json_out(['ok' => false, 'message' => 'This file type is not allowed. Use PDF, Word, text, RTF, ODT, PNG or JPG.'], 415);
-    }
-
+function upload_document_file(PDO $pdo, array $user, ?int $viewerAdviserId, array $file): array
+{
+    $validated = prism_validate_upload($file);
+    $ext = $validated['ext'];
+    $mime = $validated['mime'];
     // Resolve which student record this upload belongs to.
     $studentDbId = null;
     $studentName = trim((string)($_POST['student'] ?? ''));
@@ -225,7 +215,7 @@ if ($action === 'upload') {
         $own->execute([':e' => $user['email']]);
         $ownRow = $own->fetch();
         if (!$ownRow) {
-            json_out(['ok' => false, 'message' => 'Your login is not linked to a student record yet. Contact the RPMS office before uploading documents.'], 409);
+            throw new DocumentUploadError('Your login is not linked to a student record yet. Contact the RPMS office before uploading documents.', 409);
         }
         $studentDbId = (int)$ownRow['id'];
         $studentName = $ownRow['full_name'];
@@ -251,21 +241,21 @@ if ($action === 'upload') {
     }
 
     if ($user['role'] !== 'student' && $studentDbId === null) {
-        json_out(['ok' => false, 'message' => 'Select a valid student for this document.'], 422);
+        throw new DocumentUploadError('Select a valid student for this document.', 422);
     }
 
     if ($user['role'] === 'adviser') {
         $ownsMatch = $studentDbId !== null && $viewerAdviserId !== null && (int)$pdo->query(
             'SELECT COALESCE(adviser_id, 0) FROM students WHERE id = ' . (int)$studentDbId)->fetchColumn() === $viewerAdviserId;
         if (!$ownsMatch) {
-            json_out(['ok' => false, 'message' => 'Enter the name or ID of a student who is assigned to you. Advisers can only upload documents for their own students.'], 422);
+            throw new DocumentUploadError('Enter the name or ID of a student who is assigned to you. Advisers can only upload documents for their own students.', 422);
         }
     }
 
-    $documentType = trim((string)($_POST['documentType'] ?? '')) ?: 'Other';
+    $documentType = $_POST['documentType'];
     $notes = trim((string)($_POST['notes'] ?? ''));
     if (mb_strlen($documentType) > 100 || mb_strlen($notes) > 5000 || mb_strlen(basename((string)$file['name'])) > 255) {
-        json_out(['ok' => false, 'message' => 'The document type, notes, or file name is too long. Please shorten it and try again.'], 422);
+        throw new DocumentUploadError('The document type, notes, or file name is too long. Please shorten it and try again.', 422);
     }
     // Students cannot choose a different workflow stage: uploads always belong to their current IERB stage.
     $stage = $user['role'] === 'student' ? (string)$studentStage : trim((string)($_POST['stage'] ?? ''));
@@ -273,40 +263,22 @@ if ($action === 'upload') {
         $stage = $studentStage ?: 'Stage 1';
     }
     if (!in_array($stage, STAGE_SEQUENCE, true)) {
-        json_out(['ok' => false, 'message' => 'Invalid IERB stage.'], 422);
+        throw new DocumentUploadError('Invalid IERB stage.', 422);
     }
 
     $id = bin2hex(random_bytes(12));
     $stored = $id . '.' . $ext;
     $target = DOCS_DIR . DIRECTORY_SEPARATOR . $stored;
-    if (!move_uploaded_file($file['tmp_name'], $target)) {
-        json_out(['ok' => false, 'message' => 'The uploaded file could not be stored. Please try again.'], 500);
+    // Exclusive reservation prevents any destination collision from overwriting a file.
+    $reservation = @fopen($target, 'xb');
+    if (!$reservation) throw new DocumentUploadError('The file could not be stored. Please try again.', 500);
+    fclose($reservation);
+    try { $moved = move_uploaded_file($file['tmp_name'], $target); }
+    catch (Throwable $e) { $moved = false; }
+    if (!$moved) {
+        remove_document_file($target, $id, 'failed move');
+        throw new DocumentUploadError('The uploaded file could not be stored. Please try again.', 500);
     }
-    $mime = (new finfo(FILEINFO_MIME_TYPE))->file($target) ?: 'application/octet-stream';
-
-    // Extension alone is not enough. Reject clear extension/content mismatches before the file
-    // enters document processing or storage history.
-    $allowedMimes = [
-        'pdf' => ['application/pdf'],
-        'png' => ['image/png'],
-        'jpg' => ['image/jpeg'],
-        'jpeg' => ['image/jpeg'],
-        'txt' => ['text/plain'],
-        'rtf' => ['application/rtf', 'text/rtf', 'text/plain'],
-        'doc' => ['application/msword', 'application/CDFV2', 'application/octet-stream'],
-        'docx' => ['application/vnd.openxmlformats-officedocument.wordprocessingml.document', 'application/zip', 'application/octet-stream'],
-        'odt' => ['application/vnd.oasis.opendocument.text', 'application/zip', 'application/octet-stream'],
-    ];
-    if (isset($allowedMimes[$ext]) && !in_array($mime, $allowedMimes[$ext], true)) {
-        remove_document_file($target, $id, 'rejected upload');
-        json_out(['ok' => false, 'message' => 'The uploaded file content does not match its file extension. Please upload the original document without renaming its extension.'], 415);
-    }
-
-    if (!office_container_is_valid($target, $ext)) {
-        remove_document_file($target, $id, 'invalid Office container');
-        json_out(['ok' => false, 'message' => 'The Office document container is invalid or exceeds safe archive limits. Upload the original document.'], 415);
-    }
-
     // Best-effort approval-date detection; never blocks the upload.
     $detectedDate = null;
     $detectedSource = null;
@@ -377,25 +349,31 @@ if ($action === 'upload') {
         if ($studentDbId) {
             $pdo->prepare('UPDATE students SET last_submission_date = CURDATE() WHERE id = :id')->execute([':id' => $studentDbId]);
         }
+        audit_log($user, 'document_uploaded', [
+            'entity_type' => 'document', 'entity_id' => $id, 'student_id' => $studentDbId,
+            'after' => "v$versionNo", 'details' => '"' . basename($file['name']) . '" v' . $versionNo . " ($documentType, $stage)"
+                . ($prev ? ' replaces v' . $prev['version_no'] : ''),
+        ]);
         $pdo->commit();
     } catch (DocumentWriteConflict $e) {
         if ($pdo->inTransaction()) {
             $pdo->rollBack();
         }
         remove_document_file($target, $id, 'upload conflict');
-        json_out(['ok' => false, 'message' => $e->getMessage()], 409);
+        throw new DocumentUploadError($e->getMessage(), 409);
     } catch (Throwable $e) {
         if ($pdo->inTransaction()) {
             $pdo->rollBack();
         }
         remove_document_file($target, $id, 'failed upload');
         log_api_error('document_upload', $e->getMessage());
-        json_out(['ok' => false, 'message' => 'The document could not be saved. Please try again.'], 500);
+        throw new DocumentUploadError('The document could not be saved. Please try again.', 500);
     }
 
     $origName = basename($file['name']);
     $versionText = $versionNo > 1 ? " (version $versionNo)" : '';
 
+    try {
     // Confirm receipt to the submitting student.
     if ($user['role'] === 'student' && $studentDbId) {
         $body = "Hello {$user['full_name']},\n\nYour document \"$origName\"$versionText has been received by the RPMS office."
@@ -413,20 +391,75 @@ if ($action === 'upload') {
             'Review Needed', $user['full_name']);
     }
 
-    audit_log($user, 'document_uploaded', [
-        'entity_type' => 'document', 'entity_id' => $id, 'student_id' => $studentDbId,
-        'after' => "v$versionNo", 'details' => "\"$origName\" v$versionNo ($documentType, $stage)"
-            . ($prev ? ' replaces v' . $prev['version_no'] : ''),
-    ]);
-
-    json_out([
+    } catch (Throwable $e) {
+        log_api_error('document_upload_side_effect', 'Committed document ' . $id . ' needs delivery/audit follow-up.');
+    }
+    // A read-back failure after commit must not report the durable upload as failed.
+    $uploadedDocument = null;
+    try { $uploadedDocument = doc_row(fetch_doc($pdo, $id), $user, $viewerAdviserId); }
+    catch (Throwable $e) { log_api_error('document_upload_readback', 'Committed document ' . $id . ' needs refresh.'); }
+    return [
         'ok' => true,
         'message' => "\"$origName\" was uploaded" . ($versionNo > 1 ? " as version $versionNo. The earlier version was kept." : '.')
             . ' It is now pending adviser review.',
         'versionNo' => $versionNo,
         'replacedPrevious' => (bool)$prev,
-        'document' => doc_row(fetch_doc($pdo, $id), $user, $viewerAdviserId),
-    ]);
+        'document' => $uploadedDocument,
+    ];
+}
+
+if ($action === 'upload') {
+    require_session_generation(true);
+    try {
+        foreach (['documentType', 'notes', 'student', 'stage', 'studentDbId', 'requestId'] as $field) {
+            if (isset($_POST[$field]) && !is_string($_POST[$field])) throw new DocumentUploadError('The upload request is malformed.', 400);
+        }
+        if (!in_array($_POST['documentType'] ?? null, prism_document_types(), true)) {
+            throw new DocumentUploadError('Choose a document type from the PRISM document catalog.');
+        }
+        $files = prism_upload_files($_FILES['document'] ?? null);
+        $expected = $_POST['fileCount'] ?? null;
+        if ($expected !== null && (!is_string($expected) || !ctype_digit($expected) || (int)$expected !== count($files))) {
+            throw new DocumentUploadError('The server did not receive the complete file selection. Select fewer files or smaller files and try again.', 400);
+        }
+        $requestId = $_POST['requestId'] ?? '';
+        if ($requestId !== '' && !preg_match('/\A[a-zA-Z0-9-]{16,80}\z/', $requestId)) throw new DocumentUploadError('The upload request is malformed.', 400);
+        $fingerprint = $requestId !== '' ? hash('sha256', serialize([$_POST, array_map(static fn($f) => [$f['name'], $f['size'], $f['error'],
+            is_uploaded_file($f['tmp_name']) ? hash_file('sha256', $f['tmp_name']) : null], $files)])) : '';
+        $receiptKey = prism_session_generation() . ':' . $requestId;
+        $receipt = $requestId !== '' ? ($_SESSION['upload_receipts'][$receiptKey] ?? null) : null;
+        if ($receipt) {
+            if (!hash_equals($receipt['fingerprint'], $fingerprint)) throw new DocumentUploadError('This upload request was already used for a different selection.', 409);
+            json_out($receipt['response'], $receipt['status']);
+        }
+        $results = [];
+        foreach ($files as $file) {
+            try {
+                $result = upload_document_file($pdo, $user, $viewerAdviserId, $file);
+                $results[] = ['name' => $file['name']] + $result;
+            } catch (DocumentUploadError $e) {
+                $results[] = ['name' => basename(str_replace('\\', '/', $file['name'])), 'ok' => false, 'message' => $e->getMessage(), 'status' => $e->status];
+            } catch (Throwable $e) {
+                log_api_error('document_upload', 'Upload processing failed (' . get_class($e) . ').');
+                $results[] = ['name' => basename(str_replace('\\', '/', $file['name'])), 'ok' => false, 'message' => 'The document could not be saved. Please try again.', 'status' => 500];
+            }
+        }
+        $uploaded = count(array_filter($results, static fn($r) => $r['ok']));
+        $count = count($results);
+        $response = ['ok' => $uploaded > 0, 'outcome' => $uploaded === $count ? 'complete_success' : ($uploaded ? 'partial_success' : 'complete_failure'),
+            'message' => "$uploaded of $count files uploaded successfully.", 'uploaded' => $uploaded, 'failed' => $count - $uploaded, 'results' => $results];
+        // Preserve scalar single-file response fields for existing clients.
+        if ($count === 1) $response += array_diff_key($results[0], ['name' => true, 'ok' => true, 'message' => true]);
+        $status = $uploaded ? 200 : ($count === 1 ? $results[0]['status'] : 422);
+        if ($requestId !== '') {
+            $_SESSION['upload_receipts'][$receiptKey] = ['fingerprint' => $fingerprint, 'response' => $response, 'status' => $status];
+            // Bounded session bookkeeping, not an institutional file-count restriction.
+            while (count($_SESSION['upload_receipts']) > 16) array_shift($_SESSION['upload_receipts']);
+        }
+        json_out($response, $status);
+    } catch (DocumentUploadError $e) {
+        json_out(['ok' => false, 'message' => $e->getMessage()], $e->status);
+    }
 }
 
 // ---------------------------------------------------------------------

@@ -72,6 +72,8 @@ unset($_SESSION['error'], $_SESSION['success']);
 
         </form>
 
+        <footer class="login-legal-footer" aria-label="Legal information"><a href="privacy.php">Privacy Policy</a><span aria-hidden="true"> · </span><a href="terms.php">Terms of Service</a></footer>
+
     </div>
 
 </div>

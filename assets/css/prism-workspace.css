@@ -601,3 +601,7 @@ body.prism-workspace.adviser-dashboard-page .adviser-review-table { min-width:65
     body.prism-workspace .ierb-controls .ierb-search-field { flex:1 1 100%; width:100%; }
     body.prism-workspace .ierb-controls > button { height:44px; }
 }
+/* Native bulk selection and per-file outcomes stay readable in repository and student forms. */
+:is(#uploadSelection,#uploadResults) { overflow-wrap:anywhere; margin:12px 0; line-height:1.6; }
+#uploadResults ul { padding-left:22px; }
+#uploadResults:focus-visible { outline:2px solid var(--accent-purple); outline-offset:3px; }

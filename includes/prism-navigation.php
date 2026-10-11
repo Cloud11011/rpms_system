@@ -7,6 +7,7 @@ if (realpath($_SERVER['SCRIPT_FILENAME'] ?? '') === __FILE__
     exit;
 }
 $prismNavEscape = static fn($value) => htmlspecialchars((string)$value, ENT_QUOTES, 'UTF-8');
+require __DIR__.'/session_browser.php';
 ?>
 <script src="<?= $prismNavEscape(asset_url('assets/js/prism-guidance.js')) ?>" defer></script>
 <?php

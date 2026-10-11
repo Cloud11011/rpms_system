@@ -4,6 +4,9 @@ namespace PrismAuthAudit;
 /** Isolated authentication endpoint tests; all database, session, and mail operations are fixtures. */
 if (PHP_SAPI !== 'cli') { http_response_code(404); exit; }
 require_once __DIR__ . '/../includes/assets.php';
+// This harness's credential cases start logged out; authenticated second-login
+// behavior is exercised independently by the Batch 5B session/HTTP suites.
+function current_user(): ?array { return null; }
 
 class FixtureDb
 {
