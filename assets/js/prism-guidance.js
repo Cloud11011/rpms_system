@@ -77,7 +77,7 @@
             'account.php#security': 'Open account security settings.',
             dashboard: 'See your current research progress, document status and recent submissions.',
             submit: 'Use Submit document to upload research requirements. Uploads follow the current Adviser review and RPMS submission process.',
-            documents: 'Check document status and Adviser decisions. Use Preview, Download and the existing revision or submission controls when available.',
+            documents: 'Check document status and Adviser decisions. Use Preview and Download, or Upload Revision when changes are required. Adviser approval automatically formally submits the current version to RPMS.',
             progress: 'Monitor your current IERB stage and research progress.',
             calendar: 'View official deadlines applicable to your research group and manage personal reminders stored in this browser.',
             notifications: 'Read RPMS and Adviser updates addressed to you.',

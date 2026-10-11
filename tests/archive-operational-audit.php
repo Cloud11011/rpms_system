@@ -1,5 +1,6 @@
 <?php
 namespace PrismReleaseFixture;
+require_once __DIR__.'/../includes/document_workflow.php';
 function require_session_generation(...$args): void {}
 function prism_session_generation(): string { return 'synthetic-accepted-generation'; }
 function is_uploaded_file(string $path): bool { return $path===__DIR__.'/fixtures/batch6-valid.pdf'; }
@@ -63,8 +64,8 @@ if (($argv[1]??'')==='--case') {
     $pdo->prepare('INSERT INTO documents VALUES ('.implode(',',array_fill(0,count($doc),'?')).')')->execute(array_values($doc));
     $pdo->exec('CREATE TABLE ierb_history (id INTEGER,student_id INTEGER,stage TEXT,status TEXT,note TEXT,created_at TEXT)');
     $pdo->exec("INSERT INTO ierb_history VALUES (1,3,'Stage 1','Pending','Historical C audit','2026-10-01')");
-    $pdo->exec('CREATE TABLE activity_logs (id INTEGER,student_id INTEGER,action TEXT,details TEXT,reason TEXT,actor_name TEXT,user_email TEXT,is_override INTEGER,created_at TEXT)');
-    $pdo->exec("INSERT INTO activity_logs VALUES (1,3,'historical','Preserved archive','','Admin','admin@example.test',0,'2026-10-01')");
+    $pdo->exec('CREATE TABLE activity_logs (id INTEGER,student_id INTEGER,action TEXT,details TEXT,reason TEXT,actor_name TEXT,user_email TEXT,is_override INTEGER,created_at TEXT,entity_type TEXT,entity_id TEXT)');
+    $pdo->exec("INSERT INTO activity_logs (id,student_id,action,details,reason,actor_name,user_email,is_override,created_at) VALUES (1,3,'historical','Preserved archive','','Admin','admin@example.test',0,'2026-10-01')");
     $pdo->exec('CREATE TABLE reports (id TEXT,title TEXT,type TEXT,filename TEXT,generated_by TEXT,generated_by_user_id INTEGER,generated_at TEXT DEFAULT CURRENT_TIMESTAMP)');
     if (($case['role']??'')==='student') $case['email']='s3@example.test';
     $GLOBALS['actor']=['id'=>1,'role'=>$case['role']??'admin','email'=>$case['email']??(($case['role']??'admin')==='adviser'?'adv@example.test':'admin@example.test'),'full_name'=>'Synthetic Admin'];

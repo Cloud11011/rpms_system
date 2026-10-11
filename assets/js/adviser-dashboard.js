@@ -50,6 +50,9 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     function reviewRequired() {
         remarks.required = ['Denied', 'Resubmission Requested'].includes(reviewStatus.value);
+        byId('adviserReviewHelp').textContent = reviewStatus.value==='Approved'
+            ? 'Approve this current version and formally submit it to RPMS. No additional Student submission is needed.'
+            : 'Choose a review outcome and add feedback. Request Revision / Resubmission and Deny do not formally submit to RPMS.';
     }
     function setSaving(pending) {
         saving = pending;
@@ -209,13 +212,14 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
         const payload = { id: reviewDocument.id, status: reviewStatus.value, remarks: text };
+        if(payload.status==='Approved' && !await PrismUI.confirm({title:'Approve and submit to RPMS',confirmText:'Approve & Submit',message:`Approve “${reviewDocument.originalName}” version ${reviewDocument.versionNo} and formally submit it to RPMS?`}))return;
         setSaving(true);
         try {
-            await PrismUI.postJson('documents_api.php?action=review', payload);
+            const result=await PrismUI.postJson('documents_api.php?action=review', payload);
             dialog.close();
             await reload();
             search.focus();
-            status.textContent = queueState === 'ready' ? 'Review saved. Current submissions have been refreshed.' : 'Review saved, but current submissions could not be refreshed. Use Refresh to try again.';
+            status.textContent = queueState === 'ready' ? result.message || 'Review saved. Current submissions have been refreshed.' : 'Review saved, but current submissions could not be refreshed. Use Refresh to try again.';
         } catch (error) {
             reviewError.textContent = error.message || 'Review could not be saved. Your remarks have been kept; try again or refresh the queue.';
         } finally { setSaving(false); }

@@ -16,7 +16,7 @@ if ($action === 'summarize' && $user['role'] !== 'admin') {
     audit_log($user, 'document_summary_failed', ['entity_type' => 'document', 'details' => 'reason=forbidden_role']);
     json_out(['ok' => false, 'message' => 'Only RPMS Administrators may generate document summaries.'], 403);
 }
-if (in_array($action, ['upload', 'review', 'submit_to_rpms', 'override_review', 'delete', 'summarize'], true)) {
+if (in_array($action, ['upload', 'review', 'return_for_revision', 'submit_to_rpms', 'override_review', 'delete', 'summarize'], true)) {
     require_post_same_origin();
 }
 
@@ -37,7 +37,7 @@ function fetch_doc(PDO $pdo, string $id, bool $forUpdate = false): ?array
         . ($forUpdate ? ' FOR UPDATE' : ''));
     $stmt->execute([':id' => $id]);
     $row = $stmt->fetch();
-    return $row ?: null;
+    return $row ? document_with_return($pdo, $row, $forUpdate) : null;
 }
 
 class DocumentWriteConflict extends RuntimeException {}
@@ -65,7 +65,7 @@ function begin_document_write(PDO $pdo, array $document): void
     $current = fetch_doc($pdo, (string)$document['id'], true);
     $fields = ['student_id', 'adviser_id', 'archived_at', 'is_current', 'supersedes_id', 'review_status',
         'review_remarks', 'reviewed_by', 'reviewed_at', 'rpms_submitted_at', 'admin_override',
-        'override_reason', 'override_by', 'override_at'];
+        'override_reason', 'override_by', 'override_at', 'rpms_returned_at', 'rpms_returned_by', 'rpms_return_reason'];
     if ($current) {
         foreach ($fields as $field) {
             if (($current[$field] ?? null) !== ($document[$field] ?? null)) {
@@ -96,6 +96,7 @@ function can_review_doc(array $user, ?int $viewerAdviserId, array $d): bool
 
 function doc_row(array $d, array $user, ?int $viewerAdviserId): array
 {
+    $d = document_with_return(db(), $d);
     $state = document_workflow_state($d);
     $locked = document_is_locked($d);
     $isCurrent = !isset($d['is_current']) || (int)$d['is_current'] === 1;
@@ -134,6 +135,9 @@ function doc_row(array $d, array $user, ?int $viewerAdviserId): array
         'locked' => $locked,
         'rpmsSubmittedAt' => $d['rpms_submitted_at'] ?? null,
         'rpmsSubmittedBy' => $d['rpms_submitted_by'] ?? null,
+        'rpmsReturnedAt' => $d['rpms_returned_at'] ?? null,
+        'rpmsReturnedBy' => $d['rpms_returned_by'] ?? null,
+        'rpmsReturnReason' => $d['rpms_return_reason'] ?? null,
         'adminOverride' => !empty($d['admin_override']),
         'overrideReason' => $d['override_reason'] ?? null,
         'overrideBy' => $d['override_by'] ?? null,
@@ -142,8 +146,11 @@ function doc_row(array $d, array $user, ?int $viewerAdviserId): array
         // What the signed-in user may do with this row (the UI just reads these flags).
         'actions' => [
             'summarize' => $role === 'admin',
-            'review' => $isCurrent && !$locked && can_review_doc($user, $viewerAdviserId, $d),
-            'submitToRpms' => empty($d['archived_at']) && $isCurrent && !$locked && $state === WF_READY_FOR_RPMS && in_array($role, ['student', 'admin'], true),
+            'review' => empty($d['archived_at']) && $isCurrent && !$locked && can_review_doc($user, $viewerAdviserId, $d)
+                && ($role === 'admin' || !in_array($d['review_status'], ['Denied','Resubmission Requested'], true)),
+            'submitToRpms' => empty($d['archived_at']) && $isCurrent && !$locked && $state === WF_READY_FOR_RPMS && $role === 'admin',
+            'returnForRevision' => empty($d['archived_at']) && $isCurrent && $state === WF_SUBMITTED_RPMS && $role === 'admin',
+            'uploadRevision' => empty($d['archived_at']) && $isCurrent && $role === 'student' && in_array($state, [WF_NEEDS_REVISION,WF_RETURNED_REVISION], true),
             'forceSubmitToRpms' => empty($d['archived_at']) && $isCurrent && !$locked && $role === 'admin' && $state !== WF_READY_FOR_RPMS,
             'override' => $isCurrent && !$locked && $role === 'admin',
             'delete' => in_array($role, ['admin', 'adviser'], true) && (!$locked || $role === 'admin'),
@@ -164,9 +171,9 @@ if ($action === 'list') {
         if ($viewerAdviserId !== null) $params[':vad'] = $viewerAdviserId;
     }
     if (($_GET['includeOld'] ?? '') !== '1') $scope .= ' AND d.is_current = 1';
-    $stateSql = "CASE WHEN d.is_current = 0 THEN 'Superseded' WHEN d.review_status = 'Approved' THEN CASE WHEN d.rpms_submitted_at IS NOT NULL AND CAST(d.rpms_submitted_at AS CHAR) <> '' THEN 'Submitted to RPMS' ELSE 'Ready for Formal RPMS Submission' END WHEN d.review_status IN ('Denied', 'Resubmission Requested') THEN 'Needs Revision' ELSE 'Pending Adviser Review' END";
+    $stateSql = "CASE WHEN d.is_current = 0 THEN 'Superseded' WHEN " . document_returned_sql() . " THEN 'Returned for Revision' WHEN d.review_status = 'Approved' THEN CASE WHEN d.rpms_submitted_at IS NOT NULL AND CAST(d.rpms_submitted_at AS CHAR) <> '' THEN 'Submitted to RPMS' ELSE 'Ready for Formal RPMS Submission' END WHEN d.review_status IN ('Denied', 'Resubmission Requested') THEN 'Needs Revision' ELSE 'Pending Adviser Review' END";
     if (($_GET['actionable'] ?? '') === '1') {
-        $scope .= " AND d.is_current = 1 AND ($stateSql) IN ('Needs Revision','Ready for Formal RPMS Submission')";
+        $scope .= " AND d.is_current = 1 AND ($stateSql) IN ('Needs Revision','Returned for Revision','Ready for Formal RPMS Submission')";
     }
     $stmt = $pdo->prepare('SELECT ' . $stateSql . ' AS state, COUNT(*) AS c ' . $scope . ' GROUP BY ' . $stateSql);
     $stmt->execute($params);
@@ -265,6 +272,17 @@ function upload_document_file(PDO $pdo, array $user, ?int $viewerAdviserId, arra
     if (!in_array($stage, STAGE_SEQUENCE, true)) {
         throw new DocumentUploadError('Invalid IERB stage.', 422);
     }
+    $revisionOf = trim((string)($_POST['revisionOf'] ?? ''));
+    if ($revisionOf !== '') {
+        $revision = fetch_doc($pdo, $revisionOf);
+        if ($user['role'] !== 'student' || !$revision || (int)$revision['student_id'] !== $studentDbId
+            || (int)$revision['is_current'] !== 1 || $revision['document_type'] !== $documentType
+            || !in_array(document_workflow_state($revision), [WF_NEEDS_REVISION, WF_RETURNED_REVISION], true)) {
+            throw new DocumentUploadError('Select a current document requiring revision from your own documents.', 409);
+        }
+        // A submitted version may belong to a stage the Student has already advanced past.
+        $stage = $revision['stage'];
+    }
 
     $id = bin2hex(random_bytes(12));
     $stored = $id . '.' . $ext;
@@ -323,7 +341,13 @@ function upload_document_file(PDO $pdo, array $user, ?int $viewerAdviserId, arra
             ORDER BY version_no DESC, uploaded_at DESC LIMIT 1 FOR UPDATE');
         $p->execute([':sid' => $studentDbId, ':stage' => $stage, ':type' => $documentType]);
         $prev = $p->fetch() ?: null;
-        if ($prev && $user['role'] === 'student' && document_is_locked($prev)) {
+        if ($prev) $prev = document_with_return($pdo, $prev, true);
+        if ($revisionOf !== '' && (!$prev || $prev['id'] !== $revisionOf
+            || !in_array(document_workflow_state($prev), [WF_NEEDS_REVISION, WF_RETURNED_REVISION], true))) {
+            throw new DocumentWriteConflict('This revision was already replaced or changed. Refresh your documents.');
+        }
+        if ($prev && $user['role'] === 'student' && document_is_locked($prev)
+            && !($revisionOf === $prev['id'] && document_workflow_state($prev) === WF_RETURNED_REVISION)) {
             throw new DocumentWriteConflict('This document was already submitted to RPMS on '
                 . date('M j, Y', strtotime($prev['rpms_submitted_at']))
                 . ' and is locked. Contact RPMS if it needs to be replaced.');
@@ -411,13 +435,14 @@ function upload_document_file(PDO $pdo, array $user, ?int $viewerAdviserId, arra
 if ($action === 'upload') {
     require_session_generation(true);
     try {
-        foreach (['documentType', 'notes', 'student', 'stage', 'studentDbId', 'requestId'] as $field) {
+        foreach (['documentType', 'notes', 'student', 'stage', 'studentDbId', 'requestId', 'revisionOf'] as $field) {
             if (isset($_POST[$field]) && !is_string($_POST[$field])) throw new DocumentUploadError('The upload request is malformed.', 400);
         }
         if (!in_array($_POST['documentType'] ?? null, prism_document_types(), true)) {
             throw new DocumentUploadError('Choose a document type from the PRISM document catalog.');
         }
         $files = prism_upload_files($_FILES['document'] ?? null);
+        if (!empty($_POST['revisionOf']) && count($files) !== 1) throw new DocumentUploadError('Upload one new file for this revision.', 422);
         $expected = $_POST['fileCount'] ?? null;
         if ($expected !== null && (!is_string($expected) || !ctype_digit($expected) || (int)$expected !== count($files))) {
             throw new DocumentUploadError('The server did not receive the complete file selection. Select fewer files or smaller files and try again.', 400);
@@ -511,6 +536,14 @@ if ($action === 'summarize') {
     }
 }
 $payload = json_body();
+if (in_array($action, ['review','return_for_revision'], true)) {
+    foreach (['id','status','remarks','reason'] as $field) {
+        if (isset($payload[$field]) && !is_string($payload[$field])) json_out(['ok'=>false,'message'=>'Malformed workflow request.'],422);
+    }
+}
+if ($action === 'submit_to_rpms' && $user['role'] !== 'admin') {
+    json_out(['ok'=>false,'message'=>'Student formal submission is no longer permitted. Adviser approval automatically submits the eligible current version to RPMS.'],403);
+}
 $id = $_GET['id'] ?? $payload['id'] ?? '';
 $doc = fetch_doc($pdo, (string)$id);
 if (!$doc) {
@@ -534,6 +567,29 @@ $path = DOCS_DIR . DIRECTORY_SEPARATOR . basename($doc['stored_name']);
 $docName = $doc['original_name'];
 $isCurrent = (int)($doc['is_current'] ?? 1) === 1;
 $locked = document_is_locked($doc);
+
+if ($action === 'review' && $user['role'] === 'adviser' && (!$isCurrent || $locked)) {
+    json_out(['ok'=>false,'message'=>'This version is older or already resolved. Refresh and review the current version.'],409);
+}
+if ($action === 'return_for_revision' || ($action === 'review' && $user['role'] === 'adviser')) {
+    require_session_generation(true);
+    if (isset($_GET['id'], $payload['id']) && $_GET['id'] !== $payload['id']) json_out(['ok'=>false,'message'=>'Conflicting document identity.'],422);
+    try {
+        $result = document_workflow_change($pdo,$user,(string)$id,
+            $action === 'return_for_revision' ? 'return' : 'review', $payload['status'] ?? '',
+            $action === 'return_for_revision' ? ($payload['reason'] ?? '') : ($payload['remarks'] ?? ''));
+        $ids = $result['notificationIds']; unset($result['notificationIds']);
+        document_workflow_deliver($pdo,$ids);
+        json_out($result);
+    } catch (DocumentWorkflowError $e) {
+        json_out(['ok'=>false,'message'=>$e->getMessage()],$e->status);
+    } catch (AccountLifecycleConflict $e) {
+        json_out(['ok'=>false,'message'=>'Account workflow changed. Refresh before continuing.'],409);
+    } catch (Throwable $e) {
+        log_api_error('document_workflow','The document transition could not be persisted.');
+        json_out(['ok'=>false,'message'=>'Nothing was changed. Please refresh and try again.'],500);
+    }
+}
 
 if ($action === 'file') {
     if (!is_file($path)) {
@@ -612,7 +668,8 @@ if ($action === 'review') {
     $advancedTo = null;
     try {
         begin_document_write($pdo, $doc);
-        $pdo->prepare('UPDATE documents SET review_status = :s, review_remarks = :r, reviewed_by = :by, reviewed_at = NOW(),
+        // Comments on submitted versions append evidence; preserve the original approval actor/time.
+        if (!$locked) $pdo->prepare('UPDATE documents SET review_status = :s, review_remarks = :r, reviewed_by = :by, reviewed_at = NOW(),
                 admin_override = IF(:changed = 1, 0, admin_override)
             WHERE id = :id')
             ->execute([':s' => $status, ':r' => $remarks, ':by' => $user['full_name'], ':changed' => $changed ? 1 : 0, ':id' => $id]);
@@ -644,7 +701,7 @@ if ($action === 'review') {
         if ($changed && $status === 'Approved') {
             $body .= $advancedTo
                 ? "\n\nYour IERB stage has automatically advanced to: " . stage_label($advancedTo) . " ($advancedTo)."
-                : "\n\nNext step: sign in to PRISM, open My Documents and click \"Submit to RPMS\" to formally submit this approved document.";
+                : "\n\nRPMS must complete formal submission of this Admin-reviewed record. Contact RPMS for assistance.";
         } elseif ($changed && in_array($status, ['Denied', 'Resubmission Requested'], true)) {
             $body .= "\n\nPlease read the remarks, then upload a corrected version from Document Submission. Your earlier version is kept.";
         }
@@ -653,7 +710,7 @@ if ($action === 'review') {
         $srow->execute([':id' => $doc['student_id']]);
         $sname = (string)$srow->fetchColumn();
         $inApp = "Document \"$docName\" is now $status."
-            . ($changed && $status === 'Approved' && !$advancedTo ? ' You can now submit it to RPMS from My Documents.' : '')
+            . ($changed && $status === 'Approved' && !$advancedTo ? ' RPMS must complete formal submission of this Admin-reviewed record.' : '')
             . ($remarks !== '' ? " Remarks: $remarks" : '');
         notify_student($pdo, (int)$doc['student_id'], 'PRISM Document Status Update', str_replace('{student}', $sname, $body),
             $inApp, 'Status Update', $user['full_name']);
@@ -674,7 +731,7 @@ if ($action === 'review') {
     $who = $doc['student_name'] ?: 'The student';
     $message = !$changed ? 'Remark saved and sent to ' . $who . '.'
         : ($status === 'Approved'
-            ? "Approved \"$docName\". $who has been notified" . ($advancedTo ? ' and moved to ' . stage_label($advancedTo) . '.' : ' and can now submit it to RPMS.')
+            ? "Approved \"$docName\". $who has been notified" . ($advancedTo ? ' and moved to ' . stage_label($advancedTo) . '.' : '. RPMS can complete formal submission.')
             : ($status === 'Denied' || $status === 'Resubmission Requested'
                 ? "Marked \"$docName\" as $status. $who has been notified and can upload a corrected version."
                 : "Marked \"$docName\" as $status. $who has been notified."));
@@ -685,10 +742,10 @@ if ($action === 'review') {
 }
 
 // ---------------------------------------------------------------------
-// submit_to_rpms (student, or admin on the student's behalf)
+// submit_to_rpms (legacy Admin submission / separate reasoned Admin Override)
 // ---------------------------------------------------------------------
 if ($action === 'submit_to_rpms') {
-    api_require_login(['student', 'admin']);
+    api_require_login(['admin']);
     $reason = trim((string)($payload['reason'] ?? ''));
 
     if (!empty($doc['archived_at'])) {
@@ -881,7 +938,7 @@ if ($action === 'override_review') {
         $next = $status === 'Approved'
             ? ($advancedTo
                 ? "\n\nYour IERB stage has advanced to: " . stage_label($advancedTo) . " ($advancedTo)."
-                : "\n\nNext step: open My Documents in PRISM and click \"Submit to RPMS\".")
+                : "\n\nRPMS must complete formal submission of this Admin Override record. Contact RPMS for assistance.")
             : '';
         notify_student($pdo, (int)$doc['student_id'], 'PRISM Document Status Update',
             "Hello $sname,\n\nAn RPMS administrator changed the status of your document \"$docName\" from $before to $status."

@@ -1,5 +1,6 @@
 <?php
 namespace PrismAlignmentAudit;
+require_once __DIR__.'/../includes/document_workflow.php';
 function legal_acceptance_required(...$args): bool { return false; }
 function prism_publish_session_generation(): void {}
 use PDO;
@@ -59,12 +60,12 @@ if (($argv[1] ?? '') === '--case') {
     if (!empty($case['reassign'])) $pdo->exec('UPDATE students SET adviser_id = 2 WHERE id IN (1,3)');
     $pdo->exec('CREATE TABLE notifications (id INTEGER PRIMARY KEY, recipient_type TEXT, recipient_id INTEGER, recipient_email TEXT, created_at TEXT)');
     $pdo->exec('CREATE TABLE activity_logs (id INTEGER PRIMARY KEY, student_id INTEGER, action TEXT, user_email TEXT, details TEXT, actor_name TEXT,
-        reason TEXT, is_override INTEGER, created_at TEXT)');
+        reason TEXT, is_override INTEGER, created_at TEXT, entity_type TEXT, entity_id TEXT)');
     for ($i = 1; $i <= 32; $i++) {
         $own = $i <= 23;
         $pdo->prepare('INSERT INTO notifications VALUES (?,?,?,?,?)')->execute([$i, $i > 30 ? 'adviser' : 'student', $own ? 1 : 2,
             $own ? 'student@example.test' : ($i > 30 ? 'adviser@example.test' : 'otherstudent@example.test'), '2026-09-01 12:00:00']);
-        if ($i <= 30) $pdo->prepare('INSERT INTO activity_logs VALUES (?,?,?,?,?,?,?,?,?)')->execute([$i, $own ? 1 : 2,
+        if ($i <= 30) $pdo->prepare('INSERT INTO activity_logs (id,student_id,action,user_email,details,actor_name,reason,is_override,created_at) VALUES (?,?,?,?,?,?,?,?,?)')->execute([$i, $own ? 1 : 2,
             'document_reviewed','admin@example.test', $i <= 17 ? 'Matched' : 'Other', 'Admin', 'Reason', $i % 2,
             $i <= 13 ? '2026-09-01 12:00:00' : '2026-09-02 12:00:00']);
     }
@@ -85,7 +86,7 @@ if (($argv[1] ?? '') === '--case') {
         for($i=2;$i<=26;$i++) $pdo->prepare('INSERT INTO reports VALUES (?,?,?,?,?,?,?)')->execute([sprintf('r%02d',$i),'Report '.$i,$i%2?'AI Full Report':'Student Report','fixture.pdf','Admin',1,'2026-09-01']);
         $pdo->exec("UPDATE reports SET title='=SUM(1,2)' WHERE id='existing'");
         $workflow=\file_get_contents(__DIR__.'/../workflow.php');
-        $constants="const WF_PENDING_REVIEW='Pending Adviser Review', WF_NEEDS_REVISION='Needs Revision', WF_READY_FOR_RPMS='Ready for Formal RPMS Submission', WF_SUBMITTED_RPMS='Submitted to RPMS', WF_SUPERSEDED='Superseded', ADVISERS_REVIEW_ONLY_OWN_STUDENTS=true;";
+        $constants="const WF_PENDING_REVIEW='Pending Adviser Review', WF_NEEDS_REVISION='Needs Revision', WF_READY_FOR_RPMS='Ready for Formal RPMS Submission', WF_SUBMITTED_RPMS='Submitted to RPMS', WF_RETURNED_REVISION='Returned for Revision', WF_SUPERSEDED='Superseded', ADVISERS_REVIEW_ONLY_OWN_STUDENTS=true;";
         $functions=''; foreach(['document_workflow_state','document_is_locked','empty_doc_counts','student_document_counts'] as $function) $functions.=source_function($workflow,$function);
         $functions.=source_function($config,'stage_progress_percent');
         eval('namespace '.__NAMESPACE__.'; use \PDO; '.$constants.$functions);

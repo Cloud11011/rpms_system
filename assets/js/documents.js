@@ -107,6 +107,7 @@ function renderTable(){
                 ${summaryButton(d)}
                 ${a.review?'<button class="document-action-button approve" data-approve title="Approve"><i class="fa-solid fa-check"></i></button><button class="document-action-button" data-comment title="Add comment"><i class="fa-regular fa-comment"></i></button><button class="document-action-button deny" data-deny title="Deny"><i class="fa-solid fa-xmark"></i></button>':''}
                 ${a.override?'<button class="document-action-button" data-override title="Admin Override"><i class="fa-solid fa-user-shield"></i></button>':''}
+                ${a.returnForRevision?'<button class="document-action-button" data-return title="Return to Student for Revision"><i class="fa-solid fa-rotate-left"></i> Return to Student for Revision</button>':''}
 
                 ${a.delete?'<button class="document-action-button delete" data-delete title="Delete"><i class="fa-solid fa-trash"></i></button>':''}
             </div></td>`;
@@ -118,6 +119,7 @@ function renderTable(){
             tr.querySelector('[data-review]').addEventListener('click',e=>PrismUI.runAction(e.currentTarget,'Processing...',()=>review(d)));
         }
         if(a.override) tr.querySelector('[data-override]').addEventListener('click',e=>PrismUI.runAction(e.currentTarget,'Processing...',async()=>{if(await PrismUI.overrideDocument(d)) await load()}));
+        if(a.returnForRevision) tr.querySelector('[data-return]').addEventListener('click',e=>PrismUI.runAction(e.currentTarget,'Processing...',()=>returnForRevision(d)));
         if(a.delete) tr.querySelector('[data-delete]').addEventListener('click',e=>PrismUI.runAction(e.currentTarget,'Processing...',()=>remove(d)));
 
         PrismUI.actionMenu(tr.querySelector('.document-row-actions'));
@@ -185,7 +187,7 @@ async function reviewStatus(d,status){
     const answer=await PrismUI.confirm({
         title:`${status} document`,icon:status==='Approved'?'fa-check':'fa-clipboard-check',
         tone:status==='Denied'?'danger':'primary',confirmText:status,
-        message:corrective?'Explain what the student needs to correct before resubmitting.':'You may add reviewer remarks before saving this decision.',
+        message:corrective?'Explain what the student needs to correct before resubmitting.':status==='Approved'&&currentRole==='adviser'?`Approve “${d.originalName}” version ${d.versionNo} and formally submit it to RPMS?`:'You may add reviewer remarks before saving this decision.',
         reasonLabel:corrective?'Reviewer remarks (required)':'Reviewer remarks (optional)',
         reasonRequired:corrective,minReason:1
     });
@@ -206,7 +208,7 @@ async function review(d){
     const options=allowed.map(s=>`<option${s===d.reviewStatus?' selected':''}>${esc(s)}</option>`).join('');
     const answer=await PrismUI.confirm({
         title:'Review document',icon:'fa-clipboard-check',confirmText:'Save review',
-        message:`Update the review status for “${d.originalName}”.`,
+        message:`Update the review status for “${d.originalName}”. ${currentRole==='adviser'?'Approve also formally submits this current version to RPMS.':''}`,
         extraHtml:`<label for="prismReviewStatus">Review status</label><select id="prismReviewStatus">${options}</select>`,
         reasonLabel:'Reviewer remarks',reasonRequired:false,
         collect:dlg=>({status:dlg.querySelector('#prismReviewStatus').value}),
@@ -215,6 +217,14 @@ async function review(d){
     if(!answer)return;
     try{const data=await api('review',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({id:d.id,status:answer.values.status,remarks:answer.reason})});await load();toast(data.message||'Document review saved.')}
     catch(e){toast(e.message,'error')}
+}
+async function returnForRevision(d){
+    const answer=await PrismUI.confirm({title:'Return to Student for Revision',icon:'fa-rotate-left',tone:'warning',confirmText:'Return for Revision',
+        message:`Return “${d.originalName}” (${d.documentType}, version ${d.versionNo}) to ${d.student}? The original submission and approval will be preserved. The Student must upload a new revision for Adviser review.`,
+        reasonLabel:'RPMS return reason (required)',reasonRequired:true,minReason:1,maxReason:5000});
+    if(!answer)return;
+    try{const data=await PrismUI.postJson('documents_api.php?action=return_for_revision',{id:d.id,reason:answer.reason});await load();toast(data.message);document.dispatchEvent(new CustomEvent('prism:documents-changed'));}
+    catch(e){toast(e.message,'error');}
 }
 document.getElementById('uploadDocumentButton').addEventListener('click',async()=>{await loadUploadStudents();openModal(uploadModal)});document.getElementById('documentStudent')?.addEventListener('change',e=>{
     const s=uploadStudents.find(x=>String(x.id)===e.target.value);

@@ -61,13 +61,14 @@ try {
     echo 'Temporary MariaDB version: ' . $pdo->query('SELECT VERSION()')->fetchColumn() . "\n";
 
     require __DIR__.'/v10-batch7-native-fixture.php';
-    if (!in_array('--only9',$argv,true)) {
+    if (!in_array('--only9',$argv,true) && !in_array('--only10',$argv,true)) {
         require __DIR__.'/v10-batch7-lifecycle.php';
         require __DIR__.'/v10-batch7-concurrency.php';
         require __DIR__.'/v10-batch7-purge.php';
     }
     if (in_array('--batch8',$argv,true)) require __DIR__.'/v10-batch8-native.php';
     if (in_array('--batch9',$argv,true)) require __DIR__.'/v10-batch9-native.php';
+    if (in_array('--batch10',$argv,true)) require __DIR__.'/v10-batch10-native.php';
     echo 'PASS: '.($GLOBALS['nativeChecks']??0)." native concurrency, FK and account-purge assertions.\n";
 } catch (Throwable $error) {
     $failure = $error;

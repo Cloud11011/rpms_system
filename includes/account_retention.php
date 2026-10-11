@@ -26,7 +26,8 @@ function retention_identifier(array $r,string $type,bool $audit=false): string
 /** Actual open workflow, not historical activity. Used identically in lists and execution. */
 function retention_unresolved_sql(string $type,string $alias): string
 {
-    if ($type==='student') return "(EXISTS (SELECT 1 FROM documents ld WHERE ld.student_id=$alias.id AND ld.is_current=1 AND ld.rpms_submitted_at IS NULL)
+    if ($type==='student') return "(EXISTS (SELECT 1 FROM documents ld WHERE ld.student_id=$alias.id AND ld.is_current=1 AND (ld.rpms_submitted_at IS NULL
+        OR EXISTS (SELECT 1 FROM activity_logs wr WHERE wr.entity_type='document' AND wr.entity_id=ld.id AND wr.action='document_returned_for_revision')))
         OR EXISTS (SELECT 1 FROM notifications ln WHERE ln.recipient_type='student' AND (ln.recipient_id=$alias.id
             OR ((ln.recipient_id IS NULL OR ln.recipient_id<=0) AND (ln.recipient_email=$alias.email OR ln.recipient_name=$alias.full_name))) AND ln.status='Sending'))";
     return "(EXISTS (SELECT 1 FROM notifications ln WHERE ln.recipient_type='adviser' AND (ln.recipient_id=$alias.id

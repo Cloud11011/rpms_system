@@ -8,13 +8,12 @@
  *     require __DIR__ . '/config.php';
  *     require_once __DIR__ . '/workflow.php';
  *
- * Document workflow (derived from existing columns, never stored twice):
- *
- *   uploaded ─► Pending Adviser Review ─► (adviser approves) ─► Ready for Formal RPMS Submission
- *                      │                                                   │
- *                      └► Needs Revision (denied / resubmission requested) │ student clicks "Submit to RPMS"
- *                                                                          ▼
- *                                                                  Submitted to RPMS (locked)
+ * Document workflow (derived from existing columns and immutable Return audit):
+ * Uploaded -> Pending Adviser Review -> Adviser approval + formal RPMS submission
+ *                                      -> Denied / Resubmission Requested -> new revision
+ * Submitted to RPMS -> Admin Return for Revision -> new revision -> Adviser review
+ * Approval of the new current version formally resubmits it in the same transaction.
+ * Admin Override retains its separate pre-B11 behavior.
  *
  * A re-upload for the same student + stage + document type becomes a new
  * version; the older version is kept and shown as "Superseded".
@@ -25,6 +24,7 @@ if (!function_exists('db')) {
 }
 require_once __DIR__ . '/includes/notification_delivery.php';
 require_once __DIR__ . '/includes/account_identity.php';
+require_once __DIR__ . '/includes/document_workflow.php';
 
 // ---------------------------------------------------------------------
 // Tunables. Override any of these in config.local.php (loaded by config.php
@@ -32,7 +32,7 @@ require_once __DIR__ . '/includes/account_identity.php';
 // ---------------------------------------------------------------------
 
 // When does a student's IERB stage advance to the next stage?
-//   'submission' = when the student formally submits the approved document to RPMS (default)
+//   'submission' = when the approved document is formally submitted to RPMS (default)
 //   'approval'   = when the adviser approves it (the behaviour before this upgrade)
 if (!defined('STAGE_ADVANCE_TRIGGER')) define('STAGE_ADVANCE_TRIGGER', getenv('STAGE_ADVANCE_TRIGGER') ?: 'submission');
 
@@ -60,6 +60,7 @@ const WF_NEEDS_REVISION = 'Needs Revision';
 const WF_READY_FOR_RPMS = 'Ready for Formal RPMS Submission';
 const WF_SUBMITTED_RPMS = 'Submitted to RPMS';
 const WF_SUPERSEDED     = 'Superseded';
+const WF_RETURNED_REVISION = 'Returned for Revision';
 
 /** Workflow state of a documents row. Works on rows with or without the new columns. */
 function document_workflow_state(array $d): string
@@ -67,6 +68,7 @@ function document_workflow_state(array $d): string
     if (isset($d['is_current']) && (int)$d['is_current'] === 0) {
         return WF_SUPERSEDED;
     }
+    if (!empty($d['rpms_returned_at'])) return WF_RETURNED_REVISION;
     $review = $d['review_status'] ?? 'Submitted';
     if ($review === 'Approved') {
         return !empty($d['rpms_submitted_at']) ? WF_SUBMITTED_RPMS : WF_READY_FOR_RPMS;
@@ -165,6 +167,8 @@ function audit_action_label(string $action): string
         'document_reviewed'                 => 'Document status changed',
         'document_commented'                => 'Remark added',
         'document_submitted_to_rpms'        => 'Formally submitted to RPMS',
+        'document_resubmitted_to_rpms'      => 'Formally resubmitted to RPMS',
+        'document_returned_for_revision'    => 'RPMS returned for revision',
         'document_deleted'                  => 'Document deleted',
         'admin_override_document'           => 'Admin Override: document status',
         'admin_override_submit_to_rpms'     => 'Admin Override: submitted to RPMS',
@@ -283,7 +287,7 @@ function record_history(PDO $pdo, int $studentDbId, string $stage, string $statu
  * Logs to ierb_history and the audit trail. Returns the new stage key or null.
  * Call inside the caller's transaction if atomicity matters.
  */
-function advance_stage_for_document(PDO $pdo, array $doc, array $actor, string $effectiveDate, string $why): ?string
+function advance_stage_for_document(PDO $pdo, array $doc, array $actor, string $effectiveDate, string $why, bool $strictAudit = false): ?string
 {
     if (empty($doc['student_id'])) {
         return null;
@@ -304,12 +308,15 @@ function advance_stage_for_document(PDO $pdo, array $doc, array $actor, string $
         ->execute([':stage' => $newStage, ':status' => 'On Track', ':sub' => $effectiveDate, ':id' => $doc['student_id']]);
 
     $note = 'Auto-advanced to ' . stage_label($newStage) . ' (' . $newStage . ') ' . $why . '.';
-    record_history($pdo, (int)$doc['student_id'], $newStage, 'On Track', $note, $effectiveDate, $actor['full_name'] . ' (auto)');
+    record_history($pdo, (int)$doc['student_id'], $newStage, 'On Track', $note, $effectiveDate,
+        ($strictAudit ? mb_substr($actor['full_name'],0,183) : $actor['full_name']) . ' (auto)');
 
-    audit_log($actor, 'stage_auto_advanced', [
+    $ctx = [
         'entity_type' => 'student', 'entity_id' => $doc['student_id'], 'student_id' => $doc['student_id'],
         'before' => $student['stage'], 'after' => $newStage, 'details' => $note,
-    ]);
+    ];
+    if ($strictAudit) document_workflow_audit($pdo, $actor, 'stage_auto_advanced', $ctx);
+    else audit_log($actor, 'stage_auto_advanced', $ctx);
     return $newStage;
 }
 
@@ -327,7 +334,8 @@ function student_document_counts(PDO $pdo, ?array $studentIds = null): array
 {
     if ($studentIds === []) return [];
     $scope = $studentIds === null ? '' : ' AND student_id IN (' . implode(',', array_map('intval', $studentIds)) . ')';
-    $rows = $pdo->query('SELECT student_id, review_status, rpms_submitted_at, is_current
+    $rows = $pdo->query('SELECT student_id, review_status, rpms_submitted_at, is_current, '
+        . document_returned_sql('documents') . ' AS rpms_returned_at
         FROM documents WHERE is_current = 1 AND student_id IS NOT NULL' . $scope)->fetchAll();
     $out = [];
     foreach ($rows as $r) {
@@ -338,6 +346,7 @@ function student_document_counts(PDO $pdo, ?array $studentIds = null): array
         switch (document_workflow_state($r)) {
             case WF_PENDING_REVIEW: $out[$sid]['pendingReview']++;   break;
             case WF_NEEDS_REVISION: $out[$sid]['needsRevision']++;   break;
+            case WF_RETURNED_REVISION: $out[$sid]['needsRevision']++; break;
             case WF_READY_FOR_RPMS: $out[$sid]['readyForRpms']++;    break;
             case WF_SUBMITTED_RPMS: $out[$sid]['submittedToRpms']++; break;
         }
@@ -366,7 +375,8 @@ function students_needing_attention(PDO $pdo, array $user): array
         return [];
     }
 
-    $docRows = $pdo->query('SELECT student_id, review_status, rpms_submitted_at, uploaded_at, reviewed_at, is_current
+    $docRows = $pdo->query('SELECT student_id, review_status, rpms_submitted_at, uploaded_at, reviewed_at, is_current, '
+        . document_returned_sql('documents') . ' AS rpms_returned_at
         FROM documents WHERE is_current = 1 AND student_id IS NOT NULL')->fetchAll();
     $byStudent = [];
     foreach ($docRows as $d) {

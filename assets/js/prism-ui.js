@@ -1,6 +1,6 @@
 /* PRISM UI kit - shared behaviour for badges, toasts, confirmations, empty states, tooltips, first-time hints,
    list filters, mobile-friendly tables, and the self-contained widgets:
-     [data-prism-student-workflow]   student "Submit to RPMS" panel (add ="compact" for the dashboard version)
+     [data-prism-student-workflow]   student revision panel (add ="compact" for the dashboard version)
      [data-prism-needs-attention]    admin/adviser "Students Needing Attention" list
      [data-prism-hint="id"]          dismissible first-time help (texts live in HINTS below)
      [data-prism-tip="text"]         small "?" tooltip
@@ -21,6 +21,7 @@
     'Ready for Formal RPMS Submission': ['info', 'fa-paper-plane'],
     'Submitted to RPMS':                ['success', 'fa-circle-check'],
     'Needs Revision':                   ['danger', 'fa-rotate-left'],
+    'Returned for Revision':            ['warning', 'fa-rotate-left'],
     'Superseded':                       ['neutral', 'fa-clock-rotate-left'],
 
     // Document review
@@ -59,7 +60,8 @@
 
   const TIPS = {
     'Pending Adviser Review': 'Waiting for the research adviser to review this document.',
-    'Ready for Formal RPMS Submission': 'Approved by the adviser. The student can now submit it to RPMS.',
+    'Ready for Formal RPMS Submission': 'Historical or Admin-reviewed approval awaiting formal submission by RPMS.',
+    'Returned for Revision': 'RPMS returned the submitted version. Upload a new PDF/DOCX revision for Adviser review.',
     'Submitted to RPMS': 'Formally submitted to RPMS. This record is locked.',
     'Needs Revision': 'The adviser asked for changes. Upload a corrected version.',
     'Superseded': 'An older version. A newer version replaced it.',
@@ -72,8 +74,8 @@
       steps: [
         'You upload a document. It shows as Pending Adviser Review.',
         'Your adviser approves it, or asks for changes.',
-        'When it is approved, click Submit to RPMS. That is the official submission.',
-        'Need to fix a file? Upload it again. Earlier versions are kept.'
+        'Adviser approval automatically and formally submits the current version to RPMS.',
+        'If RPMS returns it, use Upload Revision. The new version returns to Adviser review; earlier versions are kept.'
       ]
     },
     'student-submit': {
@@ -82,7 +84,7 @@
     },
     'adviser-documents': {
       title: 'Reviewing your students\u2019 documents',
-      text: 'Approve a document to let the student submit it to RPMS. To ask for changes, deny it or request a resubmission and add a short remark so the student knows what to fix.'
+      text: 'Approve the eligible current version to formally submit it to RPMS in the same operation. Deny or Request Revision / Resubmission requires feedback and does not formally submit. The Student can upload a new revision.'
     },
     'admin-dashboard': {
       title: 'Students Needing Attention',
@@ -217,7 +219,7 @@
         '<h3 id="prismDlgTitle">' + (o.icon ? '<i class="fa-solid ' + esc(o.icon) + '" aria-hidden="true"></i>' : '') + esc(o.title) + '</h3>' +
         (o.message ? '<p>' + esc(o.message) + '</p>' : '') +
         (o.extraHtml || '') +
-        (o.reasonLabel ? '<label for="prismReason">' + esc(o.reasonLabel) + '</label><textarea id="prismReason" maxlength="500"></textarea>' : '') +
+        (o.reasonLabel ? '<label for="prismReason">' + esc(o.reasonLabel) + '</label><textarea id="prismReason" maxlength="' + (o.maxReason || 500) + '"></textarea>' : '') +
         '<div class="prism-field-error" role="alert"></div>' +
         '<div class="prism-dialog-actions"><button type="button" class="prism-btn is-secondary" data-act="cancel">' + esc(o.cancelText || 'Cancel') + '</button>' +
         '<button type="button" class="prism-btn is-' + tone + '" data-act="ok">' + esc(o.confirmText || 'Confirm') + '</button></div>'
@@ -285,7 +287,7 @@
   }
 
   // ------------------------------------------------------------------ critical actions
-  /** Student (or admin on their behalf): formally submit an approved document. Resolves true when submitted. */
+  /** Existing Admin submission/override tool, retained for B11 compatibility. Students are denied by the API. */
   async function submitToRpms(doc) {
     const res = await confirmDialog({
       title: 'Submit to RPMS', icon: 'fa-paper-plane', confirmText: 'Submit to RPMS',
@@ -364,6 +366,9 @@
     const items = data.versions.map(function (v) {
       return '<li><div><strong>Version ' + esc(v.versionNo) + (v.isCurrent ? ' (current)' : '') + '</strong>' +
         '<small>' + esc(v.originalName) + ' \u00b7 uploaded ' + esc(fmtDate(v.uploadedAt)) + ' by ' + esc(v.uploadedBy) + '</small>' +
+        (v.reviewedAt ? '<small>Reviewed: ' + esc(v.reviewStatus) + ' by ' + esc(v.reviewedBy) + ' · ' + esc(fmtDate(v.reviewedAt)) + '</small>' : '') +
+        (v.rpmsSubmittedAt ? '<small>Formally submitted: ' + esc(fmtDate(v.rpmsSubmittedAt)) + ' by ' + esc(v.rpmsSubmittedBy) + '</small>' : '') +
+        (v.rpmsReturnedAt ? '<small>RPMS returned for revision: ' + esc(fmtDate(v.rpmsReturnedAt)) + ' by ' + esc(v.rpmsReturnedBy) + '. Reason: ' + esc(v.rpmsReturnReason) + '</small>' : '') +
         (v.reviewRemarks ? '<small>Remarks: ' + esc(v.reviewRemarks) + '</small>' : '') +
         '</div><div class="prism-badges">' + badge(v.workflowState) + (v.adminOverride ? badge('Admin Override') : '') +
         '<a class="prism-btn is-secondary is-sm" target="_blank" rel="noopener" href="documents_api.php?action=file&id=' + encodeURIComponent(v.id) + '">Open</a></div></li>';
@@ -381,6 +386,11 @@
     if (nav) nav.click();
   }
 
+  function uploadRevision(doc) {
+    goToSubmitPage();
+    document.dispatchEvent(new CustomEvent('prism:upload-revision', { detail: doc }));
+  }
+
   async function mountStudentWorkflow(host) {
     const compact = host.getAttribute('data-prism-student-workflow') === 'compact';
     host.classList.add('prism-wf-panel');
@@ -393,7 +403,7 @@
         return;
       }
       const ready = docs.filter(function (d) { return d.workflowState === 'Ready for Formal RPMS Submission'; });
-      const revise = docs.filter(function (d) { return d.workflowState === 'Needs Revision'; });
+      const revise = docs.filter(function (d) { return ['Needs Revision','Returned for Revision'].includes(d.workflowState); });
       const counts = data.counts || {};
       if(!data.counts) docs.forEach(function (d) { counts[d.workflowState] = (counts[d.workflowState] || 0) + 1; });
 
@@ -401,12 +411,12 @@
       if (!docs.length) {
         html = compact ? '' : emptyState({
           icon: 'fa-file-circle-plus', title: 'No document action needed',
-          text: 'There are no approved documents awaiting submission or revisions requiring your attention.',
+          text: 'No revisions require your attention. Adviser approval automatically submits an eligible version to RPMS.',
           actionLabel: 'Submit a document', actionId: 'go-submit'
         });
       } else {
         if (!compact) {
-          html += '<div class="prism-wf-summary">' + ['Pending Adviser Review', 'Needs Revision', 'Ready for Formal RPMS Submission', 'Submitted to RPMS']
+          html += '<div class="prism-wf-summary">' + ['Pending Adviser Review', 'Needs Revision', 'Returned for Revision', 'Ready for Formal RPMS Submission', 'Submitted to RPMS']
             .filter(function (s) { return counts[s]; })
             .map(function (s) { return badge(s, { text: counts[s] + ' ' + s }); }).join('') + '</div>';
         }
@@ -416,15 +426,15 @@
             html += '<li class="prism-wf-item"><div><strong>' + esc(d.originalName) + '</strong>' +
               '<div class="prism-badges">' + badge(d.workflowState) + '<span class="prism-sub">' + esc(d.documentType) + ' \u00b7 ' + esc(d.stageLabel) +
               (d.versionNo > 1 ? ' \u00b7 version ' + esc(d.versionNo) : '') + '</span></div>' +
-              '<p class="prism-wf-remarks">Approved by ' + esc(d.reviewedBy || 'your adviser') + '. Submit it to RPMS to make it official.</p></div>' +
-              '<div class="prism-wf-actions"><button type="button" class="prism-btn is-primary" data-submit="' + esc(d.id) + '"><i class="fa-solid fa-paper-plane" aria-hidden="true"></i> Submit to RPMS</button>' +
+              '<p class="prism-wf-remarks">Approved by ' + esc(d.reviewedBy || 'your adviser') + '. Contact RPMS to complete this historical or Admin-reviewed submission.</p></div>' +
+              '<div class="prism-wf-actions">' +
               (d.versionNo > 1 ? '<button type="button" class="prism-btn is-secondary is-sm" data-versions="' + esc(d.id) + '">Version history</button>' : '') + '</div></li>';
           });
           revise.forEach(function (d) {
             html += '<li class="prism-wf-item"><div><strong>' + esc(d.originalName) + '</strong>' +
               '<div class="prism-badges">' + badge(d.workflowState) + '<span class="prism-sub">' + esc(d.documentType) + ' \u00b7 ' + esc(d.stageLabel) + '</span></div>' +
-              '<p class="prism-wf-remarks">' + (d.reviewRemarks ? 'Adviser remarks: ' + esc(d.reviewRemarks) : 'Your adviser asked for changes.') + '</p></div>' +
-              '<div class="prism-wf-actions"><button type="button" class="prism-btn is-secondary" data-go-submit="1"><i class="fa-solid fa-upload" aria-hidden="true"></i> Upload a corrected version</button>' +
+              '<p class="prism-wf-remarks">' + (d.rpmsReturnReason ? 'RPMS return reason: ' + esc(d.rpmsReturnReason) : d.reviewRemarks ? 'Adviser remarks: ' + esc(d.reviewRemarks) : 'Your adviser asked for changes.') + '</p></div>' +
+              '<div class="prism-wf-actions"><button type="button" class="prism-btn is-secondary" data-upload-revision="' + esc(d.id) + '"><i class="fa-solid fa-upload" aria-hidden="true"></i> Upload Revision</button>' +
               (d.versionNo > 1 ? '<button type="button" class="prism-btn is-secondary is-sm" data-versions="' + esc(d.id) + '">Version history</button>' : '') + '</div></li>';
           });
           html += '</ul>';
@@ -435,15 +445,7 @@
       if (data.total > docs.length) html += '<p class="prism-sub"><a href="student.php#documents">View all documents</a></p>';
       host.innerHTML = html;
 
-      host.querySelectorAll('[data-submit]').forEach(function (b) {
-        b.addEventListener('click', async function () {
-          const doc = docs.find(function (d) { return d.id === b.getAttribute('data-submit'); });
-          const release = busy(b,'Submitting...');
-          if(!release)return;
-          const done = await submitToRpms(doc); // on success it fires prism:documents-changed, which re-renders this panel
-          if (!done) release();
-        });
-      });
+      host.querySelectorAll('[data-upload-revision]').forEach(b => b.addEventListener('click', () => uploadRevision(docs.find(d => d.id === b.dataset.uploadRevision))));
       host.querySelectorAll('[data-versions]').forEach(function (b) {
         b.addEventListener('click', function () { showVersions(b.getAttribute('data-versions')); });
       });
@@ -909,7 +911,7 @@
     documentTypes: DOCUMENT_TYPES, actionMenu: actionMenu,
     actionOrigin: control => control?.closest('.prism-action-menu')?.querySelector('.prism-action-trigger') || control,
     confirm: confirmDialog, request: request, handleSessionExpiry: handleSessionExpiry, debounce: debounce, recordFilters: recordFilters, filtersDisclosure: filtersDisclosure, postJson: postJson, esc: esc, pagination: pagination, busy: busy, runAction: runAction, dirtyForm: dirtyForm, recordPager: recordPager, clearFilters: clearFilters,
-    submitToRpms: submitToRpms, overrideStudent: overrideStudent, overrideDocument: overrideDocument, showVersions: showVersions,
+    submitToRpms: submitToRpms, uploadRevision: uploadRevision, overrideStudent: overrideStudent, overrideDocument: overrideDocument, showVersions: showVersions,
     enhanceTable: enhanceTable, tableFilter: tableFilter, hint: hint,
     mountStudentWorkflow: mountStudentWorkflow, mountNeedsAttention: mountNeedsAttention, init: init,
     BADGES: BADGES

@@ -31,4 +31,5 @@ $source=str_replace("require __DIR__.'/includes/session_browser.php';",'', $sour
 $source=str_replace("require __DIR__.'/legal_placeholders.php'", "require ".var_export(__DIR__.'/../includes/legal_placeholders.php',true),$source);
 $source=str_replace(["require __DIR__.'/legal_header.php';","require __DIR__.'/includes/legal_header.php';"], "require ".var_export(__DIR__.'/../includes/legal_header.php',true).";",$source);
 if (preg_match('/config\.local|\/config\.php/',$source)) throw new \RuntimeException('Unexpected configuration in fixture.');
+foreach (['prism-navigation.php','ceu_footer.php'] as $partial) $source=str_replace("require __DIR__.'/includes/".$partial."';", "require ".var_export(__DIR__.'/../includes/'.$partial,true).";", $source);
 eval('namespace '.__NAMESPACE__.'; '.preg_replace('/^<\?php\s*/','',$source));

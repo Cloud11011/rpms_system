@@ -138,7 +138,10 @@ function fixtureTemplate(file) {
     if (allowed) {
       const partialSource = fs.readFileSync(path.join(root, partial.path), 'utf8');
       assert(!/\b(?:require|include)(?:_once)?\s*(?:\(|["'$])/i.test(partialSource), 'Unexpected nested include in ' + partial.path);
-      isolated = isolated.replace(partial.include, () => '?>' + partialSource + '<?php ');
+      // Preserve the card's include scope: its presentation-only early return must not end the page fixture.
+      isolated = isolated.replace(partial.include, () => partial.path === 'includes/staff_registration_card.php'
+        ? 'require ' + JSON.stringify(path.join(root, partial.path).replace(/\\/g, '/')) + ';'
+        : '?>' + partialSource + '<?php ');
     }
   }
   if (wrapperFile) {
@@ -148,7 +151,8 @@ function fixtureTemplate(file) {
     assert(!/ceu.footer/.test(wrapper), wrapperFile + ': no duplicate footer');
     isolated = wrapper.replace("require __DIR__ . '/config.php';", '').replace(include, () => '?>' + isolated + '<?php ');
   }
-  assert(!/\b(?:require|include)(?:_once)?\s*(?:\(|["'$])/i.test(isolated), `${file}: unexpected include in fixture`);
+  const reviewedStaffCard = 'require ' + JSON.stringify(path.join(root, 'includes/staff_registration_card.php').replace(/\\/g, '/')) + ';';
+  assert(!/\b(?:require|include)(?:_once)?\s*(?:\(|["'$])/i.test(isolated.replace(reviewedStaffCard, '')), `${file}: unexpected include in fixture`);
   const stub = `<?php
     require_once ${JSON.stringify(path.join(root, 'includes/assets.php'))};
     require_once ${JSON.stringify(path.join(root, 'security.php'))};
@@ -409,7 +413,7 @@ async function waitFor(expression, attempts = 100) {
     if (await evaluate(expression)) return;
     await new Promise(resolve => setTimeout(resolve, 30));
   }
-  throw new Error(`UI did not become ready: ${expression}`);
+  throw new Error(`UI did not become ready: ${expression}; location=${await evaluate('location.href')}; browser errors=${errors.join(' | ')}`);
 }
 
 function check(ok, label, detail = '') {

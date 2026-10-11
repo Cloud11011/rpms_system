@@ -113,3 +113,9 @@ storage/.purge/
 !/tests/v10-batch9-helpers.php
 !/tests/v10-batch9-http.php
 !/tests/v10-batch9-ui.cjs
+!/tests/v10-batch10-bootstrap.php
+!/tests/v10-batch10-native.php
+!/tests/v10-batch10-worker.php
+!/tests/v10-batch10-http.php
+!/tests/v10-batch10-ui.cjs
+!/tests/v10-batch10-legal.php

@@ -1,0 +1,24 @@
+/* Authenticated management only; public legal pages keep their existing stylesheet. */
+.legal-management .legal-card, .legal-management section[id^="history-"] {
+    padding: clamp(18px, 3vw, 28px); margin: 24px 0; border: 1px solid var(--prism-border);
+    border-radius: var(--prism-radius); box-shadow: var(--prism-shadow); background: var(--prism-surface);
+    overflow-wrap: anywhere;
+}
+.legal-management p, .legal-management li { line-height: 1.65; }
+.legal-management h2 { margin: 0 0 16px; }
+.legal-management form { display: flex; flex-direction: column; align-items: flex-start; gap: 14px; margin: 24px 0; }
+.legal-management input:not([type="hidden"]):not([type="checkbox"]), .legal-management textarea {
+    box-sizing: border-box; width: 100%; min-width: 0; padding: 12px; border: 1px solid var(--prism-border);
+    border-radius: 8px; background: var(--prism-surface-2); color: var(--prism-text); font: inherit;
+}
+.legal-management .legal-checkbox { display: flex; align-items: flex-start; gap: 12px; line-height: 1.6; }
+.legal-management .legal-checkbox input { flex: 0 0 auto; width: 18px; height: 18px; margin-top: 4px; }
+.legal-management .legal-notice { border-left: 4px solid var(--prism-focus); padding: 12px 16px; background: var(--prism-surface-2); }
+.legal-management .legal-policy-text { border-top: 1px solid var(--prism-border); padding-top: 20px; }
+.legal-management .legal-policy-text h2, .legal-management .legal-policy-text h3 { margin-top: 24px; }
+.legal-management .legal-history { padding-left: 24px; }
+.legal-management .legal-history li { margin-bottom: 20px; }
+.legal-management .legal-skip { position: fixed; z-index: 2000; top: 8px; left: 8px; transform: translateY(-200%); padding: 12px; background: var(--prism-surface); color: var(--prism-text); }
+.legal-management .legal-skip:focus { transform: none; }
+body.prism-workspace.legal-management .prism-btn { min-height: 44px; white-space: normal; }
+.legal-management :focus-visible { outline: 3px solid var(--prism-focus); outline-offset: 3px; }

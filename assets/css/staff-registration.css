@@ -1,14 +1,14 @@
-.staff-registration { max-width: 900px; padding: clamp(18px, 3vw, 32px); overflow-wrap: anywhere; }
+.staff-registration { width: 100%; max-width: none; box-sizing: border-box; padding: clamp(18px, 3vw, 32px); overflow-wrap: anywhere; }
 .staff-registration h2 { margin-top: 0; }
-.staff-registration p { line-height: 1.65; }
+.staff-registration p { line-height: 1.65; margin: 16px 0; }
 .staff-registration form { margin-top: 22px; }
-.staff-registration .prism-btn { max-width: 100%; white-space: normal; }
+.staff-registration .prism-btn { max-width: 100%; white-space: normal; margin: 6px 12px 6px 0; min-height: 44px; }
 .staff-registration a { color: inherit; }
 .staff-metadata { display: grid; gap: 12px; }
 .staff-metadata div { display: flex; flex-wrap: wrap; gap: 8px 20px; }
 .staff-metadata dt { font-weight: 600; min-width: 130px; }
 .staff-metadata dd { margin: 0; }
-.staff-plaintext { font-family: monospace; font-size: clamp(16px, 2.5vw, 24px); font-weight: 700; padding: 18px; border: 2px solid currentColor; border-radius: 12px; user-select: all; }
+.staff-plaintext { font-family: monospace; font-size: clamp(16px, 2.5vw, 24px); font-weight: 700; padding: 18px; border: 2px solid currentColor; border-radius: 12px; user-select: all; max-width: 680px; }
 .staff-check { display: flex; align-items: flex-start; gap: 10px; margin: 20px 0; line-height: 1.6; }
 .staff-check input { flex: 0 0 auto; margin-top: 6px; width: 18px; height: 18px; }
 .staff-registration :focus-visible { outline: 3px solid #c43c78; outline-offset: 4px; }

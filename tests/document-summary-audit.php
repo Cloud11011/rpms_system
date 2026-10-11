@@ -1,5 +1,6 @@
 <?php
 namespace PrismSummaryAudit;
+require_once __DIR__.'/../includes/document_workflow.php';
 use PDO;
 use PDOStatement;
 use RuntimeException;
@@ -40,6 +41,7 @@ if (($argv[1] ?? '') === '--case') {
     $GLOBALS['case'] = $case = json_decode($argv[2], true, 512, JSON_THROW_ON_ERROR);
     $fixtureDb = $GLOBALS['fixtureDb'] = new FixtureDb();
     $pdo = $fixtureDb;
+    $pdo->exec('CREATE TABLE activity_logs(id INTEGER,entity_type TEXT,entity_id TEXT,action TEXT,reason TEXT,actor_name TEXT,created_at TEXT)');
     $pdo->exec('CREATE TABLE students (id INTEGER PRIMARY KEY, full_name TEXT, student_id TEXT, email TEXT, protocol_code TEXT, research_group TEXT, adviser_id INTEGER, course TEXT, archived_at TEXT, stage TEXT, status TEXT)');
     $pdo->exec("INSERT INTO students VALUES (4,'Maria Santos','2026-12345','maria@example.test','CEU-IERB-2026-071','GROUP-2026',2,'BSIT',NULL,'Stage 3','On Track'), (5,'Ana Reyes','2026-12346','ana@example.test',NULL,'GROUP-2026',2,'BSIT',NULL,'Stage 3','On Track')");
     if (!empty($case['archivedStudent'])) $pdo->exec("UPDATE students SET archived_at='2026-10-02' WHERE id=4");

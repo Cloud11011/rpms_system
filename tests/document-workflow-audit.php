@@ -1,5 +1,6 @@
 <?php
 namespace PrismDocumentAudit;
+require_once __DIR__.'/../includes/document_workflow.php';
 use PDO;
 use PDOStatement;
 use RuntimeException;
@@ -101,6 +102,7 @@ class FixtureStatement extends PDOStatement
     }
     public function fetch(int $mode = PDO::FETCH_DEFAULT, int $cursorOrientation = PDO::FETCH_ORI_NEXT, int $cursorOffset = 0): mixed
     {
+        if (str_contains($this->sql, 'FROM activity_logs')) return false;
         if (str_contains($this->sql, 'FROM documents')) return $this->db->document ?: false;
         if (str_contains($this->sql, 'FROM students')) return $this->db->student;
         throw new RuntimeException('Unexpected fixture fetch.');
@@ -214,7 +216,7 @@ if (($argv[1] ?? '') === '--case') {
     define('ADVISERS_REVIEW_ONLY_OWN_STUDENTS', true);
     define('OVERRIDE_MIN_REASON_LENGTH', 5);
     foreach (['WF_PENDING_REVIEW' => 'Pending Adviser Review', 'WF_NEEDS_REVISION' => 'Needs Revision',
-        'WF_READY_FOR_RPMS' => 'Ready for Formal RPMS Submission', 'WF_SUBMITTED_RPMS' => 'Submitted to RPMS', 'WF_SUPERSEDED' => 'Superseded'] as $key => $value) define($key, $value);
+        'WF_READY_FOR_RPMS' => 'Ready for Formal RPMS Submission', 'WF_SUBMITTED_RPMS' => 'Submitted to RPMS', 'WF_RETURNED_REVISION' => 'Returned for Revision', 'WF_SUPERSEDED' => 'Superseded'] as $key => $value) define($key, $value);
     // Extract only real workflow functions; no workflow bootstrap or configuration is evaluated.
     $workflow = str_replace("\r\n", "\n", file_get_contents(__DIR__ . '/../workflow.php'));
     $delivery = file_get_contents(__DIR__ . '/../includes/notification_delivery.php');
@@ -271,15 +273,15 @@ $cases = [
     ['name'=>'Concurrent archival rejects Student upload','action'=>'upload','role'=>'student','archiveDuringUpload'=>true,'expectedStatus'=>409],
     ['name' => 'Student cannot invoke document summary', 'action' => 'summarize', 'role' => 'student', 'expectedStatus' => 403],
     ['name' => 'Adviser cannot invoke document summary', 'action' => 'summarize', 'role' => 'adviser', 'expectedStatus' => 403],
-    ['name' => 'Failed student formal transaction sends no admin email', 'action' => 'submit_to_rpms', 'mode' => 'submission', 'beforeStatus' => 'Approved', 'role' => 'student', 'failSubmit' => true, 'expectedStatus' => 500],
-    ['name' => 'Admin email failure cannot undo student submission', 'action' => 'submit_to_rpms', 'beforeStatus' => 'Approved', 'role' => 'student', 'emailFails' => true],
-    ['name' => 'Admin email exception cannot undo student submission', 'action' => 'submit_to_rpms', 'beforeStatus' => 'Approved', 'role' => 'student', 'emailThrows' => true],
+    ['name' => 'Obsolete Student submission rejected before transaction', 'action' => 'submit_to_rpms', 'mode' => 'submission', 'beforeStatus' => 'Approved', 'role' => 'student', 'failSubmit' => true, 'expectedStatus' => 403],
+    ['name' => 'Obsolete Student submission creates no email even when transport fails', 'action' => 'submit_to_rpms', 'beforeStatus' => 'Approved', 'role' => 'student', 'emailFails' => true, 'expectedStatus'=>403],
+    ['name' => 'Obsolete Student submission creates no email even when transport throws', 'action' => 'submit_to_rpms', 'beforeStatus' => 'Approved', 'role' => 'student', 'emailThrows' => true, 'expectedStatus'=>403],
     ['name' => 'Override approval advances in approval mode', 'action' => 'override_review', 'advanced' => true],
     ['name' => 'Override approval waits in submission mode', 'action' => 'override_review', 'mode' => 'submission', 'advanced' => false],
-    ['name' => 'Normal adviser approval advances in approval mode', 'action' => 'review', 'role' => 'adviser', 'advanced' => true],
-    ['name' => 'Normal adviser approval waits in submission mode', 'action' => 'review', 'role' => 'adviser', 'mode' => 'submission', 'advanced' => false],
-    ['name' => 'Formal submission advances in submission mode', 'action' => 'submit_to_rpms', 'mode' => 'submission', 'beforeStatus' => 'Approved', 'role' => 'student', 'advanced' => true],
-    ['name' => 'Formal submission never repeats approval advancement', 'action' => 'submit_to_rpms', 'studentStage' => 'Stage 2', 'beforeStatus' => 'Approved', 'role' => 'student', 'advanced' => false],
+    ['name' => 'Admin ordinary approval advances in approval mode', 'action' => 'review', 'role' => 'admin', 'advanced' => true],
+    ['name' => 'Admin ordinary approval waits in submission mode', 'action' => 'review', 'role' => 'admin', 'mode' => 'submission', 'advanced' => false],
+    ['name' => 'Obsolete Student manual submit cannot advance in submission mode', 'action' => 'submit_to_rpms', 'mode' => 'submission', 'beforeStatus' => 'Approved', 'role' => 'student', 'expectedStatus'=>403],
+    ['name' => 'Obsolete Student submit cannot repeat advancement', 'action' => 'submit_to_rpms', 'studentStage' => 'Stage 2', 'beforeStatus' => 'Approved', 'role' => 'student', 'expectedStatus'=>403],
     ['name' => 'Admin force-submit advances new approval in approval mode', 'action' => 'submit_to_rpms', 'role' => 'admin', 'advanced' => true],
     ['name' => 'Admin force-submit advances once in submission mode', 'action' => 'submit_to_rpms', 'role' => 'admin', 'mode' => 'submission', 'advanced' => true],
     ['name' => 'Admin force-submit old stage cannot advance newer progress', 'action' => 'submit_to_rpms', 'role' => 'admin', 'studentStage' => 'Stage 2', 'advanced' => false],

@@ -1,4 +1,5 @@
 <?php
+require_once __DIR__.'/../includes/document_workflow.php';
 /** Actual list endpoints and bulk reconstruction over volatile SQL. No config or live DB. */
 if (PHP_SAPI !== 'cli') exit(1);
 if (($argv[1] ?? '') === '--case') {
@@ -20,7 +21,8 @@ if (($argv[1] ?? '') === '--case') {
     foreach ([[1,'amt','bsit','4th Year',1,'BS in Information Technology'],[2,'nursing','bsn','4th Year',1,'BS in Nursing'],[3,null,null,null,1,'Legacy course'],[4,'amt',null,null,1,null],[5,'dentistry','ddm','6th Year',2,'Doctor of Dental Medicine'],[6,null,'mba_thesis',null,1,'Master of Business Administration (Thesis Program)'],[7,null,'legacy_program','Unknown year',1,'Legacy course'],[8,'amt','bsit','4th Year',2,'BS in Information Technology']] as [$id,$unit,$program,$year,$adviser,$course]) {
         $q->execute([$id,'S'.$id,'Student '.$id,'s'.$id.'@example.test',$course,$unit,$program,$year,'2026-2027',$adviser,'Stage 1','On Track','2026-01-01']);
     }
-    $pdo->exec('CREATE TABLE documents(student_id INTEGER, is_current INTEGER, rpms_submitted_at TEXT, review_status TEXT)');
+    $pdo->exec('CREATE TABLE documents(id TEXT,student_id INTEGER, is_current INTEGER, rpms_submitted_at TEXT, review_status TEXT)');
+    $pdo->exec('CREATE TABLE activity_logs(id INTEGER,entity_type TEXT,entity_id TEXT,action TEXT,reason TEXT,actor_name TEXT,created_at TEXT)');
     $pdo->exec('CREATE TABLE notifications(recipient_type TEXT, recipient_id INTEGER, recipient_email TEXT, recipient_name TEXT, status TEXT)');
     $pdo->exec('CREATE TABLE calendar_deadlines(creator_user_id INTEGER,status TEXT,deadline_date TEXT)');
     $pdo->exec('CREATE TABLE users(id INTEGER,role TEXT,email TEXT)');

@@ -82,7 +82,7 @@ async function run(){
             await evaluate('document.querySelector("[data-staff-copy]").focus()');check(await evaluate('parseFloat(getComputedStyle(document.activeElement).outlineWidth)>=3'),label+' visible keyboard focus');
         }
         await post('fixture-state.php',{state:'invalidated'});await navigate('staff_registration_manage.php');
-        await evaluate('document.querySelector("form [name=action][value=generate]").form.requestSubmit()');await waitFor('!!document.getElementById("staffPlaintext")');
+        await evaluate('document.querySelector("form [name=action][value=generate]").form.requestSubmit()');await waitFor('document.readyState==="complete"&&!!document.getElementById("staffPlaintext")');
         check(await evaluate('!!document.querySelector("[name=confirmed][required]")&&!!document.querySelector("[name=proof]")'), 'native saved confirmation '+width+'/'+dark);
         check(await evaluate('document.documentElement.scrollWidth<=innerWidth+1'), 'one time display fits '+width+'/'+dark);
         check(await evaluate('(()=>{const code=document.getElementById("staffPlaintext").textContent;return !location.href.includes(code)&&[...document.querySelectorAll("a,form")].every(e=>!(e.getAttribute("href")||e.getAttribute("action")||"").includes(code));})()'),'one time code absent from URLs');
@@ -98,7 +98,7 @@ async function run(){
             await evaluate('document.getElementById("staffPlaintext").style.visibility=""');
         }
         await evaluate('document.querySelector("[name=action][value=acknowledge]").form.querySelector("[name=confirmed]").checked=true;document.querySelector("[name=action][value=acknowledge]").form.requestSubmit()');
-        await waitFor('!document.getElementById("staffPlaintext")&&document.getElementById("staffStatus")?.textContent.includes("Active")');
+        await waitFor('document.readyState==="complete"&&!document.getElementById("staffPlaintext")&&document.getElementById("staffStatus")?.textContent.includes("Active")');
         check(await evaluate('!document.querySelector("[name=proof]")'),'acknowledged code and proof disappear');
         const before=await evaluate('document.documentElement.classList.contains("dark-theme")');await evaluate('document.getElementById("themeToggle").click()');
         check(await evaluate('document.documentElement.classList.contains("dark-theme")')!==before,'theme button works');

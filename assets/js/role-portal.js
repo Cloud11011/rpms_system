@@ -170,9 +170,9 @@ document.addEventListener('DOMContentLoaded', () => {
         $('dashboardSubmissionStatus').hidden = !loadErrors.documents && !latestDoc;
         $('studentCurrentDocument').textContent = loadErrors.documents ? 'Unable to load your latest submission.' : latestDoc?.originalName || '';
         $('studentCurrentDocument').hidden = !loadErrors.documents && !latestDoc?.originalName;
-        $('studentReviewState').textContent = loadErrors.documents ? 'Unavailable' : latestDoc?.reviewStatus || 'No review yet';
-        $('studentReviewRemarks').textContent = loadErrors.documents ? 'Reviewer remarks could not be loaded.' : latestDoc?.reviewRemarks || '';
-        $('studentReviewRemarks').hidden = !loadErrors.documents && !latestDoc?.reviewRemarks;
+        $('studentReviewState').textContent = loadErrors.documents ? 'Unavailable' : latestDoc?.workflowState || latestDoc?.reviewStatus || 'No review yet';
+        $('studentReviewRemarks').textContent = loadErrors.documents ? 'Reviewer remarks could not be loaded.' : latestDoc?.rpmsReturnReason || latestDoc?.reviewRemarks || '';
+        $('studentReviewRemarks').hidden = !loadErrors.documents && !latestDoc?.rpmsReturnReason && !latestDoc?.reviewRemarks;
 
         const unread = unreadNotifications;
         $('navBadge').textContent = loadErrors.notifications ? '!' : unread;
@@ -250,9 +250,9 @@ document.addEventListener('DOMContentLoaded', () => {
             <td>${esc(d.documentType)}</td>
             <td>${fmt(d.uploadedAt)}</td>
             <td>${PrismUI.badge(d.workflowState || d.reviewStatus, { small: true })}${d.rpmsSubmittedAt ? `<small>Submitted: ${esc(fmt(d.rpmsSubmittedAt))}</small>` : ''}</td>
-            <td>${esc(d.reviewRemarks || (d.workflowState === 'Submitted to RPMS' ? 'Formally submitted to RPMS' : 'No reviewer remarks yet'))}</td>
+            <td>${esc(d.rpmsReturnReason ? 'RPMS return reason: '+d.rpmsReturnReason : d.reviewRemarks || (d.workflowState === 'Submitted to RPMS' ? 'Formally submitted to RPMS' : 'No reviewer remarks yet'))}</td>
             <td><div class="student-document-actions"><a class="action-btn" href="documents_api.php?action=file&id=${encodeURIComponent(d.id)}" target="_blank" rel="noopener">Preview</a>
-                <a class="action-btn" href="documents_api.php?action=file&download=1&id=${encodeURIComponent(d.id)}">Download</a>${d.actions?.submitToRpms ? `<button type="button" class="action-btn prism-btn-primary" data-formal-submit="${esc(d.id)}">Submit to RPMS</button>` : ''}</div></td>
+                <a class="action-btn" href="documents_api.php?action=file&download=1&id=${encodeURIComponent(d.id)}">Download</a><button type="button" class="action-btn" data-version-history="${esc(d.id)}">Version history</button>${d.actions?.uploadRevision ? `<button type="button" class="action-btn prism-btn-primary" data-upload-revision="${esc(d.id)}">Upload Revision</button>` : ''}</div></td>
         </tr>`).join('') || `<tr><td colspan="6">${empty('No documents match this view.')}</td></tr>`;
         document.querySelectorAll('.student-document-actions').forEach(host => PrismUI.actionMenu(host, {primary:host.querySelector('[data-formal-submit]')}));
     }
@@ -359,6 +359,19 @@ document.addEventListener('DOMContentLoaded', () => {
     // ------------------------------------------------------------------
     // Document submission
     // ------------------------------------------------------------------
+    let revisionDocument = null;
+    const revisionNotice = document.createElement('p'); revisionNotice.setAttribute('role','status'); revisionNotice.hidden = true;
+    $('submissionForm').before(revisionNotice);
+    const cancelRevision = document.createElement('button'); cancelRevision.type='button'; cancelRevision.textContent='Cancel revision'; cancelRevision.className='action-btn'; cancelRevision.hidden=true;
+    revisionNotice.after(cancelRevision);
+    function clearRevision() { revisionDocument=null; revisionNotice.hidden=true; cancelRevision.hidden=true; $('documentType').disabled=false; $('documentFile').multiple=true; }
+    cancelRevision.addEventListener('click',clearRevision);
+    document.addEventListener('prism:upload-revision',event=>{
+        const doc=event.detail; if(!doc?.actions?.uploadRevision)return;
+        revisionDocument=doc; $('documentType').value=doc.documentType; $('documentType').disabled=true; $('documentFile').multiple=false;
+        revisionNotice.textContent=`Upload a NEW revision of ${doc.originalName} (version ${doc.versionNo}, ${doc.stageLabel || doc.stage}). The submitted file and history will be kept. ${doc.rpmsReturnReason || doc.reviewRemarks || ''}`;
+        revisionNotice.hidden=false; cancelRevision.hidden=false; $('documentFile').focus();
+    });
     $('submissionForm').addEventListener('submit', async event => {
         event.preventDefault();
         const files = $('documentFile').files;
@@ -367,6 +380,7 @@ document.addEventListener('DOMContentLoaded', () => {
         Array.from(files).forEach(file => formData.append('document[]', file));
         PrismUpload.prepare(formData, files.length);
         formData.append('documentType', $('documentType').value);
+        if(revisionDocument)formData.append('revisionOf',revisionDocument.id);
         formData.append('stage', myRecord?.stage || 'Stage 1');
         formData.append('notes', $('documentNotes').value.trim());
 
@@ -376,6 +390,7 @@ document.addEventListener('DOMContentLoaded', () => {
         try {
             const data = await PrismUI.request('documents_api.php?action=upload', { method: 'POST', body: formData });
             event.target.reset();
+            clearRevision();
             await refreshAll();
             $('uploadSelection').textContent='';
             PrismUpload.render(data);
@@ -415,10 +430,11 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     $('documentFilter').addEventListener('change', () => {docPager.reset();refreshDocuments();});
     $('documentRows').addEventListener('click', e => {
-        const button = e.target.closest('[data-formal-submit]');
+        const history=e.target.closest('[data-version-history]'); if(history){PrismUI.showVersions(history.dataset.versionHistory);return;}
+        const button = e.target.closest('[data-upload-revision]');
         if(!button)return;
-        const doc = documentHistory.records.find(d=>String(d.id)===button.dataset.formalSubmit);
-        if(doc)PrismUI.runAction(button,'Submitting...',()=>PrismUI.submitToRpms(doc));
+        const doc = documentHistory.records.find(d=>String(d.id)===button.dataset.uploadRevision);
+        if(doc)PrismUI.uploadRevision(doc);
     });
 
 

@@ -1,4 +1,7 @@
 /* Batch 2: stable marker space and native read-only dialogs. */
+body.prism-workspace .prism-btn.is-warning {
+    color: var(--prism-warning-fg); background: var(--prism-warning-bg); border: 1px solid var(--prism-warning-bd);
+}
 .prism-readonly-dialog {
     position:fixed; inset:0; margin:auto;
     box-sizing:border-box; width:min(560px,calc(100vw - 32px)); max-width:calc(100vw - 32px);
