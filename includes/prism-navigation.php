@@ -36,7 +36,7 @@ if ($authUser['role'] === 'adviser'):
 $prismNavGroups = [
     'Research' => ['Research Management', 'fa-folder-open', [
         ['admin_students.php', 'Student Records'],
-        ...($authUser['role'] === 'admin' ? [['admin_advisers.php', 'Research Advisers']] : []),
+        ...($authUser['role'] === 'admin' ? [['admin_advisers.php', 'Research Advisers'], ['admin_archived_accounts.php', 'Archived Accounts']] : []),
         ['ierbprog.php', 'IERB Progress'], ['documents.php', 'Document Submissions'],
     ]],
     'Reporting' => ['Reports & Communication', 'fa-chart-line', [

@@ -9,12 +9,16 @@
         if (!window.PrismReadOnly) return;
         const { dialog, node, button } = PrismReadOnly;
         const view = dialog('Official deadlines — ' + displayDate(key), trigger);
+        view.element.addEventListener('close',()=>{
+            if (!trigger?.isConnected && trigger?.dataset.calendarDate) document.querySelector(`[data-calendar-date="${key}"]`)?.focus({preventScroll:true});
+        },{once:true});
         const state = node('p', 'Loading official deadlines...');
         state.setAttribute('role', 'status');
         view.content.append(state);
         const close = button('Close', view.close);
         const calendar = node('a', 'View Calendar', 'prism-btn is-secondary');
-        calendar.href = 'calendar.php';
+        calendar.href = document.body.classList.contains('student-page') ? '#calendar' : 'calendar.php';
+        if(document.body.classList.contains('student-page'))calendar.addEventListener('click',()=>view.close(false));
         view.actions.append(calendar, close);
         close.focus();
         try {
@@ -35,7 +39,7 @@
                 article.append(node('h3', row.title));
                 const details = node('dl');
                 const groups = row.target_scope === 'all'
-                    ? (document.body.dataset.userRole === 'adviser' ? 'All currently assigned research groups' : 'All research groups')
+                    ? (document.body.dataset.userRole === 'admin' ? 'All research groups' : 'Institution-wide official deadline')
                     : row.groups.join(', ');
                 for (const [label, value] of [['Deadline date', displayDate(row.deadline_date)], ['Research groups', groups || 'No currently assigned research groups'], ['Status', row.status]]) {
                     details.append(node('dt', label), node('dd', value));
@@ -81,12 +85,13 @@
             state.textContent = 'Could not load official deadlines. Use View Calendar or change the month to try again.';
         } finally { if (current === sequence) state.setAttribute('aria-busy', 'false'); }
     }
-    window.PrismDashboardDeadlines = { refresh };
+    window.PrismDashboardDeadlines = { refresh, openDay };
     document.addEventListener('DOMContentLoaded', () => {
         const adminDays = document.getElementById('calendarDays');
         const adviserDays = document.getElementById('adviserCalendarDays');
-        if (!adminDays && !adviserDays) return;
-        const container = adminDays ? adminDays.closest('.calendar-card') || adminDays.parentElement.parentElement : adviserDays.closest('.prism-deadline-calendar');
+        const studentDays = document.getElementById('dashboardCalendarGrid');
+        if (!adminDays && !adviserDays && !studentDays) return;
+        const container = adminDays ? adminDays.closest('.calendar-card') || adminDays.parentElement.parentElement : (adviserDays || studentDays).closest('.prism-deadline-calendar,.dashboard-calendar-panel');
         // Capture before the existing Admin personal-task click handler or year/month handler.
         const activate = event => {
             const trigger = event.target.closest('[data-deadline-date]');
@@ -124,6 +129,6 @@
                 date.setMonth(date.getMonth() + Number(button.dataset.deadlineMonth)); render();
             }));
             render();
-        } else refresh(new Date());
+        } else if (adminDays) refresh(new Date());
     });
 })();

@@ -9,7 +9,8 @@ if(($_SERVER['REQUEST_METHOD']??'')==='GET') {
         if (($_GET['action']??'')==='recovery_jobs') json_out(['ok'=>true,'jobs'=>purge_recovery_jobs(db())]);
         if (($_GET['action']??'')==='account_state') {
             $type=retention_type($_GET['accountType']??null); $id=retention_id($_GET['targetId']??null);
-            $rows=retention_scope_rows(db(),$user,$type,[],[$id]);
+            // A lifecycle state read intentionally addresses either account population.
+            $rows=retention_scope_rows(db(),$user,$type,['lifecycle'=>'all'],[$id]);
             if (!$rows) throw new AccountLifecycleNotFound('Account record not found.');
             json_out(['ok'=>true,'lifecycle'=>retention_state($rows[0]),'assignedStudents'=>(int)($rows[0]['assigned_students']??0)]);
         }

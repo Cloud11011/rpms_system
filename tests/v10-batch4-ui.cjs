@@ -5,9 +5,9 @@ async function run({check,evaluate,waitFor,navigate,command,keyPress,errors,getR
   const before=process.argv.includes('--batch4-before');
   const dest=fs.mkdtempSync(path.join(os.tmpdir(),before?'prism-batch4-before-':'prism-batch4-after-'));
   const metrics=[];
-  const screens=[['login.php','student'],['account_setup.php','student'],['complete_profile.php','student'],['complete_profile.php','adviser'],['dashboard.php','admin'],['admin_students.php','admin'],['admin_advisers.php','admin'],['admin_students.php','adviser'],['documents.php','admin'],['documents.php','adviser'],['ierbprog.php','admin'],['ierbprog.php','adviser'],['account.php','admin'],['account.php','adviser'],['student.php','student'],['research_adviser.php','adviser']];
-  for(const [width,height] of (process.argv.includes('--smoke')?[[1366,768],[375,812]]:matrix))for(const dark of [false,true])for(const [file,role] of (process.argv.includes('--controls')?screens.filter(s=>['student.php','research_adviser.php'].includes(s[0])):screens)) {
-    setManagement(file==='admin_advisers.php'?'adviser':'student');
+  const screens=[['login.php','student'],['account_setup.php','student'],['complete_profile.php','student'],['complete_profile.php','adviser'],['dashboard.php','admin'],['admin_students.php','admin'],['admin_advisers.php','admin'],['admin_archived_accounts.php','admin','student'],['admin_archived_accounts.php','admin','adviser'],['admin_students.php','adviser'],['documents.php','admin'],['documents.php','adviser'],['ierbprog.php','admin'],['ierbprog.php','adviser'],['account.php','admin'],['account.php','adviser'],['student.php','student'],['research_adviser.php','adviser']];
+  for(const [width,height] of (process.argv.includes('--smoke')?[[1366,768],[375,812]]:matrix))for(const dark of [false,true])for(const [file,role,type] of (process.argv.includes('--controls')?screens.filter(s=>['student.php','research_adviser.php'].includes(s[0])):screens)) {
+    setManagement(type || (file==='admin_advisers.php'?'adviser':'student'));
     await navigate(file,width,dark,'populated',role);
     await command('Emulation.setDeviceMetricsOverride',{width,height,deviceScaleFactor:1,mobile:width<500});
     await evaluate('new Promise(r=>setTimeout(r,180))');
@@ -65,7 +65,7 @@ async function run({check,evaluate,waitFor,navigate,command,keyPress,errors,getR
       }
       if(info.filter) {
         check(await evaluate("(() => {const s=document.querySelector('.management-search,.ierb-search,.document-search');return s.getBoundingClientRect().width<=Math.max(320,innerWidth<601?innerWidth:320)+1&&s.getBoundingClientRect().height<=44;})()"),label+': compact search');
-        if(role==='admin' && file.startsWith('admin_'))check(await evaluate('document.querySelector(".prism-filter-panel .retention-cleanup") && document.querySelectorAll(".prism-filter-panel select[id*=lifecycle],.prism-filter-panel select[id*=retention],.prism-filter-panel select[id*=profile]").length===3 && !document.querySelector(".prism-filter-panel .retention-toolbar")'),label+': retention maintenance inside filters, bulk selection outside');
+        if(role==='admin' && file.startsWith('admin_'))check(await evaluate(`!document.querySelector('.prism-filter-panel select[id*=lifecycle]') && !document.querySelector('.prism-filter-panel .retention-toolbar') && document.querySelector('.retention-toolbar').hidden && ${file==='admin_archived_accounts.php'?"document.querySelector('.prism-filter-panel .retention-cleanup') && document.querySelectorAll('.prism-filter-panel select[id*=retention],.prism-filter-panel select[id*=profile]').length===2":"!document.querySelector('.retention-cleanup') && document.querySelectorAll('.prism-filter-panel select[id*=profile]').length===1"}`),label+': retention maintenance confined to archive filters; bulk selection outside and initially hidden');
       }
       if(file==='student.php' || file==='documents.php' || file==='ierbprog.php' || file.startsWith('admin_')) {
         const hasMenu=await evaluate('!!document.querySelector(".prism-action-trigger")');check(hasMenu,label+': secondary actions consolidated');

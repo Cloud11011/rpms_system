@@ -71,6 +71,8 @@ async function run(ctx) {
         if(viewer==='admin'&&file==='admin_students.php') {
           await set(host+'_programKey','');await set(host+'_academicUnitKey','');
           await waitFor('document.querySelectorAll("[data-retention-id]").length>0');
+          check(await evaluate('document.getElementById("retentionSelectionMode").getAttribute("aria-pressed")==="false"'),prefix+': selection initially off');
+          await evaluate('document.getElementById("retentionSelectionMode").click()');
           await evaluate('document.querySelector("[data-retention-id]").click()');
           check(await evaluate('document.querySelector(".retention-toolbar p").textContent.startsWith("1 accounts selected")'),prefix+': individual row selected');
           await set(host+'_academicUnitKey','nursing');

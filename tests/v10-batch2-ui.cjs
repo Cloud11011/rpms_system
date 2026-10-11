@@ -7,10 +7,10 @@ const today = () => { const d = new Date(); return `${d.getFullYear()}-${String(
 function mockDeadlines(action, query, scenario, role) {
   if (scenario === 'error') return {ok:false,message:'Synthetic deadline failure'};
   if (action === 'dashboard_day' && detailError) return {ok:false,message:'Synthetic detail failure'};
-  if (action === 'dates') return {ok:true,dates:scenario==='empty'||query.from>today()||query.to<today()?[]:[{deadline_date:today(),total:12}]};
+  if (action === 'dates') return {ok:true,dates:scenario==='empty'||query.from>today()||query.to<today()?[]:[{deadline_date:today(),total:scenario==='single'?1:12}]};
   const page = Number(query.page||1);
-  const rows = scenario==='empty'?[]:Array.from({length:12},(_,i)=>({id:i+1,title:i===0?attack:`Official deadline ${i+1}`,deadline_date:query.date,target_scope:i===1?'all':'groups',status:'Active',groups:i===1?[]:['AMT-BSIT-Y2-2627-G01']}));
-  return {ok:true,deadlines:rows.slice((page-1)*10,page*10),total:rows.length,page,pages:2};
+  const rows = scenario==='empty'?[]:Array.from({length:scenario==='single'?1:12},(_,i)=>({id:i+1,title:i===0?attack:`Official deadline ${i+1}`,deadline_date:query.date||query.from,target_scope:i===1?'all':'groups',status:'Active',groups:i===1?[]:['AMT-BSIT-Y2-2627-G01']}));
+  return {ok:true,deadlines:rows.slice((page-1)*10,page*10),total:rows.length,page,pages:Math.max(1,Math.ceil(rows.length/10))};
 }
 async function run({check,evaluate,waitFor,navigate,command,keyPress,errors,getRequests,setDelay}) {
   const shots=fs.mkdtempSync(path.join(os.tmpdir(),'prism-batch2-ui-'));

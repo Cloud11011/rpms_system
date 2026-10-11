@@ -11,6 +11,8 @@
     }
 
     const isAdviser = document.body.dataset.management === 'adviser';
+    const archiveWorkspace = document.body.dataset.archiveWorkspace === 'true';
+    const lifecyclePopulation = archiveWorkspace ? 'archived' : 'active';
     const apiUrl = isAdviser ? 'advisers_api.php' : 'students_api.php';
     // "loggedInRole" = the role of the person USING this page (admin or
     // adviser). Not to be confused with `isAdviser` above, which means
@@ -75,7 +77,7 @@
     let loadError = false;
     let deletionAvailability = {available:false,message:'Checking permanent-delete schema verification...'};
     async function loadDeletionAvailability() {
-        if(loggedInRole!=='admin') return;
+        if(loggedInRole!=='admin' || !archiveWorkspace) return;
         try {
             const data=await PrismUI.request('account_lifecycle_api.php?action=availability');
             deletionAvailability={available:data.available===true,message:data.message || 'Permanent deletion is unavailable.'};
@@ -93,13 +95,13 @@
     const filters = PrismUI.recordFilters(document.getElementById('recordFilters'), definitions);
     const sort = PrismUI.recordFilters(document.getElementById('recordFilters'), [['sortBy','Sort by'],['direction','Direction']]);
     const sortOptions = isAdviser
-      ? [['name','Name'],['employeeId','Employee ID'],['email','Email'],['department','Academic unit / Department'],['status','Account status']]
-      : [['name','Name'],['studentId','Student ID'],['email','Email'],['group','Research group'],['adviser','Research adviser'],['stage','IERB stage'],['status','Status'],['academicYear','Academic year']];
+      ? [['name','Name'],['employeeId','Employee ID'],['email','Email'],['department','Academic unit / Department'],['status','Account status'],...(archiveWorkspace ? [['archivedAt','Archived date']] : [])]
+      : [['name','Name'],['studentId','Student ID'],['email','Email'],['group','Research group'],['adviser','Research adviser'],['stage','IERB stage'],['status','Status'],['academicYear','Academic year'],...(archiveWorkspace ? [['archivedAt','Archived date']] : [])];
     sort.update({sortBy:sortOptions.map(([value,label])=>({value,label})),direction:[{value:'ASC',label:'Ascending'},{value:'DESC',label:'Descending'}]});
     sort.controls[0].options[0].textContent = 'Name (default)';
     sort.controls[1].options[0].textContent = 'Ascending (default)';
     if (loggedInRole === 'admin') {
-        const lifecycleFilters=PrismUI.recordFilters(document.getElementById('recordFilters'), [['lifecycle','Lifecycle'],['retention','Retention status'],['profile','Profile status']]);
+        const lifecycleFilters=PrismUI.recordFilters(document.getElementById('recordFilters'), [...(archiveWorkspace ? [['retention','Retention status']] : []),['profile','Profile status']]);
         filters.controls.push(...lifecycleFilters.controls);
         const baseQuery=filters.query, baseUpdate=filters.update;
         filters.query=()=>({...baseQuery(),...lifecycleFilters.query()});
@@ -109,12 +111,12 @@
     const pager = PrismUI.recordPager(rowsEl.closest('table').parentElement, countEl, [searchInput,...filterControls], loadRecords,
         {host:document.getElementById('recordFilters'),toolbar:document.querySelector('.management-controls')});
     const retentionUI=loggedInRole==='admin'?PrismRetentionAdmin.mount({
-        type:isAdviser?'adviser':'student', rows:rowsEl, getScope:()=>({q:searchInput.value.trim(),...filters.query()}),
+        type:isAdviser?'adviser':'student', rows:rowsEl, archived:archiveWorkspace, getScope:()=>({q:searchInput.value.trim(),...filters.query(),lifecycle:lifecyclePopulation}),
         getRecords:()=>records, getAvailability:()=>deletionAvailability, refresh:loadRecords,
         openBulk:openBulkDelete, openRecovery,
-        reviewCleanup:async()=>{document.getElementById('recordFilters_lifecycle').value='archived';document.getElementById('recordFilters_retention').value='cleanup';pager.reset();await loadRecords();}
+        reviewCleanup:async()=>{document.getElementById('recordFilters_retention').value='cleanup';pager.reset();await loadRecords();}
     }):null;
-    const invitationUI=PrismInvitations.mount({type:isAdviser?'adviser':'student',role:loggedInRole,refresh:loadRecords});
+    const invitationUI=archiveWorkspace ? null : PrismInvitations.mount({type:isAdviser?'adviser':'student',role:loggedInRole,refresh:loadRecords});
     const dirty = PrismUI.dirtyForm(form);
     let requestSequence = 0;
     async function loadRecords() {
@@ -125,7 +127,7 @@
         pager.loading();
         loadError = false;
         try {
-            const data = await PrismUI.request(apiUrl + '?' + new URLSearchParams({action:'list',page:pager.page,q:searchInput.value.trim(),...filters.query(),...sort.query()}));
+            const data = await PrismUI.request(apiUrl + '?' + new URLSearchParams({action:'list',page:pager.page,q:searchInput.value.trim(),...filters.query(),...sort.query(),lifecycle:lifecyclePopulation}));
             const items = isAdviser ? data.advisers : data.students;
             if (!Array.isArray(items)) throw new Error('Could not load records.');
             if (request !== requestSequence) return;
@@ -179,7 +181,7 @@
             countEl.textContent = 'Records unavailable';
             const row = document.createElement('tr');
             const cell = document.createElement('td');
-            cell.colSpan = (isAdviser ? 6 : 7)+(retentionUI?1:0);
+            cell.colSpan = (archiveWorkspace ? 7 : (isAdviser ? 6 : 7))+(retentionUI?1:0);
             cell.className = 'empty-state';
             const message = document.createElement('p');
             message.setAttribute('role', 'alert');
@@ -199,14 +201,24 @@
         }
         if (!filtered.length) {
             const tr = document.createElement('tr');
-            tr.innerHTML = `<td colspan="${(isAdviser ? 6 : 7)+(retentionUI?1:0)}" class="empty-state">No ${isAdviser ? 'adviser' : 'student'} records found.</td>`;
+            tr.innerHTML = `<td colspan="${(archiveWorkspace ? 7 : (isAdviser ? 6 : 7))+(retentionUI?1:0)}" class="empty-state">No ${isAdviser ? 'adviser' : 'student'} records found.</td>`;
             rowsEl.appendChild(tr);
             return;
         }
 
         filtered.forEach(record => {
             const tr = document.createElement('tr');
-            if (isAdviser) {
+            if (archiveWorkspace) {
+                const lc=record.lifecycle || {};
+                const status=!deletionAvailability.available ? deletionAvailability.message : lc.purgeBlockReason || 'Eligible for permanent deletion';
+                const retentionStatus=lc.retentionHold ? 'Retention Hold' : lc.unresolvedWorkflow ? 'Unresolved workflow' : lc.cleanupEligible ? 'Eligible for retention cleanup' : lc.approachingRetention ? 'Approaching retention cleanup' : 'Archived';
+                tr.innerHTML=`<td><strong>${escapeHtml(record.name || 'Profile incomplete')}</strong><br><small>${escapeHtml(record.email)}</small></td>
+                    <td>${escapeHtml(record.studentId || record.employeeId || 'Not recorded')}</td>
+                    <td>${escapeHtml(record.department || record.course || 'Not recorded')}</td>
+                    <td>${escapeHtml(isAdviser ? (record.groups || []).join(', ') || 'No current assigned groups' : record.group || 'No group')}<br><small>${escapeHtml(record.adviserName || (isAdviser ? '' : 'Unassigned'))}</small></td>
+                    <td>${escapeHtml(record.archivedAt)}</td>
+                    <td>${escapeHtml(retentionStatus)}<br><small>${escapeHtml(status)}</small><br><small>Retention date: ${escapeHtml(lc.retentionAt || 'Not recorded')}</small>${lc.holdReason ? '<br><small>'+escapeHtml(lc.holdReason)+'</small>' : ''}</td><td class="row-actions"></td>`;
+            } else if (isAdviser) {
                 tr.innerHTML = `
                     <td><strong>${escapeHtml(record.name || 'Profile incomplete')}</strong>${record.profileStatus==='Pending'?' <span class="prism-badge">Pending Profile</span>':''}${record.archivedAt ? ' <span class="prism-badge">Archived</span>' : ''}<br><small>${escapeHtml(record.email)}</small></td>
                     <td>${escapeHtml(record.employeeId || '—')}</td>
@@ -228,7 +240,7 @@
                     <td>${protocolBadge}${piBadge}</td>
                     <td class="row-actions"></td>`;
             }
-            if (isAdviser) {
+            if (isAdviser && !archiveWorkspace) {
                 const groups = Array.isArray(record.groups) ? record.groups : [];
                 const cell = tr.querySelector('.adviser-groups');
                 if (!groups.length) cell.textContent = 'No assigned research groups';
@@ -238,7 +250,7 @@
                     chip.textContent = group;
                     cell.append(chip);
                 });
-            } else PrismAcademicFields.appendSummary(tr.cells[2], record);
+            } else if (!isAdviser) PrismAcademicFields.appendSummary(tr.cells[2], record);
             const actions = document.createElement('div');
             actions.className='lifecycle-actions';
             tr.querySelector('.row-actions').append(actions);
@@ -260,10 +272,10 @@
             delBtn.setAttribute('aria-label',delBtn.title);
             delBtn.innerHTML = '<i class="fa-solid fa-box-archive" aria-hidden="true"></i>';
             delBtn.addEventListener('click', e => PrismUI.runAction(e.currentTarget,'Processing...',() => deleteRecord(record)));
-            if(record.profileStatus!=='Pending') actions.append(editBtn);
-            invitationUI.addActions(actions,record);
+            if(!archiveWorkspace && record.profileStatus!=='Pending') actions.append(editBtn);
+            invitationUI?.addActions(actions,record);
             if (loggedInRole === 'admin') {
-                actions.append(delBtn);
+                if (!archiveWorkspace) actions.append(delBtn);
                 const hardDelete=document.createElement('button');
                 hardDelete.type='button';
                 hardDelete.className='icon-btn lifecycle-action lifecycle-danger';
@@ -275,7 +287,7 @@
                 hardDelete.setAttribute('aria-disabled',String(!!disabledReason));
                 hardDelete.innerHTML='<i class="fa-solid fa-trash" aria-hidden="true"></i>';
                 hardDelete.addEventListener('click',()=>{if(!disabledReason)openPermanentDelete(record,hardDelete);});
-                actions.append(hardDelete);
+                if (archiveWorkspace) actions.append(hardDelete);
                 if (archived) {
                     const restore=document.createElement('button');restore.type='button';restore.className='icon-btn lifecycle-action';restore.title='Restore '+accountLabel;restore.setAttribute('aria-label',restore.title);restore.innerHTML='<i class="fa-solid fa-rotate-left" aria-hidden="true"></i>';restore.addEventListener('click',()=>retentionUI.singleAction(record,'restore',restore));actions.append(restore);
                     const hold=document.createElement('button');hold.type='button';hold.className='icon-btn lifecycle-action';const held=record.lifecycle?.retentionHold;hold.title=(held?'Remove':'Place')+' Retention Hold';hold.setAttribute('aria-label',hold.title);hold.innerHTML='<i class="fa-solid fa-pause" aria-hidden="true"></i>';hold.addEventListener('click',()=>retentionUI.singleAction(record,held?'remove_hold':'hold',hold));actions.append(hold);
@@ -284,11 +296,6 @@
                     }
                 }
                 retentionUI.attachRow(tr,record);
-                if (archived) {
-                    const state=document.createElement('small');state.className='retention-state';const lc=record.lifecycle || {};
-                    state.textContent=lc.retentionHold?'Retention Hold':lc.unresolvedWorkflow?'Purge postponed ? Admin review required':lc.cleanupEligible?'Eligible for retention cleanup':lc.approachingRetention?'Approaching retention cleanup':lc.manualEligible?'Eligible for manual purge':lc.purgeBlockReason || 'Archived';
-                    tr.querySelector('td:not(.retention-select)').append(state);
-                }
             }
             PrismUI.actionMenu(actions);
             rowsEl.appendChild(tr);
@@ -427,7 +434,7 @@
 
     const recordNameForMessage = record => record?.name || 'this student';
 
-    addBtn.addEventListener('click', () => openModal(null));
+    addBtn?.addEventListener('click', () => openModal(null));
     closeBtn.addEventListener('click', closeModal);
     cancelBtn.addEventListener('click', closeModal);
     modal.addEventListener('click', e => { if (e.target === modal) closeModal(); });
@@ -440,7 +447,7 @@
         else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first.focus(); }
     });
     const searchReload = PrismUI.debounce(() => { pager.reset(); loadRecords(); });
-    searchInput.addEventListener('input', () => { ++requestSequence; pager.reset(); searchReload(); });
+    searchInput.addEventListener('input', () => { ++requestSequence; retentionUI?.syncScope(); pager.reset(); searchReload(); });
     filterControls.forEach(control=>control.addEventListener('change',()=>{pager.reset();loadRecords();}));
 
     form.addEventListener('submit', async event => {

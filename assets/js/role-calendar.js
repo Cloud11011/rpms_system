@@ -89,6 +89,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const button = document.createElement('button');
             button.type = 'button';
             button.className = 'calendar-day';
+            button.dataset.calendarDate = key;
             if (date.getMonth() !== visibleMonth.getMonth()) button.classList.add('outside');
             if (key === toDateKey(today)) button.classList.add('today');
             if (key === selectedDate) button.classList.add('selected');
@@ -129,7 +130,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
                 resetForm();
                 renderAll();
-                titleInput.focus();
+                if (officialCount) window.PrismDashboardDeadlines?.openDay(key, monthGrid.querySelector(`[data-calendar-date="${key}"]`));
+                else titleInput.focus();
             });
             monthGrid.appendChild(button);
         }
@@ -243,12 +245,15 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         for (let d = 1; d <= lastDate; d++) {
             const key = toDateKey(new Date(year, month, d));
-            const cell = document.createElement('div');
+            const cell = document.createElement('button');
+            cell.type = 'button';
+            cell.dataset.deadlineDate = key;
             let cls = 'mini-day';
             if (d === today.getDate() && month === today.getMonth() && year === today.getFullYear()) cls += ' active-day';
             if (tasksFor(key).length) cls += ' has-event';
             cell.className = cls;
             cell.textContent = d;
+            const marker=document.createElement('i');marker.className='fa-solid fa-calendar-day prism-deadline-marker';marker.hidden=true;marker.setAttribute('aria-hidden','true');cell.append(marker);
             dashboardGrid.appendChild(cell);
         }
         const totalRendered = firstDayIndex + lastDate;
@@ -259,6 +264,8 @@ document.addEventListener('DOMContentLoaded', () => {
             cell.textContent = j;
             dashboardGrid.appendChild(cell);
         }
+
+        window.PrismDashboardDeadlines?.refresh(dashboardMonth);
 
         if (dashboardDeadlineValue) {
             const upcomingKey = Object.keys(reminders)

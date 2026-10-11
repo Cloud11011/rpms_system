@@ -21,7 +21,7 @@ function retention_list_scope(PDO $pdo,array $actor,string $type,array $query): 
     $allowed=array_merge($allowed,['lifecycle','retention','profile','q']);
     $filters=[];
     foreach ($allowed as $key) {
-        $v=$query[$key]??'';
+        $v=$query[$key]??($key==='lifecycle'?'active':'');
         if (!is_string($v) || mb_strlen($v)>250) throw new AccountLifecycleValidation('Invalid lifecycle filter/search.');
         $filters[$key]=trim($v);
     }
@@ -63,7 +63,7 @@ function retention_list_scope(PDO $pdo,array $actor,string $type,array $query): 
         || !in_array($filters['retention'],array_merge([''],array_column($options['retention'],'value')),true)) {
         throw new AccountLifecycleValidation('Invalid retention filter.');
     }
-    if ($filters['lifecycle']==='active') $scope.=" AND $a.archived_at IS NULL";
+    if ($filters['lifecycle']==='' || $filters['lifecycle']==='active') $scope.=" AND $a.archived_at IS NULL";
     if ($filters['lifecycle']==='archived') $scope.=" AND $a.archived_at IS NOT NULL";
     $open=retention_unresolved_sql($type,$a);
     $filter=match($filters['retention']) {

@@ -6,7 +6,7 @@ $user = api_require_login(['admin', 'adviser', 'student']);
 $action = $_GET['action'] ?? 'list';
 if (!is_string($action)) json_out(['ok' => false, 'message' => 'Invalid action.'], 422);
 if ($action === 'dashboard_day') {
-    api_require_login(['admin', 'adviser']);
+    api_require_login(['admin', 'adviser', 'student']);
     if (($_SERVER['REQUEST_METHOD'] ?? '') !== 'GET') {
         json_out(['ok' => false, 'message' => 'Use GET to view deadline details.'], 405);
     }
@@ -26,7 +26,7 @@ try {
         $params[':date'] = $date;
         $page = prism_page_query($pdo, 'SELECT d.id, d.title, d.deadline_date, d.target_scope, d.status',
             $scope, $params, 'd.id DESC', ['page' => $_GET['page'] ?? 1]);
-        $allowed = $user['role'] === 'adviser' ? research_group_options($pdo, $user) : [];
+        $allowed = deadline_viewer_groups($pdo, $user);
         foreach ($page['rows'] as &$row) {
             $row['groups'] = [];
             if ($row['target_scope'] === 'groups') {

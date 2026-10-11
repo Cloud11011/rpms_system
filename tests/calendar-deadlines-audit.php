@@ -36,7 +36,8 @@ if (($argv[1] ?? '') === '--case') {
     foreach ($case['sql'] ?? [] as $sql) $pdo->exec($sql);
     $role = $case['role'] ?? 'admin';
     $actor = $role === 'anonymous' ? null : ['id'=>$role==='admin'?10:($role==='adviser'?11:12), 'role'=>$role,
-        'email'=>$role==='adviser'?'adviser@example.test':($role==='student'?($case['email']??'s1@example.test'):'admin@example.test'), 'full_name'=>'Fixture Actor'];
+        'email'=>$role==='adviser'?($case['email']??'adviser@example.test'):($role==='student'?($case['email']??'s1@example.test'):'admin@example.test'), 'full_name'=>'Fixture Actor'];
+    if ($actor && isset($case['viewerId'])) $actor['id']=(int)$case['viewerId'];
     $_SESSION = []; $_SERVER = ['SCRIPT_NAME'=>'calendar_deadlines_api.php','REQUEST_METHOD'=>$case['method']??'POST','HTTP_HOST'=>'prism.test','HTTP_ORIGIN'=>$case['origin']??'http://prism.test'];
     $_GET = ['action'=>$case['action']??'create'] + ($case['query']??[]);
     function db(): PDO { return $GLOBALS['pdo']; }

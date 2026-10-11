@@ -126,7 +126,7 @@ body.prism-workspace :is(.upload-document-button,.doc-primary,.ierb-primary,.ier
 }
 html.dark-theme body.prism-workspace :is(.upload-document-button,.doc-primary,.ierb-primary,.ierb-add-link,.generate-report-button,.small-btn,.dashboard-detail-button) { border-color:#747696; }
 html.dark-theme body.prism-workspace :is(.view-switch button.active,.day.active-day,.report-tool-icon,.quick-actions-toggle:hover,.quick-actions-toggle[aria-expanded=true],.dashboard-calendar-day:hover) { background:var(--prism-purple); color:#fff; }
-html.dark-theme body.prism-workspace :is(.record-action,.document-action-button,.ierb-action,.row-actions button,.report-row-actions a,.report-row-actions button):hover { background:var(--prism-purple); color:#fff; }
+html.dark-theme body.prism-workspace :is(.record-action,.document-action-button,.ierb-action,.row-actions button,.report-row-actions a,.report-row-actions button):not(.prism-btn):not(.prism-action-item):hover { background:var(--workspace-primary); color:#fff; }
 
 /* Admin: fixed floating navigation card, with one existing collapse controller. */
 body.admin-shell .sidebar.prism-sidebar { inset:16px auto 16px 16px; width:248px; border-radius:24px; padding:16px 12px; background:var(--sidebar-bg); box-shadow:0 12px 32px #29143824; transition:width .2s ease; }
@@ -483,3 +483,65 @@ body.portal-shell .adviser-document-actions { display:grid; grid-template-column
 body.portal-shell .adviser-document-actions .adviser-button { width:100%; min-height:44px; white-space:nowrap; }
 
 body.prism-workspace .lifecycle-actions { width:auto; }
+
+/* Batch 4.5: visible semantic controls and stable workspace geometry. */
+body.prism-workspace {
+    --workspace-primary:#a21368; --workspace-primary-hover:#861052;
+    --workspace-secondary:#f8eaf3; --workspace-secondary-text:#832052; --workspace-secondary-border:#a85590;
+    --workspace-neutral-border:#79859a;
+}
+html.dark-theme body.prism-workspace {
+    --workspace-primary:#b52b79; --workspace-primary-hover:#9a2167;
+    --workspace-secondary:#35233f; --workspace-secondary-text:#ffd4ed; --workspace-secondary-border:#b86d9a;
+    --workspace-neutral-border:#8b99b0;
+}
+body.prism-workspace :is(.management-primary,.primary-btn,.doc-primary,.upload-document-button,.prism-btn-primary,.prism-btn.is-primary,.save-task,.adviser-button.prism-btn-primary,#addRecord,#inviteAccount,#addIerbEntry,.view-btn.active) {
+    color:#fff; background:var(--workspace-primary); border:1px solid var(--workspace-secondary-border);
+}
+body.prism-workspace :is(.management-primary,.primary-btn,.doc-primary,.upload-document-button,.prism-btn-primary,.prism-btn.is-primary,.save-task,.view-btn.active):hover:not(:disabled) { background:var(--workspace-primary-hover); }
+body.prism-workspace :is(.prism-btn,.doc-secondary,.action-btn,.adviser-button,.view-btn,.today-button,.cancel-edit):not(.prism-btn-primary):not(.is-primary):not(.is-danger):not(.is-override):not(.prism-btn-danger):not(.active) {
+    color:var(--workspace-secondary-text); background:var(--workspace-secondary); border:1px solid var(--workspace-secondary-border);
+}
+body.prism-workspace .prism-btn.prism-btn-neutral:not(.prism-btn-primary):not(.is-primary):not(.is-danger):not(.is-override):not(.prism-btn-danger):not(.active) { color:var(--prism-text); background:var(--prism-card); border-color:var(--workspace-neutral-border); }
+body.prism-workspace :is(.prism-btn,.doc-secondary,.action-btn,.adviser-button,.view-btn):not(.prism-btn-primary):not(.is-primary):not(.is-danger):not(.is-override):not(.prism-btn-danger):not(.active):hover:not(:disabled) { box-shadow:inset 0 0 0 1px var(--workspace-secondary-border); }
+body.prism-workspace :is(.prism-btn,.management-primary,.view-btn,.today-button):active:not(:disabled) { box-shadow:inset 0 0 0 2px var(--workspace-secondary-border); }
+body.prism-workspace :is(.prism-btn-danger,.lifecycle-danger,.prism-action-danger) { color:var(--prism-danger-fg); background:var(--prism-danger-bg); border-color:var(--prism-danger-bd); }
+body.prism-workspace :is(.prism-btn,.management-primary,.view-btn,.today-button,.save-task,.cancel-edit) { display:inline-flex; align-items:center; justify-content:center; gap:6px; min-height:38px; padding:7px 12px; line-height:1.4; border-radius:8px; }
+body.prism-workspace :is(.archive-tabs,.calendar-top-bar,.cal-view-selector) { display:flex; flex-wrap:wrap; align-items:center; gap:8px; }
+body.prism-workspace .archive-tabs { margin:0 0 16px; }
+body.prism-workspace[data-archive-workspace=true] .management-table-wrap table { min-width:1100px; table-layout:fixed; }
+body.prism-workspace[data-archive-workspace=true] .management-table-wrap :is(td,th) { overflow-wrap:anywhere; }
+body.prism-workspace .archive-tabs [aria-current=page] { color:#fff; background:var(--workspace-primary); }
+body.prism-workspace .retention-toolbar[hidden],body.prism-workspace .retention-results[hidden],body.prism-workspace .management-card [hidden] { display:none!important; }
+body.prism-workspace .retention-selection-label { align-self:center; min-height:38px; margin:0; gap:8px; }
+body.prism-workspace .retention-selection-label input { min-height:20px; width:20px; height:20px; padding:0; margin:0; }
+body.prism-workspace .retention-toolbar-actions { justify-content:center; }
+body.prism-workspace .prism-btn.is-danger { background:#c62828; color:#fff; border-color:#df7777; }
+body.prism-workspace .prism-btn.is-danger:hover:not(:disabled) { background:#a81f1f; }
+body.prism-workspace .prism-action-panel .prism-action-item.prism-action-danger:is(:hover,:focus-visible,:active):not(:disabled):not([aria-disabled=true]) { color:#fff; background:#a31d35; border-color:#df7777; }
+body.prism-workspace .prism-btn-danger:hover:not(:disabled) { color:var(--prism-danger-fg); background:var(--prism-danger-bg); border-color:var(--prism-danger-bd); }
+/* Expanded navigation overlays the workspace; reserve only the rail. */
+body.admin-shell .prism-sidebar ~ .main-content,
+body.admin-shell .prism-sidebar.is-collapsed ~ .main-content { margin-left:100px; width:calc(100% - 100px); transition:none; }
+body.admin-shell .sidebar.prism-sidebar { z-index:800; max-width:calc(100vw - 28px); }
+body.admin-shell .prism-sidebar-backdrop { position:fixed; inset:0; z-index:790; background:#0c0e3f38; }
+.prism-sidebar-backdrop[hidden] { display:none; }
+/* Year cards wrap to the calendar's available width in normal section flow. */
+body.admin-shell .calendar-box { container-type:inline-size; min-width:0; }
+body.admin-shell .calendar-box.is-year-view { height:auto; max-height:none; overflow:visible; }
+body.admin-shell .content:has(.calendar-box.is-year-view) { grid-template-columns:minmax(0,1fr); }
+body.admin-shell .content:has(.calendar-box.is-year-view) > .right-column { grid-row:1; }
+body.admin-shell .content:has(.calendar-box.is-year-view) > .left-column { grid-row:2; }
+body.admin-shell #yearCalendarView { width:100%; max-height:none; height:auto; overflow:visible; grid-template-columns:repeat(3,minmax(0,1fr)); gap:12px; }
+body.admin-shell .year-month-card { min-width:0; padding:12px 8px; }
+body.admin-shell .year-month-card .mini-day { min-width:0; min-height:24px; }
+@container (max-width:900px) { body.admin-shell #yearCalendarView { grid-template-columns:repeat(2,minmax(0,1fr)); } }
+@container (max-width:480px) { body.admin-shell #yearCalendarView { grid-template-columns:minmax(0,1fr); } }
+body.prism-workspace .dashboard-calendar-grid button.mini-day { position:relative; min-width:0; min-height:38px; border:1px solid var(--prism-border); border-radius:6px; background:var(--prism-card); color:var(--prism-text); cursor:pointer; }
+body.prism-workspace .dashboard-calendar-grid button.active-day { background:var(--workspace-primary); color:#fff; }
+@media(max-width:900px) {
+    body.admin-shell .prism-sidebar ~ .main-content,body.admin-shell .prism-sidebar.is-collapsed ~ .main-content { margin-left:88px; width:calc(100% - 88px); }
+}
+@media(max-width:600px) {
+    body.prism-workspace :is(.prism-btn,.management-primary,.view-btn,.today-button,.save-task,.cancel-edit) { min-height:44px; }
+}

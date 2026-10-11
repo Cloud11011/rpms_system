@@ -20,6 +20,18 @@ function deadline_id($value): int
     return (int)$value;
 }
 
+/** Recipient detail labels use the same current assignment as deadline visibility. */
+function deadline_viewer_groups(PDO $pdo, array $user): array
+{
+    if ($user['role'] === 'adviser') return research_group_options($pdo, $user);
+    if ($user['role'] !== 'student') return [];
+    $stmt = $pdo->prepare('SELECT research_group, academic_unit_key, program_key, year_level, academic_year
+        FROM students WHERE email = :email AND archived_at IS NULL');
+    $stmt->execute([':email' => $user['email']]);
+    $student = $stmt->fetch();
+    return $student && research_group_is_standard($student) ? [$student['research_group']] : [];
+}
+
 /** Use the exact same visibility scope for rows, counts and calendar markers. */
 function deadline_scope(PDO $pdo, array $user, bool $manage = false): array
 {
@@ -37,10 +49,7 @@ function deadline_scope(PDO $pdo, array $user, bool $manage = false): array
         $where .= ' AND (' . $adminCreated . ' OR d.creator_user_id = :creator)';
         $params[':creator'] = $user['id'];
     } else {
-        $stmt = $pdo->prepare('SELECT research_group, academic_unit_key, program_key, year_level, academic_year
-            FROM students WHERE email = :email AND archived_at IS NULL');
-        $stmt->execute([':email' => $user['email']]); $student = $stmt->fetch();
-        $groups = $student && research_group_is_standard($student) ? [$student['research_group']] : [];
+        $groups = deadline_viewer_groups($pdo, $user);
         $where .= ' AND (' . $adminCreated . " OR EXISTS (SELECT 1 FROM students own_student
             JOIN advisers a ON a.id = own_student.adviser_id JOIN users creator ON creator.email = a.email
             JOIN calendar_deadline_recipients r ON r.student_id = own_student.id AND r.deadline_id = d.id

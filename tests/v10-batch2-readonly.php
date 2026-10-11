@@ -22,11 +22,11 @@ $sql = ["INSERT INTO calendar_deadlines (id,creator_user_id,title,description,de
     (5,11,'Own','','2026-10-10','groups','Active'), (6,99,'Other adviser','','2026-10-10','groups','Active')",
     "INSERT INTO calendar_deadline_groups VALUES (2,'$g1'),(2,'$g3'),(3,'$g3'),(4,'$g1'),(5,'$g2'),(6,'$g1')"];
 $base = ['method' => 'GET', 'action' => 'dashboard_day', 'sql' => $sql, 'query' => ['date' => '2026-10-10']];
-foreach (['anonymous' => 401, 'student' => 403] as $role => $status) {
+foreach (['anonymous' => 401] as $role => $status) {
     $r = request_case($base + ['role' => $role]); verify($r['status'] === $status, $role . ' denied');
     verify(!$r['notifications'] && !$r['mail'], 'No delivery side effects');
 }
-foreach (['admin' => [6,5,3,2,1], 'adviser' => [5,2,1]] as $role => $expected) {
+foreach (['admin' => [6,5,3,2,1], 'adviser' => [5,2,1], 'student' => [2,1]] as $role => $expected) {
     $r = request_case($base + ['role' => $role]);
     verify($r['status'] === 200 && array_map('intval', array_column($r['response']['deadlines'], 'id')) === $expected, $role . ' exact authorized rows; cancelled excluded');
     foreach ($r['response']['deadlines'] as $row) {

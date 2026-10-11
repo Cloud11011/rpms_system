@@ -40,7 +40,7 @@ function row_to_adviser(array $r, array $groups = []): array
 if ($action === 'list') {
     try { [$scope,$params,$filterOptions]=retention_list_scope($pdo,$user,'adviser',$_GET); }
     catch (Throwable $e) { json_out(['ok'=>false,'message'=>$e->getMessage()],lifecycle_error_status($e)); }
-    $page = prism_page_query($pdo, 'SELECT a.*, '.retention_projection('adviser','a').', (SELECT COUNT(*) FROM students ls WHERE ls.adviser_id=a.id) AS assigned_students', $scope, $params, prism_record_order($_GET,['name'=>'a.full_name','employeeId'=>'a.employee_id','email'=>'a.email','department'=>'a.department','status'=>'a.status'],'name','a.id ASC'), $_GET);
+    $page = prism_page_query($pdo, 'SELECT a.*, '.retention_projection('adviser','a').', (SELECT COUNT(*) FROM students ls WHERE ls.adviser_id=a.id) AS assigned_students', $scope, $params, prism_record_order($_GET,['name'=>'a.full_name','employeeId'=>'a.employee_id','email'=>'a.email','archivedAt'=>'a.archived_at','department'=>'a.department','status'=>'a.status'],'name','a.id ASC'), $_GET);
     $rows = $page['rows']; unset($page['rows']);
     $groups = research_groups_by_adviser($pdo, array_column($rows, 'id'));
     json_out(['ok' => true, 'advisers' => array_map(fn($r) => row_to_adviser($r, $groups[(int)$r['id']] ?? []), $rows), 'filterOptions'=>$filterOptions] + $page);

@@ -74,3 +74,5 @@ storage/.purge/
 
 !/tests/v10-batch4-ui.cjs
 !/tests/v10-batch4-security.php
+!/tests/v10-batch45-ui.cjs
+!/tests/v10-batch45-security.php

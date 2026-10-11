@@ -245,10 +245,10 @@ try {
 <div class="day-name">Sat</div>
 </div>
 <div class="calendar-grid" id="calendarDays"></div>
-<p class="prism-deadline-load" id="dashboardDeadlineState" role="status">Loading official deadlines...</p>
 </div>
 <!-- Year View Area -->
 <div id="yearCalendarView" class="year-grid"></div>
+<p class="prism-deadline-load" id="dashboardDeadlineState" role="status">Loading official deadlines...</p>
 <!-- REMINDERS AND FOLLOW-UPS -->
 <div class="reminders-section">
 <div class="reminders-header">
@@ -598,6 +598,7 @@ function navigateCalendar(direction) {
 }
 
 function renderCalendar() {
+    yearView.closest('.calendar-box').classList.toggle('is-year-view', currentView === 'year');
     if (currentView === 'year') {
         standardView.style.display = 'none';
         yearView.style.display = 'grid';

@@ -86,6 +86,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const button = document.createElement('button');
             button.type = 'button';
             button.className = 'calendar-day';
+            button.dataset.calendarDate = key;
             if (date.getMonth() !== visibleMonth.getMonth()) button.classList.add('outside');
             if (key === toDateKey(today)) button.classList.add('today');
             if (key === selectedDate) button.classList.add('selected');
@@ -127,7 +128,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 resetForm();
                 history.replaceState(null, '', '?date=' + encodeURIComponent(selectedDate));
                 renderAll();
-                titleInput.focus();
+                if (officialCount) window.PrismDashboardDeadlines?.openDay(key, monthGrid.querySelector(`[data-calendar-date="${key}"]`));
+                else titleInput.focus();
             });
             monthGrid.appendChild(button);
         }

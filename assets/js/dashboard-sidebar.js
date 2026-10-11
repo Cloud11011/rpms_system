@@ -7,6 +7,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const submenu = button => document.getElementById(button.getAttribute('aria-controls'));
     const rememberedGroups = new Map();
     let wasCollapsed = false;
+    const backdrop=document.createElement('div');backdrop.className='prism-sidebar-backdrop';backdrop.hidden=true;backdrop.setAttribute('aria-hidden','true');sidebar.before(backdrop);
     function setGroup(button, open) {
         const list = submenu(button);
         if (!list) return;
@@ -17,6 +18,7 @@ document.addEventListener('DOMContentLoaded', () => {
     function setCollapsed(collapsed, remember = false) {
         if (collapsed && sidebar.contains(document.activeElement) && document.activeElement !== toggle) toggle.focus();
         sidebar.classList.toggle('is-collapsed', collapsed);
+        backdrop.hidden=collapsed;
         toggle.setAttribute('aria-expanded', String(!collapsed));
         toggle.setAttribute('aria-label', collapsed ? 'Expand navigation' : 'Collapse navigation');
         if (collapsed && !wasCollapsed) groups.forEach(button => {
@@ -39,14 +41,15 @@ document.addEventListener('DOMContentLoaded', () => {
         setCollapsed(false, true);
         setGroup(button, open);
     }));
-    sidebar.addEventListener('keydown', event => {
+    document.addEventListener('keydown', event => {
         if (event.key !== 'Escape' || event.defaultPrevented) return;
-        const group = groups.find(button => button === event.target || submenu(button)?.contains(event.target));
-        if (group && group.getAttribute('aria-expanded') === 'true') {
-            setGroup(group, false); group.focus();
-        } else { setCollapsed(true, true); toggle.focus(); }
+        if (sidebar.classList.contains('is-collapsed') || document.querySelector('dialog[open],.prism-filter-panel:not([hidden]),.prism-action-panel:not([hidden])')) return;
+        setCollapsed(true, true); toggle.focus();
         event.preventDefault();
         event.stopPropagation();
+    });
+    document.addEventListener('click',event=>{
+        if(!sidebar.classList.contains('is-collapsed') && !sidebar.contains(event.target) && !event.target.closest('dialog,.prism-filter-panel,.prism-action-panel'))setCollapsed(true,true);
     });
     media.addEventListener('change', () => setCollapsed(media.matches));
 });

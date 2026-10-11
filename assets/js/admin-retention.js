@@ -4,6 +4,9 @@
     window.PrismRetentionAdmin={mount(options) {
         const api='account_lifecycle_api.php';
         const selected=new Set(); let allIds=null, selectionToken=null, scopeKey='', total=0, bulkBusy=false;
+        let selecting=false, selectionEpoch=0;
+        const toggle=document.createElement('button');toggle.type='button';toggle.id='retentionSelectionMode';toggle.className='prism-btn prism-btn-secondary';toggle.textContent='Selection Mode: Off';toggle.setAttribute('aria-pressed','false');
+        document.querySelector('.management-controls').append(toggle);
         const toolbar=document.createElement('section');toolbar.className='retention-toolbar';toolbar.setAttribute('aria-label','Bulk account lifecycle');
         const summary=document.createElement('p');summary.setAttribute('role','status');summary.setAttribute('aria-live','polite');
         const actions=document.createElement('div');actions.className='retention-toolbar-actions';
@@ -12,7 +15,7 @@
         const all=document.createElement('button');all.type='button';all.className='prism-btn';
         const clear=document.createElement('button');clear.type='button';clear.className='prism-btn';clear.textContent='Clear selection';
         const action=document.createElement('select');action.id='retentionBulkAction';action.setAttribute('aria-label','Bulk lifecycle action');
-        [['archive','Archive'],['restore','Restore'],['hold','Place Retention Hold'],['remove_hold','Remove Retention Hold'],['permanent_delete','Permanent Purge'],['retention_cleanup','Run Retention Cleanup']].forEach(([v,l])=>action.add(new Option(l,v)));
+        (options.archived ? [['restore','Restore'],['hold','Place Retention Hold'],['remove_hold','Remove Retention Hold'],['permanent_delete','Permanent Purge'],['retention_cleanup','Run Retention Cleanup']] : [['archive','Archive']]).forEach(([v,l])=>action.add(new Option(l,v)));
         const run=document.createElement('button');run.type='button';run.className='prism-btn';run.textContent='Review selected accounts';
         const holdLabel=document.createElement('label');holdLabel.textContent='Hold reason (optional)';
         const holdReason=document.createElement('input');holdReason.type='text';holdReason.maxLength=500;holdReason.setAttribute('aria-label','Retention Hold reason');holdLabel.append(holdReason);holdLabel.hidden=true;
@@ -27,7 +30,7 @@
         const recovery=document.createElement('div');recovery.className='retention-recovery';
         const maintenanceTitle=document.createElement('h3');maintenanceTitle.textContent='Retention Maintenance';
         runCleanup.classList.add('prism-btn-danger');
-        cleanup.append(maintenanceTitle,cleanupCounts,review,runCleanup,recovery);document.getElementById('recordFilters').append(cleanup);
+        cleanup.append(maintenanceTitle,cleanupCounts,review,runCleanup,recovery);if(options.archived)document.getElementById('recordFilters').append(cleanup);
         const header=document.createElement('th');header.scope='col';header.textContent='Select';options.rows.closest('table').querySelector('thead tr').prepend(header);
         const getIds=()=>allIds || selected;
         function scopeLabel() {
@@ -40,6 +43,9 @@
             return labels.join(' • ');
         }
         function update() {
+            toolbar.hidden=!selecting;header.hidden=!selecting;results.hidden=!selecting;
+            toggle.disabled=bulkBusy;toggle.textContent='Selection Mode: '+(selecting?'On':'Off');toggle.setAttribute('aria-pressed',String(selecting));
+            options.rows.querySelectorAll('.retention-select').forEach(cell=>{cell.hidden=!selecting;});
             const ids=getIds();summary.textContent=`${ids.size} accounts selected • ${scopeLabel()}${allIds?' • snapshot of all matching accounts':''}`;
             const records=options.getRecords();const count=records.filter(r=>ids.has(r.id)).length;
             page.checked=records.length>0&&count===records.length;page.indeterminate=count>0&&count<records.length;
@@ -49,17 +55,20 @@
         }
         function syncScope() {
             const next=JSON.stringify(options.getScope());
-            if(next!==scopeKey) {selected.clear();allIds=null;selectionToken=null;scopeKey=next;update();}
+            if(next!==scopeKey) {selectionEpoch++;selected.clear();allIds=null;selectionToken=null;scopeKey=next;update();}
         }
-        clear.addEventListener('click',()=>{selected.clear();allIds=null;selectionToken=null;update();});
+        function clearSelection() {selectionEpoch++;selected.clear();allIds=null;selectionToken=null;page.checked=false;page.indeterminate=false;update();}
+        toggle.addEventListener('click',()=>{if(bulkBusy)return;selecting=!selecting;if(!selecting){clearSelection();holdReason.value='';results.replaceChildren();}update();});
+        clear.addEventListener('click',clearSelection);
         page.addEventListener('change',()=>{
             if(allIds){allIds.forEach(id=>selected.add(id));allIds=null;selectionToken=null;}
             options.getRecords().forEach(r=>{if(page.checked)selected.add(r.id);else selected.delete(r.id);});update();
         });
         async function createSelection() {
-            const key=scopeKey;
+            const key=scopeKey, epoch=selectionEpoch;
+            if(!selecting)throw new Error('Enable Selection Mode first.');
             const data=await PrismUI.postJson(api,{action:'selection',accountType:options.type,filters:options.getScope()});
-            if(key!==scopeKey)throw new Error('Filters changed while resolving selection. Select again.');
+            if(key!==scopeKey || epoch!==selectionEpoch || !selecting)throw new Error('Selection changed while resolving accounts. Select again.');
             selectionToken=data.selectionToken;return data;
         }
         all.addEventListener('click',()=>PrismUI.runAction(all,'Resolving selection…',async()=>{
@@ -67,23 +76,25 @@
             catch(e){PrismUI.toast(e.message,'error');}
         }));
         async function preview(button) {
+            syncScope();if(!selecting)return;
             if(!getIds().size)return;
             if(['permanent_delete','retention_cleanup'].includes(action.value)&&!options.getAvailability().available)throw new Error(options.getAvailability().message);
-            const key=scopeKey;const ids=[...getIds()];const mode=allIds?'all_matching':'individual';
+            const key=scopeKey,epoch=selectionEpoch;const ids=[...getIds()];const mode=allIds?'all_matching':'individual';
             if(!selectionToken)await createSelection();
-            if(key!==scopeKey)throw new Error('Filters changed. Select and preview again.');
+            if(key!==scopeKey || epoch!==selectionEpoch || !selecting)throw new Error('Selection changed. Select and preview again.');
             const data=await PrismUI.postJson(api,{action:'bulk_preview',selectionToken,selectionMode:mode,ids,bulkAction:action.value});
-            if(key!==scopeKey)throw new Error('Filters changed while previewing. Select and preview again.');
+            if(key!==scopeKey || epoch!==selectionEpoch || !selecting)throw new Error('Selection changed while previewing. Select and preview again.');
             data.purge=['permanent_delete','retention_cleanup'].includes(action.value);data.cursor=0;data.reason=holdReason.value.trim();
             options.openBulk(data,button);
         }
         run.addEventListener('click',()=>PrismUI.runAction(run,'Checking eligibility…',async()=>{try{await preview(run);}catch(e){PrismUI.toast(e.message,'error');}}));
         review.addEventListener('click',()=>PrismUI.runAction(review,'Loading eligible accounts…',async()=>{await options.reviewCleanup();syncScope();}));
         runCleanup.addEventListener('click',()=>PrismUI.runAction(runCleanup,'Preparing cleanup…',async()=>{
-            try {await options.reviewCleanup();syncScope();const data=await createSelection();allIds=new Set(data.ids);selected.clear();action.value='retention_cleanup';update();await preview(runCleanup);}
+            try {selecting=true;update();await options.reviewCleanup();syncScope();const data=await createSelection();allIds=new Set(data.ids);selected.clear();action.value='retention_cleanup';update();await preview(runCleanup);}
             catch(e){PrismUI.toast(e.message,'error');}
         }));
         async function refreshSummary() {
+            if(!options.archived)return;
             try {
                 const [counts,jobs]=await Promise.all([PrismUI.request(api+'?action=cleanup_summary'),PrismUI.request(api+'?action=recovery_jobs')]);
                 cleanupCounts.textContent=`Retention Cleanup — Eligible Students: ${counts.eligibleStudents}; Eligible Advisers: ${counts.eligibleAdvisers}. Admin review and confirmation are required. No automatic deletion.`;
@@ -136,6 +147,7 @@
         return {syncScope,onPage(count){total=count;syncScope();update();},refreshSummary,singleAction,executeBulk,
             attachRow(row,record) {
                 const cell=document.createElement('td');cell.className='retention-select';
+                cell.hidden=!selecting;
                 const box=document.createElement('input');box.type='checkbox';box.dataset.retentionId=record.id;box.checked=getIds().has(record.id);
                 box.setAttribute('aria-label','Select '+(record.studentId || record.employeeId || record.email)+' — '+(record.name || 'Profile incomplete'));
                 box.addEventListener('change',()=>{if(allIds){allIds.forEach(id=>selected.add(id));allIds=null;selectionToken=null;}if(box.checked)selected.add(record.id);else selected.delete(record.id);update();});

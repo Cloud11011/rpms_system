@@ -17,7 +17,7 @@ const { once } = require('node:events');
 const root = path.resolve(__dirname, '..');
 const pages = ['admin_notifications.php', 'admin_ai.php', 'ierbprog.php', 'account.php'];
 const extraPages = ['dashboard.php', 'research_adviser.php', 'role_portal.php', 'admin_people.php', 'documents.php', 'reports.php', 'calendar.php', 'data_export.php'];
-const pageWrappers = { 'admin_students.php': 'admin_people.php', 'admin_advisers.php': 'admin_people.php', 'student.php': 'role_portal.php' };
+const pageWrappers = { 'admin_students.php': 'admin_people.php', 'admin_advisers.php': 'admin_people.php', 'admin_archived_accounts.php':'admin_people.php', 'student.php': 'role_portal.php' };
 const php = process.env.PRISM_TEST_PHP || (process.platform === 'win32' ? 'C:\\xampp\\php\\php.exe' : 'php');
 const browser = process.env.PRISM_TEST_BROWSER || [
   'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe',
@@ -128,7 +128,7 @@ function fixtureTemplate(file) {
   assert(!/\b(?:require|include)(?:_once)?\s*(?:\(|["'$])/i.test(isolated), `${file}: unexpected include in fixture`);
   const stub = `<?php
     require_once ${JSON.stringify(path.join(root, 'includes/assets.php'))};
-    $managementType = '${managementFixture}';
+    $managementType = '${managementFixture}'; $_GET=['type'=>'${managementFixture}'];
     const STAGE_SEQUENCE = ['Stage 1','Stage 2','Stage 3','Stage 4','Stage 5','Completed'];
     $_SESSION = ['account_type' => '${role}', 'user_role' => '${role === 'admin' ? 'RPMS Administrator' : 'Research Adviser'}'];
     function require_login($roles) { return ['id'=>1, 'email'=>'fixture@example.test', 'full_name'=>'UI Audit Fixture', 'role'=>'${role}', 'ref_id'=>'FIXTURE', 'username'=>'fixture']; }
@@ -153,9 +153,10 @@ async function checkRetentionRedesign() {
   await retentionUIAudit.run({check,evaluate,waitFor,navigate,command,keyPress,setManagement:value=>{managementFixture=value;},getRequests:()=>requests,errors});
 }
 function fixtureApi(file, action) {
+  if(process.argv.includes('--batch45-only') && scenario==='verification-invalid' && file==='account_lifecycle_api.php' && action==='availability')return {ok:true,available:false,message:'Deployment verification required.'};
   if(process.argv.includes('--onboarding-only')) {const data=onboardingUIAudit.mockApi(file,action,requests.findLast(r=>r.file===file));if(data)return data;}
   if (process.argv.includes('--retention-only')) { const response=retentionMockApi(file,action);if(response)return response; }
-  if (process.argv.includes('--batch4-only') && file==='account_lifecycle_api.php') {const response=retentionMockApi(file,action);if(response)return response;}
+  if ((process.argv.includes('--batch4-only') || process.argv.includes('--batch45-only')) && file==='account_lifecycle_api.php') {const response=retentionMockApi(file,action);if(response)return response;}
   if (process.argv.includes('--batch3-only')) { const response=require('./v10-batch3-ui.cjs').mockApi(file,action,requests.findLast(r=>r.file===file),role);if(response)return response; }
   if (file === 'documents_api.php' && action === 'summarize') {
     if (summaryProvider === 'error') return {ok:false,message:'No extractable text was found. This appears to be a scanned/image-only PDF. '+attack};
@@ -174,7 +175,7 @@ function fixtureApi(file, action) {
   if (file === 'calendar_deadlines_api.php') {
     const request = requests.findLast(r => r.file === file && r.action === action);
     const query = request?.query || {};
-    if (process.argv.includes('--batch2-only')) return require('./v10-batch2-ui.cjs').mockDeadlines(action, query, scenario, role);
+    if (process.argv.includes('--batch2-only') || process.argv.includes('--batch45-only')) return require('./v10-batch2-ui.cjs').mockDeadlines(action, query, scenario, role);
     if (action === 'group_options') return {ok:true,groups:role==='adviser'?['AMT-BSIT-Y2-2627-G01']:['AMT-BSIT-Y2-2627-G01','AMT-BSIT-Y2-2627-G02']};
     if (scenario === 'error' || deadlineFailure) return {ok:false,message:'Synthetic deadline failure'};
     if (action === 'create' || action === 'cancel') return {ok:true,id:1,message:action==='create'?'Official deadline created.':'Official deadline cancelled.',delivery:{notificationFailures:0,emailFailures:0}};
@@ -240,7 +241,8 @@ function fixtureApi(file, action) {
 }
 
 function mockApi(file, action, query = new URLSearchParams()) {
-  if (process.argv.includes('--retention-only') && ['students_api.php','advisers_api.php'].includes(file) && action==='list') return retentionMockList(file,query);
+  if(process.argv.includes('--batch4-only') && ['students_api.php','advisers_api.php'].includes(file) && action==='list' && query.get('lifecycle')==='archived') return retentionMockList(file,query);
+  if ((process.argv.includes('--retention-only') || process.argv.includes('--batch45-only')) && ['students_api.php','advisers_api.php'].includes(file) && action==='list') return retentionMockList(file,query);
   if(process.argv.includes('--onboarding-only') && ['students_api.php','advisers_api.php'].includes(file) && action==='list')return onboardingUIAudit.mockList(file,query);
   const data = fixtureApi(file,action);
   if(!data.ok) return data;
@@ -2300,6 +2302,7 @@ async function run() {
   await command('Log.enable');
   await command('Fetch.enable', { patterns: [{ urlPattern: '*' }] });
   await command('Browser.setDownloadBehavior', { behavior: 'deny' }, true);
+  if(process.argv.includes('--batch45-only')) {await require('./v10-batch45-ui.cjs').run({check,evaluate,waitFor,navigate,command,keyPress,errors,getRequests:()=>requests,setManagement:value=>{managementFixture=value;},setDelay:value=>{apiDelay=value;}});console.log(checks+' batch 4.5 browser checks; '+failures.length+' failures.');for(const f of failures)console.error('FAIL '+f);if(failures.length)process.exitCode=1;return;}
   if(process.argv.includes('--batch4-before') || process.argv.includes('--batch4-only')) {await require('./v10-batch4-ui.cjs').run({check,evaluate,waitFor,navigate,command,keyPress,errors,getRequests:()=>requests,setManagement:value=>{managementFixture=value;}});console.log(checks+' batch 4 browser checks; '+failures.length+' failures.');for(const f of failures)console.error('FAIL '+f);if(failures.length)process.exitCode=1;return;}
   if(process.argv.includes('--resources-only')) {checkInstitutionalPartialBoundary();await checkInstitutionalComponents();check(errors.length===0,'No resource browser exceptions',errors.join(' | '));console.log(checks+' resource browser checks; '+failures.length+' failures.');for(const f of failures)console.error('FAIL '+f);if(failures.length)process.exitCode=1;return;}
   if(process.argv.includes('--batch2-only')) {await require('./v10-batch2-ui.cjs').run({check,evaluate,waitFor,navigate,command,keyPress,errors,getRequests:()=>requests,setDelay:value=>{apiDelay=value;}});console.log(checks+' batch 2 browser checks; '+failures.length+' failures.');for(const f of failures)console.error('FAIL '+f);if(failures.length)process.exitCode=1;return;}

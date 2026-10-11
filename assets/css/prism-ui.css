@@ -972,18 +972,18 @@ button:disabled,
   align-items:center;
   flex-wrap:wrap;
 }
-.row-actions button:not(.prism-action-item),
-.document-row-actions .document-action-button:not(.prism-action-item),
-.report-row-actions a,
-.report-row-actions button{
+.row-actions button:not(.prism-action-item):not(.prism-btn),
+.document-row-actions .document-action-button:not(.prism-action-item):not(.prism-btn),
+.report-row-actions a:not(.prism-btn),
+.report-row-actions button:not(.prism-btn){
   border:1px solid var(--prism-border)!important;
   background:var(--prism-surface-2)!important;
   transition:transform .12s ease,background-color .12s ease,border-color .12s ease,color .12s ease;
 }
-.row-actions button:not(.prism-action-item):hover,
-.document-row-actions .document-action-button:not(.prism-action-item):hover,
-.report-row-actions a:hover,
-.report-row-actions button:hover{
+.row-actions button:not(.prism-action-item):not(.prism-btn):hover,
+.document-row-actions .document-action-button:not(.prism-action-item):not(.prism-btn):hover,
+.report-row-actions a:not(.prism-btn):hover,
+.report-row-actions button:not(.prism-btn):hover{
   transform:translateY(-1px);
   border-color:var(--accent-purple)!important;
   color:#fff!important;

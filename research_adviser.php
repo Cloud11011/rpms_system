@@ -68,7 +68,6 @@ $authUser = require_login('adviser');
 <section class="adviser-panel" aria-labelledby="adviserNotificationsTitle"><div class="adviser-panel-heading"><div><h2 id="adviserNotificationsTitle">Recent notifications</h2><p>Recent messages addressed to your account.</p></div><a href="admin_notifications.php">Notification Center</a></div><div id="adviserNotifications" aria-live="polite" aria-busy="true"><p class="adviser-panel-state">Loading recent notifications...</p></div></section>
 </div>
 </div>
-<section class="adviser-panel prism-resubmission-note" aria-labelledby="adviserResubmissionsTitle"><div class="adviser-panel-heading"><h2 id="adviserResubmissionsTitle">Recent Resubmissions</h2></div><p>A separate recent resubmission history is not available here. Current version numbers and upload dates appear in the review queue; open Document Reviews for version history.</p><a href="documents.php">Open Document Reviews</a></section>
 <?php require __DIR__ . '/includes/research_resources.php'; ?>
 <?php require __DIR__ . '/includes/ceu_footer.php'; ?>
 </main>

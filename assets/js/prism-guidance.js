@@ -62,6 +62,7 @@
             'dashboard.php': 'See research counts, IERB summaries and students needing attention. Select a marked Calendar date to read official deadlines.',
             'research_adviser.php': 'See assigned student counts, your current document review queue and recent notifications. Select a marked Calendar date for deadlines that apply to your groups.',
             'admin_students.php': role === 'adviser' ? 'View your assigned students and their research progress. Use Invite Student here to invite a student by email.' : 'Find student records, review research progress and use the existing invitation and account lifecycle controls when permitted.',
+            'admin_archived_accounts.php': 'Review archived Students and Research Advisers. Restore accounts, manage Retention Hold, and review server-authorized deletion eligibility.',
             'admin_advisers.php': 'Find research adviser records, review assignments and use the existing invitation and account lifecycle controls.',
             'documents.php': role === 'adviser' ? 'Open current submissions and version history for your assigned students. Review documents and provide feedback using the existing review tools.' : 'View research document submissions, preview or download files and use your permitted document tools.',
             'ierbprog.php': 'Monitor current IERB stages and progress. Find records using the existing search and filters.',

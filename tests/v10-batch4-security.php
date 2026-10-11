@@ -24,7 +24,7 @@ if (($argv[1] ?? '') === '--case') {
     eval(preg_replace('/^<\?php\s*/','',$source));exit;
 }
 $checks=0;
-foreach([null,'student','adviser'] as $role)foreach(['archive','permanent_delete','retention_cleanup','bulk_execute','cleanup_summary','selection'] as $action)foreach(['GET','POST'] as $method) {
+foreach([null,'student','adviser'] as $role)foreach(['archive','restore','hold','remove_hold','permanent_delete','retention_cleanup','bulk_execute','cleanup_summary','selection'] as $action)foreach(['GET','POST'] as $method) {
     $case=compact('role','action','method')+['expected'=>$role===null?401:403];
     $cases[]=$case;
 }

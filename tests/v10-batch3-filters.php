@@ -24,6 +24,8 @@ if (($argv[1] ?? '') === '--case') {
     $pdo->exec('CREATE TABLE notifications(recipient_type TEXT, recipient_id INTEGER, recipient_email TEXT, recipient_name TEXT, status TEXT)');
     $pdo->exec('CREATE TABLE calendar_deadlines(creator_user_id INTEGER,status TEXT,deadline_date TEXT)');
     $pdo->exec('CREATE TABLE users(id INTEGER,role TEXT,email TEXT)');
+    $pdo->exec('ALTER TABLE advisers ADD COLUMN created_at TEXT');
+    foreach ($case['sql'] ?? [] as $sql) $pdo->exec($sql);
     $_GET=$case['query']??[]; $_GET['action']='list'; $_SESSION=[];
     $actor=['id'=>1,'role'=>$case['role']??'admin','email'=>'own@example.test'];
     function db(): PDO { return $GLOBALS['pdo']; }
@@ -41,9 +43,13 @@ if (($argv[1] ?? '') === '--case') {
         catch (Throwable $e) { json_out(['ok'=>false,'message'=>$e->getMessage()],lifecycle_error_status($e)); }
     }
     $file=$case['file']??'students_api.php';
-    if(!in_array($file,['students_api.php','ierb_api.php','advisers_api.php'],true))throw new RuntimeException('Unexpected fixture endpoint.');
+    if ($file==='account_state') {
+        $file='account_lifecycle_api.php';$_SERVER['REQUEST_METHOD']='GET';
+        $_GET=['action'=>'account_state','accountType'=>$case['accountType'],'targetId'=>$case['targetId']];
+    }
+    if(!in_array($file,['students_api.php','ierb_api.php','advisers_api.php','account_lifecycle_api.php'],true))throw new RuntimeException('Unexpected fixture endpoint.');
     $source=file_get_contents(__DIR__.'/../'.$file);
-    $source=str_replace("require __DIR__ . '/config.php';",'', $source,$count);
+    $source=str_replace(["require __DIR__ . '/config.php';","require __DIR__.'/config.php';"],'', $source,$count);
     if($count!==1)throw new RuntimeException('Unexpected bootstrap.');
     $source=str_replace('__DIR__',var_export(dirname(__DIR__),true),$source);
     eval(preg_replace('/^<\?php\s*/','',$source));exit;

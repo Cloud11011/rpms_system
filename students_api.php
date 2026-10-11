@@ -83,7 +83,7 @@ if ($action === 'list' || $action === 'options') {
     $q = prism_record_search($_GET);
     if ($q !== '') $scope .= ' AND ' . prism_search_clause(['s.full_name', 's.student_id', 's.email', 's.research_title', 's.research_group', 'f.full_name'], $q, $params);
     }
-    $order = prism_record_order($_GET, ['name'=>'s.full_name','studentId'=>'s.student_id','email'=>'s.email','group'=>'s.research_group','adviser'=>'f.full_name','stage'=>'s.stage','status'=>'s.status','academicYear'=>'s.academic_year'], 'name', 's.id ASC');
+    $order = prism_record_order($_GET, ['name'=>'s.full_name','studentId'=>'s.student_id','email'=>'s.email','archivedAt'=>'s.archived_at','group'=>'s.research_group','adviser'=>'f.full_name','stage'=>'s.stage','status'=>'s.status','academicYear'=>'s.academic_year'], 'name', 's.id ASC');
     $page = prism_page_query($pdo, 'SELECT s.*, f.full_name AS adviser_name, '.retention_projection('student','s'), $scope, $params, $order, $_GET);
     $rows = $page['rows']; unset($page['rows']);
     json_out(['ok' => true, 'students' => array_map('row_to_student', $rows), 'filterOptions'=>$filterOptions] + $page);
