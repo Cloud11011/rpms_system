@@ -28,7 +28,7 @@ function legal_form_fields(string $policy, string $action, ?int $version=null): 
 ?>
 <!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Legal Policies | PRISM</title><link rel="icon" href="assets/images/prismicon.png"><script>try{if(localStorage.getItem('prismTheme')==='dark')document.documentElement.classList.add('dark-theme')}catch(_){}</script>
 <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-<?php foreach (['dashboard','admin-management','prism-ui','dashboard-sidebar','prism-workspace','ceu-footer','admin-legal'] as $style): ?><link rel="stylesheet" href="<?= legal_escape(asset_url('assets/css/'.$style.'.css')) ?>"><?php endforeach; ?>
+<?php foreach (['dashboard','admin-management','prism-ui','dashboard-sidebar','prism-workspace','ceu-footer','admin-legal','batch11'] as $style): ?><link rel="stylesheet" href="<?= legal_escape(asset_url('assets/css/'.$style.'.css')) ?>"><?php endforeach; ?>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.6.0/css/all.min.css">
 <script src="<?= legal_escape(asset_url('assets/js/dashboard-sidebar.js')) ?>" defer></script>
 <script src="<?= legal_escape(asset_url('assets/js/prism-workspace.js')) ?>" defer></script><script src="<?= legal_escape(asset_url('assets/js/legal-management.js')) ?>" defer></script></head>

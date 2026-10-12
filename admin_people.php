@@ -20,6 +20,7 @@ $loggedInRole = $_SESSION['account_type'] ?? 'admin';
 <?php if (!$isAdviser): ?><link rel="stylesheet" href="<?php echo htmlspecialchars(asset_url('assets/css/academic-fields.css'), ENT_QUOTES, 'UTF-8'); ?>"><?php endif; ?>
 <link rel="stylesheet" href="<?php echo htmlspecialchars(asset_url('assets/css/ceu-footer.css'), ENT_QUOTES, 'UTF-8'); ?>">
 <link rel="stylesheet" href="<?php echo htmlspecialchars(asset_url('assets/css/prism-workspace.css'), ENT_QUOTES, 'UTF-8'); ?>">
+<link rel="stylesheet" href="<?= htmlspecialchars(asset_url('assets/css/batch11.css'), ENT_QUOTES, 'UTF-8') ?>">
 <script src="<?php echo htmlspecialchars(asset_url('assets/js/prism-workspace.js'), ENT_QUOTES, 'UTF-8'); ?>" defer></script>
 </head>
 <body class="prism-workspace <?= $authUser['role'] === 'admin' ? 'admin-shell' : 'portal-shell adviser-page' ?>" data-admin-user="<?php echo htmlspecialchars(hash('sha256',$user_email),ENT_QUOTES); ?>" data-management="<?php echo $managementType; ?>" data-archive-workspace="<?= $archiveWorkspace ? 'true' : 'false' ?>" data-user-role="<?php echo htmlspecialchars($loggedInRole, ENT_QUOTES, 'UTF-8'); ?>"><script>window.PRISM_STAGE_LABELS = <?php echo json_encode(stage_labels_map(), JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT); ?>;</script><div class="container"><?php if ($authUser['role'] === 'admin'): ?><aside class="sidebar prism-sidebar"><?php else: ?><header class="portal-navbar"><?php endif; ?>

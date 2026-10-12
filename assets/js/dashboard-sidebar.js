@@ -7,6 +7,9 @@ document.addEventListener('DOMContentLoaded', () => {
     const submenu = button => document.getElementById(button.getAttribute('aria-controls'));
     const rememberedGroups = new Map();
     let wasCollapsed = false;
+    let hoverExpanded = false;
+    let hoverTimer;
+    const hoverMedia = matchMedia('(hover:hover) and (pointer:fine) and (min-width:901px)');
     const backdrop=document.createElement('div');backdrop.className='prism-sidebar-backdrop';backdrop.hidden=true;backdrop.setAttribute('aria-hidden','true');sidebar.before(backdrop);
     function setGroup(button, open) {
         const list = submenu(button);
@@ -35,8 +38,21 @@ document.addEventListener('DOMContentLoaded', () => {
     sidebar.classList.add('is-initializing');
     setCollapsed(collapsed);
     requestAnimationFrame(() => requestAnimationFrame(() => sidebar.classList.remove('is-initializing')));
-    toggle.addEventListener('click', () => setCollapsed(toggle.getAttribute('aria-expanded') === 'true', true));
+    toggle.addEventListener('click', () => { clearTimeout(hoverTimer); hoverExpanded=false; setCollapsed(toggle.getAttribute('aria-expanded') === 'true', true); });
+    sidebar.addEventListener('pointerenter', event => {
+        if (!hoverMedia.matches || event.pointerType === 'touch' || !sidebar.classList.contains('is-collapsed')) return;
+        clearTimeout(hoverTimer);
+        hoverTimer=setTimeout(()=>{if(!hoverMedia.matches||!sidebar.matches(':hover'))return;hoverExpanded=true;setCollapsed(false);},180);
+    });
+    const endHover = () => {
+        clearTimeout(hoverTimer);
+        if (!hoverExpanded || sidebar.contains(document.activeElement)) return;
+        hoverTimer=setTimeout(()=>{if(!sidebar.matches(':hover')&&!sidebar.contains(document.activeElement)){hoverExpanded=false;setCollapsed(true);}},220);
+    };
+    sidebar.addEventListener('pointerleave',endHover);
+    sidebar.addEventListener('focusout',()=>{if(!sidebar.matches(':hover'))endHover();});
     groups.forEach(button => button.addEventListener('click', () => {
+        clearTimeout(hoverTimer); hoverExpanded=false;
         const open = button.getAttribute('aria-expanded') !== 'true';
         setCollapsed(false, true);
         setGroup(button, open);

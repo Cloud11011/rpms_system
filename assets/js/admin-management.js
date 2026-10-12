@@ -306,8 +306,9 @@
             }
             PrismUI.actionMenu(actions);
             rowsEl.appendChild(tr);
-            if (!archiveWorkspace) PrismUI.compactRecord(tr,retentionUI?1:0,retentionUI?5:4,tr.cells.length-1,
-                isAdviser ? [] : [['Group identifier',record.group],['Pending requirements',record.requirements],['Principal Investigator',record.isPrincipalInvestigator?'Yes':'No']]);
+            PrismUI.compactRecord(tr,retentionUI?1:0,archiveWorkspace?(retentionUI?6:5):(retentionUI?5:4),tr.cells.length-1,
+                isAdviser ? [] : [['Group identifier',record.group],['Pending requirements',record.requirements],['Principal Investigator',record.isPrincipalInvestigator?'Yes':'No']],
+                (archiveWorkspace?[1,3,4]:isAdviser?[1,3]:[2,5]).map(index=>index+(retentionUI?1:0)));
         });
     }
 

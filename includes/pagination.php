@@ -5,7 +5,8 @@ function prism_page_query(PDO $pdo, string $select, string $scope, array $params
     $count = $pdo->prepare('SELECT COUNT(*) ' . $scope);
     $count->execute($params);
     $total = (int)$count->fetchColumn();
-    $limit = isset($query['preview']) ? max(1, min(10, (int)$query['preview'])) : 10;
+    $requested = (int)($query['perPage'] ?? 10);
+    $limit = isset($query['preview']) ? max(1, min(10, (int)$query['preview'])) : (in_array($requested, [5,10,25], true) ? $requested : 10);
     $page = isset($query['preview']) ? 1 : max(1, min(max(1, (int)ceil($total / $limit)), (int)($query['page'] ?? 1)));
     $offset = ($page - 1) * $limit;
     $stmt = $pdo->prepare($select . ' ' . $scope . ' ORDER BY ' . $order . " LIMIT $limit OFFSET $offset");

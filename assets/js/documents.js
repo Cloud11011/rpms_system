@@ -108,6 +108,7 @@ function renderTable(){
                 ${a.review?'<button class="document-action-button approve" data-approve title="Approve"><i class="fa-solid fa-check"></i></button><button class="document-action-button" data-comment title="Add comment"><i class="fa-regular fa-comment"></i></button><button class="document-action-button deny" data-deny title="Deny"><i class="fa-solid fa-xmark"></i></button>':''}
                 ${a.override?'<button class="document-action-button" data-override title="Admin Override"><i class="fa-solid fa-user-shield"></i></button>':''}
                 ${a.returnForRevision?'<button class="document-action-button" data-return title="Return to Student for Revision"><i class="fa-solid fa-rotate-left"></i> Return to Student for Revision</button>':''}
+                ${a.submitToRpms?'<button type="button" class="document-action-button" data-formal-submit title="Submit to RPMS"><i class="fa-solid fa-paper-plane" aria-hidden="true"></i> Submit to RPMS</button>':''}
 
                 ${a.delete?'<button class="document-action-button delete" data-delete title="Delete"><i class="fa-solid fa-trash"></i></button>':''}
             </div></td>`;
@@ -120,11 +121,12 @@ function renderTable(){
         }
         if(a.override) tr.querySelector('[data-override]').addEventListener('click',e=>PrismUI.runAction(e.currentTarget,'Processing...',async()=>{if(await PrismUI.overrideDocument(d)) await load()}));
         if(a.returnForRevision) tr.querySelector('[data-return]').addEventListener('click',e=>PrismUI.runAction(e.currentTarget,'Processing...',()=>returnForRevision(d)));
+        if(a.submitToRpms) tr.querySelector('[data-formal-submit]').addEventListener('click',e=>PrismUI.runAction(e.currentTarget,'Submitting...',async()=>{if(await PrismUI.submitToRpms(d))await load();}));
         if(a.delete) tr.querySelector('[data-delete]').addEventListener('click',e=>PrismUI.runAction(e.currentTarget,'Processing...',()=>remove(d)));
 
         PrismUI.actionMenu(tr.querySelector('.document-row-actions'));
         body.appendChild(tr);
-        PrismUI.compactRecord(tr,0,4,5,[['Adviser review decision',d.reviewStatus],['Version',d.versionNo],['Protocol',d.protocolCode],['Reviewer remarks',d.reviewRemarks],['RPMS return reason',d.rpmsReturnReason],['RPMS submission',d.rpmsSubmittedAt||'Not submitted']]);
+        PrismUI.compactRecord(tr,0,4,5,[['Adviser review decision',d.reviewStatus],['Version',d.versionNo],['Protocol',d.protocolCode],['Reviewer remarks',d.reviewRemarks],['RPMS return reason',d.rpmsReturnReason],['RPMS submission',d.rpmsSubmittedAt||'Not submitted']], [3]);
     });
     bindSummaryButtons(body);
 }

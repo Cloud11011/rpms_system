@@ -120,6 +120,7 @@ if ($action === 'save') {
     $requirements = $requirementsProvided ? trim((string)$data['requirements']) : null;
     $protocolCode = trim((string)($data['protocolCode'] ?? ''));
     $isPrincipal = !empty($data['isPrincipalInvestigator']) ? 1 : 0;
+    if (isset($data['reason']) && !is_string($data['reason'])) json_out(['ok'=>false,'message'=>'Invalid progress change reason.'],422);
     $reason = trim((string)($data['reason'] ?? ''));
 
     $ownAdviserId = null;
@@ -255,12 +256,17 @@ if ($action === 'save') {
                 $progressChangeText = describe_student_progress($before['stage'], $before['status'], $stage, $status);
                 // v2 audit trail: this endpoint can also change stage/status, so it must be logged
                 // with who/what/before/after just like the IERB Override (it previously wasn't).
-                audit_log($user, $user['role'] === 'admin' ? 'admin_override_student_progress' : 'student_progress_changed', [
+                $progressAudit = [
                     'entity_type' => 'student', 'entity_id' => $id, 'student_id' => $id,
                     'override' => $user['role'] === 'admin',
                     'before' => $before['stage'] . ' / ' . $before['status'], 'after' => "$stage / $status",
                     'details' => $progressChangeText, 'reason' => $reason,
-                ]);
+                ];
+                if ($user['role'] === 'admin') {
+                    audit_override_atomic($pdo, $user, 'admin_override_student_progress', $progressAudit);
+                } else {
+                    audit_log($user, 'student_progress_changed', $progressAudit);
+                }
                 $pdo->prepare('INSERT INTO ierb_history (student_id, stage, status, note, requirements, actor)
                     VALUES (:sid,:stage,:status,:note,:req,:actor)')->execute([
                     ':sid' => $id, ':stage' => $stage, ':status' => $status,

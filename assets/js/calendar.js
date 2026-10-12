@@ -112,6 +112,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 previews.appendChild(more);
             }
             const officialCount = official.count(key);
+            button.dataset.officialDeadline = officialCount ? 'true' : 'false';
             if (officialCount) {
                 button.classList.add('has-official-deadline');
                 const marker = document.createElement('div'); marker.className = 'day-task official-marker';

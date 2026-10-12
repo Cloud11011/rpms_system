@@ -15,6 +15,7 @@ $authUser = require_login('admin');
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.6.0/css/all.min.css">
 <script src="<?= htmlspecialchars(asset_url('assets/js/dashboard-sidebar.js'),ENT_QUOTES,'UTF-8') ?>" defer></script>
 <script src="<?= htmlspecialchars(asset_url('assets/js/prism-workspace.js'),ENT_QUOTES,'UTF-8') ?>" defer></script>
+<link rel="stylesheet" href="<?= htmlspecialchars(asset_url('assets/css/batch11.css'),ENT_QUOTES,'UTF-8') ?>">
 </head><body class="prism-workspace admin-shell data-export-page">
 <div class="container"><aside class="sidebar prism-sidebar">
 <?php $prismCurrentPage='data_export.php'; require __DIR__ . '/includes/prism-navigation.php'; ?>

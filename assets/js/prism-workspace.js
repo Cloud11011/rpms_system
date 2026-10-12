@@ -11,6 +11,7 @@ document.addEventListener('DOMContentLoaded', () => {
         utilities.insertBefore(theme, utilities.querySelector('.prism-account-menu, .portal-profile-menu'));
     }
     const topHost = utilities || controls;
+    utilities?.querySelector('.portal-help')?.remove(); // Help stays in the profile; ? is Quick Tour.
     if (topHost && theme) {
         const group=document.createElement('div');group.className='prism-topbar-group';group.setAttribute('role','group');group.setAttribute('aria-label','Workspace controls');
         const icon=path=>`<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true">${path}</svg>`;
@@ -21,8 +22,8 @@ document.addEventListener('DOMContentLoaded', () => {
         group.append(notification);
         const bellControl=notification.matches('a,button')?notification:notification.querySelector('button');
         bellControl?.querySelector('i')?.replaceWith((()=>{const span=document.createElement('span');span.innerHTML=icon('<path d="M5 17h14l-2-3V9a5 5 0 0 0-10 0v5Z"/><path d="M10 20h4"/>');return span;})());
-        const tour=document.createElement('button');tour.type='button';tour.title='Quick Tour';tour.setAttribute('aria-label','Quick Tour');tour.dataset.prismTopTour='';tour.innerHTML=icon('<circle cx="12" cy="12" r="9"/><path d="m16 8-2 6-6 2 2-6Z"/>');
-        tour.addEventListener('click',()=>document.querySelector('#prismAccountLinks [data-prism-tour],#portalProfileLinks [data-prism-tour]')?.click());group.append(tour);
+        const tour=document.createElement('button');tour.type='button';tour.title='Quick Tour';tour.setAttribute('aria-label','Quick Tour');tour.dataset.prismTopTour='';tour.innerHTML=icon('<circle cx="12" cy="12" r="9"/><path d="M9 9a3 3 0 0 1 6 0c0 2-3 2-3 4m0 3v1"/>');
+        tour.addEventListener('click',()=>window.PrismGuidance?.tour());group.append(tour);
         const persistence=document.createElement('button');persistence.type='button';persistence.dataset.prismPersistence='';persistence.setAttribute('aria-disabled','true');persistence.setAttribute('aria-label','Keep Me Signed In: unavailable');persistence.title='Keep Me Signed In is unavailable; normal inactivity expiry applies.';persistence.innerHTML=icon('<path d="m12 3 8 3v6c0 5-8 9-8 9s-8-4-8-9V6Z"/><path d="m8 12 3 3 5-6"/>');
         persistence.addEventListener('click',()=>{
             if(!window.PrismReadOnly)return;
@@ -31,6 +32,14 @@ document.addEventListener('DOMContentLoaded', () => {
         const profileMenu=topHost.querySelector('.prism-account-menu,.portal-profile-menu');
         if(profileMenu)group.append(profileMenu);
         topHost.append(group);
+        const tooltip=document.createElement('span');tooltip.className='prism-control-tooltip';tooltip.id='prismControlTooltip';tooltip.setAttribute('role','tooltip');tooltip.hidden=true;body.append(tooltip);
+        const hideTip=()=>{tooltip.hidden=true;group.querySelectorAll('[aria-describedby="prismControlTooltip"]').forEach(control=>control.removeAttribute('aria-describedby'));};
+        group.querySelectorAll('button,a').forEach(control=>{
+            control.dataset.prismTooltip='';
+            const show=()=>{const label=control.title||control.getAttribute('aria-label');if(!label)return;tooltip.textContent=label;tooltip.hidden=false;control.setAttribute('aria-describedby',tooltip.id);const anchor=control.getBoundingClientRect(),box=tooltip.getBoundingClientRect();tooltip.style.left=Math.max(12,Math.min(anchor.left,innerWidth-box.width-12))+'px';tooltip.style.top=Math.max(12,Math.min(anchor.bottom+8,innerHeight-box.height-12))+'px';};
+            control.addEventListener('pointerenter',show);control.addEventListener('pointerleave',hideTip);control.addEventListener('focus',show);control.addEventListener('blur',hideTip);control.addEventListener('click',hideTip);
+        });
+        document.addEventListener('keydown',event=>{if(event.key==='Escape')hideTip();});
         document.querySelectorAll('.portal-profile-btn').forEach(profile=>{
             const image=profile.querySelector('img');
             if(!image)return;
@@ -113,4 +122,13 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     window.addEventListener('hashchange', updateSectionLocation);
     updateSectionLocation();
+    document.querySelectorAll('#calendarDays,#adviserCalendarDays,#dashboardCalendarGrid,#calendarGrid').forEach(grid=>{
+        const legend=document.createElement('div');legend.className='prism-calendar-legend';legend.setAttribute('aria-label','Calendar legend');
+        legend.innerHTML='<span><b aria-hidden="true"></b>Official deadline</span><span class="is-today"><b aria-hidden="true"></b>Today</span><span>Outlined: selected date</span>';
+        grid.after(legend);
+    });
+    if(body.classList.contains('adviser-dashboard-page')){
+        const resources=document.getElementById('prismResourcesTitle');
+        if(resources){const link=document.createElement('a');link.href='#prismResourcesTitle';link.className='prism-btn';link.textContent='Research Resources';document.querySelector('.prism-workspace-hero')?.after(link);}
+    }
 });

@@ -59,7 +59,7 @@ document.addEventListener('DOMContentLoaded', () => {
     async function loadReports() {
         const sequence = ++listSequence; pager.loading();
         try {
-            const data = await PrismUI.request(`reports_api.php?action=list&page=${pager.page}`);
+            const data = await PrismUI.request(`reports_api.php?action=list&page=${pager.page}&perPage=${pager.pageSize}`);
             if (sequence !== listSequence) return;
             reports = data.reports || [];
             pager.render({ ...data, total: data.total ?? reports.length });

@@ -10,13 +10,7 @@ if (realpath($_SERVER['SCRIPT_FILENAME'] ?? '') === __FILE__
 <section class="prism-research-resources" data-prism-resources aria-labelledby="prismResourcesTitle">
     <header class="prism-resources-heading"><h2 id="prismResourcesTitle">Research Resources</h2></header>
     <div class="prism-resource-grid">
-        <details class="prism-resource" data-resource="ierb">
-            <summary><span class="prism-resource-title">IERB Portal</span></summary>
-            <div class="prism-resource-content">
-                <p>Visit the CEU Institutional Ethics Review Board portal for official IERB information and resources.</p>
-                <a class="prism-resource-open" href="https://ceu-ierb.wixsite.com/ierb" target="_blank" rel="noopener noreferrer">Open CEU IERB Portal <span>(new tab)</span></a>
-            </div>
-        </details>
+        <a class="prism-resource-direct" data-resource="ierb" href="https://ceu-ierb.wixsite.com/ierb" target="_blank" rel="noopener noreferrer"><span class="prism-resource-title">IERB Portal</span><span>Open portal (new tab) ↗</span></a>
         <details class="prism-resource" data-resource="sdg">
             <summary><span class="prism-resource-title">Sustainable Development Goals</span><span class="prism-resource-subtitle">17 global goals</span></summary>
             <div class="prism-resource-content">

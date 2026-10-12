@@ -15,7 +15,7 @@ if ($authUser['role'] === 'adviser'):
     $prismPortalLinks = [
         ['research_adviser.php', 'Dashboard'], ['admin_students.php', 'Assigned Students'],
         ['documents.php', 'Document Reviews'], ['ierbprog.php', 'IERB Progress'],
-        ['calendar.php', 'Calendar'], ['research_adviser.php#prismResourcesTitle', 'Research Resources'],
+        ['calendar.php', 'Calendar'],
     ];
 ?>
 <a class="portal-brand" href="research_adviser.php" aria-label="PRISM dashboard: Progress and Research Information System for Monitoring" title="Progress and Research Information System for Monitoring"><img src="assets/images/prismlogo1.png?v=2" alt="PRISM"></a>
@@ -30,7 +30,7 @@ if ($authUser['role'] === 'adviser'):
 <a class="portal-notification" href="admin_notifications.php" aria-label="Notifications" title="Notifications" <?= ($prismCurrentPage ?? '') === 'admin_notifications.php' ? 'aria-current="page"' : '' ?>><i class="fa-solid fa-bell" aria-hidden="true"></i></a>
 <div class="prism-account-menu">
 <button class="portal-profile-btn" data-prism-account-toggle type="button" aria-expanded="false" aria-controls="prismAccountLinks" aria-label="Adviser account menu"><img src="assets/images/default-avatar.svg" alt=""><span><strong><?= $prismNavEscape($authUser['full_name'] ?? '') ?></strong><small>Research Adviser</small></span><i class="fa-solid fa-chevron-down" aria-hidden="true"></i></button>
-<div class="prism-account-links" id="prismAccountLinks" hidden><a href="account.php" <?= ($prismCurrentPage ?? '') === 'account.php' ? 'aria-current="page"' : '' ?>>Profile &amp; settings</a><a href="account.php#activity">Activity logs</a><a href="logout.php">Log out</a></div>
+<div class="prism-account-links" id="prismAccountLinks" hidden><a href="account.php" <?= ($prismCurrentPage ?? '') === 'account.php' ? 'aria-current="page"' : '' ?>>My account</a><a href="account.php#activity">Activity logs</a><a href="help_support.php">Help &amp; Support</a><a href="logout.php">Log out</a></div>
 </div>
 </div>
 <?php else:
@@ -85,7 +85,7 @@ $prismNavGroups = [
 </nav>
 <div class="prism-account-menu" data-prism-admin-account>
 <button class="portal-profile-btn" data-prism-account-toggle type="button" aria-expanded="false" aria-controls="prismAccountLinks" aria-label="Admin account menu"><img src="assets/images/default-avatar.svg" alt=""><span><strong><?= $prismNavEscape($authUser['full_name'] ?? '') ?></strong><small>RPMS Admin</small></span><i class="fa-solid fa-chevron-down" aria-hidden="true"></i></button>
-<div class="prism-account-links" id="prismAccountLinks" hidden><a href="account.php">My account</a><a href="account.php#activity">Activity logs</a><a href="logout.php">Log Out</a></div>
+<div class="prism-account-links" id="prismAccountLinks" hidden><a href="account.php">My account</a><a href="account.php#activity">Activity logs</a><a href="help_support.php">Help &amp; Support</a><a href="logout.php">Log Out</a></div>
 </div>
 <?php endif; ?>
 <template data-prism-guide-role="<?= $prismNavEscape($authUser['role']) ?>"><button type="button" data-prism-tour>Quick Tour</button><button type="button" data-prism-guide>Navigation Guide</button></template>

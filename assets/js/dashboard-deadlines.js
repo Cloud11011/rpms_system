@@ -65,6 +65,7 @@
         state.setAttribute('aria-busy', 'true');
         const cells = [...document.querySelectorAll('[data-deadline-date]')];
         cells.forEach(cell => {
+            cell.dataset.today = String(cell.dataset.deadlineDate === dateKey(new Date()));
             cell.dataset.officialDeadline = '';
             cell.querySelector('.prism-deadline-marker').hidden = true;
             cell.setAttribute('aria-label', 'View ' + displayDate(cell.dataset.deadlineDate));
@@ -83,7 +84,7 @@
                 cell.querySelector('.prism-deadline-marker').hidden = false;
                 cell.setAttribute('aria-label', `${displayDate(cell.dataset.deadlineDate)}: ${count} official ${count === 1 ? 'deadline' : 'deadlines'}. View details.`);
             });
-            state.textContent = counts.size ? 'Calendar icon: official deadlines. Select a marked date to view details.' : 'No active official deadlines in this view.';
+            state.textContent = counts.size ? 'Colored dates: official deadlines. Select a date to view details.' : 'No active official deadlines in this view.';
         } catch (_) {
             if (current !== sequence) return;
             state.textContent = 'Could not load official deadlines. Use View Calendar or change the month to try again.';

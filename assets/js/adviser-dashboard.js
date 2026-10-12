@@ -132,7 +132,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const actionCell = node('td'); actionCell.append(actions);
             row.append(student, card, node('td', dateText(doc.uploadedAt)), statusCell, actionCell);
             rows.append(row);
-            PrismUI.compactRecord(row,1,3,4,[['Student',doc.student],['Adviser review decision',doc.reviewStatus],['Reviewer remarks',doc.reviewRemarks],['RPMS submission',doc.rpmsSubmittedAt||'Not submitted']]);
+            PrismUI.compactRecord(row,1,3,4,[['Student',doc.student],['Adviser review decision',doc.reviewStatus],['Reviewer remarks',doc.reviewRemarks],['RPMS submission',doc.rpmsSubmittedAt||'Not submitted']], [0]);
         });
     }
     function renderNotices(items, email) {

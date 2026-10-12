@@ -54,7 +54,7 @@
         if (!['student', 'adviser', 'admin'].includes(role)) return;
         const menu = document.getElementById(role === 'student' ? 'portalProfileLinks' : 'prismAccountLinks');
         if (!menu) return;
-        if (metadata.content.childElementCount) menu.append(metadata.content.cloneNode(true));
+        if (role === 'student' && metadata.content.childElementCount) menu.append(metadata.content.cloneNode(true));
         const key = `prismTour.${role}.v1`;
         const remember = value => { try { localStorage.setItem(key, value); } catch (_) {} };
 
@@ -140,7 +140,8 @@
                     view.heading.textContent = 'Welcome to PRISM';
                     let done = false;
                     try { done = !!localStorage.getItem(key); } catch (_) {}
-                    view.content.append(node('p', done ? 'Take the quick tour again at your own pace.' : 'Would you like a quick tour? You can restart it from your account menu at any time.'));
+                    view.content.append(node('p', done ? 'Take the quick tour again at your own pace.' : 'Would you like a quick tour? Restart it from the question-mark control at any time.'));
+                    view.content.append(button('Navigation Guide', () => { view.close(false); guide(); }));
                     const start = button('Start Tour', () => { index = 0; render(); }, true);
                     view.actions.append(button('Maybe Later / Skip', () => complete('skipped')), start);
                     start.focus();
@@ -166,5 +167,6 @@
         }
         menu.querySelector('[data-prism-tour]')?.addEventListener('click', tour);
         menu.querySelector('[data-prism-guide]')?.addEventListener('click', guide);
+        window.PrismGuidance = { tour, guide };
     });
 })();

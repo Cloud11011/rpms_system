@@ -225,6 +225,7 @@
         '<button type="button" class="prism-btn is-' + tone + '" data-act="ok">' + esc(o.confirmText || 'Confirm') + '</button></div>'
       );
       m.dialog.setAttribute('aria-labelledby', 'prismDlgTitle');
+      if (tone === 'override') m.dialog.classList.add('prism-override-dialog');
       const err = m.dialog.querySelector('.prism-field-error');
       const reasonBox = m.dialog.querySelector('#prismReason');
       const dirty = dirtyForm(m.dialog);
@@ -317,7 +318,7 @@
     const res = await confirmDialog({
       title: 'Admin Override', icon: 'fa-user-shield', tone: 'override', confirmText: 'Save override',
       message: 'You are changing the official IERB progress of ' + record.name + '. This is saved with your name, the time and your reason. The student and adviser are notified.',
-      extraHtml: '<label for="prismOvStage">Stage</label><select id="prismOvStage">' + stageOpts + '</select>' +
+      extraHtml: '<dl class="prism-override-context"><dt>Current official progress</dt><dd>'+esc(record.stage+' / '+record.status)+'</dd><dt>Research group / adviser</dt><dd>'+esc((record.group||'No group recorded')+' / '+(record.adviserName||record.adviser||'Unassigned'))+'</dd></dl><label for="prismOvStage">Proposed stage</label><select id="prismOvStage">' + stageOpts + '</select>' +
         '<label for="prismOvStatus">Status</label><select id="prismOvStatus">' + statusOpts + '</select>',
       reasonLabel: 'Reason for this override (required)', reasonRequired: true,
       collect: function (d) { return { stage: d.querySelector('#prismOvStage').value, status: d.querySelector('#prismOvStatus').value }; },
@@ -325,7 +326,7 @@
     });
     if (!res) return false;
     try {
-      const data = await postJson('ierb_api.php?action=override', { id: record.id, stage: res.values.stage, status: res.values.status, reason: res.reason });
+      const data = await postJson('ierb_api.php?action=override', { id: record.id, stage: res.values.stage, status: res.values.status, reason: res.reason, expectedStage:record.stage, expectedStatus:record.status });
       toast(data.message, 'success');
       return true;
     } catch (e) {
@@ -340,15 +341,15 @@
     const opts = statuses.map(function (s) { return '<option' + (s === doc.reviewStatus ? ' selected' : '') + '>' + esc(s) + '</option>'; }).join('');
     const res = await confirmDialog({
       title: 'Admin Override', icon: 'fa-user-shield', tone: 'override', confirmText: 'Save override',
-      message: 'You are overriding the adviser review of \u201c' + doc.originalName + '\u201d. This is saved with your name, the time and your reason. The student is notified.',
-      extraHtml: '<label for="prismOvDoc">New status</label><select id="prismOvDoc">' + opts + '</select>',
+      message: 'You are overriding the adviser review of \u201c' + doc.originalName + '\u201d. The student and assigned adviser are notified. This does not itself formally submit the file to RPMS; existing RPMS progression rules still apply.',
+      extraHtml: '<dl class="prism-override-context"><dt>Student / document version</dt><dd>'+esc((doc.student||doc.studentName||'Student not recorded')+' / v'+(doc.versionNo||1))+'</dd><dt>Document type / official stage</dt><dd>'+esc((doc.documentType||'Not recorded')+' / '+(doc.stageLabel||doc.stage||'Not recorded'))+'</dd><dt>Current review / workflow</dt><dd>'+esc(doc.reviewStatus+' / '+(doc.workflowState||doc.reviewStatus))+'</dd><dt>Prior feedback</dt><dd>'+esc(doc.reviewRemarks||'No feedback recorded')+'</dd></dl><label for="prismOvDoc">Proposed review status</label><select id="prismOvDoc">' + opts + '</select>',
       reasonLabel: 'Reason for this override (required)', reasonRequired: true,
       collect: function (d) { return { status: d.querySelector('#prismOvDoc').value }; },
       validate: function (v) { return v.status === doc.reviewStatus ? 'Choose a different status.' : null; }
     });
     if (!res) return false;
     try {
-      const data = await postJson('documents_api.php?action=override_review&id=' + encodeURIComponent(doc.id), { status: res.values.status, reason: res.reason });
+      const data = await postJson('documents_api.php?action=override_review&id=' + encodeURIComponent(doc.id), { status: res.values.status, reason: res.reason, expectedStatus:doc.reviewStatus });
       toast(data.message, 'success');
       changed();
       return true;
@@ -603,7 +604,7 @@
   // Compact controls shared by server-paginated history views.
   function pagination(host, count, data, onPage, noun = 'entries') {
     const total = Math.max(0, Number(data.total) || 0);
-    const limit = 10;
+    const limit = Math.max(1, Number(data.limit) || 10);
     const pages = Math.max(1, Math.ceil(total / limit));
     const page = Math.max(1, Math.min(pages, Number(data.page) || 1));
     const first = total ? (page - 1) * limit + 1 : 0;
@@ -765,7 +766,9 @@
     if (!items.length || host.querySelector('.prism-action-menu')) return;
     const wrap = document.createElement('div'); wrap.className = 'prism-action-menu';
     const trigger = document.createElement('button'); trigger.type = 'button'; trigger.className = 'prism-btn prism-btn-neutral prism-action-trigger';
-    trigger.textContent = label + ' ▾';
+    trigger.textContent = '…';
+    trigger.setAttribute('aria-label', label);
+    trigger.title = label;
     const panel = document.createElement('div'); panel.id = 'prismActions' + (++floatingSequence);
     panel.className = 'prism-action-panel'; panel.hidden = true;
     panel.setAttribute('role', 'group'); panel.setAttribute('aria-label', 'Record actions');
@@ -773,7 +776,15 @@
     items.forEach(item => {
       const name = item.textContent.trim() || item.getAttribute('aria-label')?.split('. ')[0] || item.title || 'View';
       item.append(document.createTextNode(item.textContent.trim() ? '' : name));
+      if (!item.querySelector('i,svg')) {
+        const icon = document.createElementNS('http://www.w3.org/2000/svg','svg');
+        icon.setAttribute('viewBox','0 0 24 24'); icon.setAttribute('width','16'); icon.setAttribute('height','16'); icon.setAttribute('aria-hidden','true');
+        const path = document.createElementNS('http://www.w3.org/2000/svg','path');
+        path.setAttribute('d', /download/i.test(name) ? 'M12 3v12m-5-5 5 5 5-5M4 17v4h16v-4' : /history|version/i.test(name) ? 'M12 8v5l4 2M3 12a9 9 0 1 0 3-7M3 3v5h5' : /override/i.test(name) ? 'm12 3 8 3v6c0 5-8 9-8 9s-8-4-8-9V6Z' : /delete|archive/i.test(name) ? 'M4 7h16M7 7v14h10V7M9 3h6v4' : 'M4 12s3-6 8-6 8 6 8 6-3 6-8 6-8-6-8-6Zm6 0a2 2 0 1 0 4 0 2 2 0 1 0-4 0');
+        path.setAttribute('fill','none');path.setAttribute('stroke','currentColor');path.setAttribute('stroke-width','1.7');icon.append(path);item.prepend(icon);
+      }
       item.classList.add('prism-action-item');
+      item.querySelectorAll('i,svg').forEach(icon=>icon.setAttribute('aria-hidden','true'));
       if (/archive|delete|purge|deny|cancel|remove.*hold|override/i.test(name)) item.classList.add('prism-action-danger');
       item.addEventListener('click', () => {
         // Focus the stable trigger before the existing handler opens a dialog.
@@ -876,6 +887,14 @@
     pager.setAttribute('aria-label', 'Record pages');
     anchor.insertAdjacentElement('afterend', pager);
     let page = 1;
+    let pageSize = 10;
+    if (anchor.id === 'aiHistory' || anchor.querySelector('#ierbTableBody,#reportTableBody')) {
+      const label = document.createElement('label'); label.className = 'prism-row-size'; label.append('Rows per page');
+      const size = document.createElement('select');size.setAttribute('aria-label','Rows per page');
+      [5,10,25].forEach(value => size.add(new Option(String(value),String(value),false,value===10)));
+      label.append(size);pager.before(label);
+      size.addEventListener('change',()=>{pageSize=Number(size.value);page=1;load();});
+    }
     if (disclosure) {
       filtersDisclosure(disclosure.host, controls, () => { page = 1; load(); }, disclosure.toolbar);
       // Search remains primary and has its own clear affordance, including keyboard support.
@@ -885,6 +904,7 @@
     } else clearFilters(controls, () => { page = 1; load(); });
     return {
       get page() { return page; },
+      get pageSize() { return pageSize; },
       reset: () => { page = 1; },
       loading: () => { count.textContent = 'Loading records...'; pager.querySelectorAll('button').forEach(b => { b.disabled = true; }); },
       error: () => { pager.replaceChildren(); count.textContent = 'Could not load records.'; },
@@ -893,7 +913,7 @@
   }
 
   // Compact presentation reuses the original nodes and bound Actions handlers.
-  function compactRecord(row, primaryIndex, statusIndex, actionsIndex, extra = []) {
+  function compactRecord(row, primaryIndex, statusIndex, actionsIndex, extra = [], summaryIndices = []) {
     const table = row.closest('table');
     if (!table) return;
     const cells = [...row.cells];
@@ -904,6 +924,8 @@
     const primary = document.createElement('div'); primary.className = 'prism-record-primary';
     const status = document.createElement('div'); status.className = 'prism-record-status';
     const actions = document.createElement('div'); actions.className = 'prism-record-actions';
+    const metadata = document.createElement('dl');metadata.className = 'prism-record-summary';
+    if(summaryIndices.length)card.classList.add('has-summary');
     const details = document.createElement('details'); details.className = 'prism-record-details';
     const summary = document.createElement('summary'); summary.textContent = 'Show details & remarks';
     const fields = document.createElement('dl');
@@ -913,10 +935,10 @@
       else if(index===primaryIndex) append(primary,cell);
       else if(index===statusIndex) append(status,cell);
       else if(index===actionsIndex) append(actions,cell);
-      else { const field=document.createElement('div'), term=document.createElement('dt'),value=document.createElement('dd');term.textContent=labels[index]||'Record information';append(value,cell);field.append(term,value);fields.append(field); }
+      else { const field=document.createElement('div'), term=document.createElement('dt'),value=document.createElement('dd');term.textContent=labels[index]||'Record information';append(value,cell);field.append(term,value);(summaryIndices.includes(index)?metadata:fields).append(field); }
     });
     // Move dense academic/remarks content below the compact identity line.
-    primary.querySelectorAll('.academic-record-summary,.adviser-document-meta,.adviser-document-remarks').forEach(content => {const field=document.createElement('div');field.append(content);fields.append(field);});
+    [...primary.querySelectorAll('.academic-record-summary,.adviser-document-meta,.adviser-document-remarks'),...metadata.querySelectorAll('.academic-record-summary')].forEach(content => {const field=document.createElement('div');field.append(content);fields.append(field);});
     extra.forEach(([label,value]) => { const field=document.createElement('div'),term=document.createElement('dt'),content=document.createElement('dd');term.textContent=label;content.textContent=value==null||value===''?'Not recorded':String(value);field.append(term,content);fields.append(field); });
     details.append(summary,fields);
     const review=actions.querySelector('[data-review-id],[data-review]');
@@ -926,7 +948,7 @@
       else {contextual.textContent='View';contextual.href=file.href;contextual.target=file.target;contextual.rel='noopener';}
       actions.prepend(contextual);
     }
-    card.append(primary,status,actions,details);host.append(card);row.replaceChildren(host);
+    card.append(primary);if(summaryIndices.length)card.append(metadata);card.append(status,actions,details);host.append(card);row.replaceChildren(host);
   }
   function statusPills(host, definitions, select, counts = {}) {
     host.classList.add('prism-filter-pills');

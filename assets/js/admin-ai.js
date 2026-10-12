@@ -18,7 +18,7 @@ document.addEventListener('DOMContentLoaded', () => {
         count.textContent = 'Loading reports...';
         list.setAttribute('aria-busy', 'true');
         try {
-            const data = await PrismUI.request(`reports_api.php?action=list&aiOnly=1&page=${pager.page}`);
+            const data = await PrismUI.request(`reports_api.php?action=list&aiOnly=1&page=${pager.page}&perPage=${pager.pageSize}`);
             if (requestId !== historyRequest) return;
             const items = (data.reports || []).filter(r => r.type === 'AI Summarized Report' || r.type === 'AI Full Report');
             pager.render({...data,total:data.total??items.length});

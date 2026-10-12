@@ -62,7 +62,7 @@
         stageChart.setAttribute('aria-busy', 'true');
         tableBody.setAttribute('aria-busy', 'true');
         try {
-            const data = await PrismUI.request('ierb_api.php?' + new URLSearchParams({ action: 'list', page: pager.page, q: ierbSearch.value.trim(), ...filters.query(), ...sort.query() }));
+            const data = await PrismUI.request('ierb_api.php?' + new URLSearchParams({ action: 'list', page: pager.page, perPage: pager.pageSize, q: ierbSearch.value.trim(), ...filters.query(), ...sort.query() }));
             if (requestSequence !== recordRequestSequence) return;
             if (!Array.isArray(data.records)) throw new Error('The server returned an invalid record list.');
             records = data.records;
@@ -215,7 +215,7 @@
 
             PrismUI.actionMenu(actions);
             tableBody.appendChild(tr);
-            PrismUI.compactRecord(tr,0,5,6);
+            PrismUI.compactRecord(tr,0,5,6,[],[1,2,3]);
         });
     }
 

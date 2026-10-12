@@ -154,6 +154,35 @@ function audit_log(array $actor, string $action, array $ctx = []): void
     }
 }
 
+/** Existing Admin Overrides must commit with their audit. The caller owns rollback/commit. */
+function audit_override_atomic(PDO $pdo, array $actor, string $action, array $ctx): void
+{
+    if (!$pdo->inTransaction() || ($actor['role'] ?? '') !== 'admin' || empty($ctx['override'])) {
+        throw new LogicException('Override audit requires an Admin override transaction.');
+    }
+    if (!audit_lock_live_student($pdo, $ctx)) {
+        throw new RuntimeException('Override audit ownership is no longer available.');
+    }
+    $pdo->prepare('INSERT INTO activity_logs
+        (user_email, action, details, actor_name, actor_role, entity_type, entity_id,
+         student_id, reason, before_value, after_value, is_override)
+        VALUES (:email,:action,:details,:name,:role,:etype,:eid,:sid,:reason,:before,:after,:ovr)')
+        ->execute([
+            ':email' => $actor['email'] ?? null,
+            ':action' => $action,
+            ':details' => mb_substr((string)($ctx['details'] ?? ''), 0, 255),
+            ':name' => $actor['full_name'] ?? null,
+            ':role' => $actor['role'] ?? null,
+            ':etype' => $ctx['entity_type'] ?? null,
+            ':eid' => isset($ctx['entity_id']) ? (string)$ctx['entity_id'] : null,
+            ':sid' => isset($ctx['student_id']) && $ctx['student_id'] !== '' ? (int)$ctx['student_id'] : null,
+            ':reason' => isset($ctx['reason']) && $ctx['reason'] !== '' ? (string)$ctx['reason'] : null,
+            ':before' => isset($ctx['before']) ? mb_substr((string)$ctx['before'], 0, 255) : null,
+            ':after' => isset($ctx['after']) ? mb_substr((string)$ctx['after'], 0, 255) : null,
+            ':ovr' => 1,
+        ]);
+}
+
 /** Human-readable label for an audit action code. */
 function audit_action_label(string $action): string
 {

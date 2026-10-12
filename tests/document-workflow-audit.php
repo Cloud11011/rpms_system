@@ -74,7 +74,14 @@ class FixtureStatement extends PDOStatement
             if (!$this->db->transaction) throw new RuntimeException('Write outside transaction.');
             $this->db->writes[] = $this->sql;
         }
-        if (str_starts_with($this->sql, 'UPDATE students SET stage')) {
+        if (str_starts_with($this->sql, 'INSERT INTO activity_logs')) {
+            if (!empty($GLOBALS['case']['failAudit'])) throw new RuntimeException('Fixture mandatory audit failure.');
+            $GLOBALS['audit'][] = [$params[':action'], [
+                'entity_type'=>$params[':etype'], 'entity_id'=>$params[':eid'], 'student_id'=>$params[':sid'],
+                'before'=>$params[':before'], 'after'=>$params[':after'], 'reason'=>$params[':reason'],
+                'details'=>$params[':details'], 'override'=>(bool)$params[':ovr'],
+            ]];
+        } elseif (str_starts_with($this->sql, 'UPDATE students SET stage')) {
             if (!empty($GLOBALS['case']['failStage'])) throw new RuntimeException('Fixture stage write failure.');
             $this->db->student['stage'] = $params[':stage'];
             $this->db->student['status'] = $params[':status'];
@@ -225,11 +232,15 @@ if (($argv[1] ?? '') === '--case') {
     $lifecycle=file_get_contents(__DIR__.'/../includes/notification_lifecycle.php');
     eval('namespace '.__NAMESPACE__.'; use \\PDO; use \\Throwable; use \\RuntimeException; use \\LogicException; '.preg_replace('/^<\?php\s*/','',$lifecycle));
     eval('namespace ' . __NAMESPACE__ . '; use \\PDO; use \\Throwable; ' . preg_replace('/^<\?php\s*/', '', $delivery));
-    foreach (['document_workflow_state', 'document_is_locked', 'override_reason_valid', 'override_reason_message', 'advance_stage_for_document', 'notify_rpms_admins', 'notify_in_app'] as $name) {
+    $snapshotSource = str_replace("\r\n", "\n", file_get_contents(__DIR__.'/../includes/student_snapshot.php'));
+    $snapshotStart = strpos($snapshotSource, 'function audit_lock_live_student(');
+    $snapshotEnd = strpos($snapshotSource, "\n}\n", $snapshotStart);
+    eval('namespace '.__NAMESPACE__.'; use \\PDO; use \\LogicException; '.substr($snapshotSource,$snapshotStart,$snapshotEnd+2-$snapshotStart));
+    foreach (['document_workflow_state', 'document_is_locked', 'override_reason_valid', 'override_reason_message', 'advance_stage_for_document', 'notify_rpms_admins', 'notify_in_app', 'audit_override_atomic'] as $name) {
         $start = strpos($workflow, 'function ' . $name . '(');
         $end = strpos($workflow, "\n}\n", $start);
         if ($start === false || $end === false) throw new RuntimeException('Cannot isolate workflow function.');
-        eval('namespace ' . __NAMESPACE__ . '; use \PDO; use \Throwable; ' . substr($workflow, $start, $end + 2 - $start));
+        eval('namespace ' . __NAMESPACE__ . '; use \PDO; use \Throwable; use \RuntimeException; use \LogicException; ' . substr($workflow, $start, $end + 2 - $start));
     }
     ob_start();
     register_shutdown_function(function () {
@@ -288,6 +299,7 @@ $cases = [
     ['name' => 'Admin approved submission does not repeat approval advancement', 'action' => 'submit_to_rpms', 'role' => 'admin', 'beforeStatus' => 'Approved', 'studentStage' => 'Stage 2', 'advanced' => false],
     ['name' => 'Admin force-submit cannot advance beyond Completed', 'action' => 'submit_to_rpms', 'role' => 'admin', 'studentStage' => 'Completed', 'documentStage' => 'Completed', 'advanced' => false],
     ['name' => 'Force-submit stage failure rolls back new approval', 'action' => 'submit_to_rpms', 'role' => 'admin', 'failStage' => true, 'expectedStatus' => 500],
+    ['name' => 'Force-submit mandatory audit failure rolls back submission and stage', 'action' => 'submit_to_rpms', 'role' => 'admin', 'failAudit' => true, 'expectedStatus' => 500],
     ['name' => 'Admin force-submit still requires reason', 'action' => 'submit_to_rpms', 'role' => 'admin', 'reason' => '', 'expectedStatus' => 422],
     ['name' => 'Adviser cannot force-submit an unapproved document', 'action' => 'submit_to_rpms', 'role' => 'adviser', 'expectedStatus' => 403],
     ['name' => 'Completed stage cannot advance again', 'action' => 'override_review', 'studentStage' => 'Completed', 'documentStage' => 'Completed', 'advanced' => false],
@@ -298,6 +310,7 @@ $cases = [
     ['name' => 'Locked document cannot be overridden', 'action' => 'override_review', 'locked' => true, 'expectedStatus' => 409],
     ['name' => 'Old version cannot be overridden', 'action' => 'override_review', 'current' => 0, 'expectedStatus' => 409],
     ['name' => 'Stage failure rolls back approval and audit', 'action' => 'override_review', 'failStage' => true, 'expectedStatus' => 500],
+    ['name' => 'Mandatory audit failure rolls back approval and stage', 'action' => 'override_review', 'failAudit' => true, 'expectedStatus' => 500],
     ['name' => 'Student upload retains its stage', 'action' => 'upload', 'role' => 'student', 'version' => 1],
     ['name'=>'Student upload ignores forged institutional/workflow metadata','action'=>'upload','role'=>'student','version'=>1,
       'craftedUpload'=>['studentDbId'=>'999','studentId'=>'CHANGED','name'=>'Fake','researchTitle'=>'Forged','researchGroup'=>'Other Group','adviserId'=>999,'stage'=>'Completed','reviewStatus'=>'Approved','protocolCode'=>'FAKE','uploadedAt'=>'1990-01-01','rpmsSubmittedAt'=>'1990-01-01','documentId'=>'forged-id','notes'=>'Editable reviewer note','documentType'=>'Study Protocol']],
@@ -312,6 +325,7 @@ $cases = [
     ['name' => 'Delete removes file only after commit', 'action' => 'delete'],
     ['name' => 'Delete cleanup failure is logged after commit', 'action' => 'delete', 'unlinkFails' => true, 'cleanupLog' => true],
     ['name' => 'Database delete failure retains file', 'action' => 'delete', 'failDelete' => true, 'expectedStatus' => 500],
+    ['name' => 'Locked delete mandatory audit failure retains file and row', 'action' => 'delete', 'locked' => true, 'failAudit' => true, 'expectedStatus' => 500],
 ];
 foreach ($cases as $case) {
     $process = proc_open([PHP_BINARY, __FILE__, '--case', json_encode($case)], [0 => ['pipe', 'r'], 1 => ['pipe', 'w'], 2 => ['pipe', 'w']], $pipes);

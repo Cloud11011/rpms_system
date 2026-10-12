@@ -1,9 +1,12 @@
 <?php
 require __DIR__ . '/config.php';
 
+$hadSession = !empty($_SESSION['user_id']);
 $user = current_user();
 if (!$user) {
-    header('Location: login.php' . (!empty($GLOBALS['prism_session_expired']) ? '?expired=1' : ''));
+    if (!empty($GLOBALS['prism_session_expired'])) { header('Location: login.php?expired=1'); exit; }
+    if ($hadSession) { header('Location: login.php'); exit; }
+    require __DIR__ . '/includes/public_landing.php';
     exit;
 }
 

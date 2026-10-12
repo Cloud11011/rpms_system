@@ -750,6 +750,7 @@ if ($action === 'review') {
 // ---------------------------------------------------------------------
 if ($action === 'submit_to_rpms') {
     api_require_login(['admin']);
+    if (isset($payload['reason']) && !is_string($payload['reason'])) json_out(['ok'=>false,'message'=>'Invalid override reason.'],422);
     $reason = trim((string)($payload['reason'] ?? ''));
 
     if (!empty($doc['archived_at'])) {
@@ -816,6 +817,13 @@ if ($action === 'submit_to_rpms') {
                     "after \"$docName\" was formally submitted to RPMS");
             }
         }
+        if ($isOverride) {
+            audit_override_atomic($pdo, $user, 'admin_override_submit_to_rpms', [
+                'entity_type' => 'document', 'entity_id' => $id, 'student_id' => $doc['student_id'],
+                'before' => $state, 'after' => WF_SUBMITTED_RPMS, 'reason' => $reason, 'override' => true,
+                'details' => "\"$docName\" (" . $doc['document_type'] . ', ' . $doc['stage'] . ') submitted on behalf of the student',
+            ]);
+        }
         $pdo->commit();
     } catch (DocumentWriteConflict $e) {
         if ($pdo->inTransaction()) {
@@ -830,7 +838,7 @@ if ($action === 'submit_to_rpms') {
         json_out(['ok' => false, 'message' => 'The submission could not be saved. Nothing was changed - please try again.'], 500);
     }
 
-    audit_log($user, $isOverride ? 'admin_override_submit_to_rpms' : 'document_submitted_to_rpms', [
+    if (!$isOverride) audit_log($user, 'document_submitted_to_rpms', [
         'entity_type' => 'document', 'entity_id' => $id, 'student_id' => $doc['student_id'],
         'before' => $state, 'after' => WF_SUBMITTED_RPMS, 'reason' => $isOverride ? $reason : null, 'override' => $isOverride,
         'details' => "\"$docName\" (" . $doc['document_type'] . ', ' . $doc['stage'] . ')'
@@ -882,6 +890,12 @@ if ($action === 'submit_to_rpms') {
 // ---------------------------------------------------------------------
 if ($action === 'override_review') {
     api_require_login(['admin']);
+    foreach (['reason','status'] as $field) {
+        if (isset($payload[$field]) && !is_string($payload[$field])) json_out(['ok'=>false,'message'=>'Invalid override input.'],422);
+    }
+    if (isset($payload['expectedStatus']) && $payload['expectedStatus'] !== $doc['review_status']) {
+        json_out(['ok'=>false,'message'=>'This document changed. Refresh and review its current status before retrying.'],409);
+    }
     $allowedStatuses = ['Submitted', 'Under Review', 'Received', 'Verified', 'Resubmission Requested', 'Approved', 'Denied'];
     $status = trim((string)($payload['status'] ?? ''));
     $reason = trim((string)($payload['reason'] ?? ''));
@@ -915,6 +929,11 @@ if ($action === 'override_review') {
                 $doc['detected_approval_date'] ?: date('Y-m-d'),
                 "after \"$docName\" was approved by Admin Override (reason: $reason)");
         }
+        audit_override_atomic($pdo, $user, 'admin_override_document', [
+            'entity_type' => 'document', 'entity_id' => $id, 'student_id' => $doc['student_id'],
+            'before' => $before, 'after' => $status, 'reason' => $reason, 'override' => true,
+            'details' => "\"$docName\" $before -> $status",
+        ]);
         $pdo->commit();
     } catch (DocumentWriteConflict $e) {
         if ($pdo->inTransaction()) {
@@ -928,12 +947,6 @@ if ($action === 'override_review') {
         log_api_error('document_override_review', $e->getMessage());
         json_out(['ok' => false, 'message' => 'The override could not be saved. Nothing was changed - please try again.'], 500);
     }
-
-    audit_log($user, 'admin_override_document', [
-        'entity_type' => 'document', 'entity_id' => $id, 'student_id' => $doc['student_id'],
-        'before' => $before, 'after' => $status, 'reason' => $reason, 'override' => true,
-        'details' => "\"$docName\" $before -> $status",
-    ]);
 
     if ($doc['student_id']) {
         $srow = $pdo->prepare('SELECT full_name FROM students WHERE id = :id');
@@ -983,6 +996,15 @@ if ($action === 'delete') {
     $restoredId = null;
     try {
         begin_document_write($pdo, $doc);
+        if ($locked) {
+            // Audit while ownership is available; deletion and version restoration share this transaction.
+            audit_override_atomic($pdo, $user, 'document_deleted', [
+                'entity_type' => 'document', 'entity_id' => $id, 'student_id' => $doc['student_id'],
+                'before' => document_workflow_state($doc), 'reason' => $reason, 'override' => true,
+                'details' => "\"$docName\" v" . (int)($doc['version_no'] ?? 1) . ' deleted'
+                    . ($isCurrent && !empty($doc['supersedes_id']) ? ' (previous version restored)' : ''),
+            ]);
+        }
         $pdo->prepare('DELETE FROM documents WHERE id = :id')->execute([':id' => $id]);
         // Keep the version chain intact: link the next version to this one's predecessor,
         // and if the newest version was deleted, make the previous one current again.
@@ -1006,7 +1028,7 @@ if ($action === 'delete') {
         json_out(['ok' => false, 'message' => 'The document could not be deleted. Nothing was changed.'], 500);
     }
     remove_document_file($path, (string)$id, 'committed deletion');
-    audit_log($user, 'document_deleted', [
+    if (!$locked) audit_log($user, 'document_deleted', [
         'entity_type' => 'document', 'entity_id' => $id, 'student_id' => $doc['student_id'],
         'before' => document_workflow_state($doc), 'reason' => $reason !== '' ? $reason : null, 'override' => $locked,
         'details' => "\"$docName\" v" . (int)($doc['version_no'] ?? 1) . ' deleted' . ($restoredId ? ' (previous version restored)' : ''),

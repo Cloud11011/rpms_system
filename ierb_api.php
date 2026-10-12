@@ -200,6 +200,9 @@ $data = json_body();
 // ---------------------------------------------------------------------
 if ($action === 'override') {
     api_require_login('admin');
+    foreach (['reason','stage','status'] as $field) {
+        if (isset($data[$field]) && !is_string($data[$field])) json_out(['ok'=>false,'message'=>'Invalid override input.'],422);
+    }
     $id = (int)($data['id'] ?? 0);
     $newStage = trim((string)($data['stage'] ?? ''));
     $newStatus = trim((string)($data['status'] ?? ''));
@@ -227,13 +230,23 @@ if ($action === 'override') {
     $change = describe_progress_change($cur, $newStage, $newStatus);
     try {
         $pdo->beginTransaction();
-        $locked=$pdo->prepare('SELECT id FROM students WHERE id=? FOR UPDATE');$locked->execute([$id]);
-        if(!$locked->fetchColumn())throw new AccountLifecycleNotFound('Student record not found.');
+        $locked=$pdo->prepare('SELECT id,stage,status FROM students WHERE id=? FOR UPDATE');$locked->execute([$id]);
+        $live=$locked->fetch();
+        if(!$live)throw new AccountLifecycleNotFound('Student record not found.');
+        if ($live['stage']!==$cur['stage'] || $live['status']!==$cur['status']
+            || (isset($data['expectedStage']) && $data['expectedStage']!==$live['stage'])
+            || (isset($data['expectedStatus']) && $data['expectedStatus']!==$live['status'])) {
+            throw new AccountLifecycleConflict('This progress record changed. Refresh and review its current stage and status before retrying.');
+        }
         purge_require_no_pending($pdo,'student',$id);
         $pdo->prepare('UPDATE students SET stage = :stage, status = :status, updated_at = NOW() WHERE id = :id')
             ->execute([':stage' => $newStage, ':status' => $newStatus, ':id' => $id]);
         record_history($pdo, $id, $newStage, $newStatus, 'ADMIN OVERRIDE - ' . $change . '. Reason: ' . $reason,
             null, $user['full_name'] . ' (Admin Override)');
+        audit_override_atomic($pdo, $user, 'admin_override_student_progress', [
+            'entity_type' => 'student', 'entity_id' => $id, 'student_id' => $id, 'override' => true, 'reason' => $reason,
+            'before' => $cur['stage'] . ' / ' . $cur['status'], 'after' => $newStage . ' / ' . $newStatus, 'details' => $change,
+        ]);
         $pdo->commit();
         research_group_release($pdo);
     } catch (Throwable $e) {
@@ -244,11 +257,6 @@ if ($action === 'override') {
         if($e instanceof AccountLifecycleConflict || $e instanceof AccountLifecycleNotFound)json_out(['ok'=>false,'message'=>$e->getMessage()],lifecycle_error_status($e));
         json_out(['ok' => false, 'message' => 'The override could not be saved. Nothing was changed.'], 500);
     }
-
-    audit_log($user, 'admin_override_student_progress', [
-        'entity_type' => 'student', 'entity_id' => $id, 'student_id' => $id, 'override' => true, 'reason' => $reason,
-        'before' => $cur['stage'] . ' / ' . $cur['status'], 'after' => $newStage . ' / ' . $newStatus, 'details' => $change,
-    ]);
 
     notify_student($pdo, $id, 'PRISM IERB Progress Updated',
         "Hello {$cur['full_name']},\n\nAn RPMS administrator updated your IERB record.\n$change\nReason: $reason\n\n- CEU Malolos RPMS / PRISM",
@@ -264,6 +272,7 @@ if ($action === 'override') {
 // ---------------------------------------------------------------------
 if ($action === 'save') {
     api_require_login('admin');
+    if (isset($data['reason']) && !is_string($data['reason'])) json_out(['ok'=>false,'message'=>'Invalid progress change reason.'],422);
     $id = (int)($data['id'] ?? 0);
     $studentIdCode = trim((string)($data['studentId'] ?? ''));
     $name = trim((string)($data['name'] ?? ''));
@@ -422,6 +431,13 @@ if ($action === 'save') {
         $identityRow=$pdo->prepare('SELECT * FROM students WHERE id=:id FOR UPDATE');
         $identityRow->execute([':id'=>$id]);
         lifecycle_identity_persist($pdo,$user,'student',$identityBefore??null,lifecycle_identity_capture($pdo,$identityRow->fetch(),'student'));
+        if ($override) {
+            audit_override_atomic($pdo, $user, 'admin_override_student_progress', [
+                'entity_type' => 'student', 'entity_id' => $id, 'student_id' => $id, 'override' => true,
+                'reason' => $reason !== '' ? $reason : '(none recorded)',
+                'details' => $change, 'after' => "$stage / $status",
+            ]);
+        }
         $pdo->commit();
         research_group_release($pdo);
     } catch (Throwable $e) {
@@ -444,7 +460,7 @@ if ($action === 'save') {
         $setupDelivery = send_account_setup_email($pdo, $newLoginUserId, $email, $name);
     }
 
-    audit_log($user, $override ? 'admin_override_student_progress' : 'ierb_saved', [
+    if (!$override) audit_log($user, 'ierb_saved', [
         'entity_type' => 'student', 'entity_id' => $id, 'student_id' => $id, 'override' => $override,
         'reason' => $override ? ($reason !== '' ? $reason : '(none recorded)') : null,
         'details' => $override ? $change : "student_id=$studentIdCode stage=$stage status=$status",

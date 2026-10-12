@@ -130,3 +130,13 @@ storage/.purge/
 !/tests/logout-audit.php
 !/tests/v10-batch1075-packaging.py
 !/tests/v10-batch1075-cache-assets.py
+!/tests/batch11-browser.cjs
+!/tests/batch11-http.php
+!/tests/batch11-atomic-audit.php
+!/tests/batch11-concurrency.php
+!/tests/batch11-worker.php
+!/tests/batch11-baseline.cjs
+!/tests/batch11-integrity.cjs
+!/tests/batch11-regression.cjs
+!/tests/batch11-contrast.js
+!/tests/batch11-summarize.cjs

@@ -47,6 +47,7 @@ try {
 <link rel="stylesheet" href="<?php echo htmlspecialchars(asset_url('assets/css/ceu-footer.css'), ENT_QUOTES, 'UTF-8'); ?>">
 <link rel="stylesheet" href="<?php echo htmlspecialchars(asset_url('assets/css/research-resources.css'), ENT_QUOTES, 'UTF-8'); ?>">
 <link rel="stylesheet" href="<?php echo htmlspecialchars(asset_url('assets/css/prism-workspace.css'), ENT_QUOTES, 'UTF-8'); ?>">
+<link rel="stylesheet" href="<?= htmlspecialchars(asset_url('assets/css/batch11.css'), ENT_QUOTES, 'UTF-8') ?>">
 <script src="<?php echo htmlspecialchars(asset_url('assets/js/prism-workspace.js'), ENT_QUOTES, 'UTF-8'); ?>" defer></script>
 </head>
 <body class="prism-workspace <?= $authUser['role'] === 'admin' ? 'admin-shell' : 'portal-shell adviser-page' ?> dashboard-page" data-reminder-user="<?php echo htmlspecialchars(hash('sha256', $user_email), ENT_QUOTES, 'UTF-8'); ?>">
@@ -88,15 +89,16 @@ try {
 </section>
 <div data-prism-hint="admin-dashboard"></div>
 <!-- AI SUMMARY BANNER -->
-<section class="ai-summary-banner">
+<section class="ai-summary-banner" data-report-state="idle" aria-label="AI Progress Insights">
+<span class="ai-banner-orb" aria-hidden="true"></span><span class="ai-banner-orb" aria-hidden="true"></span><span class="ai-banner-spark" aria-hidden="true">✦</span>
 <div class="ai-summary-content">
 <div class="ai-badge">
 <i class="fa-solid fa-wand-magic-sparkles"></i> AI PROGRESS INSIGHTS
 </div>
-<h2>No workload insights available</h2>
-<p>Generate a report to review the research progress currently available to RPMS.</p>
+<h2 id="aiBannerTitle">No workload insights available</h2>
+<p id="aiBannerStatus" role="status" aria-live="polite">Generate a report to review the research progress currently available to RPMS.</p>
 </div>
-<button class="ai-action-btn" onclick="openReportModal()"><i class="fa-solid fa-file-pdf"></i> Generate AI PDF Report</button>
+<div class="ai-banner-actions"><a class="ai-action-btn" id="aiBannerDownload" hidden target="_blank" rel="noopener">Download report</a><button type="button" id="aiBannerGenerate" class="ai-action-btn" onclick="openReportModal()"><i class="fa-solid fa-file-pdf" aria-hidden="true"></i> Generate AI PDF Report</button></div>
 </section>
 <!-- STATISTICAL METRICS CARDS -->
 <section class="cards">
@@ -408,7 +410,12 @@ function renderIerbMonitor() {
             <td><button class="icon-btn" data-monitor-action="remind" title="Send follow-up email"><i class="fa-solid fa-paper-plane"></i></button><a class="icon-btn" data-monitor-action="documents" href="documents.php" title="Open Documents" aria-label="Open Documents">Open Documents</a><button class="icon-btn prism-override-icon" data-monitor-action="override" title="Admin Override (always logged)" aria-label="Admin Override for ${escapeMonitorHtml(record.name)}"><i class="fa-solid fa-user-shield"></i></button></td>`;
         row.querySelector('[data-monitor-action="remind"]').addEventListener('click', e => PrismUI.runAction(e.currentTarget,'Sending...',() => sendMonitorFollowup(record)));
         row.querySelector('[data-monitor-action="override"]').addEventListener('click', e => PrismUI.runAction(e.currentTarget,'Processing...',async () => { if (await PrismUI.overrideStudent(record)) { await loadMonitorStudents(); renderIerbMonitor(); } }));
+        const identity=document.createElement('small');identity.textContent=(record.protocolCode||record.groupId||record.studentId||'No identifier')+' · '+(record.course||'Course not recorded');row.cells[2].querySelector('.title-cell').append(identity);
+        const metric=document.createElement('small');metric.textContent='Overall progress · '+(record.progress||'0')+'%';row.cells[3].append(metric);
+        row.cells[3].insertAdjacentHTML('beforeend',PrismUI.badge(record.status||'Pending'));
+        PrismUI.actionMenu(row.cells[7],{primary:row.querySelector('[data-monitor-action="documents"]')});
         progressTableBody.appendChild(row);
+        PrismUI.compactRecord(row,2,3,7);
     });
 }
 
@@ -434,8 +441,10 @@ courseFilter.addEventListener('change', filterAndSortProgress);
 progressSort.addEventListener('change', filterAndSortProgress);
 
 // Modal Control Handlers
-function openReportModal() {
-    document.getElementById('reportModal').style.display = 'flex';
+async function openReportModal() {
+    if(dashboardGenerating)return;
+    const choice = await PrismUI.confirm({title:'Generate AI PDF Report',confirmText:'Generate report',message:'Choose an existing report format. Generated reports use the current authorized research records.',extraHtml:'<label for="aiBannerMode">Report format</label><select id="aiBannerMode"><option value="summary">AI Summary</option><option value="full">AI Full Report</option></select>',collect:d=>({mode:d.querySelector('#aiBannerMode').value})});
+    if(choice)await generateAIReport(choice.values.mode,document.getElementById('aiBannerGenerate'));
 }
 function closeReportModal() {
     document.getElementById('reportModal').style.display = 'none';
@@ -446,16 +455,21 @@ async function generateAIReport(mode = 'summary', button) {
     if(dashboardGenerating)return;
     dashboardGenerating = true;
     const release = button ? PrismUI.busy(button,'Generating...') : () => {};
+    const banner=document.querySelector('.ai-summary-banner'),title=document.getElementById('aiBannerTitle'),status=document.getElementById('aiBannerStatus'),download=document.getElementById('aiBannerDownload');
+    banner.dataset.reportState='busy';banner.setAttribute('aria-busy','true');title.textContent='Preparing your insights';status.textContent='Reviewing current research progress. Please wait for the report response.';download.hidden=true;
     closeReportModal();
     try {
         const data = await PrismUI.postJson('reports_api.php?action=ai_report', { mode });
+        if(!data.report?.id)throw new Error('The report response did not include a downloadable report.');
+        banner.dataset.reportState='ready';title.textContent='Your report is ready';status.textContent=data.aiUsed?'Your AI progress report is ready. Review it before distribution.':'Your report uses the local fallback summary because the AI service was unavailable.';
+        download.href=`reports_api.php?action=file&id=${encodeURIComponent(data.report.id)}&download=1`;download.hidden=false;
         PrismUI.toast(data.aiUsed
             ? 'AI report generated. Review it before distribution.'
             : 'AI service was unavailable; PRISM used the local fallback summary.', data.aiUsed ? 'success' : 'info');
-        window.open(`reports_api.php?action=file&id=${encodeURIComponent(data.report.id)}&download=1`, '_blank', 'noopener');
     } catch (e) {
+        banner.dataset.reportState='error';title.textContent='Report could not be generated';status.textContent=e.message||'Please try again.';
         PrismUI.toast(e.message || 'The report could not be generated right now.', 'error');
-    } finally { dashboardGenerating=false; release?.(); }
+    } finally { dashboardGenerating=false;banner.setAttribute('aria-busy','false'); release?.(); }
 }
 
 /* CALENDAR ENGINE */

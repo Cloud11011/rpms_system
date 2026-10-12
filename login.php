@@ -28,12 +28,14 @@ unset($_SESSION['error'], $_SESSION['success']);
     <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="<?php echo htmlspecialchars(asset_url('assets/css/style.css'), ENT_QUOTES, 'UTF-8'); ?>">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.6.0/css/all.min.css">
+    <link rel="stylesheet" href="<?= htmlspecialchars(asset_url('assets/css/batch11-public.css'), ENT_QUOTES, 'UTF-8') ?>">
 
 </head>
 
-<body class="unified-login">
+<body class="unified-login batch11-login">
 
 <div class="background-overlay">
+    <section class="login-campus" aria-labelledby="loginCampusTitle"><a href="index.php" aria-label="PRISM public home"><img src="assets/images/prismlogo1.png" alt="PRISM"></a><h2 id="loginCampusTitle">Welcome to PRISM</h2><p>Progress and Research Information System for Monitoring<br>Centro Escolar University · Malolos</p><a href="index.php#stages">Explore the IERB process</a></section>
 
     <div class="login-card">
 

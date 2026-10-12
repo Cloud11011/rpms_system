@@ -1,8 +1,8 @@
 <?php
 // Presentation only. Each caller has already authenticated the current user.
 if (realpath($_SERVER['SCRIPT_FILENAME'] ?? '') === __FILE__
-    || !isset($authUser) || !is_array($authUser)
-    || !in_array($authUser['role'] ?? '', ['admin', 'adviser', 'student'], true)) {
+    || (empty($prismPublicFooter) && (!isset($authUser) || !is_array($authUser)
+    || !in_array($authUser['role'] ?? '', ['admin', 'adviser', 'student'], true)))) {
     http_response_code(404);
     exit;
 }

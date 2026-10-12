@@ -1,0 +1,43 @@
+:root { color-scheme:light; --public-bg:#f7f5fa; --public-card:#fff; --public-text:#222139; --public-muted:#555268; --public-border:#dedbe7; }
+html.dark-theme { color-scheme:dark; --public-bg:#181622; --public-card:#242031; --public-text:#f5f1fa; --public-muted:#c4bfcf; --public-border:#494154; }
+* { box-sizing:border-box; }
+html { scroll-behavior:smooth; }
+body.prism-public { margin:0; font:15px/1.6 system-ui,sans-serif; background:var(--public-bg); color:var(--public-text); }
+.prism-public :focus-visible, .unified-login :focus-visible { outline:3px solid #d60b78; outline-offset:4px; }
+.public-nav { display:flex; align-items:center; justify-content:space-between; gap:16px; padding:16px clamp(16px,5vw,80px); background:var(--public-card); }
+.public-nav img { width:130px; max-width:100%; }
+.public-nav nav,.public-hero-actions { display:flex; align-items:center; flex-wrap:wrap; gap:16px; }
+.public-nav a:not(.public-button),.public-legal a { color:var(--public-text); }
+.public-nav button { font:inherit; border:1px solid var(--public-border); border-radius:8px; padding:8px 12px; color:var(--public-text); background:var(--public-card); cursor:pointer; }
+.public-button { display:inline-flex; align-items:center; justify-content:center; min-height:44px; padding:10px 20px; border-radius:9px; text-decoration:none; background:#ad0866; color:#fff; font-weight:700; }
+.public-secondary { background:#fff; color:#452259; }
+.public-hero { min-height:480px; display:flex; align-items:center; padding:60px clamp(20px,6vw,100px); color:#fff; background:linear-gradient(110deg,rgba(35,20,64,.95),rgba(154,9,91,.74)),url('../images/ceu_bg.png') center/cover; }
+.public-hero > div { max-width:690px; }
+.public-hero h1 { font-size:clamp(32px,4vw,56px); line-height:1.12; margin:16px 0; }
+.public-hero p { max-width:610px; }
+.public-eyebrow { font-size:11px; font-weight:800; letter-spacing:.12em; }
+.public-caption { font-size:12px; margin-top:24px; }
+.public-stages { padding:48px clamp(20px,6vw,100px); scroll-margin-top:16px; }
+.public-stages h2 { margin:8px 0; font-size:clamp(23px,3vw,32px); }
+.public-stages > p { color:var(--public-muted); }
+.public-stages ol { list-style:none; display:grid; grid-template-columns:repeat(5,minmax(0,1fr)); gap:14px; padding:0; margin-top:26px; }
+.public-stages li:last-child { grid-column:1/-1; }
+.public-stages li { padding:20px; background:var(--public-card); border:1px solid var(--public-border); border-top:3px solid #b60d73; border-radius:12px; }
+.public-stages li span { color:var(--public-muted); font-size:12px; }
+.public-stages h3 { font-size:15px; margin:12px 0 0; }
+.public-cta { margin:0 clamp(20px,6vw,100px) 40px; padding:28px; border-radius:14px; display:flex; flex-wrap:wrap; gap:24px; justify-content:space-between; align-items:center; color:#fff; background:linear-gradient(110deg,#281946,#950956); }
+.public-cta h2 { margin:0; font-size:23px; }.public-cta p { margin:6px 0 0; }
+.prism-public .ceu-footer { margin-top:0; }.public-legal { padding:12px; display:flex; justify-content:center; flex-wrap:wrap; gap:24px; }
+.public-skip { position:absolute; top:-80px; left:16px; padding:12px; background:var(--public-card); color:var(--public-text); z-index:10; }.public-skip:focus { top:12px; }
+/* Login composition keeps the accepted card, fields and authentication handler. */
+body.unified-login.batch11-login { height:auto; min-height:100dvh; overflow:auto; background:var(--public-bg); }
+.batch11-login .background-overlay { height:auto; min-height:100dvh; display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1fr); padding:0; background:var(--public-bg); }
+.batch11-login .login-campus { align-self:stretch; min-height:100dvh; padding:clamp(24px,5vw,72px); display:flex; flex-direction:column; justify-content:center; gap:20px; color:#fff; background:linear-gradient(145deg,rgba(42,23,73,.86),rgba(143,10,82,.79)),url('../images/ceu_bg.png') center/cover; }
+.login-campus img { width:145px; padding:12px; border-radius:10px; background:#fff; }
+.login-campus h2 { font-size:clamp(26px,3vw,42px); line-height:1.2; }.login-campus p { font-size:14px; line-height:1.7; }
+.batch11-login .login-card { justify-self:center; margin:40px 24px; width:min(430px,calc(100% - 48px)); }
+.batch11-login .login-campus a { color:#fff; }.batch11-login .login-legal-footer { flex-wrap:wrap; }
+@media(max-width:1000px) { .public-stages ol { grid-template-columns:repeat(3,minmax(0,1fr)); }.public-stages li:last-child { grid-column:auto; } }
+@media(max-width:700px) { .public-nav { align-items:flex-start; }.public-nav nav { justify-content:flex-end; gap:10px; }.public-nav img { width:95px; }.public-stages ol { grid-template-columns:repeat(2,minmax(0,1fr)); }.public-hero { min-height:390px; padding-top:40px; padding-bottom:40px; }.batch11-login .background-overlay { grid-template-columns:minmax(0,1fr); }.batch11-login .login-campus { min-height:260px; padding:28px; }.batch11-login .login-card { margin:28px 16px; width:min(430px,calc(100% - 32px)); } }
+@media(max-width:360px) { .public-nav { flex-wrap:wrap; }.public-stages ol { grid-template-columns:minmax(0,1fr); } }
+@media(prefers-reduced-motion:reduce) { html { scroll-behavior:auto; } }

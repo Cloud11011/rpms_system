@@ -98,6 +98,7 @@ try {
         if (document_workflow_state(b10_doc($v3)) === WF_SUBMITTED_RPMS) document_workflow_change($pdo,$admin,$v3,'return','','A new revision is required for the presentation fixture.');
         $browser=proc_open(['node',__DIR__.'/v10-batch10-ui.cjs',$origin,$httpRoot],[0=>['pipe','r'],1=>['pipe','w'],2=>['pipe','w']],$bp,null,null,['bypass_shell'=>true,'create_new_console'=>false]);fclose($bp[0]);$out=stream_get_contents($bp[1]);$err=stream_get_contents($bp[2]);fclose($bp[1]);fclose($bp[2]);b10_expect(0,proc_close($browser),'browser '.$err);echo $out;
     }
+    if(in_array('--batch11',$argv,true)) require __DIR__.'/batch11-http.php';
     if(in_array('--browser1075',$argv,true)){
         // Native workflow doubles intentionally have DB-only file rows. Acceptance file actions
         // require real bytes, materialized only inside this verified disposable HTTP source root.
@@ -122,7 +123,7 @@ try {
         $pdo->prepare('UPDATE documents SET original_name=? WHERE id=?')->execute([str_repeat('Long-research-filename-',10).'protocol.pdf',$previewId]);
         if(in_array('--focus1075',$argv,true)||in_array('--acceptance1075',$argv,true)||in_array('--interaction1075',$argv,true))$pdo->exec("INSERT INTO calendar_deadlines(creator_user_id,title,description,deadline_date,target_scope,status) VALUES(1001,'Batch1075 official deadline','Private UI fixture',CURRENT_DATE(),'all','Active')");
         $mode=in_array('--interaction1075',$argv,true)?'interaction':(in_array('--acceptance1075',$argv,true)?'acceptance':(in_array('--contrast1075',$argv,true)?'contrast':(in_array('--focus1075',$argv,true)?'focus':'matrix')));
-        $browser=proc_open(['node',__DIR__.'/v10-batch1075-ui.cjs',$origin,$httpRoot,in_array('--before1075',$argv,true)?'before':'after',$mode],[0=>['pipe','r'],1=>['pipe','w'],2=>['pipe','w']],$bp,null,null,['bypass_shell'=>true,'create_new_console'=>false]);
+        $browser=proc_open(['node',__DIR__.(in_array('--batch11',$argv,true)?'/batch11-browser.cjs':'/v10-batch1075-ui.cjs'),$origin,$httpRoot,in_array('--archive11',$argv,true)?'archive':(in_array('--contrast11',$argv,true)?'contrast':(in_array('--before1075',$argv,true)?'before':'after')),$mode],[0=>['pipe','r'],1=>['pipe','w'],2=>['pipe','w']],$bp,null,null,['bypass_shell'=>true,'create_new_console'=>false]);
         fclose($bp[0]);$out=stream_get_contents($bp[1]);$err=stream_get_contents($bp[2]);fclose($bp[1]);fclose($bp[2]);echo $out;b10_expect(0,proc_close($browser),'Batch1075 browser '.$err);
         b10_expect($browserWorkflow,b10_rows('SELECT id,student_id,review_status,version_no,is_current,supersedes_id,rpms_submitted_at FROM documents ORDER BY id'),'cancelled Actions preserve document workflow and versions');
         b10_expect($browserProgress,b10_rows('SELECT id,stage,status,requirements FROM students ORDER BY id'),'cancelled Actions preserve official student progress');
