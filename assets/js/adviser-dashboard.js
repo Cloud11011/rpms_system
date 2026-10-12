@@ -6,7 +6,6 @@ document.addEventListener('DOMContentLoaded', () => {
     const filter = byId('adviserQueueFilter');
     const refresh = byId('adviserRefresh');
     const notices = byId('adviserNotifications');
-    const profile = byId('adviserProfile');
     const dialog = byId('adviserReviewDialog');
     const form = byId('adviserReviewForm');
     const reviewStatus = byId('adviserReviewStatus');
@@ -16,7 +15,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const reviewError = byId('adviserReviewError');
     const status = byId('adviserStatus');
     // This controller only initializes on the complete Adviser dashboard.
-    if (![queue, search, filter, refresh, notices, profile, dialog, form, reviewStatus, remarks, save, cancel, reviewError, status].every(Boolean)) return;
+    if (![queue, search, filter, refresh, notices, dialog, form, reviewStatus, remarks, save, cancel, reviewError, status].every(Boolean)) return;
     let documents = [];
     let queueState = 'loading';
     let loadSequence = 0;
@@ -25,7 +24,14 @@ document.addEventListener('DOMContentLoaded', () => {
     let saving = false;
     const dirty = PrismUI.dirtyForm(form);
     const count = node('p', 'Loading records...'); queue.insertAdjacentElement('beforebegin', count);
-    const pager = PrismUI.recordPager(queue, count, [search, filter], reload);
+    const sort=byId('adviserQueueSort');
+    const pager = PrismUI.recordPager(queue, count, [search, filter, sort], reload);
+    const summaryCards=[...document.querySelectorAll('[data-queue-state]')];
+    function syncFilters(counts) {
+        summaryCards.forEach(card=>card.setAttribute('aria-pressed',String(card.dataset.queueState===filter.value)));
+        PrismUI.statusPills(byId('adviserQueuePills'),[['','All'],['Pending Adviser Review','Pending review'],['Needs Revision','Needs revision'],['Returned for Revision','Returned by RPMS'],['approved','Approved',['Ready for Formal RPMS Submission','Submitted to RPMS']]],filter,counts);
+    }
+    summaryCards.forEach(card=>card.addEventListener('click',()=>{filter.value=card.dataset.queueState;filter.dispatchEvent(new Event('change'));}));
 
     function node(tag, text, className) {
         const item = document.createElement(tag);
@@ -126,14 +132,8 @@ document.addEventListener('DOMContentLoaded', () => {
             const actionCell = node('td'); actionCell.append(actions);
             row.append(student, card, node('td', dateText(doc.uploadedAt)), statusCell, actionCell);
             rows.append(row);
+            PrismUI.compactRecord(row,1,3,4,[['Student',doc.student],['Adviser review decision',doc.reviewStatus],['Reviewer remarks',doc.reviewRemarks],['RPMS submission',doc.rpmsSubmittedAt||'Not submitted']]);
         });
-    }
-    function renderProfile(user) {
-        const details = node('dl', null, 'adviser-profile-details');
-        field(details, 'Name', user.name);
-        field(details, 'Email', user.email);
-        field(details, 'Role', user.role);
-        profile.replaceChildren(details);
     }
     function renderNotices(items, email) {
         const personal = items.filter(item => String(item.recipient_email || '').toLocaleLowerCase() === email.toLocaleLowerCase());
@@ -145,6 +145,7 @@ document.addEventListener('DOMContentLoaded', () => {
         personal.forEach(item => {
             const card = node('article', null, 'adviser-notice');
             card.append(node('h3', item.subject || item.type || 'Notification'), node('p', item.message || ''), node('small', dateText(item.created_at) + ' | ' + (item.status || 'Status unavailable') + (item.read_at ? ' | Read' : ' | Unread')));
+            if(!item.read_at){const read=node('button','Mark as read','adviser-button');read.type='button';read.addEventListener('click',()=>PrismUI.runAction(read,'Saving...',async()=>{try{await PrismUI.postJson('notifications_api.php?action=mark_read',{id:item.id});await reload();}catch(error){status.textContent=error.message;}}));card.append(read);}
             notices.append(card);
         });
     }
@@ -153,14 +154,13 @@ document.addEventListener('DOMContentLoaded', () => {
         queueState = 'loading';
         documents = [];
         status.textContent = '';
-        [queue, notices, profile].forEach(panel => panel.setAttribute('aria-busy', 'true'));
+        [queue, notices].forEach(panel => panel.setAttribute('aria-busy', 'true'));
         state(queue, 'Loading submissions...', 'Checking current document versions.');
         state(notices, 'Loading notifications...', 'Checking recent messages for your account.');
-        state(profile, 'Loading account...', 'Checking your current account information.');
         ['adviserStudentsCount', 'adviserPendingCount', 'adviserRevisionCount', 'adviserApprovedCount'].forEach(id => { byId(id).textContent = 'Loading...'; });
         const results = await Promise.allSettled([
             PrismUI.request('students_api.php?action=list&preview=1'),
-            PrismUI.request('documents_api.php?' + new URLSearchParams({action:'list',page:pager.page,q:search.value.trim(),state:filter.value})),
+            PrismUI.request('documents_api.php?' + new URLSearchParams({action:'list',page:pager.page,q:search.value.trim(),state:filter.value==='approved'?'':filter.value,stateGroup:filter.value==='approved'?'approved':'',sort:sort.value})),
             PrismUI.request('profile_api.php?action=me'),
             PrismUI.request('notifications_api.php?action=list&preview=5&personal=1')
         ]);
@@ -174,6 +174,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const data = documentsResult.value;
             pager.render({...data,total:data.total??documents.length});
             const counts = data.counts || {};
+            syncFilters(counts);
             byId('adviserPendingCount').textContent = String(counts['Pending Adviser Review'] ?? documents.filter(doc => doc.workflowState === 'Pending Adviser Review').length);
             byId('adviserRevisionCount').textContent = String(counts['Needs Revision'] ?? documents.filter(doc => doc.workflowState === 'Needs Revision').length);
             byId('adviserApprovedCount').textContent = String(data.counts ? (Number(counts['Ready for Formal RPMS Submission']||0)+Number(counts['Submitted to RPMS']||0)) : documents.filter(doc => ['Ready for Formal RPMS Submission', 'Submitted to RPMS'].includes(doc.workflowState)).length);
@@ -184,16 +185,18 @@ document.addEventListener('DOMContentLoaded', () => {
             state(queue, 'Could not load submissions', 'Use Refresh to try again. No document counts are available.');
         }
         const user = profileResult.status === 'fulfilled' && profileResult.value.user;
-        if (user && typeof user.email === 'string' && user.email) renderProfile(user);
-        else state(profile, 'Could not load account', 'Use Refresh to try again or open your account page.');
         if (user && typeof user.email === 'string' && user.email && noticesResult.status === 'fulfilled' && Array.isArray(noticesResult.value.notifications)) {
             renderNotices(noticesResult.value.notifications, user.email);
+            byId('adviserUnreadCount').textContent=String(noticesResult.value.unread_count||0)+' unread · Showing '+noticesResult.value.notifications.length+' recent messages';
+            document.dispatchEvent(new CustomEvent('prism:notification-count',{detail:{unread:noticesResult.value.unread_count}}));
         } else state(notices, 'Could not load personal notifications', 'Your account and notification information must both be available. Use Refresh to try again.');
-        [queue, notices, profile].forEach(panel => panel.setAttribute('aria-busy', 'false'));
+        [queue, notices].forEach(panel => panel.setAttribute('aria-busy', 'false'));
         if (!students || queueState === 'error' || !user || noticesResult.status === 'rejected') status.textContent = 'Some dashboard information is unavailable. Refresh to try again.';
     }
     search.addEventListener('input', () => { pager.reset(); reload(); });
     filter.addEventListener('change', () => { pager.reset(); reload(); });
+    sort.addEventListener('change', () => { pager.reset(); reload(); });
+    byId('adviserMarkAllRead').addEventListener('click',event=>PrismUI.runAction(event.currentTarget,'Saving...',async()=>{try{await PrismUI.postJson('notifications_api.php?action=mark_all_read',{});await reload();}catch(error){status.textContent=error.message;}}));
     refresh.addEventListener('click', reload);
     reviewStatus.addEventListener('change', reviewRequired);
     cancel.addEventListener('click', () => { if (!saving) dialog.close(); });

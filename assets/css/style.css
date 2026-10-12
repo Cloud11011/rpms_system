@@ -821,4 +821,19 @@ body.unified-login{
 .unified-login .login-legal-footer { display:flex; flex-wrap:wrap; justify-content:center; gap:8px; margin-top:18px; font-size:13px; line-height:1.6; }
 .unified-login .login-legal-footer a { color:#533184; text-underline-offset:3px; }
 html.dark-theme .unified-login .login-legal-footer a { color:#533184; }
+.unified-login .login-field-label { display:block; margin:0 0 7px; text-align:left; font-size:12px; font-weight:600; color:#0C0E3F; }
+.unified-login .login-card .input-group > i, .unified-login .login-card .toggle-password { top:auto; bottom:17px; transform:none; }
+.unified-login .login-card .input-group input { border-radius:12px; background:#f6f5f8; border:1px solid #e5dfea; }
+.unified-login .login-card .input-group input:focus { outline:2px solid #EE1280; outline-offset:2px; }
+.unified-login .login-card .form-options { justify-content:flex-end; margin:0 0 18px; }
+.unified-login .login-card .login-account-note { color:#606070; background:#f6f5f8; border-radius:9px; padding:10px; }
+.unified-login .login-card button[type=submit] { border-radius:12px; }
+html.dark-theme .unified-login .login-card { background:rgba(27,29,48,.97); color:#f1f1fa; }
+html.dark-theme .unified-login .login-card :is(.prism-branding,.login-field-label), html.dark-theme .unified-login .login-card .prism-branding strong { color:#f1f1fa; }
+html.dark-theme .unified-login .login-card .prism-branding h1 { color:#f1f1fa; }
+html.dark-theme .unified-login .login-card .prism-branding p { color:#b5b7ca; }
+html.dark-theme .unified-login .login-card .input-group input { background:#25273e; border-color:#454760; color:#f1f1fa; }
+html.dark-theme .unified-login .login-card .input-group input::placeholder { color:#b5b7ca; }
+html.dark-theme .unified-login .login-card .login-account-note { background:#25273e; color:#c3c5d7; }
+html.dark-theme .unified-login .login-card .login-legal-footer a { color:#d5a6e4; }
 .unified-login .login-legal-footer a:focus-visible { outline:2px solid #533184; outline-offset:4px; }

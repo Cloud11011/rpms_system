@@ -27,6 +27,7 @@ function b10_upload(string $type,?string $revision=null,string $jar='student',?s
 }
 try {
     $deadline=microtime(true)+10;do{$sock=@fsockopen('127.0.0.1',$httpPort);if($sock){fclose($sock);break;}usleep(50000);}while(microtime(true)<$deadline);
+    if(!in_array('--uionly1075',$argv,true)){
     b10_auth(1001,'admin');b10_auth(1002,'adviser');b10_auth(1003,'student');b10_auth(1005,'other-adviser');
     $r=b10_upload(prism_document_types()[0]);b10_expect(200,$r['status'],'real Student PDF upload '.$r['body']);$httpV1=$r['json']['document']['id'];
     $q=b10_doc($httpV1);b10_expect('Submitted',$q['review_status'],'upload awaits Adviser');b10_expect(null,$q['rpms_submitted_at'],'upload never auto-submits');
@@ -91,9 +92,23 @@ try {
     else {b10_expect(true,$race[1]['ok'],'new version wins stale approval race');b10_expect(0,(int)$old['is_current'],'losing approval targets superseded version');b10_expect(null,$old['rpms_submitted_at'],'stale approval never formally submits');}
     $pdo->exec('DELETE FROM user_policy_acceptances WHERE user_id=1001');b10_expect(403,b10_http('documents_api.php?action=return_for_revision',['id'=>$httpV2,'reason'=>'Reason'])['status'],'HTTP legal gate');legal_accept($pdo,$admin,['privacy'=>true,'terms'=>true,'snapshot'=>legal_snapshot(legal_current($pdo))]);
     $pdo->exec("UPDATE users SET status='Inactive' WHERE id=1001");b10_expect(401,b10_http('documents_api.php?action=return_for_revision',['id'=>$httpV2,'reason'=>'Reason'])['status'],'HTTP inactive Admin');$pdo->exec("UPDATE users SET status='Active' WHERE id=1001");b10_auth(1001,'admin');
+    }
     if(in_array('--browser10',$argv,true)){
         if (document_workflow_state(b10_doc($v3)) === WF_SUBMITTED_RPMS) document_workflow_change($pdo,$admin,$v3,'return','','A new revision is required for the presentation fixture.');
         $browser=proc_open(['node',__DIR__.'/v10-batch10-ui.cjs',$origin,$httpRoot],[0=>['pipe','r'],1=>['pipe','w'],2=>['pipe','w']],$bp,null,null,['bypass_shell'=>true,'create_new_console'=>false]);fclose($bp[0]);$out=stream_get_contents($bp[1]);$err=stream_get_contents($bp[2]);fclose($bp[1]);fclose($bp[2]);b10_expect(0,proc_close($browser),'browser '.$err);echo $out;
     }
-    lifecycle_compare_schema($pdo);echo 'PASS: Batch10 real HTTP upload, approval, Return, revision, resubmission, transport/session/legal/role guards and file history. '.($GLOBALS['nativeChecks']-$b10Start)." cumulative assertions.\n";
+    if(in_array('--browser1075',$argv,true)){
+        $legalBaseline=legal_current($pdo);$legalMax=(int)$pdo->query('SELECT MAX(id) FROM legal_policy_versions')->fetchColumn();
+        file_put_contents($httpRoot.'/fixture-idle.php','<?php require __DIR__."/config.php";$_SESSION["last_activity_at"]=time()-1801;echo "fixture idle clock set";');
+        $previewId=$bulkCurrent??$pdo->query('SELECT id FROM documents ORDER BY uploaded_at DESC,id DESC LIMIT 1')->fetchColumn();
+        $pdo->prepare('UPDATE documents SET original_name=? WHERE id=?')->execute([str_repeat('Long-research-filename-',10).'protocol.pdf',$previewId]);
+        if(in_array('--focus1075',$argv,true))$pdo->exec("INSERT INTO calendar_deadlines(creator_user_id,title,description,deadline_date,target_scope,status) VALUES(1001,'Batch1075 official deadline','Private UI fixture',CURRENT_DATE(),'all','Active')");
+        $browser=proc_open(['node',__DIR__.'/v10-batch1075-ui.cjs',$origin,$httpRoot,in_array('--before1075',$argv,true)?'before':'after',in_array('--contrast1075',$argv,true)?'contrast':(in_array('--focus1075',$argv,true)?'focus':'matrix')],[0=>['pipe','r'],1=>['pipe','w'],2=>['pipe','w']],$bp,null,null,['bypass_shell'=>true,'create_new_console'=>false]);
+        fclose($bp[0]);$out=stream_get_contents($bp[1]);$err=stream_get_contents($bp[2]);fclose($bp[1]);fclose($bp[2]);echo $out;b10_expect(0,proc_close($browser),'Batch1075 browser '.$err);
+        b10_expect($legalBaseline,legal_current($pdo),'UI Cancel preserves published policy content and pointers');
+        foreach(legal_rows($pdo,'SELECT * FROM legal_policy_versions WHERE id>?',[$legalMax]) as $draft){b10_expect('draft',$draft['state'],'Cancel retains saved draft');b10_expect(false,str_contains($draft['title'],'Unsaved browser edit'),'Cancel writes no edits');}
+        // Remove only browser-created drafts in this verified disposable fixture before B6 governance tests.
+        $pdo->prepare("DELETE FROM legal_policy_versions WHERE id>? AND state='draft'")->execute([$legalMax]);
+    }
+    lifecycle_compare_schema($pdo);echo (in_array('--uionly1075',$argv,true)?'PASS: isolated UI fixture, frozen schema and policy preservation. ':'PASS: Batch10 real HTTP upload, approval, Return, revision, resubmission, transport/session/legal/role guards and file history. ').($GLOBALS['nativeChecks']-$b10Start)." cumulative assertions.\n";
 } finally { if(is_resource($httpServer)){proc_terminate($httpServer);proc_close($httpServer);} }

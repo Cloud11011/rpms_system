@@ -93,6 +93,9 @@
       : [['academicUnitKey','Academic units'],['programKey','Programs'],['academicYear','Academic years'],['yearLevel','Year levels'],['group','Research groups'],['stage','Stages'],['status','Statuses'],['protocol','Protocol status']];
     if (!isAdviser && loggedInRole === 'admin') definitions.push(['adviserId','Research advisers']);
     const filters = PrismUI.recordFilters(document.getElementById('recordFilters'), definitions);
+    const statusSelect=document.getElementById('recordFilters_status');
+    const statusPills=document.createElement('div');document.querySelector('.management-controls').after(statusPills);
+    function syncStatusPills(){PrismUI.statusPills(statusPills,[['','All'],...[...statusSelect.options].filter(option=>option.value).map(option=>[option.value,option.textContent])],statusSelect,null);}
     const sort = PrismUI.recordFilters(document.getElementById('recordFilters'), [['sortBy','Sort by'],['direction','Direction']]);
     const sortOptions = isAdviser
       ? [['name','Name'],['employeeId','Employee ID'],['email','Email'],['department','Academic unit / Department'],['status','Account status'],...(archiveWorkspace ? [['archivedAt','Archived date']] : [])]
@@ -133,6 +136,7 @@
             if (request !== requestSequence) return;
             records = items;
             filters.update(data.filterOptions);
+            syncStatusPills();
             pager.render({ ...data, total: data.total ?? records.length });
             retentionUI?.onPage(data.total ?? records.length);
         } catch (e) {
@@ -302,6 +306,8 @@
             }
             PrismUI.actionMenu(actions);
             rowsEl.appendChild(tr);
+            if (!archiveWorkspace) PrismUI.compactRecord(tr,retentionUI?1:0,retentionUI?5:4,tr.cells.length-1,
+                isAdviser ? [] : [['Group identifier',record.group],['Pending requirements',record.requirements],['Principal Investigator',record.isPrincipalInvestigator?'Yes':'No']]);
         });
     }
 

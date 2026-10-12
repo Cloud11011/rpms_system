@@ -3,8 +3,6 @@
     'use strict';
     window.PrismAcademicFields = {
         appendSummary(host, record) {
-            const values = [record.course, record.academicUnitKey, record.programKey, record.yearLevel, record.academicYear];
-            if (!values.some(value => value !== null && value !== undefined && String(value).trim() !== '')) return;
             const catalog = window.PRISM_ACADEMIC_CATALOG;
             const summary = document.createElement('dl');
             summary.className = 'academic-record-summary';

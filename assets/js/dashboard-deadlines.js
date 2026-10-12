@@ -6,6 +6,10 @@
     const displayDate = key => new Date(key + 'T00:00:00').toLocaleDateString('en-PH', { year: 'numeric', month: 'long', day: 'numeric' });
     const endpoint = params => 'calendar_deadlines_api.php?' + new URLSearchParams(params);
     async function openDay(key, trigger) {
+        const root=trigger?.closest('.calendar-box,.prism-deadline-calendar,.dashboard-calendar-panel')||trigger?.parentElement;
+        root?.querySelectorAll('[data-selected-day]').forEach(cell=>{delete cell.dataset.selectedDay;cell.removeAttribute('aria-current');});
+        if(trigger){trigger.dataset.selectedDay='true';trigger.setAttribute('aria-current','date');}
+        const selectedDetail=root?.querySelector('.prism-calendar-detail');if(selectedDetail)selectedDetail.textContent=displayDate(key)+' · Official deadline details';
         if (!window.PrismReadOnly) return;
         const { dialog, node, button } = PrismReadOnly;
         const view = dialog('Official deadlines — ' + displayDate(key), trigger);
@@ -91,6 +95,11 @@
         const adviserDays = document.getElementById('adviserCalendarDays');
         const studentDays = document.getElementById('dashboardCalendarGrid');
         if (!adminDays && !adviserDays && !studentDays) return;
+        document.querySelectorAll('#prevBtn,#dashboardPreviousMonth,[data-deadline-month="-1"]').forEach(control=>{control.querySelector('i')?.replaceWith(document.createTextNode('‹'));});
+        document.querySelectorAll('#nextBtn,#dashboardNextMonth,[data-deadline-month="1"]').forEach(control=>{control.querySelector('i')?.replaceWith(document.createTextNode('›'));});
+        const days=adminDays||adviserDays||studentDays;
+        const detail=document.createElement('p');detail.className='prism-calendar-detail';detail.setAttribute('role','status');detail.textContent='Select a date to see its official deadline details. Calendar dates use Philippine time.';days.after(detail);
+        days.addEventListener('click',event=>{const day=event.target.closest('[data-deadline-date]');if(!day)return;days.querySelectorAll('[data-selected-day]').forEach(cell=>{delete cell.dataset.selectedDay;cell.removeAttribute('aria-current');});day.dataset.selectedDay='true';day.setAttribute('aria-current','date');detail.textContent=displayDate(day.dataset.deadlineDate)+(day.dataset.officialDeadline==='true'?' · Official deadlines; details opened.':' · No active official deadline.');},true);
         const container = adminDays ? adminDays.closest('.calendar-card') || adminDays.parentElement.parentElement : (adviserDays || studentDays).closest('.prism-deadline-calendar,.dashboard-calendar-panel');
         // Capture before the existing Admin personal-task click handler or year/month handler.
         const activate = event => {

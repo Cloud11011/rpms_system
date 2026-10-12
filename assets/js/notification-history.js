@@ -109,6 +109,7 @@
             if (!list.children.length) list.append(element('p', 'No notifications match this view.', 'workspace-empty-state'));
             PrismUI.pagination(pager, count, { ...data, total: data.total ?? 0 }, load, 'notifications');
             if (options.markAll) options.markAll.disabled = !(data.unread_count > 0);
+            document.dispatchEvent(new CustomEvent('prism:notification-count',{detail:{unread:data.unread_count}}));
         }
         async function load(nextPage = 1) {
             page = nextPage; const current = ++sequence;

@@ -124,6 +124,7 @@ function renderTable(){
 
         PrismUI.actionMenu(tr.querySelector('.document-row-actions'));
         body.appendChild(tr);
+        PrismUI.compactRecord(tr,0,4,5,[['Adviser review decision',d.reviewStatus],['Version',d.versionNo],['Protocol',d.protocolCode],['Reviewer remarks',d.reviewRemarks],['RPMS return reason',d.rpmsReturnReason],['RPMS submission',d.rpmsSubmittedAt||'Not submitted']]);
     });
     bindSummaryButtons(body);
 }
@@ -143,12 +144,19 @@ function toast(message,type='success'){PrismUI.toast(message,type)}
 const filterPanel=document.createElement('div');filterPanel.id='documentFilters';filterPanel.className='prism-record-filters';
 document.querySelector('.document-actions').prepend(filterPanel);
 [[typeFilter,'Document type'],[courseFilter,'Course'],[yearFilter,'Upload year'],[sortSelect,'Sort by']].forEach(([control,text])=>{if(!control)return;const label=document.createElement('label');label.textContent=text;label.append(control);filterPanel.append(label);});
-const pager=PrismUI.recordPager(document.getElementById('documentsCourseView'),document.getElementById('documentCount'),[search,typeFilter,courseFilter,yearFilter,sortSelect].filter(Boolean),load,
+const stateFilter=document.createElement('select');stateFilter.id='documentStateFilter';stateFilter.setAttribute('aria-label','Workflow status');
+[['','All'],['Pending Adviser Review','Pending adviser review'],['Needs Revision','Needs revision'],['Returned for Revision','Returned by RPMS'],['Ready for Formal RPMS Submission','Ready for formal submission'],['Submitted to RPMS','Submitted to RPMS'],['Superseded','Superseded']].forEach(([value,label])=>stateFilter.add(new Option(label,value)));
+const stateLabel=document.createElement('label');stateLabel.textContent='Workflow status';stateLabel.append(stateFilter);filterPanel.append(stateLabel);
+const pager=PrismUI.recordPager(document.getElementById('documentsCourseView'),document.getElementById('documentCount'),[search,typeFilter,courseFilter,yearFilter,sortSelect,stateFilter].filter(Boolean),load,
     {host:filterPanel,toolbar:document.querySelector('.document-actions')});
+const statePills=document.createElement('div');filterPanel.after(statePills);
+const stateDefinitions=[['','All'],['Pending Adviser Review','Pending review'],['Needs Revision','Needs revision'],['Returned for Revision','Returned by RPMS'],['Submitted to RPMS','Submitted to RPMS']];
+stateFilter.addEventListener('change',()=>{pager.reset();load();});
+document.addEventListener('click',event=>{if(event.target.closest('.prism-clear-filters')){stateFilter.value='';}});
 async function load(){
     const sequence=++loadSequence;pager.loading();body.setAttribute('aria-busy','true');
-    const qs=new URLSearchParams({action:'list',page:pager.page,q:search.value.trim(),type:typeFilter.value,course:courseFilter.value,year:yearFilter.value,sort:sortSelect?.value||'newest'});
-    try{const data=await PrismUI.request('documents_api.php?'+qs);if(sequence!==loadSequence)return;listData=data;documents=data.documents;loadError=false;render();pager.render({...data,total:data.total??documents.length})}
+    const qs=new URLSearchParams({action:'list',page:pager.page,q:search.value.trim(),type:typeFilter.value,course:courseFilter.value,year:yearFilter.value,sort:sortSelect?.value||'newest',state:stateFilter.value});
+    try{const data=await PrismUI.request('documents_api.php?'+qs);if(sequence!==loadSequence)return;listData=data;documents=data.documents;loadError=false;render();pager.render({...data,total:data.total??documents.length});PrismUI.statusPills(statePills,stateDefinitions,stateFilter,data.counts||{})}
     catch(e){if(sequence!==loadSequence)return;documents=[];loadError=true;render();pager.error();toast(e.message,'error')}
     finally{if(sequence===loadSequence)body.setAttribute('aria-busy','false')}
 }

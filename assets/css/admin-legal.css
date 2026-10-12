@@ -22,3 +22,12 @@
 .legal-management .legal-skip:focus { transform: none; }
 body.prism-workspace.legal-management .prism-btn { min-height: 44px; white-space: normal; }
 .legal-management :focus-visible { outline: 3px solid var(--prism-focus); outline-offset: 3px; }
+.legal-management .legal-publishing-guide { border:1px solid var(--prism-border); border-radius:12px; padding:18px; background:var(--prism-surface-2); }
+.legal-management .legal-publishing-guide h2 { font-size:var(--prism-font-subheading); margin:0 0 8px; }
+.legal-management .legal-policy-tabs { display:flex; flex-wrap:wrap; gap:8px; margin:18px 0; }
+.legal-management .legal-policy-tabs button { padding:10px 16px; min-height:44px; border:1px solid var(--prism-border); border-radius:24px; background:var(--prism-surface); color:var(--prism-text); font:600 var(--prism-font-body)/1.4 Montserrat,sans-serif; cursor:pointer; }
+.legal-management .legal-policy-tabs [aria-selected=true] { background:var(--prism-text); color:var(--prism-surface); }
+.legal-management [data-policy-panel][hidden] { display:none; }
+.legal-management .legal-draft-navigation { margin-bottom:18px; }
+.legal-management .legal-draft-actions { display:flex; flex-wrap:wrap; gap:12px; }
+.legal-management .legal-history li { border-bottom:1px solid var(--prism-border); padding-bottom:12px; }

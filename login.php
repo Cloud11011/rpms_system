@@ -22,6 +22,7 @@ unset($_SESSION['error'], $_SESSION['success']);
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
     <title>Login | PRISM</title>
+    <script>try{if(localStorage.getItem('prismTheme')==='dark')document.documentElement.classList.add('dark-theme')}catch(_){}</script>
 
     <link rel="icon" type="image/png" href="assets/images/prismicon.png">
     <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600;700&display=swap" rel="stylesheet">
@@ -52,11 +53,13 @@ unset($_SESSION['error'], $_SESSION['success']);
         <form action="login_process.php" method="POST">
 
             <div class="input-group">
+                <label class="login-field-label" for="loginEmail">Email</label>
                 <i class="fa-solid fa-envelope"></i>
-                <input type="email" name="email" placeholder="<?php echo htmlspecialchars(allowed_email_domains_hint(), ENT_QUOTES, 'UTF-8'); ?> email" autocomplete="username" required autofocus>
+                <input id="loginEmail" type="email" name="email" placeholder="<?php echo htmlspecialchars(allowed_email_domains_hint(), ENT_QUOTES, 'UTF-8'); ?> email" autocomplete="username" required autofocus>
             </div>
 
             <div class="input-group">
+                <label class="login-field-label" for="password">Password</label>
                 <i class="fa-solid fa-lock"></i>
                 <input type="password" name="password" id="password" placeholder="Password" autocomplete="current-password" required>
                 <button type="button" class="toggle-password" aria-label="Show password" aria-controls="password" aria-pressed="false"><i class="fa-solid fa-eye" id="togglePassword" aria-hidden="true"></i></button>

@@ -123,3 +123,5 @@ storage/.purge/
 !/tests/v10-batch105-worker.php
 !/tests/v10-batch105-http.php
 !/tests/v10-batch105-results.json
+!/tests/v10-batch1075-ui.cjs
+!/tests/v10-batch1075-regression.cjs

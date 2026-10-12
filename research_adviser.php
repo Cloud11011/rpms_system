@@ -43,22 +43,24 @@ $authUser = require_login('adviser');
 <p id="adviserStatus" class="adviser-feedback" role="status" aria-live="polite"></p>
 <section class="adviser-summary-grid" aria-label="Assigned research overview">
 <article class="adviser-summary-card"><p>Assigned students</p><strong id="adviserStudentsCount">Loading...</strong><span>Student records assigned to you</span></article>
-<article class="adviser-summary-card"><p>Pending adviser review</p><strong id="adviserPendingCount">Loading...</strong><span>Current documents awaiting review</span></article>
-<article class="adviser-summary-card"><p>Needs revision</p><strong id="adviserRevisionCount">Loading...</strong><span>Current documents returned for changes</span></article>
-<article class="adviser-summary-card"><p>Approved documents</p><strong id="adviserApprovedCount">Loading...</strong><span>Ready for submission or submitted to RPMS</span></article>
+<button type="button" class="adviser-summary-card" data-queue-state="Pending Adviser Review" aria-pressed="false"><p>Pending adviser review</p><strong id="adviserPendingCount">Loading...</strong><span>Current documents awaiting review</span></button>
+<button type="button" class="adviser-summary-card" data-queue-state="Needs Revision" aria-pressed="false"><p>Needs revision</p><strong id="adviserRevisionCount">Loading...</strong><span>Current documents returned for changes</span></button>
+<button type="button" class="adviser-summary-card" data-queue-state="approved" aria-pressed="false"><p>Approved documents</p><strong id="adviserApprovedCount">Loading...</strong><span>Ready for submission or submitted to RPMS</span></button>
 </section>
 <div class="adviser-content-grid">
 <section class="adviser-panel adviser-review-panel" aria-labelledby="adviserQueueTitle">
 <div class="adviser-panel-heading"><div><h2 id="adviserQueueTitle">Documents to Review</h2><p>Current document versions for your assigned students.</p></div><a href="documents.php">All document tools</a></div>
 <div class="adviser-queue-filters">
 <label for="adviserQueueSearch">Search submissions<input id="adviserQueueSearch" type="search" placeholder="Student, document or stage"></label>
-<label for="adviserQueueFilter">Workflow status<select id="adviserQueueFilter"><option value="">All statuses</option><option>Pending Adviser Review</option><option>Needs Revision</option><option>Returned for Revision</option><option>Ready for Formal RPMS Submission</option><option>Submitted to RPMS</option></select></label>
+<label for="adviserQueueFilter">Workflow status<select id="adviserQueueFilter"><option value="">All statuses</option><option>Pending Adviser Review</option><option>Needs Revision</option><option>Returned for Revision</option><option value="approved">Approved documents</option><option>Ready for Formal RPMS Submission</option><option>Submitted to RPMS</option></select></label>
+<label for="adviserQueueSort">Sort<select id="adviserQueueSort"><option value="newest">Newest first</option><option value="oldest">Oldest first</option><option value="name-asc">Filename A-Z</option><option value="student-asc">Student A-Z</option></select></label>
 </div>
+<div id="adviserQueuePills" class="prism-filter-pills" aria-label="Submission status filters"></div>
 <div id="adviserQueue" class="adviser-queue" aria-live="polite" aria-busy="true"><p class="adviser-panel-state">Loading current submissions...</p></div>
 </section>
-<section class="adviser-panel adviser-notifications-panel" aria-labelledby="adviserNotificationsTitle"><div class="adviser-panel-heading"><div><h2 id="adviserNotificationsTitle">Recent notifications</h2><p>Recent messages addressed to your account.</p></div><a href="admin_notifications.php">Notification Center</a></div><div id="adviserNotifications" tabindex="0" role="region" aria-label="Recent notification history" aria-live="polite" aria-busy="true"><p class="adviser-panel-state">Loading recent notifications...</p></div></section>
 </div>
 <div class="adviser-side-panels">
+<section class="adviser-panel adviser-notifications-panel" aria-labelledby="adviserNotificationsTitle"><div class="adviser-panel-heading"><div><h2 id="adviserNotificationsTitle">Recent notifications</h2><p id="adviserUnreadCount">Recent messages addressed to your account.</p></div><button type="button" id="adviserMarkAllRead" class="adviser-button">Mark all as read</button></div><div id="adviserNotifications" tabindex="0" role="region" aria-label="Recent notification history" aria-live="polite" aria-busy="true"><p class="adviser-panel-state">Loading recent notifications...</p></div><a href="admin_notifications.php">Open Notification Center</a></section>
 <section class="adviser-panel prism-deadline-calendar" aria-labelledby="adviserCalendarTitle">
 <div class="adviser-panel-heading"><h2 id="adviserCalendarTitle">Calendar</h2><a href="calendar.php">View Calendar</a></div>
 <div class="prism-deadline-toolbar"><button type="button" data-deadline-month="-1" aria-label="Previous month"><i class="fa-solid fa-chevron-left" aria-hidden="true"></i></button><strong id="adviserCalendarMonth"></strong><button type="button" data-deadline-month="1" aria-label="Next month"><i class="fa-solid fa-chevron-right" aria-hidden="true"></i></button></div>
@@ -66,7 +68,6 @@ $authUser = require_login('adviser');
 <div class="prism-deadline-grid" id="adviserCalendarDays"></div>
 <p class="prism-deadline-load" id="dashboardDeadlineState" role="status">Loading official deadlines...</p>
 </section>
-<section class="adviser-panel" aria-labelledby="adviserProfileTitle"><div class="adviser-panel-heading"><h2 id="adviserProfileTitle">Your account</h2><a href="account.php">View account</a></div><div id="adviserProfile" aria-live="polite" aria-busy="true"><p class="adviser-panel-state">Loading account...</p></div></section>
 </div>
 <?php require __DIR__ . '/includes/research_resources.php'; ?>
 <?php require __DIR__ . '/includes/ceu_footer.php'; ?>

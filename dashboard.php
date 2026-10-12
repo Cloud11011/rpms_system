@@ -131,27 +131,27 @@ try {
 <div data-prism-needs-attention data-limit="8"></div>
 </div>
 <!-- STAGE PIPELINE FUNNEL WIDGET -->
-<div class="pipeline-card">
+<div class="pipeline-card dashboard-stage">
 <div class="pipeline-title">
-<i class="fa-solid fa-filter"></i> Research Stage Distribution
+<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M3 4h18l-7 8v7l-4-2v-5Z"/></svg> Research Stage Distribution
 </div>
-<div class="pipeline-steps">
-<div class="step-item">
+<p class="dashboard-stage-help">Select a stage to filter the list</p><div class="pipeline-steps">
+<button type="button" class="step-item" data-monitor-stage="initial" aria-pressed="false">
 <span>Initial Submission</span>
 <strong id="initialStageCount">0 Groups</strong>
-</div>
-<div class="step-item">
+</button>
+<button type="button" class="step-item" data-monitor-stage="review" aria-pressed="false">
 <span>Ethics Review</span>
 <strong id="reviewStageCount">0 Groups</strong>
-</div>
-<div class="step-item delayed">
+</button>
+<button type="button" class="step-item delayed" data-monitor-stage="revision" aria-pressed="false">
 <span>Revision Phase</span>
 <strong id="revisionStageCount">0 Delayed</strong>
-</div>
-<div class="step-item approved">
+</button>
+<button type="button" class="step-item approved" data-monitor-stage="approved" aria-pressed="false">
 <span>Board Approved</span>
 <strong id="approvedStageCount">0 Groups</strong>
-</div>
+</button>
 </div>
 </div>
 <!-- INTERACTIVE CALENDAR WITH MONTH AND YEAR VIEWS -->
@@ -227,7 +227,7 @@ try {
 </div>
 <!-- DOCUMENT REPOSITORY SUMMARY -->
 <div class="content-box dashboard-repository">
-<h3><i class="fa-solid fa-folder-tree"></i> Recent Repository Uploads</h3>
+<div class="table-header"><h3><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M3 6h6l2 2h10v11H3Z"/></svg> Recent Repository Uploads</h3><a class="prism-btn" href="documents.php">View All</a></div><p id="repositoryCount" role="status">Loading recent uploads...</p><div id="repositoryFilters" class="prism-filter-pills" aria-label="Recent upload filters"></div>
 <div class="repo-list">
 <p>No documents yet. Uploads from students and advisers will appear here.</p>
 </div>
@@ -318,7 +318,7 @@ themeToggle?.addEventListener('click', () => {
 const courseFilter = document.getElementById('courseFilter');
 const progressSort = document.getElementById('progressSort');
 const progressTableBody = document.getElementById('ierbMonitorBody');
-let monitorRecords = [], monitorOverview = [], monitorCourses = [];
+let monitorRecords = [], monitorOverview = [], monitorCourses = [], monitorStage = "";
 let monitorError = '';
 let monitorRequest = 0;
 const escapeMonitorHtml = value => String(value ?? '').replace(/[&<>'"]/g, char => ({
@@ -331,7 +331,7 @@ async function loadMonitorStudents() {
     const requestId = ++monitorRequest;
     progressTableBody.setAttribute('aria-busy', 'true');
     try {
-        const data = await PrismUI.request('ierb_api.php?' + new URLSearchParams({action:'list',preview:10,course:courseFilter.value,sort:progressSort.value}));
+        const data = await PrismUI.request('ierb_api.php?' + new URLSearchParams({action:'list',preview:10,course:courseFilter.value,sort:progressSort.value,dashboardStage:monitorStage}));
         if (requestId !== monitorRequest) return;
         monitorRecords = data.records || [];
         monitorOverview = data.overview || monitorRecords.map(r => ({stage:r.stage,status:r.status,c:1}));
@@ -352,10 +352,10 @@ function updateMonitorMetrics() {
     document.getElementById('pendingIerbMetric').textContent = count(r => r.status === 'Pending');
     document.getElementById('approvedEthicsMetric').textContent = count(r => r.stage === 'Completed');
     document.getElementById('delayedSubmissionsMetric').textContent = count(r => r.status === 'Delayed');
-    const setCount = (id,value,noun='Groups') => document.getElementById(id).textContent = `${value} ${noun}`;
+    const setCount = (id,value) => { const host=document.getElementById(id),number=document.createElement('b'),noun=document.createElement('small');number.textContent=value;noun.textContent=value===1?'student':'students';host.replaceChildren(number,noun); };
     setCount('initialStageCount',count(r => r.stage === 'Stage 1'));
     setCount('reviewStageCount',count(r => r.stage === 'Stage 2'));
-    setCount('revisionStageCount',count(r => ['Stage 3','Stage 4'].includes(r.stage)),'Delayed');
+    setCount('revisionStageCount',count(r => ['Stage 3','Stage 4'].includes(r.stage)));
     setCount('approvedStageCount',count(r => r.stage === 'Completed'));
 }
 
@@ -763,21 +763,24 @@ dashboardDayModal.addEventListener('click', event => {
     } catch (_) { /* leave the default empty state */ }
 })();
 
+document.querySelectorAll('[data-monitor-stage]').forEach(button=>button.addEventListener('click',async()=>{monitorStage=monitorStage===button.dataset.monitorStage?'':button.dataset.monitorStage;document.querySelectorAll('[data-monitor-stage]').forEach(card=>card.setAttribute('aria-pressed',String(card.dataset.monitorStage===monitorStage)));await loadMonitorStudents();renderIerbMonitor();}));
 (async function loadRepositoryPreview() {
+    const container=document.querySelector('.repo-list'),count=document.getElementById('repositoryCount'),filters=document.getElementById('repositoryFilters');
     try {
-        const data = await PrismUI.request('documents_api.php?action=list&preview=5');
-        const docs = data.ok ? data.documents.slice(0, 5) : [];
-        const container = document.querySelector('.repo-list');
-        if (!container || !docs.length) return;
-        container.innerHTML = '';
-        docs.forEach(d => {
-            const row = document.createElement('a');
-            row.href = `documents.php`;
-            row.className = 'repo-item';
-            row.innerHTML = `<i class="fa-regular fa-file-lines"></i><span>${escapeMonitorHtml(d.originalName)}${d.versionNo > 1 ? ' (v' + d.versionNo + ')' : ''}</span><small>${escapeMonitorHtml(d.protocolCode || d.student || 'Unassigned')} &bull; ${PrismUI.badge(d.workflowState || d.reviewStatus, { small: true })}</small>`;
-            container.appendChild(row);
-        });
-    } catch (_) { /* keep default empty state */ }
+        const data=await PrismUI.request('documents_api.php?action=list&preview=5');
+        const docs=data.ok?data.documents.slice(0,5):[];
+        let selected='';
+        const definitions=[['','All'],['Pending Adviser Review','Pending review'],['Needs Revision','Needs revision'],['Submitted to RPMS','Submitted to RPMS']];
+        const render=()=>{
+            const shown=docs.filter(doc=>!selected||doc.workflowState===selected);
+            count.textContent='Showing '+shown.length+' of '+docs.length+' recent uploads \u00b7 Preview only \u00b7 '+data.total+' current uploads in repository';
+            filters.replaceChildren();
+            definitions.forEach(([value,label])=>{const button=document.createElement('button');button.type='button';button.className='prism-filter-pill';button.setAttribute('aria-pressed',String(selected===value));button.dataset.repositoryState=value;button.textContent=label+' \u00b7 '+(value?docs.filter(d=>d.workflowState===value).length:docs.length);button.addEventListener('click',()=>{selected=value;render();[...filters.querySelectorAll('button')].find(b=>b.dataset.repositoryState===selected)?.focus();});filters.append(button);});
+            container.replaceChildren();
+            shown.forEach(d=>{const row=document.createElement('a');row.href='documents.php';row.className='repo-item';row.title=d.originalName;const extension=(d.originalName.match(/\.([A-Za-z0-9]{1,8})$/)?.[1]||'FILE').toUpperCase();row.innerHTML='<span class="repo-extension">'+escapeMonitorHtml(extension)+'</span><span class="repo-file-copy"><strong>'+escapeMonitorHtml(d.originalName)+(d.versionNo>1?' (v'+d.versionNo+')':'')+'</strong><small>Uploaded by '+escapeMonitorHtml(d.uploadedBy||'Not recorded')+' &middot; '+escapeMonitorHtml(d.protocolCode||d.student||'Unassigned')+'</small></span>'+PrismUI.badge(d.workflowState||d.reviewStatus,{small:true})+'<span aria-hidden="true">&#8250;</span>';container.append(row);});
+            if(!shown.length){const empty=document.createElement('p');empty.textContent=docs.length?'No matching uploads in the recent preview. View All to search the repository.':'No current uploads yet.';container.append(empty);}
+        };render();
+    } catch (_) {count.textContent='Recent uploads unavailable';container.textContent='Could not load uploads. Reload to try again.';}
 })();
 
 loadDashboardReminders();

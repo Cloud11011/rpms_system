@@ -200,6 +200,10 @@ if ($action === 'list') {
         }
     }
     $orders = ['oldest' => 'd.uploaded_at ASC, d.id ASC', 'name-asc' => 'd.original_name ASC, d.id ASC', 'name-desc' => 'd.original_name DESC, d.id ASC', 'student-asc' => 'd.student_name ASC, d.id ASC'];
+    // Presentation grouping only: preserve the distinct underlying workflow states.
+    if (($_GET['stateGroup'] ?? '') === 'approved') {
+        $scope .= " AND ($stateSql) IN ('Ready for Formal RPMS Submission','Submitted to RPMS')";
+    }
     $page = prism_page_query($pdo, 'SELECT d.*, s.course, s.protocol_code, s.adviser_id, s.archived_at', $scope, $params, $orders[$_GET['sort'] ?? ''] ?? 'd.uploaded_at DESC, d.id DESC', $_GET);
     $rows = array_map(fn($d) => doc_row($d, $user, $viewerAdviserId), $page['rows']); unset($page['rows']);
     json_out(['ok' => true, 'documents' => $rows, 'counts' => $counts, 'filterOptions' => $filterOptions] + $page);

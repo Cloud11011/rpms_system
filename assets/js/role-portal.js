@@ -15,7 +15,8 @@ document.addEventListener('DOMContentLoaded', () => {
     let myRecord = null;   // this student's IERB record (or null if none yet)
     let myDocuments = [], dashboardDocumentTotal = 0, documentHistory = {records:[],total:0,page:1};
     const documentCount = document.createElement('p'); $('documentRows').closest('table').parentElement.insertAdjacentElement('beforebegin',documentCount);
-    const docPager = PrismUI.recordPager($('documentRows').closest('table').parentElement,documentCount,[$('documentFilter')],refreshDocuments);
+    const documentSearch=$('studentDocumentSearch'),documentSort=$('studentDocumentSort');
+    const docPager = PrismUI.recordPager($('documentRows').closest('table').parentElement,documentCount,[$('documentFilter'),documentSearch,documentSort],refreshDocuments);
     const profileDirty = PrismUI.dirtyForm($('profileForm'));
     const passwordDirty = PrismUI.dirtyForm($('passwordForm'));
     let myHistory = [], historyState = {total:0,page:1}, historySequence = 0;
@@ -110,7 +111,7 @@ document.addEventListener('DOMContentLoaded', () => {
     async function loadDocuments() {
         try {
             const data = await PrismUI.request('documents_api.php?action=list');
-            return {records:data.documents,error:false,total:data.total??data.documents.length,page:data.page??1};
+            return {records:data.documents,error:false,total:data.total??data.documents.length,page:data.page??1,counts:data.counts};
         } catch (_) {
             return { records: [], error: true };
         }
@@ -188,7 +189,7 @@ document.addEventListener('DOMContentLoaded', () => {
         $('stageList').innerHTML = loadErrors.progress ? empty('Unable to load your IERB progress. Please try again.') : STAGES.map((s, i) => {
             const cls = i + 1 < stageIndex ? 'complete' : i + 1 === stageIndex ? 'current' : '';
             const icon = i + 1 < stageIndex ? 'fa-circle-check' : 'fa-circle';
-            return `<div class="stage-card ${cls}"><i class="fa-solid ${icon}"></i><strong>Stage ${i + 1}</strong><span>${esc(labelForStage(s))}</span></div>`;
+            return `<div class="stage-card ${cls}"${cls==='current'?' aria-current="step"':''}><i class="fa-solid ${icon}" aria-hidden="true"></i><strong>Stage ${i + 1}</strong><small>${cls==='complete'?'✓ Completed':cls==='current'?"You're here":'Upcoming'}</small><span>${esc(labelForStage(s))}</span></div>`;
         }).join('');
 
         $('completedRequirements').innerHTML = loadErrors.progress ? empty('Completed requirements are unavailable.') : myRecord && stageIndex > 1
@@ -245,6 +246,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const filter = $('documentFilter').value;
         const docs = documentHistory.records;
         if (!loadErrors.documents) docPager.render(documentHistory);
+        if(!loadErrors.documents)PrismUI.statusPills($('studentDocumentPills'),[['','All'],['Pending Adviser Review','Pending review'],['Needs Revision','Needs revision'],['Returned for Revision','Returned by RPMS'],['Submitted to RPMS','Submitted to RPMS']],$('documentFilter'),documentHistory.counts||{});
         $('documentRows').innerHTML = loadErrors.documents ? `<tr><td colspan="6">${empty('Unable to load your documents. Please try again.')}</td></tr>` : docs.map(d => `<tr>
             <td><strong>${esc(d.originalName)}</strong>${Number(d.versionNo || 1) > 1 ? `<small> v${Number(d.versionNo)}</small>` : ''}<small>Document ID: ${esc(d.id)} &bull; ${esc(d.stageLabel || d.stage)}</small></td>
             <td>${esc(d.documentType)}</td>
@@ -255,6 +257,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 <a class="action-btn" href="documents_api.php?action=file&download=1&id=${encodeURIComponent(d.id)}">Download</a><button type="button" class="action-btn" data-version-history="${esc(d.id)}">Version history</button>${d.actions?.uploadRevision ? `<button type="button" class="action-btn prism-btn-primary" data-upload-revision="${esc(d.id)}">Upload Revision</button>` : ''}</div></td>
         </tr>`).join('') || `<tr><td colspan="6">${empty('No documents match this view.')}</td></tr>`;
         document.querySelectorAll('.student-document-actions').forEach(host => PrismUI.actionMenu(host, {primary:host.querySelector('[data-formal-submit]')}));
+        if(!loadErrors.documents) [...$('documentRows').rows].forEach((row,index)=>{if(row.cells.length===6)PrismUI.compactRecord(row,0,3,5,[['Adviser review decision',docs[index]?.reviewStatus]]);});
     }
 
     function noticeItem(n, includeAction = true) {
@@ -306,6 +309,7 @@ document.addEventListener('DOMContentLoaded', () => {
         historyPager.reset();
         myDocuments = documents.records;
         documentHistory = documents;
+        documentSearch.value='';documentSort.value='newest';$('documentFilter').value='';
         dashboardDocumentTotal = documents.total ?? documents.records.length;
         docPager.reset();
         myNotifications = notifications.records; unreadNotifications = notifications.unread ?? 0;
@@ -418,17 +422,20 @@ document.addEventListener('DOMContentLoaded', () => {
     async function refreshDocuments() {
         const sequence = ++documentSequence; docPager.loading();
         const filter = $('documentFilter').value;
-        const qs = new URLSearchParams({action:'list',page:docPager.page});
+        const qs = new URLSearchParams({action:'list',page:docPager.page,q:documentSearch.value.trim(),sort:documentSort.value});
         if (['Submitted','Under Review','Received','Verified','Approved','Denied','Resubmission Requested'].includes(filter)) qs.set('review',filter);
         else if(filter) qs.set('state',filter);
         try {
             const data = await PrismUI.request('documents_api.php?'+qs);
             if(sequence!==documentSequence)return;
-            documentHistory = {records:data.documents,total:data.total??data.documents.length,page:data.page??1};
+            documentHistory = {records:data.documents,total:data.total??data.documents.length,page:data.page??1,counts:data.counts};
             loadErrors.documents = false; renderDocs();
         } catch(e) { if(sequence!==documentSequence)return; loadErrors.documents = true; renderDocs(); docPager.error(); }
     }
     $('documentFilter').addEventListener('change', () => {docPager.reset();refreshDocuments();});
+    const documentSearchReload=PrismUI.debounce(()=>{docPager.reset();refreshDocuments();});
+    documentSearch.addEventListener('input',documentSearchReload);
+    documentSort.addEventListener('change',()=>{docPager.reset();refreshDocuments();});
     $('documentRows').addEventListener('click', e => {
         const history=e.target.closest('[data-version-history]'); if(history){PrismUI.showVersions(history.dataset.versionHistory);return;}
         const button = e.target.closest('[data-upload-revision]');
@@ -488,14 +495,12 @@ document.addEventListener('DOMContentLoaded', () => {
         const reader = new FileReader();
         reader.onload = () => {
             $('profileImagePreview').src = reader.result;
-            $('navProfileImage').src = reader.result;
         };
         reader.readAsDataURL(file);
     });
     $('removeProfileImage').addEventListener('click', () => {
         $('profileImageInput').value = '';
         $('profileImagePreview').src = 'assets/images/default-avatar.svg';
-        $('navProfileImage').src = 'assets/images/default-avatar.svg';
     });
 
     $('themeToggle').addEventListener('click', () => {

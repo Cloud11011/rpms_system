@@ -93,6 +93,15 @@ if ($action === 'list') {
     $courseOptions = $courses->fetchAll(PDO::FETCH_COLUMN);
     $filterOptions = prism_student_filter_options($pdo, $scope, $params);
     $order = ierb_apply_current_filters($scope, $params, $_GET, $filterOptions);
+    // Dashboard categories retain the established stage mapping, including Stage 3+4.
+    $dashboardStages = ['initial'=>['Stage 1'],'review'=>['Stage 2'],'revision'=>['Stage 3','Stage 4'],'approved'=>['Completed']];
+    $dashboardStage = $_GET['dashboardStage'] ?? '';
+    if (!is_string($dashboardStage) || ($dashboardStage !== '' && !isset($dashboardStages[$dashboardStage]))) json_out(['ok'=>false,'message'=>'Invalid dashboard stage filter.'],422);
+    if ($dashboardStage !== '') {
+        $keys=[];
+        foreach ($dashboardStages[$dashboardStage] as $i=>$stage) { $key=':dashboardStage'.$i; $keys[]=$key; $params[$key]=$stage; }
+        $scope .= ' AND s.stage IN ('.implode(',',$keys).')';
+    }
     $page = prism_page_query($pdo, 'SELECT s.*, f.full_name AS adviser_name', $scope, $params, $order, $_GET);
     $rows = $page['rows']; unset($page['rows']);
     $counts = student_document_counts($pdo, array_column($rows, 'id'));

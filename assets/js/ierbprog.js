@@ -68,6 +68,8 @@
             records = data.records;
             filters.update(data.filterOptions);
             overview = data.overview || records.map(r => ({ stage: r.stage, status: r.status, c: 1 }));
+            const statusSelect=statusFilter;
+            if(statusSelect){let pills=document.getElementById('ierbStatusPills');if(!pills){pills=document.createElement('div');pills.id='ierbStatusPills';document.querySelector('.ierb-controls').after(pills);}const counts={};overview.forEach(row=>{counts[row.status]=(counts[row.status]||0)+Number(row.c);});PrismUI.statusPills(pills,[['','All'],...[...statusSelect.options].filter(option=>option.value).map(option=>[option.value,option.textContent])],statusSelect,counts);}
             pager.render({ ...data, total: data.total ?? records.length });
         } catch (e) {
             if (requestSequence !== recordRequestSequence) return;
@@ -213,6 +215,7 @@
 
             PrismUI.actionMenu(actions);
             tableBody.appendChild(tr);
+            PrismUI.compactRecord(tr,0,5,6);
         });
     }
 

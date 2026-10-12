@@ -892,6 +892,55 @@
     };
   }
 
+  // Compact presentation reuses the original nodes and bound Actions handlers.
+  function compactRecord(row, primaryIndex, statusIndex, actionsIndex, extra = []) {
+    const table = row.closest('table');
+    if (!table) return;
+    const cells = [...row.cells];
+    const labels = [...table.querySelectorAll('thead th')].map(cell => cell.textContent.trim());
+    table.classList.add('prism-compact-table');
+    const host = document.createElement('td'); host.colSpan = cells.length;
+    const card = document.createElement('article'); card.className = 'prism-record-card';
+    const primary = document.createElement('div'); primary.className = 'prism-record-primary';
+    const status = document.createElement('div'); status.className = 'prism-record-status';
+    const actions = document.createElement('div'); actions.className = 'prism-record-actions';
+    const details = document.createElement('details'); details.className = 'prism-record-details';
+    const summary = document.createElement('summary'); summary.textContent = 'Show details & remarks';
+    const fields = document.createElement('dl');
+    const append = (container, cell) => { while(cell.firstChild) container.append(cell.firstChild); };
+    cells.forEach((cell,index) => {
+      if(cell.classList.contains('retention-select')) {const selection=document.createElement('span');selection.className=cell.className;selection.hidden=cell.hidden;append(selection,cell);primary.append(selection);}
+      else if(index===primaryIndex) append(primary,cell);
+      else if(index===statusIndex) append(status,cell);
+      else if(index===actionsIndex) append(actions,cell);
+      else { const field=document.createElement('div'), term=document.createElement('dt'),value=document.createElement('dd');term.textContent=labels[index]||'Record information';append(value,cell);field.append(term,value);fields.append(field); }
+    });
+    // Move dense academic/remarks content below the compact identity line.
+    primary.querySelectorAll('.academic-record-summary,.adviser-document-meta,.adviser-document-remarks').forEach(content => {const field=document.createElement('div');field.append(content);fields.append(field);});
+    extra.forEach(([label,value]) => { const field=document.createElement('div'),term=document.createElement('dt'),content=document.createElement('dd');term.textContent=label;content.textContent=value==null||value===''?'Not recorded':String(value);field.append(term,content);fields.append(field); });
+    details.append(summary,fields);
+    const review=actions.querySelector('[data-review-id],[data-review]');
+    const file=actions.querySelector('a[href*="documents_api.php?action=file"]:not([href*="download=1"])');
+    if(review||file){const contextual=document.createElement(review?'button':'a');contextual.className='prism-btn prism-context-action';
+      if(review){contextual.type='button';contextual.textContent='Review';contextual.addEventListener('click',()=>review.click());}
+      else {contextual.textContent='View';contextual.href=file.href;contextual.target=file.target;contextual.rel='noopener';}
+      actions.prepend(contextual);
+    }
+    card.append(primary,status,actions,details);host.append(card);row.replaceChildren(host);
+  }
+  function statusPills(host, definitions, select, counts = {}) {
+    host.classList.add('prism-filter-pills');
+    host.setAttribute('aria-label','Status filters');
+    host.replaceChildren();
+    definitions.forEach(([value,label,keys]) => {
+      const button=document.createElement('button');button.type='button';button.className='prism-filter-pill';button.dataset.filterState=value;
+      const total=(keys||[value]).reduce((sum,key)=>sum+Number(counts?.[key]||0),0);
+      button.textContent=label+(counts===null?'':' · '+(value===''?Object.values(counts).reduce((sum,n)=>sum+Number(n),0):total));
+      button.setAttribute('aria-pressed',String(select.value===value));
+      button.addEventListener('click',()=>{select.value=value;select.dispatchEvent(new Event('change',{bubbles:true}));});
+      host.append(button);
+    });
+  }
   // ------------------------------------------------------------------ init
   function init() {
     document.querySelectorAll('[data-prism-tip]').forEach(function (n) {
@@ -908,7 +957,7 @@
 
   const api = {
     badge: badge, badgeElement: badgeElement, docMini: docMini, emptyState: emptyState, tip: tip, toast: toast,
-    documentTypes: DOCUMENT_TYPES, actionMenu: actionMenu,
+    documentTypes: DOCUMENT_TYPES, actionMenu: actionMenu, compactRecord: compactRecord, statusPills: statusPills,
     actionOrigin: control => control?.closest('.prism-action-menu')?.querySelector('.prism-action-trigger') || control,
     confirm: confirmDialog, request: request, handleSessionExpiry: handleSessionExpiry, debounce: debounce, recordFilters: recordFilters, filtersDisclosure: filtersDisclosure, postJson: postJson, esc: esc, pagination: pagination, busy: busy, runAction: runAction, dirtyForm: dirtyForm, recordPager: recordPager, clearFilters: clearFilters,
     submitToRpms: submitToRpms, uploadRevision: uploadRevision, overrideStudent: overrideStudent, overrideDocument: overrideDocument, showVersions: showVersions,
