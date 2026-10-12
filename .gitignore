@@ -125,3 +125,8 @@ storage/.purge/
 !/tests/v10-batch105-results.json
 !/tests/v10-batch1075-ui.cjs
 !/tests/v10-batch1075-regression.cjs
+!/tests/session-idle-audit.php
+!/tests/security-audit.php
+!/tests/logout-audit.php
+!/tests/v10-batch1075-packaging.py
+!/tests/v10-batch1075-cache-assets.py

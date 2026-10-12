@@ -395,7 +395,7 @@ body.prism-workspace :is(.doc-primary,.upload-document-button,.primary-btn) i { 
 body.prism-workspace .prism-filter-disclosure,
 body.prism-workspace .prism-filter-disclosure:has(> button[aria-expanded=true]) { flex:0 0 auto; width:auto; max-width:100%; }
 body.prism-workspace .prism-filter-panel {
-    position:fixed; z-index:500; display:flex; flex-wrap:wrap; align-content:flex-start; gap:10px;
+    position:fixed; z-index:840; display:flex; flex-wrap:wrap; align-content:flex-start; gap:10px;
     width:min(620px,calc(100vw - 24px)); max-width:calc(100vw - 24px); margin:0; padding:16px;
     overflow:auto; overscroll-behavior:contain; box-sizing:border-box; border:1px solid var(--prism-border);
     border-radius:12px; background:var(--prism-card); color:var(--prism-text); box-shadow:0 12px 32px #10113035;
@@ -411,7 +411,7 @@ body.prism-workspace .retention-toolbar-actions { align-items:center; gap:8px; }
 body.prism-workspace .retention-toolbar-actions select { min-height:38px; padding:7px 10px; }
 body.prism-workspace .prism-action-menu { display:inline-block; }
 body.prism-workspace .prism-action-panel {
-    position:fixed; z-index:510; display:grid; gap:8px; width:260px; max-width:calc(100vw - 24px);
+    position:fixed; z-index:850; display:grid; gap:8px; width:260px; max-width:calc(100vw - 24px);
     overflow:auto; overscroll-behavior:contain; padding:6px; border:1px solid var(--prism-border); border-radius:10px;
     color:var(--prism-text); background:var(--prism-card); box-shadow:0 12px 32px #10113035;
 }
@@ -424,6 +424,8 @@ body.prism-workspace .prism-action-panel .prism-action-item {
 body.prism-workspace .prism-action-panel .prism-action-danger { color:var(--prism-danger-fg); background:var(--prism-danger-bg); }
 body.prism-workspace .prism-action-panel .prism-action-item:hover { background:var(--prism-surface-2); border-color:var(--prism-border); }
 body.prism-workspace .prism-action-panel[hidden],body.prism-workspace .prism-filter-panel[hidden] { display:none!important; }
+/* The watermark's isolated content layer must not put open menus behind navigation. */
+body.admin-shell .main-content:has(.prism-action-panel:not([hidden]),.prism-filter-panel:not([hidden]),.prism-account-links:not([hidden])) { z-index:810; }
 body.prism-workspace :is(.lifecycle-actions,.document-row-actions,.student-document-actions,.adviser-document-actions) { display:flex; align-items:center; flex-wrap:wrap; gap:8px; min-width:0; }
 body.prism-workspace .view-switch { padding:0; height:38px; align-items:center; }
 body.prism-workspace .view-switch button { width:36px; height:36px; }

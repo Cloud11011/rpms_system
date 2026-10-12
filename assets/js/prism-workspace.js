@@ -55,12 +55,24 @@ document.addEventListener('DOMContentLoaded', () => {
     const navButton = document.getElementById('adviserNavigationToggle');
     const nav = navButton && document.getElementById(navButton.getAttribute('aria-controls'));
     const media = window.matchMedia('(max-width: 1120px)');
+    function positionAccount() {
+        if (!button || !links || links.hidden) return;
+        const margin=12, anchor=button.getBoundingClientRect();
+        links.style.position='fixed';links.style.right='auto';
+        links.style.maxHeight=Math.max(80,innerHeight-margin*2)+'px';links.style.overflowY='auto';
+        const box=links.getBoundingClientRect();
+        links.style.left=Math.max(margin,Math.min(anchor.right-box.width,innerWidth-box.width-margin))+'px';
+        links.style.top=Math.max(margin,Math.min(anchor.bottom+8,innerHeight-box.height-margin))+'px';
+    }
     function setAccount(open, focus = false) {
         if (!button || !links) return;
         if (!open && (focus || links.contains(document.activeElement))) button.focus();
         button.setAttribute('aria-expanded', String(open));
         links.hidden = !open;
+        if (open) positionAccount();
     }
+    window.addEventListener('resize',positionAccount);
+    document.addEventListener('scroll',positionAccount,true);
     function setNavigation(open, focus = false) {
         if (!navButton || !nav) return;
         if (!open && media.matches && (focus || nav.contains(document.activeElement))) navButton.focus();

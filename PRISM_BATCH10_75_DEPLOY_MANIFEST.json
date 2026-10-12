@@ -1,0 +1,1429 @@
+{
+  "baseline": "5b78211a7e63300afacd03b244a6f63bba2da841",
+  "implementation_head": "11d02d3463ec738b8122bc8289c86b8b10eb94a3",
+  "deployment_performed": false,
+  "platform_prerequisites": {
+    "php_minimum": "8.1",
+    "extensions": [
+      "pdo_mysql",
+      "mbstring",
+      "curl",
+      "iconv",
+      "zlib",
+      "dom",
+      "zip"
+    ],
+    "web_server": "Apache/LiteSpeed with the supplied .htaccess protections honored"
+  },
+  "overlay": {
+    "requires_verified_hosting_baseline": "5b78211a7e63300afacd03b244a6f63bba2da841",
+    "files": [
+      {
+        "path": "admin_legal_policies.php",
+        "bytes": 12283,
+        "sha256": "88a537b86d66c872d1139d2bdd8e311388eed17a690c338683f97d9cfd2d004e"
+      },
+      {
+        "path": "assets/css/admin-legal.css",
+        "bytes": 3104,
+        "sha256": "ea5f90f3c13be95486cc5d3bac5a8481649636a2550ba8d4f6ae14ec133390a5"
+      },
+      {
+        "path": "assets/css/batch1075.css",
+        "bytes": 13768,
+        "sha256": "2c3f3d365e6ac8ddee84825b2d1af137aa1866ca178801a0171685c6bb04262a"
+      },
+      {
+        "path": "assets/css/prism-workspace.css",
+        "bytes": 55633,
+        "sha256": "fbfff3d3438717993c7f19a133f4ab9dbda4732fbdec41471935d0b68ed92ea7"
+      },
+      {
+        "path": "assets/css/style.css",
+        "bytes": 16723,
+        "sha256": "8be57e9eecf63cfeed27a8ad7213a879f08af2a7a7a83df8b4f26f5846b19257"
+      },
+      {
+        "path": "assets/js/academic-fields.js",
+        "bytes": 11009,
+        "sha256": "179fbf1850539a0951f5d11811a264312105fa16ac1b0d0e58a7165548916fc0"
+      },
+      {
+        "path": "assets/js/admin-management.js",
+        "bytes": 36992,
+        "sha256": "32964390b70cdc7d07f7e1ca4b89a782bacc66ce3ba9e9898bb0a3568f872274"
+      },
+      {
+        "path": "assets/js/adviser-dashboard.js",
+        "bytes": 16013,
+        "sha256": "db853d1ac9ddb0c40261bca69a9c6534e0f2192b47361ccb18c49472fbdce7fe"
+      },
+      {
+        "path": "assets/js/dashboard-deadlines.js",
+        "bytes": 10039,
+        "sha256": "8cb7f1b96b0e399ed6dc9a21e9ac91128d054113e1f8888811119e75529c5215"
+      },
+      {
+        "path": "assets/js/documents.js",
+        "bytes": 26441,
+        "sha256": "db71e6d85bd3ee2e90870d6c945dcc5e2a6edf86fc47ff29462b6800341879a9"
+      },
+      {
+        "path": "assets/js/ierbprog.js",
+        "bytes": 23218,
+        "sha256": "c859270f23312ffa8d2d99b830f12bd2c4798af4abaff0655434ccfca59d0a13"
+      },
+      {
+        "path": "assets/js/legal-management.js",
+        "bytes": 2611,
+        "sha256": "a30427b97485495e928c4c1cbdb99fbe5beb1f20e9b401886a1ad8518daf5778"
+      },
+      {
+        "path": "assets/js/notification-history.js",
+        "bytes": 10909,
+        "sha256": "7d99a98890e60b0d271c350349cb67f3f7ff8ceda3cb6e5c6e732b993de413c7"
+      },
+      {
+        "path": "assets/js/prism-ui.js",
+        "bytes": 56466,
+        "sha256": "5c96b00514373b64d26b3be3b0b853082406c311ad2fe0d7032877567846fc5c"
+      },
+      {
+        "path": "assets/js/prism-workspace.js",
+        "bytes": 9253,
+        "sha256": "a41510e7bda1aab641a2df9d51517e27361c32f0e3a3a8c72b83261364dbc48d"
+      },
+      {
+        "path": "assets/js/role-portal.js",
+        "bytes": 32362,
+        "sha256": "91cefe1e80fb1fba7c8daea92e757f1881d71c5fad0947a46485cab55fa3c9b3"
+      },
+      {
+        "path": "dashboard.php",
+        "bytes": 42840,
+        "sha256": "d33701984d91ca547f2ec161132e425d03a3aed738c27ef14f73630cea4520f5"
+      },
+      {
+        "path": "documents_api.php",
+        "bytes": 59760,
+        "sha256": "547c7ca682b6917402f2f10dcdb373aae623588e7074fdaa3c546c805ad61b31"
+      },
+      {
+        "path": "help_support.php",
+        "bytes": 3619,
+        "sha256": "db140b506c2aa7579fa7b21933fb33d9c2532eeb4a5d8746e12ed3f8b20e512b"
+      },
+      {
+        "path": "ierb_api.php",
+        "bytes": 29026,
+        "sha256": "fa79ea14a5f5ba5c440a51bf608dcecfabb959352a00bcf85f941ca84fafce1e"
+      },
+      {
+        "path": "includes/legal_header.php",
+        "bytes": 1384,
+        "sha256": "746818edb6bdbd70827b02995093065a2d002ded3e0148754b11e6becfb21e9a"
+      },
+      {
+        "path": "includes/prism-navigation.php",
+        "bytes": 7786,
+        "sha256": "a14074c18ea8328537f21866a00f1af72e2eab624cfc6997eada80cc9ef12f29"
+      },
+      {
+        "path": "login.php",
+        "bytes": 3934,
+        "sha256": "98d35da574d49ccfc2129917fd94df094bf7c9511651713bb9417bbc2a599505"
+      },
+      {
+        "path": "research_adviser.php",
+        "bytes": 9852,
+        "sha256": "b6eaebd3165bc929d400c56bec17596b75dbaf53fe347474b1c3e02201a89feb"
+      },
+      {
+        "path": "role_portal.php",
+        "bytes": 20834,
+        "sha256": "44d007eab4ea361f8040b75d14116007fe706a79b0c803ce47124db3734a57d1"
+      }
+    ]
+  },
+  "complete_runtime_inventory": [
+    {
+      "path": ".htaccess",
+      "bytes": 1804,
+      "sha256": "14954212a438d9851899194a01d0bc58811184f0b9c7cdf30d3907fec768dabd"
+    },
+    {
+      "path": "account.php",
+      "bytes": 10136,
+      "sha256": "e4c6a4d1335272810e533f202a09654051d9cdda3de7800e5b91353182ae5669"
+    },
+    {
+      "path": "account_invitation_api.php",
+      "bytes": 1421,
+      "sha256": "7d41d8c40e25c575965771f1776ffcc706c1a4beffc79ed7c4a982b583f6c14f"
+    },
+    {
+      "path": "account_lifecycle_api.php",
+      "bytes": 2690,
+      "sha256": "92dba5f7d5435ba174957676db4ab5ba73504a93a0b03cb7fe8ddcede8e0be2d"
+    },
+    {
+      "path": "account_setup.php",
+      "bytes": 3584,
+      "sha256": "f82643818594e5ccdfef1b1d3853c397d88bf6177a1a12d68b8d7ae867e67470"
+    },
+    {
+      "path": "admin_advisers.php",
+      "bytes": 74,
+      "sha256": "b0a1c2609c934d554847e4b267c44087bd6a7fa5fbbfc646f2271eb804694118"
+    },
+    {
+      "path": "admin_ai.php",
+      "bytes": 9221,
+      "sha256": "7e3e8ba8dc2dcb97f806a2e0b06158aaf71039bf58686412d64cdb924a06bc1f"
+    },
+    {
+      "path": "admin_archived_accounts.php",
+      "bytes": 242,
+      "sha256": "95b40dc0abb23211d09a12ef9507cccb1e331d35eadd6f6bc897004371953c07"
+    },
+    {
+      "path": "admin_legal_policies.php",
+      "bytes": 12283,
+      "sha256": "88a537b86d66c872d1139d2bdd8e311388eed17a690c338683f97d9cfd2d004e"
+    },
+    {
+      "path": "admin_notifications.php",
+      "bytes": 8357,
+      "sha256": "b9a719b8a7b70e81604c8be6863302f974738925111057940bef5eaa1f476f89"
+    },
+    {
+      "path": "admin_people.php",
+      "bytes": 15109,
+      "sha256": "fc8738eeedfbb677fc5010e21ec32a6b35689067c6b438a131edf77e471baf48"
+    },
+    {
+      "path": "admin_students.php",
+      "bytes": 74,
+      "sha256": "f6b544655b06a4bb627e3f51ae87b4b975b7a5efd1f6f4a660f2db0eaa06aba7"
+    },
+    {
+      "path": "advisers_api.php",
+      "bytes": 11234,
+      "sha256": "fa72e2d5c3a88f97ecbc3279b61a883a83fe7fff05efcbeec76b8550b77e763e"
+    },
+    {
+      "path": "ai_helpers.php",
+      "bytes": 4902,
+      "sha256": "ca71e882c5f2b7f218fd796e26d36f2885ed89acd91f2ffbbb0f49f79a594b0e"
+    },
+    {
+      "path": "assets/css/academic-fields.css",
+      "bytes": 1978,
+      "sha256": "55789ef53b60383645804abfc2bb6ab1d775b7a76039fe25d5ed63f096d3fa59"
+    },
+    {
+      "path": "assets/css/admin-legal.css",
+      "bytes": 3104,
+      "sha256": "ea5f90f3c13be95486cc5d3bac5a8481649636a2550ba8d4f6ae14ec133390a5"
+    },
+    {
+      "path": "assets/css/admin-management.css",
+      "bytes": 11910,
+      "sha256": "9dcd2a580e3592b5fd529398ae8616d2cb01524b2f66babab52b8b46fe163162"
+    },
+    {
+      "path": "assets/css/adviser-dashboard.css",
+      "bytes": 7182,
+      "sha256": "f98d23ab7f989a1409142ae8a0538813417249139ba25d151f12566999597313"
+    },
+    {
+      "path": "assets/css/auth-background.css",
+      "bytes": 743,
+      "sha256": "27a59cf123345638b888763e8a8c6211d195c6dfc22a850edc3ce2ea8ad8b2bc"
+    },
+    {
+      "path": "assets/css/batch1075.css",
+      "bytes": 13768,
+      "sha256": "2c3f3d365e6ac8ddee84825b2d1af137aa1866ca178801a0171685c6bb04262a"
+    },
+    {
+      "path": "assets/css/calendar.css",
+      "bytes": 8551,
+      "sha256": "4cf902050138e5f0969cc087e69ef10527898413d1901f1b2da94b5a3e990648"
+    },
+    {
+      "path": "assets/css/ceu-footer.css",
+      "bytes": 3162,
+      "sha256": "026b3b3b6de569598bf44d80ee3ca8ef8a8acea53fbe6454a53cf41413e492a1"
+    },
+    {
+      "path": "assets/css/dashboard-overview.css",
+      "bytes": 5480,
+      "sha256": "6b5edbb8d8fa15b4e56247eac1b8318cd7a6d0514494bc0bd15c932ef56bde7f"
+    },
+    {
+      "path": "assets/css/dashboard-sidebar.css",
+      "bytes": 3877,
+      "sha256": "08f78b13d8abc6ce7a1e210c142bf5a3dc3dbc6efdc29f1fde06a3f5f949f87c"
+    },
+    {
+      "path": "assets/css/dashboard.css",
+      "bytes": 34776,
+      "sha256": "7e727223f643021cc4a68a4fdef8dfef37d4e8d7838af09652a2690707ed0d1f"
+    },
+    {
+      "path": "assets/css/documents.css",
+      "bytes": 9395,
+      "sha256": "fe2ca6d13844c2fda3b3850544148b47253dc75ee42b9d9d2acd2a1d26224095"
+    },
+    {
+      "path": "assets/css/help-support.css",
+      "bytes": 2021,
+      "sha256": "5fdad718d5ed132b4be31748d70206f752026e37a51253d16c881504ed4d7ead"
+    },
+    {
+      "path": "assets/css/ierbprog.css",
+      "bytes": 12783,
+      "sha256": "8c0b16efe71eaf8ab6e024d0542d39969c085e71836c24ce04a1ae9688db8cfe"
+    },
+    {
+      "path": "assets/css/onboarding.css",
+      "bytes": 5506,
+      "sha256": "55c0dd546d30bc5a7c50ffcf60d1a903c7e41d027d984a15e2406ffe2a81f9fc"
+    },
+    {
+      "path": "assets/css/prism-ui.css",
+      "bytes": 46242,
+      "sha256": "6a6fbc80cbe0f9d5d3f1689ae894b97c8ec7564f4e103c5c5c4488b16e05f07a"
+    },
+    {
+      "path": "assets/css/prism-workspace.css",
+      "bytes": 55633,
+      "sha256": "fbfff3d3438717993c7f19a133f4ab9dbda4732fbdec41471935d0b68ed92ea7"
+    },
+    {
+      "path": "assets/css/public-legal.css",
+      "bytes": 3673,
+      "sha256": "09e731638e13b968af9d3eb663f948d9fc2850055dd66e0021dec35e3f6e8671"
+    },
+    {
+      "path": "assets/css/reports.css",
+      "bytes": 5429,
+      "sha256": "73caa9d5287d800c81c60e80d33a89dcb50c951436e4a191b7e0922472d00a54"
+    },
+    {
+      "path": "assets/css/research-resources.css",
+      "bytes": 4548,
+      "sha256": "b8b39391a937b5263a5d7b58db6be19461523788fb836ed0cf1bf454b74bceab"
+    },
+    {
+      "path": "assets/css/role-portal.css",
+      "bytes": 8985,
+      "sha256": "8af7863b9ac6013c3a70265cd5fefd039384d3df57adc35630251a88ce268d1f"
+    },
+    {
+      "path": "assets/css/role-topnav.css",
+      "bytes": 20631,
+      "sha256": "ecde1be598caacaecc1d3603a2c0c104d88f271250a43ead25d177cf9d05f175"
+    },
+    {
+      "path": "assets/css/staff-registration.css",
+      "bytes": 1204,
+      "sha256": "34a260d1ee6980b482db0aa06d97474cd58b02cd98852500d459c7f9e538c792"
+    },
+    {
+      "path": "assets/css/student-dashboard.css",
+      "bytes": 14406,
+      "sha256": "b79d0d543ee7075c5821e06239a2bb5b3f41c95ab4eb45181ada82f3a45b7281"
+    },
+    {
+      "path": "assets/css/style.css",
+      "bytes": 16723,
+      "sha256": "8be57e9eecf63cfeed27a8ad7213a879f08af2a7a7a83df8b4f26f5846b19257"
+    },
+    {
+      "path": "assets/css/workspace-pages.css",
+      "bytes": 20244,
+      "sha256": "f3bb1e41931db3b350f7b2a277f178c40680d7e57e9d2f56d6f9caeef3c0a13a"
+    },
+    {
+      "path": "assets/images/CEU FOOTER LOGO.png",
+      "bytes": 437749,
+      "sha256": "0ac4b754628ab9bbd5bc08a4e5920aa01a930a3fe10f8041a83d4b744a689f39"
+    },
+    {
+      "path": "assets/images/ceu-accreditations-bottom.webp",
+      "bytes": 95970,
+      "sha256": "de56a9282813b13e7ac4112e0f1f568acdc570d660e47187733851dacb9304fc"
+    },
+    {
+      "path": "assets/images/ceu-accreditations-top.webp",
+      "bytes": 155302,
+      "sha256": "f0d75dfe63018c7f4bd56d7fa5cb9d64dcb9073b84060e06c07bbee03dfefbd3"
+    },
+    {
+      "path": "assets/images/ceu-logo.webp",
+      "bytes": 18644,
+      "sha256": "4fe50c12a78aa60eac0a1e9db43b08fdd4678415200e1ae8da40e43148537637"
+    },
+    {
+      "path": "assets/images/ceu_bg.png",
+      "bytes": 2815056,
+      "sha256": "e877440808fc30f7096f6031a54ff9b996d2b228aa5eaa33bf5551d709b9e155"
+    },
+    {
+      "path": "assets/images/ceu_logo2.jpg",
+      "bytes": 4233012,
+      "sha256": "0ad67032896bcb7f07cdfdaf7f42b4871d7832c67e2891fff943ff1612af1cd9"
+    },
+    {
+      "path": "assets/images/default-avatar.svg",
+      "bytes": 548,
+      "sha256": "07f588164c0e6fc517a20ccde164f93cc3542d51838828959084ee66d58ab518"
+    },
+    {
+      "path": "assets/images/prismicon.png",
+      "bytes": 1379197,
+      "sha256": "8c457718feb442ae0e9e08055fa83b77ce00b7c5c5244355536377142ad2da84"
+    },
+    {
+      "path": "assets/images/prismlogo1.png",
+      "bytes": 994274,
+      "sha256": "baeb10faef047554500cc34ac72dd9c077bcc91126a9e003b5a69e3ace1e8253"
+    },
+    {
+      "path": "assets/images/research-agenda-2023-2028.png",
+      "bytes": 160682,
+      "sha256": "6f0b1d29bf9962ab43c383bebc74df7d6733eda3e85e59d0e03aed929b025859"
+    },
+    {
+      "path": "assets/images/research-matrix.webp",
+      "bytes": 51024,
+      "sha256": "99d409e6916e68f5d3bf294127d3f492b6a5ee6b03d1fc2ef14f1561ff664b37"
+    },
+    {
+      "path": "assets/images/sdg.webp",
+      "bytes": 177686,
+      "sha256": "9451194e3e8ef2da8b85f1603a167c5ffb1ea84be2d2ba55a6ab60092c5db056"
+    },
+    {
+      "path": "assets/js/academic-fields.js",
+      "bytes": 11009,
+      "sha256": "179fbf1850539a0951f5d11811a264312105fa16ac1b0d0e58a7165548916fc0"
+    },
+    {
+      "path": "assets/js/account-setup.js",
+      "bytes": 518,
+      "sha256": "ac0bee7f7441313ed94ea9d17736f241b55b059d5904317bc2a2e223e5428e83"
+    },
+    {
+      "path": "assets/js/account.js",
+      "bytes": 11487,
+      "sha256": "e34dc943540ae28a79a3c7dc38fe98bbdbe2204e89b52e18c84f2ab6fe009e22"
+    },
+    {
+      "path": "assets/js/admin-ai.js",
+      "bytes": 6513,
+      "sha256": "5f46de68762c2939ad2aedc5277758904f51b5ca9023f89e182f8613830f883e"
+    },
+    {
+      "path": "assets/js/admin-management.js",
+      "bytes": 36992,
+      "sha256": "32964390b70cdc7d07f7e1ca4b89a782bacc66ce3ba9e9898bb0a3568f872274"
+    },
+    {
+      "path": "assets/js/admin-notifications.js",
+      "bytes": 14677,
+      "sha256": "b656a77c273017a2f609521eb4b31bc7a064b838e26bfc1956a7da72d10ff67e"
+    },
+    {
+      "path": "assets/js/admin-retention.js",
+      "bytes": 15033,
+      "sha256": "4c8c999c87cc87e3583743318de93ed2c986365e1ce0a623296a5c77ebf28f52"
+    },
+    {
+      "path": "assets/js/adviser-dashboard.js",
+      "bytes": 16013,
+      "sha256": "db853d1ac9ddb0c40261bca69a9c6534e0f2192b47361ccb18c49472fbdce7fe"
+    },
+    {
+      "path": "assets/js/calendar-deadlines.js",
+      "bytes": 14465,
+      "sha256": "d8d7545e8331b379933a10192c4316a009681e86d23534267de4a288b7ae6901"
+    },
+    {
+      "path": "assets/js/calendar.js",
+      "bytes": 12811,
+      "sha256": "8c3b9ff40a4e151417348974ccc4afa53b493b28b1fa1ce27f16cd86dc1a26a1"
+    },
+    {
+      "path": "assets/js/dashboard-deadlines.js",
+      "bytes": 10039,
+      "sha256": "8cb7f1b96b0e399ed6dc9a21e9ac91128d054113e1f8888811119e75529c5215"
+    },
+    {
+      "path": "assets/js/dashboard-sidebar.js",
+      "bytes": 3442,
+      "sha256": "d48f22d4a693f1dbf2bcfd3e2224b84a57e2c6125ad1c296a78e82868e5da3ad"
+    },
+    {
+      "path": "assets/js/document-upload.js",
+      "bytes": 1316,
+      "sha256": "dd2f74e272fbb189ffcfd47acc557663245dc6701d0892289c4c4e531bf260fa"
+    },
+    {
+      "path": "assets/js/documents.js",
+      "bytes": 26441,
+      "sha256": "db71e6d85bd3ee2e90870d6c945dcc5e2a6edf86fc47ff29462b6800341879a9"
+    },
+    {
+      "path": "assets/js/help-support.js",
+      "bytes": 1934,
+      "sha256": "0bf6afb9a7476f04cc2b351e3b42623eefd1712cb0e6a5b2f74165b7902d8f83"
+    },
+    {
+      "path": "assets/js/ierbprog.js",
+      "bytes": 23218,
+      "sha256": "c859270f23312ffa8d2d99b830f12bd2c4798af4abaff0655434ccfca59d0a13"
+    },
+    {
+      "path": "assets/js/invitations.js",
+      "bytes": 4716,
+      "sha256": "0f6c506359ab8513a028a4ec579e478c3ff8f939f8fc39256ba9b9c122295956"
+    },
+    {
+      "path": "assets/js/legal-management.js",
+      "bytes": 2611,
+      "sha256": "a30427b97485495e928c4c1cbdb99fbe5beb1f20e9b401886a1ad8518daf5778"
+    },
+    {
+      "path": "assets/js/legal-theme.js",
+      "bytes": 581,
+      "sha256": "74fe8ab79af1ab8e9a1a1ffaf35a277e2d5a44b51f32ec7d465b08452d78e0de"
+    },
+    {
+      "path": "assets/js/lifecycle-forms.js",
+      "bytes": 937,
+      "sha256": "6ecfb588b10e2d590174ab1abc2847f126300a4a3eb1f481c28ff60ab50ddaa7"
+    },
+    {
+      "path": "assets/js/notification-history.js",
+      "bytes": 10909,
+      "sha256": "7d99a98890e60b0d271c350349cb67f3f7ff8ceda3cb6e5c6e732b993de413c7"
+    },
+    {
+      "path": "assets/js/onboarding.js",
+      "bytes": 1374,
+      "sha256": "e1bb928acd92066cc0ba4c17d96e35910e628d3d22d2943fd0083e7f0879464a"
+    },
+    {
+      "path": "assets/js/prism-guidance.js",
+      "bytes": 13062,
+      "sha256": "ae5f20f2d9574c0c2d205dad768b6ac701d2aec689d55acec7e780f499c93058"
+    },
+    {
+      "path": "assets/js/prism-ui.js",
+      "bytes": 56466,
+      "sha256": "5c96b00514373b64d26b3be3b0b853082406c311ad2fe0d7032877567846fc5c"
+    },
+    {
+      "path": "assets/js/prism-workspace.js",
+      "bytes": 9253,
+      "sha256": "a41510e7bda1aab641a2df9d51517e27361c32f0e3a3a8c72b83261364dbc48d"
+    },
+    {
+      "path": "assets/js/reports.js",
+      "bytes": 7324,
+      "sha256": "33c973636b611d7e604cbbf983921935e27615390f9f1f854209e454d5661f74"
+    },
+    {
+      "path": "assets/js/role-calendar.js",
+      "bytes": 15794,
+      "sha256": "3b16d9f128cb93d57cb610ccf5b1b6652839ab1d6f1f5219a0d5521631d8a8b5"
+    },
+    {
+      "path": "assets/js/role-portal.js",
+      "bytes": 32362,
+      "sha256": "91cefe1e80fb1fba7c8daea92e757f1881d71c5fad0947a46485cab55fa3c9b3"
+    },
+    {
+      "path": "assets/js/script.js",
+      "bytes": 1128,
+      "sha256": "e67750a044930a5d37f8f891979986886384a3fd8ac065c4fe2bfef960dd710c"
+    },
+    {
+      "path": "assets/js/session-browser.js",
+      "bytes": 3042,
+      "sha256": "eca76a4cbb956f2b0efd7d070a13cfa89cfe79b3c01cd74e048dd3ac5629bd33"
+    },
+    {
+      "path": "assets/js/staff-registration.js",
+      "bytes": 1165,
+      "sha256": "4d29684bbc3b1eee0aaf2fd939b92415bee9446c9ef1b690e12a1a29c41ceb7e"
+    },
+    {
+      "path": "audit_api.php",
+      "bytes": 3557,
+      "sha256": "fdb4d74f3a64b5bcf3e1d70685f64cbc836b5b9955e1a0f301d30745be3c406a"
+    },
+    {
+      "path": "auth_rate_limit.php",
+      "bytes": 4838,
+      "sha256": "e258ce918c1ec47e8615ebd5ae275cc8610f4cb86427e63da97c282da09eb1a8"
+    },
+    {
+      "path": "calendar.php",
+      "bytes": 6370,
+      "sha256": "519a6a367223972bf13c7437812e823990c4be8a228984e85abbc2ff88fed541"
+    },
+    {
+      "path": "calendar_deadlines_api.php",
+      "bytes": 10353,
+      "sha256": "af5d4b88538b9b5b23fce51da19332324e07d976475711bcc6efbb5dc439c160"
+    },
+    {
+      "path": "change_password_required.php",
+      "bytes": 6469,
+      "sha256": "7e6c2e1118544e6a5d8c96e6c513cf527ba3bce5490b9e8cb0dc00b51d9249a0"
+    },
+    {
+      "path": "complete_profile.php",
+      "bytes": 4474,
+      "sha256": "83c9070089fc405454e5a3362538d3c0781038ed372ff0bb966c5dcf1541e7d2"
+    },
+    {
+      "path": "config.php",
+      "bytes": 89081,
+      "sha256": "79ff611c8d88a2a4a7285cc3d1a2a797ba71458d534daffcc7d0ad1d87096a1b"
+    },
+    {
+      "path": "dashboard.php",
+      "bytes": 42840,
+      "sha256": "d33701984d91ca547f2ec161132e425d03a3aed738c27ef14f73630cea4520f5"
+    },
+    {
+      "path": "data_export.php",
+      "bytes": 3065,
+      "sha256": "266832c258b21b499cadca7c2f0ae20cb635e0e4371e9e3d075d501a84bd2a6c"
+    },
+    {
+      "path": "data_exports_api.php",
+      "bytes": 6375,
+      "sha256": "ef2b97db2edbf1f9bce201c2fb3b1c07df5f747a79a934c7c21c2d224a2108ee"
+    },
+    {
+      "path": "documents.php",
+      "bytes": 9182,
+      "sha256": "37d1889ade4c4827e129c8a2bc06b9227eb0399f70f1495fdf7027690a4bd0e6"
+    },
+    {
+      "path": "documents_api.php",
+      "bytes": 59760,
+      "sha256": "547c7ca682b6917402f2f10dcdb373aae623588e7074fdaa3c546c805ad61b31"
+    },
+    {
+      "path": "forgot_password.php",
+      "bytes": 2337,
+      "sha256": "09ed5a92ed50b2e3f1e39aa762c45744c69a78d8cf9877836e3c8f53f92a1c28"
+    },
+    {
+      "path": "forgot_password_process.php",
+      "bytes": 3625,
+      "sha256": "f0f99fa109e0c0d7a90b8f5ddf52d296c27ff34b9fff11e16c2d936cc2b602e1"
+    },
+    {
+      "path": "help_support.php",
+      "bytes": 3619,
+      "sha256": "db140b506c2aa7579fa7b21933fb33d9c2532eeb4a5d8746e12ed3f8b20e512b"
+    },
+    {
+      "path": "help_support_api.php",
+      "bytes": 1229,
+      "sha256": "5c50308d439ecdb992eedc91af8aff84e34ff0f4bc78b29a546534274c3c2f0f"
+    },
+    {
+      "path": "ierb_api.php",
+      "bytes": 29026,
+      "sha256": "fa79ea14a5f5ba5c440a51bf608dcecfabb959352a00bcf85f941ca84fafce1e"
+    },
+    {
+      "path": "ierbprog.php",
+      "bytes": 10887,
+      "sha256": "a76311f2e685d2dd7e31fb6e8381af177d4cd942fa66147d39f3659738397b78"
+    },
+    {
+      "path": "includes/.htaccess",
+      "bytes": 160,
+      "sha256": "4b78d85ab2eae1f5b9b50ef47f7d950aeffe1f584ac37b5cc52dece04014b5e4"
+    },
+    {
+      "path": "includes/academic_catalog.php",
+      "bytes": 6960,
+      "sha256": "995f8c76f5c6ef89e5ee9f3cf3b63ff58f8dbedf06cd1a89502368fe70e23999"
+    },
+    {
+      "path": "includes/account_identity.php",
+      "bytes": 8974,
+      "sha256": "f227018855a482b9672cb561ba9eff0fc0dd5f3247f6ff3276996f15e988af3d"
+    },
+    {
+      "path": "includes/account_lifecycle.php",
+      "bytes": 10055,
+      "sha256": "799ea424f8ed39352384c08741035a2d4324d7ae24d37289ca0e9d990b8ecc26"
+    },
+    {
+      "path": "includes/account_lifecycle_schema.json",
+      "bytes": 103978,
+      "sha256": "ec424088b23a7a7ba5415fcf4e2fb602d7580df8c587d1ec1af541c7edb429ec"
+    },
+    {
+      "path": "includes/account_lifecycle_schema.php",
+      "bytes": 17349,
+      "sha256": "94e979da49c4423679c07430155ed86c2412a3c52a8ca6e52df7518a26337a23"
+    },
+    {
+      "path": "includes/account_onboarding.php",
+      "bytes": 21136,
+      "sha256": "f840b9dab2a20c5c5fa49dca710c8ee99b2b31c13ed6e7f0772ab674290800d5"
+    },
+    {
+      "path": "includes/account_purge_files.php",
+      "bytes": 10717,
+      "sha256": "1502b688632e3f9d8a7066e8ec5935c7d8b35741be829a78352d25230bf58088"
+    },
+    {
+      "path": "includes/account_retention.php",
+      "bytes": 35864,
+      "sha256": "e1492dcda7d9f4fc79f8e3c1464e9e51bfb4b797e0a3efb70afd5550715ee068"
+    },
+    {
+      "path": "includes/account_retention_bulk.php",
+      "bytes": 23021,
+      "sha256": "a1daeec62223f1d635c15838a49ea87694280d0d5a237752f0cfdb192883161b"
+    },
+    {
+      "path": "includes/assets.php",
+      "bytes": 880,
+      "sha256": "57f4fd8d7c8b71e11e32021756ebd30e50cb51f8c965b29c63012d5e6406febf"
+    },
+    {
+      "path": "includes/calendar_deadlines.php",
+      "bytes": 8669,
+      "sha256": "fd55822fd7cc45c4f01dbcd9a00bd77de1d38e4d1c2eddc24d79d9596f1cadc2"
+    },
+    {
+      "path": "includes/ceu_footer.php",
+      "bytes": 3135,
+      "sha256": "fb5535a5c5eaa3641e5065826496c659f665bcbcfe29b91d20b29a647e9640ea"
+    },
+    {
+      "path": "includes/csv_export.php",
+      "bytes": 932,
+      "sha256": "cbdca40d55c39aae85f63a7db482b03f2e86131cbf573022f4d8d1c5a2791f2b"
+    },
+    {
+      "path": "includes/document_catalog.php",
+      "bytes": 610,
+      "sha256": "aad59337af050eb097d9bdd67aa2da3a885582238c015ef806c5c224b7cdfb13"
+    },
+    {
+      "path": "includes/document_catalog_client.php",
+      "bytes": 207,
+      "sha256": "c13bb18dd83ca84de06d6bbe4a97f81a756b9cc8b3d1b20699425f900dbfb2cf"
+    },
+    {
+      "path": "includes/document_summary.php",
+      "bytes": 17955,
+      "sha256": "5a1df85f5694cebe77a2163740344aac9aba94940d6f33b29d7cbea6bc10d37d"
+    },
+    {
+      "path": "includes/document_upload.php",
+      "bytes": 5155,
+      "sha256": "86ba7a21e4eee2577a3269b8b960dceec1c263156468011296cadaeac97c96b6"
+    },
+    {
+      "path": "includes/document_workflow.php",
+      "bytes": 15003,
+      "sha256": "23e0d613b491de314552854db877e7dd0d5d72ed4237efdd1d05cb888940b7e3"
+    },
+    {
+      "path": "includes/email_format.php",
+      "bytes": 2885,
+      "sha256": "374e7e8b94d3fc38b5d82006bbd09f70fa14f95672e2813c501b0785b634e69b"
+    },
+    {
+      "path": "includes/help_support.php",
+      "bytes": 8652,
+      "sha256": "5c50b820a238eb058bdf5d5bbbd2c87c00404e58ba797816e89584b539dfc74c"
+    },
+    {
+      "path": "includes/legal/privacy.md",
+      "bytes": 7460,
+      "sha256": "c29a8bcf5b404cacea5de8f7538f447ea2c694576207cd7e38d8a0774e42643c"
+    },
+    {
+      "path": "includes/legal/terms.md",
+      "bytes": 5476,
+      "sha256": "4fabda0f307ed19036dea0af01db77a6ca0513911b7cfcbea20b1658e958aec8"
+    },
+    {
+      "path": "includes/legal_header.php",
+      "bytes": 1384,
+      "sha256": "746818edb6bdbd70827b02995093065a2d002ded3e0148754b11e6becfb21e9a"
+    },
+    {
+      "path": "includes/legal_placeholders.php",
+      "bytes": 587,
+      "sha256": "0775fceb0ebb79e509abb8300a2f4581fcf0554fd523d83ce68a9bf5184ea90f"
+    },
+    {
+      "path": "includes/legal_policy.php",
+      "bytes": 13105,
+      "sha256": "7a402f892f73fd3e5f3627832dfb760acd43c484b618dfbecd0566c2b799f069"
+    },
+    {
+      "path": "includes/notification_delivery.php",
+      "bytes": 8081,
+      "sha256": "263865d470c91ce6167af82ad78f493bd58a3e55ff561934fea5eedad68c13a3"
+    },
+    {
+      "path": "includes/notification_lifecycle.php",
+      "bytes": 20309,
+      "sha256": "9d582abaca61b97fa346a8da5a0ecdf7670a6895001823ad23ce2e859e936dcc"
+    },
+    {
+      "path": "includes/office_container.php",
+      "bytes": 5029,
+      "sha256": "685d5c9b72389cabbf1caba89ee3c0e8dd14e1c4dcdf5c4874560f7b7c3939db"
+    },
+    {
+      "path": "includes/pagination.php",
+      "bytes": 2205,
+      "sha256": "3d6652e8626c987a8de8c66a42a7ff8570cab22010cf9084cf9aa1ecc3302338"
+    },
+    {
+      "path": "includes/prism-navigation.php",
+      "bytes": 7786,
+      "sha256": "a14074c18ea8328537f21866a00f1af72e2eab624cfc6997eada80cc9ef12f29"
+    },
+    {
+      "path": "includes/public_legal.php",
+      "bytes": 2252,
+      "sha256": "ecca7370bdf4fbe8c1bd74b79342a2e8abc28f86f0021afcd0b044cc0adeaaad"
+    },
+    {
+      "path": "includes/public_urls.php",
+      "bytes": 374,
+      "sha256": "cfa040d74909a43c2fab7492eb9fd8cf4b1fbe0b189c64909037338bafe73105"
+    },
+    {
+      "path": "includes/record_filters.php",
+      "bytes": 6982,
+      "sha256": "f18137c2223fa7b62f751a3a444e32924b3c920f9a3d49ae66b57c5ca0b47fe8"
+    },
+    {
+      "path": "includes/research_groups.php",
+      "bytes": 6845,
+      "sha256": "edb8c011ccd0dd65b13d1a19534c1dda25c909524d7e7f2b60ba8835a5ca68ec"
+    },
+    {
+      "path": "includes/research_resources.php",
+      "bytes": 4835,
+      "sha256": "59ba585b288c8bda1fe9138c2bf62f256e896b60cfc205abd84415e39fa34c26"
+    },
+    {
+      "path": "includes/schema_v10.php",
+      "bytes": 2254,
+      "sha256": "d4882cbb1021097e92e9ab78239ebefa131243d4f88d6efe81975dfc39ad06d4"
+    },
+    {
+      "path": "includes/schema_v10_plan.json",
+      "bytes": 335357,
+      "sha256": "a84520d33410ec61f109ddf5ef33d7e187e3287cea8bc70d42bd646b7a8612c1"
+    },
+    {
+      "path": "includes/schema_v10_seed.json",
+      "bytes": 13402,
+      "sha256": "ea42f42aefd506a48d051d242eb98ab78db19701950f3e27dae68156a60e3c0b"
+    },
+    {
+      "path": "includes/session_browser.php",
+      "bytes": 443,
+      "sha256": "88dbfcd26cea7bdd59150d64534bc8f25c6e68453e15521d89cf94ef34c74265"
+    },
+    {
+      "path": "includes/staff_registration.php",
+      "bytes": 13171,
+      "sha256": "423cd8c2ceb12b2404f414373b898f404a8efe03b875dc3e0036ca9b6219940d"
+    },
+    {
+      "path": "includes/staff_registration_card.php",
+      "bytes": 4402,
+      "sha256": "a390f5b4d83308dbde6dbe18687fb034cb774dd41693265e723a9863c589a66b"
+    },
+    {
+      "path": "includes/student_snapshot.php",
+      "bytes": 5221,
+      "sha256": "5f7a8d3d7cc955d4a88cc00f8ddace1ad46068b19e1cc53c42fd5cc45bcccf19"
+    },
+    {
+      "path": "includes/summary_pdf_parser.php",
+      "bytes": 3136,
+      "sha256": "ff3fd422e74e3f293975f5fec8e004d91e23060358340c7d30660a2bca2345dd"
+    },
+    {
+      "path": "index.php",
+      "bytes": 637,
+      "sha256": "ea9f330963d2f8b583c50c43b17295d285ba289b399247538f8881aefba917d3"
+    },
+    {
+      "path": "legal_consent.php",
+      "bytes": 3422,
+      "sha256": "d9dcb52bb7c0b940f10837077844058306e42659e522bcef88d0bccccf12cae4"
+    },
+    {
+      "path": "loading.php",
+      "bytes": 123,
+      "sha256": "a8123e4fbb9b8b57099f92c510bd7c1fa3ef2441938f3658dad8518bdbae13dc"
+    },
+    {
+      "path": "login.php",
+      "bytes": 3934,
+      "sha256": "98d35da574d49ccfc2129917fd94df094bf7c9511651713bb9417bbc2a599505"
+    },
+    {
+      "path": "login_admin.php",
+      "bytes": 206,
+      "sha256": "93a09f8e864badb7d9980da955c90f923073e5c18f4c525ddf91e0d05a4adb75"
+    },
+    {
+      "path": "login_adviser.php",
+      "bytes": 206,
+      "sha256": "93a09f8e864badb7d9980da955c90f923073e5c18f4c525ddf91e0d05a4adb75"
+    },
+    {
+      "path": "login_process.php",
+      "bytes": 4111,
+      "sha256": "826c485f68a1f7503411152de5c75e4d7a3a65a0c39fb6d58cc07e95fb35bbd3"
+    },
+    {
+      "path": "login_students.php",
+      "bytes": 206,
+      "sha256": "93a09f8e864badb7d9980da955c90f923073e5c18f4c525ddf91e0d05a4adb75"
+    },
+    {
+      "path": "logout.php",
+      "bytes": 768,
+      "sha256": "09f8aa83972a60813d0b7a32a1d4317be6d7436350c7c6b9ac15bd7f60a43c44"
+    },
+    {
+      "path": "notifications_api.php",
+      "bytes": 10342,
+      "sha256": "255dfcba7ae0036509fd249ca2d749fee76eae0449e4cff6160611a5d6413015"
+    },
+    {
+      "path": "privacy.php",
+      "bytes": 79,
+      "sha256": "9aa3aaa2cfa2d9feb05709da6c222c3b0f6f7426ea6c9dcffa6e80103f81e205"
+    },
+    {
+      "path": "profile_api.php",
+      "bytes": 4802,
+      "sha256": "799f5126c8d46c6a92829c00815f5d5423705757761525cdc63bcc520602458a"
+    },
+    {
+      "path": "register.php",
+      "bytes": 5253,
+      "sha256": "dc8f85a28f06a294ccd2ed9bac5ac559064f72f5c30689f0882751d63727c103"
+    },
+    {
+      "path": "register_process.php",
+      "bytes": 1732,
+      "sha256": "0f8eb0d06fa5a296e3496551c753190347b4f3c322873af64d2c9880fd0e22bd"
+    },
+    {
+      "path": "reports.php",
+      "bytes": 4880,
+      "sha256": "66a53cd6e735690f35cba93fab8f7266597626a259163961d56ff79936b481b5"
+    },
+    {
+      "path": "reports_api.php",
+      "bytes": 30854,
+      "sha256": "53856f62fa2176f532329318ad5fcb3f5bdb4924218063bb37200e367f2acf73"
+    },
+    {
+      "path": "research_adviser.php",
+      "bytes": 9852,
+      "sha256": "b6eaebd3165bc929d400c56bec17596b75dbaf53fe347474b1c3e02201a89feb"
+    },
+    {
+      "path": "reset_password.php",
+      "bytes": 4170,
+      "sha256": "672f1886acd340564ba64b537906dfd6de0b827150865962df8c533f174677a8"
+    },
+    {
+      "path": "role_portal.php",
+      "bytes": 20834,
+      "sha256": "44d007eab4ea361f8040b75d14116007fe706a79b0c803ce47124db3734a57d1"
+    },
+    {
+      "path": "security.php",
+      "bytes": 8096,
+      "sha256": "932d10f512b155cbe1b03871e60030a86b37197ecd2a1105e74ef9d988d73d4d"
+    },
+    {
+      "path": "send_followup.php",
+      "bytes": 2367,
+      "sha256": "acdbea8bf7adeba32f01f4f2ddb5c3d12f442259f23cb2d7592dbea6a85fa8b0"
+    },
+    {
+      "path": "staff_registration_manage.php",
+      "bytes": 4248,
+      "sha256": "0b29547d2b53ef9554a32bec5a1ebaec4ac2ca1ee5ccae706060aea6b7af99b1"
+    },
+    {
+      "path": "stage_labels_api.php",
+      "bytes": 1457,
+      "sha256": "f4d2f49cf3575e3f10b6f7cfdbbcc03bd98a7595cbfaf8f94a6e93257eeb62b1"
+    },
+    {
+      "path": "storage/.htaccess",
+      "bytes": 574,
+      "sha256": "577fdb542a83c013a16dbd3a1664dfe74c8d0741cba7266add08c128c36e8d57"
+    },
+    {
+      "path": "student.php",
+      "bytes": 128,
+      "sha256": "c716524d5ae06fd73dab3c6e7b1797c7596efc5c6cff383785272900a1f2ee01"
+    },
+    {
+      "path": "students_api.php",
+      "bytes": 22342,
+      "sha256": "fba0e408d42d3d2b84cfd87d7c5621215a630e878c05c8cd1239648405fa84d8"
+    },
+    {
+      "path": "terms.php",
+      "bytes": 77,
+      "sha256": "b9cce6b7a379c817b0f1625511d858c0b0a92c58ae798daaf888b5c822203383"
+    },
+    {
+      "path": "update_password.php",
+      "bytes": 3563,
+      "sha256": "cf41e4dbc07e2bb424c8de8af1d84759defb084a815a76af05b049c1982c5052"
+    },
+    {
+      "path": "workflow.php",
+      "bytes": 21449,
+      "sha256": "085d7069899d8976e6b9cdd7ac22faaa88de27f22d2515007aa34b7a38fd9dc3"
+    }
+  ],
+  "production_dependencies": {
+    "lock_sha256": "5272f31d64bb970c40770f9ec20ae40d0046fcbc7da2826d4ab5fc82ef91a4ff",
+    "packages": {
+      "smalot/pdfparser": "v2.12.5",
+      "symfony/polyfill-mbstring": "v1.43.0"
+    },
+    "files": [
+      {
+        "path": "vendor/autoload.php",
+        "bytes": 748,
+        "sha256": "ee572d0320b3398c9f1658828f798aacd4538e9950a6b552e220d0c1ab62fca1"
+      },
+      {
+        "path": "vendor/composer/ClassLoader.php",
+        "bytes": 16378,
+        "sha256": "d4b2313e562edf942838ec316d983c1a3459ca67da3e5658e861200b0b3693c2"
+      },
+      {
+        "path": "vendor/composer/InstalledVersions.php",
+        "bytes": 17395,
+        "sha256": "1e4525198301d1ed1f87ac3df2a8555a6f139f8df30a703d0b775a61963c96e4"
+      },
+      {
+        "path": "vendor/composer/LICENSE",
+        "bytes": 1070,
+        "sha256": "c8cce4b6b9729f264ffdf9296d505d63432497feeed1f586d1902b942197e024"
+      },
+      {
+        "path": "vendor/composer/autoload_classmap.php",
+        "bytes": 222,
+        "sha256": "375085d0d6690301081436cd75755cb2c882f8a7f6fc385c8814a11734fc413a"
+      },
+      {
+        "path": "vendor/composer/autoload_files.php",
+        "bytes": 233,
+        "sha256": "16a898de31f344cb19ade64369360bafe01605a1fcfa225678c7102f370f0515"
+      },
+      {
+        "path": "vendor/composer/autoload_namespaces.php",
+        "bytes": 213,
+        "sha256": "1881c10c2a6928938b8cab3fc186142e63cde84383edd0cc7e79df14d36cc0ea"
+      },
+      {
+        "path": "vendor/composer/autoload_psr4.php",
+        "bytes": 222,
+        "sha256": "3d8441e9d94e40d2256137fcc6e6f4ca9ba332697a10edcd9fc92e2f220c0e78"
+      },
+      {
+        "path": "vendor/composer/autoload_real.php",
+        "bytes": 1672,
+        "sha256": "cd9f74db2e5ce78b037c12668a7da8614dfc67598d91e40601a5f97bfdf0b114"
+      },
+      {
+        "path": "vendor/composer/autoload_static.php",
+        "bytes": 1589,
+        "sha256": "9536b16b8ddfaa93211307c5a500900a99eb88eff15a3562a2c68e09ea393cc6"
+      },
+      {
+        "path": "vendor/composer/installed.json",
+        "bytes": 5058,
+        "sha256": "312fedc5851af45ff6f3fb18c06c2274eb417bc88c7797171ef80cee7e068aa5"
+      },
+      {
+        "path": "vendor/composer/installed.php",
+        "bytes": 1508,
+        "sha256": "e1063cbef9d36acf6a03532e62b31ef8957f76a32455b33e1105460369b02041"
+      },
+      {
+        "path": "vendor/composer/platform_check.php",
+        "bytes": 917,
+        "sha256": "4d6b890ba90c7126c20b0afcf72acbdb4bb55808e0f2546059894224d056af39"
+      },
+      {
+        "path": "vendor/smalot/pdfparser/LICENSE.txt",
+        "bytes": 7651,
+        "sha256": "da7eabb7bafdf7d3ae5e9f223aa5bdc1eece45ac569dc21b3b037520b4464768"
+      },
+      {
+        "path": "vendor/smalot/pdfparser/README.md",
+        "bytes": 2139,
+        "sha256": "41e0a11cd1e96e181d8b3bd876e5fb6ce0fa6afe8d1ac5f9fff77b917a76c770"
+      },
+      {
+        "path": "vendor/smalot/pdfparser/composer.json",
+        "bytes": 951,
+        "sha256": "0b4eaa38fdca6dfe9dfea936483a6f2aee242fba33e68d83d5019ba47a3b0678"
+      },
+      {
+        "path": "vendor/smalot/pdfparser/src/Smalot/PdfParser/Config.php",
+        "bytes": 4381,
+        "sha256": "e3ee1fc49cd314dded876aa055a53103f919fa5483996b8e42ad9ac3f5fd8e2a"
+      },
+      {
+        "path": "vendor/smalot/pdfparser/src/Smalot/PdfParser/Document.php",
+        "bytes": 15941,
+        "sha256": "903d48a218c302df0c616e540d109320e5788915ac5318ad5b79905e2b2e907b"
+      },
+      {
+        "path": "vendor/smalot/pdfparser/src/Smalot/PdfParser/Element.php",
+        "bytes": 5054,
+        "sha256": "8972300cf5e92e0009270790b5efbaaa52680bfb609eb7acdf1e78855f250d39"
+      },
+      {
+        "path": "vendor/smalot/pdfparser/src/Smalot/PdfParser/Element/ElementArray.php",
+        "bytes": 4028,
+        "sha256": "3df44d8391c932f9f6126a606aa6d83762da5c9eeda798669001dcf314cee485"
+      },
+      {
+        "path": "vendor/smalot/pdfparser/src/Smalot/PdfParser/Element/ElementBoolean.php",
+        "bytes": 2047,
+        "sha256": "69cd3fb263b40c405188870ae2996933e164277f91a4164c4d52c7b497c4dcf9"
+      },
+      {
+        "path": "vendor/smalot/pdfparser/src/Smalot/PdfParser/Element/ElementDate.php",
+        "bytes": 4000,
+        "sha256": "bd2c9ec52a61530781a0fd3c303881455d0433a89a25eb5e12178189f59124d6"
+      },
+      {
+        "path": "vendor/smalot/pdfparser/src/Smalot/PdfParser/Element/ElementHexa.php",
+        "bytes": 2956,
+        "sha256": "ccd9d333e498e31e43e498e993d9c62daf9577f30dba8f135fe5c94eec50e5d1"
+      },
+      {
+        "path": "vendor/smalot/pdfparser/src/Smalot/PdfParser/Element/ElementMissing.php",
+        "bytes": 1603,
+        "sha256": "d36aa0b27cacd13f3dde7f6dc127608e1b50e911b202f0a25949f6f4589ea05b"
+      },
+      {
+        "path": "vendor/smalot/pdfparser/src/Smalot/PdfParser/Element/ElementName.php",
+        "bytes": 1911,
+        "sha256": "2ef801330f9b14bce0106a4d469600f27e007d21cd3ec10db4b7ea8e4792aabb"
+      },
+      {
+        "path": "vendor/smalot/pdfparser/src/Smalot/PdfParser/Element/ElementNull.php",
+        "bytes": 1855,
+        "sha256": "9deeb1dbeb3269776d9e1ef1c10f7a5f53eec0ab81b31d7cab91eae1d542a099"
+      },
+      {
+        "path": "vendor/smalot/pdfparser/src/Smalot/PdfParser/Element/ElementNumeric.php",
+        "bytes": 1769,
+        "sha256": "f0d93e4df49dcd3a9bd1b94a5113d982fe876835bad5a3a838fe63eac8fbe1aa"
+      },
+      {
+        "path": "vendor/smalot/pdfparser/src/Smalot/PdfParser/Element/ElementString.php",
+        "bytes": 2945,
+        "sha256": "ce9df9189b4f9e84ad8d5e2232b2db63a4178984cd42debfb1bea5b437f7d838"
+      },
+      {
+        "path": "vendor/smalot/pdfparser/src/Smalot/PdfParser/Element/ElementStruct.php",
+        "bytes": 2225,
+        "sha256": "d08112d8c7b06a43cd137962fe2c53c49899b19d38e8933c405ae60a91db36ea"
+      },
+      {
+        "path": "vendor/smalot/pdfparser/src/Smalot/PdfParser/Element/ElementXRef.php",
+        "bytes": 2776,
+        "sha256": "4d1039946f6bf8a1a68c3444c81b55c36a5490ab202e5c90cdd390e21e802f7e"
+      },
+      {
+        "path": "vendor/smalot/pdfparser/src/Smalot/PdfParser/Encoding.php",
+        "bytes": 4716,
+        "sha256": "f7b2f784b8963ce85f8d20fbed03c8157037d8a450a362a70b5f073560f9d243"
+      },
+      {
+        "path": "vendor/smalot/pdfparser/src/Smalot/PdfParser/Encoding/AbstractEncoding.php",
+        "bytes": 136,
+        "sha256": "08a061f7e2ef899fc5ef2a44b8a6b14bc056d55abf1afc3df4f98ffb327a44b8"
+      },
+      {
+        "path": "vendor/smalot/pdfparser/src/Smalot/PdfParser/Encoding/EncodingLocator.php",
+        "bytes": 402,
+        "sha256": "646f9681f220c15efc700422187057c83e525bf9f12b538212e5e77313e3636b"
+      },
+      {
+        "path": "vendor/smalot/pdfparser/src/Smalot/PdfParser/Encoding/ISOLatin1Encoding.php",
+        "bytes": 3604,
+        "sha256": "b7845ac3d874b8a8564fb6e3ceef53a37b359a8f8f192dc7d081d9c157e21354"
+      },
+      {
+        "path": "vendor/smalot/pdfparser/src/Smalot/PdfParser/Encoding/ISOLatin9Encoding.php",
+        "bytes": 3578,
+        "sha256": "30eb6b0d01d504f178a0aca0a64724ab8534dbd24fae631f8a2f128af0ed058f"
+      },
+      {
+        "path": "vendor/smalot/pdfparser/src/Smalot/PdfParser/Encoding/MacRomanEncoding.php",
+        "bytes": 3667,
+        "sha256": "95976e6179dd04e6854d5d069d11d47c0f93c3de3a9255c57d653a0202a03b66"
+      },
+      {
+        "path": "vendor/smalot/pdfparser/src/Smalot/PdfParser/Encoding/PDFDocEncoding.php",
+        "bytes": 7762,
+        "sha256": "2a78f06005fab3e17d28dc6248dac786684aac938b241a8280ef0295cae72f81"
+      },
+      {
+        "path": "vendor/smalot/pdfparser/src/Smalot/PdfParser/Encoding/PostScriptGlyphs.php",
+        "bytes": 39549,
+        "sha256": "22d1dccdef7243f9ab4bf7ca1b04529d7ef1150f5e1feca12a6a59422647ec74"
+      },
+      {
+        "path": "vendor/smalot/pdfparser/src/Smalot/PdfParser/Encoding/StandardEncoding.php",
+        "bytes": 3579,
+        "sha256": "1c7a8fc34bb16b6d5f05c29148c1dddef448d2b41cf2abd4510b3f5d00d4afeb"
+      },
+      {
+        "path": "vendor/smalot/pdfparser/src/Smalot/PdfParser/Encoding/WinAnsiEncoding.php",
+        "bytes": 3624,
+        "sha256": "34da5e420440da44d5a28449fd0839b339a5968861f0ef8a457561278951c5d7"
+      },
+      {
+        "path": "vendor/smalot/pdfparser/src/Smalot/PdfParser/Exception/EmptyPdfException.php",
+        "bytes": 183,
+        "sha256": "7339f6d94cdeba247b5f2e191b599eedce15c0a6b19aeac43f54e6aa88025885"
+      },
+      {
+        "path": "vendor/smalot/pdfparser/src/Smalot/PdfParser/Exception/EncodingNotFoundException.php",
+        "bytes": 101,
+        "sha256": "e1b54a7949ac67a29392c10ea20ae1d803d8e1a7fa80a506334d56d882b779a2"
+      },
+      {
+        "path": "vendor/smalot/pdfparser/src/Smalot/PdfParser/Exception/InvalidDictionaryObjectException.php",
+        "bytes": 220,
+        "sha256": "1b80e4a7fc41c0b44af6eb63062adead0226ab241c39b5b74448b241df939992"
+      },
+      {
+        "path": "vendor/smalot/pdfparser/src/Smalot/PdfParser/Exception/MissingCatalogException.php",
+        "bytes": 190,
+        "sha256": "6b99837448272d4814fbace2a9d9b95c7b5171676944fb1e7ace59fddd40ef11"
+      },
+      {
+        "path": "vendor/smalot/pdfparser/src/Smalot/PdfParser/Exception/MissingPdfHeaderException.php",
+        "bytes": 197,
+        "sha256": "72312f3b62cfd717704e5af860ea0f02311ca1059aa52547ce134f5e4f6b106d"
+      },
+      {
+        "path": "vendor/smalot/pdfparser/src/Smalot/PdfParser/Exception/NotImplementedException.php",
+        "bytes": 212,
+        "sha256": "d8a0b014a2df12d40b2cfccc19d89edf857065ee03f16e9de12f2201189c53ee"
+      },
+      {
+        "path": "vendor/smalot/pdfparser/src/Smalot/PdfParser/Font.php",
+        "bytes": 24948,
+        "sha256": "8f73275b1aa6a2935e958061d855500e8f2b33c9694fb5eaae2f4f7da1eeab81"
+      },
+      {
+        "path": "vendor/smalot/pdfparser/src/Smalot/PdfParser/Font/FontCIDFontType0.php",
+        "bytes": 1210,
+        "sha256": "19ab88c41fc57ab7b261ea20ae21e422a58ac93b8500740037c7358a46897681"
+      },
+      {
+        "path": "vendor/smalot/pdfparser/src/Smalot/PdfParser/Font/FontCIDFontType2.php",
+        "bytes": 1210,
+        "sha256": "a286a0d1de04814f18be96ccab4bd9b691741bf58d0fbde7a7e88f4f4307a91f"
+      },
+      {
+        "path": "vendor/smalot/pdfparser/src/Smalot/PdfParser/Font/FontTrueType.php",
+        "bytes": 1202,
+        "sha256": "d15f59f0334f390135fcf4366777eea89c40a97803cf336b68f4f06fae33fb7d"
+      },
+      {
+        "path": "vendor/smalot/pdfparser/src/Smalot/PdfParser/Font/FontType0.php",
+        "bytes": 1196,
+        "sha256": "5df9980446a4bb8871a89a431b22dcbedf0bfad74f81e11b94a7af38c72c9666"
+      },
+      {
+        "path": "vendor/smalot/pdfparser/src/Smalot/PdfParser/Font/FontType1.php",
+        "bytes": 1196,
+        "sha256": "ada2fc48a7ddfa68352133328cbaad4dcb2eda10fd28091efed7eeffc348002c"
+      },
+      {
+        "path": "vendor/smalot/pdfparser/src/Smalot/PdfParser/Font/FontType3.php",
+        "bytes": 1196,
+        "sha256": "1355c4e1ace50b44bddcd0b843d9651d5467f2eaf1b80acc268d8eeb16fe535a"
+      },
+      {
+        "path": "vendor/smalot/pdfparser/src/Smalot/PdfParser/Header.php",
+        "bytes": 5184,
+        "sha256": "670efde33eb755863761940aacf0339969de5da40a6a5dc80a27c4efc4be4b26"
+      },
+      {
+        "path": "vendor/smalot/pdfparser/src/Smalot/PdfParser/PDFObject.php",
+        "bytes": 48846,
+        "sha256": "02600adf43d0f2cd7d9ac1cc4fe6e7292e990ac09fceea46029c3a9974bcd688"
+      },
+      {
+        "path": "vendor/smalot/pdfparser/src/Smalot/PdfParser/Page.php",
+        "bytes": 37995,
+        "sha256": "c9a694a6dfdb08e476e21ebbdf25dfcc0b74f401d2207c0ce20afdfd282ed069"
+      },
+      {
+        "path": "vendor/smalot/pdfparser/src/Smalot/PdfParser/Pages.php",
+        "bytes": 3713,
+        "sha256": "15dda7834f8d2e1e209114a5b93255012c2d06504fd3504ce18e4144cb16dde3"
+      },
+      {
+        "path": "vendor/smalot/pdfparser/src/Smalot/PdfParser/Parser.php",
+        "bytes": 10840,
+        "sha256": "b0ee846bfd04007ecf895ff598215870961451ad5096a3916e05664e324e501b"
+      },
+      {
+        "path": "vendor/smalot/pdfparser/src/Smalot/PdfParser/RawData/FilterHelper.php",
+        "bytes": 15598,
+        "sha256": "902ab0504edce6ef63a22ab2f0845ab687507fb21f161ec93377c419305ca0e5"
+      },
+      {
+        "path": "vendor/smalot/pdfparser/src/Smalot/PdfParser/RawData/RawDataParser.php",
+        "bytes": 41161,
+        "sha256": "37534fe3930c679f25473c3bbbfc2f69138a3508be911d0033e061724dba8cf5"
+      },
+      {
+        "path": "vendor/smalot/pdfparser/src/Smalot/PdfParser/XObject/Form.php",
+        "bytes": 1504,
+        "sha256": "dbe3b92c0ba80895c68265066348fbdaf7fef31388378411207ff4df2fc4fa4a"
+      },
+      {
+        "path": "vendor/smalot/pdfparser/src/Smalot/PdfParser/XObject/Image.php",
+        "bytes": 1315,
+        "sha256": "397737bd9321c56d9262a33c98f956152c768593f7eba915b3b98f1660656bed"
+      },
+      {
+        "path": "vendor/symfony/polyfill-mbstring/LICENSE",
+        "bytes": 1068,
+        "sha256": "eaa5d6e59ff1d5322ae36d3ab9124460df72d2d0c8af60a99222e8a90dcbdf31"
+      },
+      {
+        "path": "vendor/symfony/polyfill-mbstring/Mbstring.php",
+        "bytes": 59886,
+        "sha256": "33e1210305586da1de675ae40b5f2b54e8ee4e7c66ef5871f9a9f02ef893e136"
+      },
+      {
+        "path": "vendor/symfony/polyfill-mbstring/README.md",
+        "bytes": 370,
+        "sha256": "7686ab9250b91f0b706d6a5aac4e6bbf4b8865ec323bbb420343f19e98d91d14"
+      },
+      {
+        "path": "vendor/symfony/polyfill-mbstring/Resources/unidata/caseFolding.php",
+        "bytes": 2401,
+        "sha256": "99cea898c03847d05e1c143cf64183c57749b93f578f5bfcd856f89d700b9b85"
+      },
+      {
+        "path": "vendor/symfony/polyfill-mbstring/Resources/unidata/lowerCase.php",
+        "bytes": 24539,
+        "sha256": "df2b1879ae0f74d86996a4790de37b534c1b406002930550bc087885ae54f0ea"
+      },
+      {
+        "path": "vendor/symfony/polyfill-mbstring/Resources/unidata/titleCaseRegexp.php",
+        "bytes": 6201,
+        "sha256": "4eef657adbee39f7badd695b1d60b152b047385966a98b6d8d411554573ec596"
+      },
+      {
+        "path": "vendor/symfony/polyfill-mbstring/Resources/unidata/upperCase.php",
+        "bytes": 26322,
+        "sha256": "4ae4778ee941291582b801bcddeaac401068e0e5dde7357ef06f9e882131b026"
+      },
+      {
+        "path": "vendor/symfony/polyfill-mbstring/bootstrap.php",
+        "bytes": 363,
+        "sha256": "0449da72338523c51270ddfe84447cd16fc110b7d4fae2bee1c2790d9f113fb0"
+      },
+      {
+        "path": "vendor/symfony/polyfill-mbstring/bootstrap72.php",
+        "bytes": 8529,
+        "sha256": "8a45e926381803b688b3961032805f5ae317e953af1a980e0e0f63db5e3babfd"
+      },
+      {
+        "path": "vendor/symfony/polyfill-mbstring/bootstrap80.php",
+        "bytes": 10041,
+        "sha256": "e998cba06760c8e191f47c70b7017164e7434ab93eaabbb8bdfe94943c450c6b"
+      },
+      {
+        "path": "vendor/symfony/polyfill-mbstring/composer.json",
+        "bytes": 1010,
+        "sha256": "8ccd5687a056c76aa1c488e520302b441e31be3ef16482c2e35778b035fb1c09"
+      }
+    ],
+    "build": "composer install --no-dev --prefer-dist --no-interaction --no-scripts --optimize-autoloader"
+  },
+  "existing_external_ui_dependencies": [
+    "https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.6.0/css/all.min.css",
+    "https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600;700&display=swap",
+    "https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&display=swap"
+  ],
+  "excluded": [
+    "tests/**",
+    "PRISM* reports and manifests",
+    "backups/**",
+    "tools/**",
+    "config.local.php",
+    ".git/**",
+    ".env*",
+    "*.patch",
+    "generated logs and screenshots",
+    "storage/** except storage/.htaccess"
+  ],
+  "preserve_on_host": [
+    "config.local.php",
+    "database",
+    "storage/documents",
+    "storage/reports",
+    "runtime state",
+    "existing approved maintenance/cron tools"
+  ],
+  "prerequisites": [
+    "Do not apply overlay to an unverified hosting baseline.",
+    "Upload the entire locked vendor dependency if it is absent or differs.",
+    "Retain dependency licenses; composer.json/lock are build inputs, not public endpoints.",
+    "No migrations, schema files, fixtures, credentials or runtime data are deployment payloads.",
+    "Keep PHP, JavaScript and CSS together on deployment and rollback.",
+    "Verify the existing persistent deletion proof remains valid for the actual deployment context; fail closed otherwise.",
+    "Validate root/includes/storage .htaccess protections and invalidate relevant asset caches."
+  ]
+}

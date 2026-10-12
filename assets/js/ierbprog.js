@@ -347,8 +347,10 @@
     const noteDirty = PrismUI.dirtyForm(actionForm);
     const actionText = document.getElementById('ierbActionText');
     let noteTargetId = null;
+    let noteReturnFocus = null;
 
     function openNoteModal(record) {
+        noteReturnFocus = document.activeElement;
         noteTargetId = record.id;
         actionText.value = '';
         noteDirty.clean();
@@ -361,10 +363,19 @@
         noteDirty.clean();
         actionModal.setAttribute('aria-hidden', 'true');
         actionModal.style.display = 'none';
+        noteReturnFocus?.focus();
     }
     document.getElementById('closeIerbModal').addEventListener('click', closeActionModal);
     document.getElementById('cancelIerbAction').addEventListener('click', closeActionModal);
     actionModal.addEventListener('click', e => { if (e.target === actionModal) closeActionModal(); });
+    actionModal.addEventListener('keydown', event => {
+        if (event.key === 'Escape') { event.preventDefault(); event.stopPropagation(); closeActionModal(); return; }
+        if (event.key !== 'Tab') return;
+        const controls = [...actionModal.querySelectorAll('button,input,textarea,[tabindex]')].filter(e => !e.disabled && e.tabIndex >= 0 && e.getClientRects().length);
+        const first = controls[0], last = controls[controls.length - 1];
+        if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last?.focus(); }
+        else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first?.focus(); }
+    });
 
     actionForm.addEventListener('submit', async event => {
         event.preventDefault();

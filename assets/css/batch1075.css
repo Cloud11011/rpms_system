@@ -25,6 +25,8 @@ body.prism-workspace .prism-compact-table > thead { display:none; }
 body.prism-workspace .prism-compact-table > tbody { display:grid; gap:10px; }
 body.prism-workspace .prism-compact-table > tbody > tr { display:block; min-width:0; border:1px solid var(--border-color); border-radius:12px; background:var(--card-bg); }
 body.prism-workspace .prism-compact-table > tbody > tr > td { display:block; padding:0; border:0; min-width:0; }
+/* Compact cards have no frozen first column; its legacy stacking context clipped fixed menus. */
+body.prism-workspace .prism-compact-table td:first-child { position:static; left:auto; z-index:auto; box-shadow:none; max-width:none; }
 body.prism-workspace .prism-record-card { display:grid; grid-template-columns:minmax(0,1.6fr) minmax(0,1fr) auto; gap:12px; align-items:center; padding:14px; }
 body.prism-workspace .prism-record-card > * { min-width:0; overflow-wrap:anywhere; }
 body.prism-workspace .prism-record-primary strong { font-size:var(--prism-font-body); }
@@ -100,6 +102,11 @@ body.prism-workspace.student-page #completedRequirements .list-item { background
   body.prism-workspace .prism-topbar-group .portal-profile-btn > span:not(.prism-initials) { display:none; }
 }
 @media(max-width:400px) {
+  body.prism-workspace.dashboard-page :is(.top-controls,.prism-topbar-group) { min-width:0; max-width:100%; }
   body.prism-workspace.student-page .stage-list { grid-template-columns:repeat(2,minmax(0,1fr)); }
   body.prism-workspace .prism-record-details > dl { grid-template-columns:minmax(0,1fr); }
+}
+@media(max-width:360px) {
+  body.prism-workspace .repo-item .prism-badge { margin-left:0; }
+  body.prism-workspace.portal-shell { padding-top:180px; }
 }

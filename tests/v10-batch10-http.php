@@ -8,7 +8,8 @@ file_put_contents($httpRoot.'/config.local.php',"<?php\ndefine('ALLOWED_EMAIL_DO
 $config=file_get_contents(__DIR__.'/../config.php');$start=strpos($config,'function db(): PDO');$end=strpos($config,'// Bump this whenever',$start);
 $connection="function db(): PDO { static \$pdo=null; return \$pdo??=new PDO(".var_export($dsn,true).",'root',".var_export($password,true).",[PDO::ATTR_ERRMODE=>PDO::ERRMODE_EXCEPTION,PDO::ATTR_DEFAULT_FETCH_MODE=>PDO::FETCH_ASSOC,PDO::MYSQL_ATTR_INIT_COMMAND=>\"SET time_zone='+08:00'\"]); }\n\n";
 file_put_contents($httpRoot.'/config.php',substr_replace($config,$connection,$start,$end-$start));
-file_put_contents($httpRoot.'/fixture-auth.php','<?php require __DIR__."/config.php";$q=db()->prepare("SELECT * FROM users WHERE id=?");$q->execute([$_POST["uid"]??0]);$u=$q->fetch();$_SESSION=[];session_regenerate_id(true);$_SESSION["user_id"]=$u["id"];$_SESSION["credential_fingerprint"]=hash("sha256",$u["password_hash"]);$_SESSION["login_generation"]=bin2hex(random_bytes(16));$_SESSION["last_activity_at"]=time();prism_publish_session_generation();echo json_encode(["generation"=>prism_session_generation()]);');
+file_put_contents($httpRoot.'/fixture-auth.php','<?php require __DIR__."/config.php";$q=db()->prepare("SELECT * FROM users WHERE id=?");$q->execute([$_POST["uid"]??0]);$u=$q->fetch();$_SESSION=[];session_regenerate_id(true);$_SESSION["user_id"]=$u["id"];$_SESSION["account_type"]=$u["role"];$_SESSION["user_role"]=$u["role"];$_SESSION["user_email"]=$u["email"];$_SESSION["full_name"]=$u["full_name"];$_SESSION["credential_fingerprint"]=hash("sha256",$u["password_hash"]);$_SESSION["login_generation"]=bin2hex(random_bytes(16));$_SESSION["last_activity_at"]=time();prism_publish_session_generation();echo json_encode(["generation"=>prism_session_generation()]);');
+file_put_contents($httpRoot.'/fixture-blank.php','<!doctype html><title>Isolated test fixture</title>');
 file_put_contents($httpRoot.'/router.php','<?php $path=parse_url($_SERVER["REQUEST_URI"],PHP_URL_PATH);if(str_starts_with($path,"/assets/")){$base=realpath('.var_export(__DIR__.'/../assets',true).');$file=realpath($base.substr($path,7));if($file&&str_starts_with($file,$base.DIRECTORY_SEPARATOR)&&is_file($file)){$ext=pathinfo($file,PATHINFO_EXTENSION);header("Content-Type: ".(["css"=>"text/css","js"=>"application/javascript","png"=>"image/png","webp"=>"image/webp","svg"=>"image/svg+xml"][$ext]??"application/octet-stream"));readfile($file);exit;}}return false;');
 $socket=stream_socket_server('tcp://127.0.0.1:0');$httpPort=(int)substr(strrchr(stream_socket_get_name($socket,false),':'),1);fclose($socket);$origin='http://127.0.0.1:'.$httpPort;
 $httpServer=proc_open([PHP_BINARY,'-d','extension=zip','-d','session.save_path='.$httpRoot.'/sessions','-d','display_errors=0','-S','127.0.0.1:'.$httpPort,'-t',$httpRoot,$httpRoot.'/router.php'],[0=>['pipe','r'],1=>['file',$root.'/http-server.log','a'],2=>['file',$root.'/http-server.log','a']],$pipes,null,null,['bypass_shell'=>true,'create_new_console'=>false]);fclose($pipes[0]);
@@ -98,13 +99,33 @@ try {
         $browser=proc_open(['node',__DIR__.'/v10-batch10-ui.cjs',$origin,$httpRoot],[0=>['pipe','r'],1=>['pipe','w'],2=>['pipe','w']],$bp,null,null,['bypass_shell'=>true,'create_new_console'=>false]);fclose($bp[0]);$out=stream_get_contents($bp[1]);$err=stream_get_contents($bp[2]);fclose($bp[1]);fclose($bp[2]);b10_expect(0,proc_close($browser),'browser '.$err);echo $out;
     }
     if(in_array('--browser1075',$argv,true)){
+        // Native workflow doubles intentionally have DB-only file rows. Acceptance file actions
+        // require real bytes, materialized only inside this verified disposable HTTP source root.
+        if(in_array('--acceptance1075',$argv,true)||in_array('--interaction1075',$argv,true)) {
+            $fixtureDocs=$httpRoot.'/storage/documents';if(!is_dir($fixtureDocs))mkdir($fixtureDocs,0700,true);
+            foreach(b10_rows('SELECT stored_name FROM documents') as $file) {
+                if(basename($file['stored_name'])!==$file['stored_name'])throw new RuntimeException('Unsafe fixture file name');
+                if(!is_file($fixtureDocs.'/'.$file['stored_name']))copy(__DIR__.'/fixtures/batch6-valid.pdf',$fixtureDocs.'/'.$file['stored_name']);
+            }
+            $vendorSource=realpath(__DIR__.'/../vendor');
+            foreach(new RecursiveIteratorIterator(new RecursiveDirectoryIterator($vendorSource,FilesystemIterator::SKIP_DOTS)) as $file) {
+                if($file->isLink())throw new RuntimeException('Unexpected dependency link');
+                $target=$httpRoot.'/vendor/'.substr($file->getPathname(),strlen($vendorSource)+1);
+                if(!is_dir(dirname($target)))mkdir(dirname($target),0700,true);copy($file->getPathname(),$target);
+            }
+        }
         $legalBaseline=legal_current($pdo);$legalMax=(int)$pdo->query('SELECT MAX(id) FROM legal_policy_versions')->fetchColumn();
+        $browserWorkflow=b10_rows('SELECT id,student_id,review_status,version_no,is_current,supersedes_id,rpms_submitted_at FROM documents ORDER BY id');
+        $browserProgress=b10_rows('SELECT id,stage,status,requirements FROM students ORDER BY id');
         file_put_contents($httpRoot.'/fixture-idle.php','<?php require __DIR__."/config.php";$_SESSION["last_activity_at"]=time()-1801;echo "fixture idle clock set";');
         $previewId=$bulkCurrent??$pdo->query('SELECT id FROM documents ORDER BY uploaded_at DESC,id DESC LIMIT 1')->fetchColumn();
         $pdo->prepare('UPDATE documents SET original_name=? WHERE id=?')->execute([str_repeat('Long-research-filename-',10).'protocol.pdf',$previewId]);
-        if(in_array('--focus1075',$argv,true))$pdo->exec("INSERT INTO calendar_deadlines(creator_user_id,title,description,deadline_date,target_scope,status) VALUES(1001,'Batch1075 official deadline','Private UI fixture',CURRENT_DATE(),'all','Active')");
-        $browser=proc_open(['node',__DIR__.'/v10-batch1075-ui.cjs',$origin,$httpRoot,in_array('--before1075',$argv,true)?'before':'after',in_array('--contrast1075',$argv,true)?'contrast':(in_array('--focus1075',$argv,true)?'focus':'matrix')],[0=>['pipe','r'],1=>['pipe','w'],2=>['pipe','w']],$bp,null,null,['bypass_shell'=>true,'create_new_console'=>false]);
+        if(in_array('--focus1075',$argv,true)||in_array('--acceptance1075',$argv,true)||in_array('--interaction1075',$argv,true))$pdo->exec("INSERT INTO calendar_deadlines(creator_user_id,title,description,deadline_date,target_scope,status) VALUES(1001,'Batch1075 official deadline','Private UI fixture',CURRENT_DATE(),'all','Active')");
+        $mode=in_array('--interaction1075',$argv,true)?'interaction':(in_array('--acceptance1075',$argv,true)?'acceptance':(in_array('--contrast1075',$argv,true)?'contrast':(in_array('--focus1075',$argv,true)?'focus':'matrix')));
+        $browser=proc_open(['node',__DIR__.'/v10-batch1075-ui.cjs',$origin,$httpRoot,in_array('--before1075',$argv,true)?'before':'after',$mode],[0=>['pipe','r'],1=>['pipe','w'],2=>['pipe','w']],$bp,null,null,['bypass_shell'=>true,'create_new_console'=>false]);
         fclose($bp[0]);$out=stream_get_contents($bp[1]);$err=stream_get_contents($bp[2]);fclose($bp[1]);fclose($bp[2]);echo $out;b10_expect(0,proc_close($browser),'Batch1075 browser '.$err);
+        b10_expect($browserWorkflow,b10_rows('SELECT id,student_id,review_status,version_no,is_current,supersedes_id,rpms_submitted_at FROM documents ORDER BY id'),'cancelled Actions preserve document workflow and versions');
+        b10_expect($browserProgress,b10_rows('SELECT id,stage,status,requirements FROM students ORDER BY id'),'cancelled Actions preserve official student progress');
         b10_expect($legalBaseline,legal_current($pdo),'UI Cancel preserves published policy content and pointers');
         foreach(legal_rows($pdo,'SELECT * FROM legal_policy_versions WHERE id>?',[$legalMax]) as $draft){b10_expect('draft',$draft['state'],'Cancel retains saved draft');b10_expect(false,str_contains($draft['title'],'Unsaved browser edit'),'Cancel writes no edits');}
         // Remove only browser-created drafts in this verified disposable fixture before B6 governance tests.
