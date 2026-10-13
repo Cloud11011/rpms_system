@@ -1,54 +1,8 @@
-/* PRISM UI kit - shared components (badges, buttons, empty states, toasts, dialogs, tips, filters,
-   responsive tables). Loads after each page's own CSS; every class is prefixed "prism-" so it can't
-   collide with existing styles. Dark mode follows the site's existing `.dark-theme` class. */
+/* Legacy-compatible UI helpers: badges, empty states, toasts, dialogs, tips, filters and tables.
+   The final shared loader owns tokens, buttons and calendar presentation. Dark mode follows
+   the existing `.dark-theme` class; page aliases remain for inventoried consumers. */
 
-:root {
-  --prism-font-micro: 10px;
-  --prism-font-meta: 11.5px;
-  --prism-font-profile-meta: 10.5px;
-  --prism-font-label: 12.5px;
-  --prism-font-body: 13.5px;
-  --prism-font-nav: 13.5px;
-  --prism-font-nav-main: 14.5px;
-  --prism-font-badge: 12.5px;
-  --prism-font-subheading: 17.5px;
-  --prism-font-heading: 19.5px;
-  --prism-font-title: clamp(25.5px, 2.25vw, 31.5px);
-  --prism-font-hero: clamp(26px, 2.4vw, 33px);
-  --prism-font-reading: 14.5px;
-  --prism-radius: 10px;
-  --prism-pill-height: 28px;
-  --prism-pill-padding: 4px 10px;
-  --prism-pill-gap: 8px;
-  --prism-border: #dfe4ec;
-  --prism-muted: #64708a;
-  --prism-text: #1f2937;
-  --prism-surface: #ffffff;
-  --prism-surface-2: #f5f7fb;
-  --prism-focus: #2563eb;
-
-  --prism-success-bg: #e7f6ec; --prism-success-fg: #146c2e; --prism-success-bd: #b9e4c6;
-  --prism-info-bg:    #e6f0ff; --prism-info-fg:    #1d4ed8; --prism-info-bd:    #bcd3ff;
-  --prism-warning-bg: #fff4dc; --prism-warning-fg: #8a5a00; --prism-warning-bd: #f3d9a0;
-  --prism-danger-bg:  #fdeaea; --prism-danger-fg:  #a01c1c; --prism-danger-bd:  #f4bcbc;
-  --prism-neutral-bg: #eef1f6; --prism-neutral-fg: #475269; --prism-neutral-bd: #d7dce6;
-  --prism-override-bg:#f1e9ff; --prism-override-fg:#5b21b6; --prism-override-bd:#d9c6fb;
-}
-.dark-theme {
-  --prism-border: #2f3a4d;
-  --prism-muted: #9aa7bf;
-  --prism-text: #e5e9f2;
-  --prism-surface: #182131;
-  --prism-surface-2: #1e293b;
-  --prism-focus: #7aa7ff;
-
-  --prism-success-bg: rgba(34,197,94,.15);  --prism-success-fg: #86efac; --prism-success-bd: rgba(34,197,94,.35);
-  --prism-info-bg:    rgba(96,165,250,.15); --prism-info-fg:    #a9c9ff; --prism-info-bd:    rgba(96,165,250,.35);
-  --prism-warning-bg: rgba(251,191,36,.14); --prism-warning-fg: #fcd34d; --prism-warning-bd: rgba(251,191,36,.35);
-  --prism-danger-bg:  rgba(248,113,113,.15);--prism-danger-fg:  #fca5a5; --prism-danger-bd:  rgba(248,113,113,.35);
-  --prism-neutral-bg: rgba(148,163,184,.15);--prism-neutral-fg: #cbd5e1; --prism-neutral-bd: rgba(148,163,184,.3);
-  --prism-override-bg:rgba(167,139,250,.16);--prism-override-fg:#d4c2ff; --prism-override-bd:rgba(167,139,250,.38);
-}
+/* Shared tokens: prism-tokens.css. Shared buttons: prism-components.css. */
 
 /* ---------- Status badges (colour + icon + text, never colour alone) ---------- */
 .prism-badge {
@@ -70,27 +24,6 @@
 .prism-badge.tone-override { background: var(--prism-override-bg); color: var(--prism-override-fg); border-color: var(--prism-override-bd); }
 .prism-badges { display: flex; align-items:center; flex-wrap: wrap; gap: var(--prism-pill-gap); margin-top: .3rem; max-width: 100%; }
 .prism-sub { display: block; color: var(--prism-muted); font-size:var(--prism-font-body); font-weight: 500; margin-top: .15rem; }
-
-/* ---------- Buttons ---------- */
-.prism-btn, .prism-link-btn {
-  display: inline-flex; align-items: center; justify-content: center; gap: .5em;
-  padding: .55em 1em; border-radius: 8px; border: 1px solid transparent;
-  font: inherit; font-size:var(--prism-font-body); font-weight: 600; line-height: 1.2; cursor: pointer; text-decoration: none;
-  transition: background-color .15s, border-color .15s, opacity .15s;
-}
-.prism-btn.is-sm { padding: .38em .75em; font-size:var(--prism-font-body); }
-.prism-btn.is-primary   { background: #2563eb; color: #fff; }
-.prism-btn.is-primary:hover:not(:disabled)   { background: #1d4ed8; }
-.prism-btn.is-secondary { background: var(--prism-surface); color: var(--prism-text); border-color: var(--prism-border); }
-.prism-btn.is-secondary:hover:not(:disabled) { background: var(--prism-surface-2); }
-.prism-btn.is-danger    { background: #c62828; color: #fff; }
-.prism-btn.is-danger:hover:not(:disabled)    { background: #a81f1f; }
-.prism-btn.is-override  { background: #6d28d9; color: #fff; }
-.prism-btn.is-override:hover:not(:disabled)  { background: #5b21b6; }
-.prism-btn:disabled { opacity: .55; cursor: not-allowed; }
-.prism-link-btn { color: inherit; }
-.prism-btn:focus-visible, .prism-link-btn:focus-visible,
-.prism-tip:focus-visible, .prism-hint-close:focus-visible { outline: 3px solid var(--prism-focus); outline-offset: 2px; }
 
 /* Admin override entry points: always purple, always labelled */
 .prism-override-icon { color: var(--prism-override-fg) !important; }
@@ -242,16 +175,6 @@
    workflows or permissions. The goal is to make existing PRISM information
    easier to scan, read and operate on desktop, tablet and mobile.
 */
-:root {
-  --prism-readable-muted: #566176;
-  --prism-row-hover: rgba(63, 68, 127, .045);
-  --prism-control-shadow: 0 1px 2px rgba(15, 23, 42, .04);
-}
-.dark-theme {
-  --prism-readable-muted: #aeb8cc;
-  --prism-row-hover: rgba(255, 255, 255, .045);
-}
-
 /* Base legibility and contrast */
 body {
   line-height: 1.45;
@@ -364,38 +287,6 @@ a,
 select,
 input[type="checkbox"],
 input[type="radio"] { accent-color: var(--accent-purple, #A21368); }
-
-/* Buttons and icon targets */
-.management-primary,
-.upload-document-button,
-.doc-primary,
-.doc-secondary,
-.ierb-add-link,
-.generate-report-button,
-.today-button,
-.save-task,
-.primary-btn {
-  min-height: 40px;
-  font-size:var(--prism-font-body) !important;
-  line-height: 1.2;
-}
-.icon-btn:not(.prism-action-item),
-.record-action:not(.prism-action-item),
-.document-action-button:not(.prism-action-item),
-.task-action,
-.calendar-nav,
-.view-switch button,
-.document-modal-heading button,
-.management-modal-head button {
-  min-width: 36px !important;
-  min-height: 36px !important;
-}
-button:disabled,
-.prism-btn:disabled {
-  opacity: .58;
-  cursor: not-allowed !important;
-  filter: saturate(.7);
-}
 
 /* Tables: larger type, sticky headers, clearer row separation */
 .management-table-wrap,
@@ -665,9 +556,6 @@ button:disabled,
 }
 
 @media (max-width: 768px) {
-  .main-content:not(.portal-main) {
-    padding: 22px 18px !important;
-  }
   .management-page h1,
   .documents-heading h1,
   .ierb-heading h1,

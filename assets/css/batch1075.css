@@ -1,6 +1,4 @@
 /* Batch 10.75 presentation. Scoped to the existing authenticated PRISM shell. */
-body.prism-workspace { --prism-pink-soft:#fbeaf3; --prism-purple-soft:#eee7f5; }
-html.dark-theme body.prism-workspace { --prism-pink-soft:#372135; --prism-purple-soft:#30263d; }
 body.prism-workspace .prism-topbar-group { display:flex; align-items:center; flex-wrap:wrap; gap:6px; padding:6px; border:1px solid var(--border-color); border-radius:18px; background:var(--card-bg); }
 body.prism-workspace .prism-topbar-group > :is(button,a), body.prism-workspace .prism-topbar-group .notification-icon { width:40px; height:40px; min-width:40px; margin:0; border-radius:12px; display:inline-flex; align-items:center; justify-content:center; border:1px solid var(--border-color); background:var(--card-bg); color:var(--text-primary); position:relative; }
 body.prism-workspace .prism-initials { flex:0 0 36px; width:36px; height:36px; border-radius:50%; display:inline-flex; justify-content:center; align-items:center; font-weight:700; font-size:13px; background:var(--prism-purple-soft); color:var(--text-primary); }
@@ -57,11 +55,6 @@ body.prism-workspace.adviser-dashboard-page #adviserNotifications { max-height:4
 body.prism-workspace.adviser-dashboard-page button.adviser-summary-card { text-align:left; font-family:inherit; color:var(--text-primary); cursor:pointer; }
 body.prism-workspace.adviser-dashboard-page button.adviser-summary-card[aria-pressed=true] { border-color:var(--accent-pink); background:var(--prism-pink-soft); box-shadow:inset 0 0 0 1px var(--accent-pink); }
 body.prism-workspace .adviser-queue-filters { grid-template-columns:minmax(0,2fr) minmax(0,1fr) minmax(0,1fr); }
-body.prism-workspace .prism-deadline-grid button, body.prism-workspace #calendarDays .day-cell, body.prism-workspace .dashboard-calendar-day { border:1px solid var(--border-color); border-radius:9px; min-height:36px; background:var(--card-bg); }
-body.prism-workspace [data-official-deadline=true] { background:var(--prism-pink-soft); border-color:var(--accent-pink); }
-body.prism-workspace [data-selected-day=true] { box-shadow:inset 0 0 0 2px var(--accent-pink); }
-body.prism-workspace .prism-deadline-marker { width:4px; height:4px; font-size:0; border-radius:50%; background:var(--accent-pink); }
-body.prism-workspace .prism-calendar-detail { padding:10px 12px; margin-top:12px; background:var(--input-bg); border-radius:8px; color:var(--text-secondary); font-size:var(--prism-font-meta); }
 body.prism-workspace .repo-list { display:grid; gap:8px; }
 body.prism-workspace .repo-item { display:flex; align-items:center; gap:12px; padding:12px; border:1px solid var(--border-color); border-radius:10px; background:var(--card-bg); text-decoration:none; color:var(--text-primary); min-width:0; }
 body.prism-workspace .repo-item .repo-file-copy { flex:1; min-width:0; }

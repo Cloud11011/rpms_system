@@ -49,13 +49,7 @@ body.prism-workspace .prism-row-size { display:flex; align-items:center; gap:8px
 body.prism-workspace .prism-row-size select { min-height:36px; border:1px solid var(--border-color); border-radius:7px; padding:6px 10px; font:inherit; background:var(--card-bg); color:var(--text-primary); }
 body.prism-workspace .prism-pagination { display:flex; justify-content:flex-end; gap:6px; flex-wrap:wrap; margin-top:10px; }
 body.prism-workspace .prism-pagination button { min-height:36px; min-width:36px; border-radius:8px; }
-body.prism-workspace .prism-calendar-legend { display:flex; gap:14px; align-items:center; flex-wrap:wrap; margin:10px 0 4px; font-size:11px; color:var(--text-secondary); }
-body.prism-workspace .prism-calendar-legend span { display:inline-flex; align-items:center; gap:5px; }
-body.prism-workspace .prism-calendar-legend b { width:10px; height:10px; border-radius:3px; border:1px solid var(--accent-pink); background:var(--prism-pink-soft); }
-body.prism-workspace .prism-calendar-legend .is-today b { background:var(--accent-pink); }
-body.prism-workspace :is(.day-cell,.calendar-day,.dashboard-calendar-day,[data-calendar-date])[data-official-deadline=true] { background:var(--prism-pink-soft); border:1px solid var(--accent-pink); color:var(--text-primary); }
-body.prism-workspace :is(.today,.active-day,[data-today=true]) { box-shadow:inset 0 -3px 0 var(--accent-pink); }
-body.prism-workspace :is(.selected,[data-selected-day=true]) { outline:2px solid var(--accent-pink); outline-offset:-2px; }
+/* Calendar presentation is owned by prism-calendar.css. */
 body.prism-workspace .notification-center-page { min-width:0; }
 body.prism-workspace.notification-center-page .admin-tool-grid { grid-template-columns:minmax(0,1fr) minmax(0,1fr); gap:16px; align-items:start; }
 body.prism-workspace.notification-center-page .management-card { padding:18px; border-radius:12px; }

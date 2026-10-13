@@ -39,15 +39,9 @@ body.prism-workspace [data-deadline-date] { position:relative; }
 body.prism-workspace [data-deadline-date].active-day .prism-deadline-marker { color:inherit; }
 body.prism-workspace [data-deadline-date]:focus-visible { outline:3px solid var(--prism-focus); outline-offset:1px; }
 .prism-deadline-load { min-height:3em; margin:10px 0 0; color:var(--prism-muted); font-size:var(--prism-font-meta); line-height:1.5; }
-.prism-deadline-toolbar { display:flex; align-items:center; justify-content:space-between; gap:8px; margin:12px 0; }
 .prism-deadline-toolbar button { width:44px; height:44px; border:1px solid var(--prism-border); border-radius:8px; background:var(--prism-surface); color:var(--prism-text); cursor:pointer; }
-.prism-deadline-weekdays,.prism-deadline-grid { display:grid; grid-template-columns:repeat(7,minmax(0,1fr)); gap:4px; text-align:center; }
-.prism-deadline-weekdays { font-size:var(--prism-font-micro); color:var(--prism-muted); margin-bottom:6px; }
-.prism-deadline-grid { min-height:244px; }
-.prism-deadline-grid button { min-width:0; height:44px; border:1px solid var(--prism-border); border-radius:8px; background:var(--prism-surface); color:var(--prism-text); cursor:pointer; }
 body.prism-workspace button.mini-day { border:0; font-family:inherit; font-size:inherit; line-height:inherit; cursor:pointer; }
 body.prism-workspace button.mini-day:not(.active-day) { background:transparent; color:inherit; }
-body.prism-workspace .mini-day .prism-deadline-marker { font-size:8px; right:1px; bottom:1px; }
 @media (max-width:480px) {
     .prism-readonly-dialog { padding:16px; }
     .prism-readonly-dialog .prism-dialog-actions { bottom:-16px; }
@@ -61,27 +55,11 @@ body.prism-workspace .mini-day .prism-deadline-marker { font-size:8px; right:1px
 
 /* Authenticated workspaces only. Load last; aliases keep existing components on one palette. */
 body.prism-workspace {
-    --prism-bg:#f5f7fb; --prism-card:#fff; --prism-navy:#0c0e3f;
-    --prism-pink:#ee1280; --prism-purple:#64175f; --prism-text:#0c0e3f;
-    --prism-muted:#666; --prism-border:#e8eaf0; --prism-shadow:0 8px 20px rgba(0,0,0,.06);
-    --prism-radius:14px; --prism-focus:#b80b62;
-    --bg-color:var(--prism-bg); --card-bg:var(--prism-card); --input-bg:var(--prism-card);
-    --text-primary:var(--prism-text); --text-secondary:var(--prism-muted);
-    --border-color:var(--prism-border); --shadow:var(--prism-shadow);
-    --accent-pink:#bd0d65; --accent-purple:var(--prism-purple);
-    --prism-surface:var(--prism-card); --prism-surface-2:var(--prism-bg);
     --sidebar-bg:linear-gradient(180deg,#ee1280 0%,#b31971 35%,#64175f 65%,#0c0e3f 100%);
-    background:var(--prism-bg); color:var(--prism-text); font:400 var(--prism-font-body)/1.45 Montserrat,sans-serif;
+    background:var(--prism-bg); color:var(--prism-text); font:400 var(--prism-font-body)/1.45 var(--prism-font-family);
 }
 html.dark-theme body.prism-workspace {
-    --prism-bg:#10111e; --prism-card:#1b1d30; --prism-text:#f1f1fa;
-    --prism-muted:#b5b7ca; --prism-border:#34364e; --prism-shadow:0 8px 20px rgba(0,0,0,.18);
-    --prism-focus:#ff88bc; --accent-pink:#ff88bc; --accent-purple:#c998da;
-    --bg-color:var(--prism-bg); --card-bg:var(--prism-card); --input-bg:var(--prism-card);
-    --text-primary:var(--prism-text); --text-secondary:var(--prism-muted);
-    --border-color:var(--prism-border); --shadow:var(--prism-shadow);
     --sidebar-bg:linear-gradient(180deg,#9d195e 0%,#64175f 48%,#0c0e3f 100%);
-    color-scheme:dark;
 }
 body.prism-workspace .main-content { position:relative; isolation:isolate; min-width:0; }
 body.prism-workspace .main-content::before {
@@ -102,13 +80,6 @@ body.prism-workspace :is(.content-box,.management-card,.panel,.adviser-panel,.st
     border:1px solid var(--prism-border); border-radius:var(--prism-radius); background:var(--prism-card); box-shadow:var(--prism-shadow);
 }
 body.prism-workspace :is(.management-card-head,.adviser-panel-heading,.table-header) h2 { font-size:var(--prism-font-subheading); }
-body.prism-workspace :is(.management-primary,.primary-btn,.adviser-button.is-primary,.prism-btn.is-primary,.btn-primary) {
-    min-height:42px; padding:10px 16px; border:1px solid transparent; border-radius:10px;
-    background:var(--prism-navy); color:#fff; font-size:var(--prism-font-body); font-weight:600; line-height:1.5;
-}
-body.prism-workspace :is(.management-primary,.primary-btn,.adviser-button.is-primary,.prism-btn.is-primary,.btn-primary):hover { background:var(--prism-purple); }
-html.dark-theme body.prism-workspace :is(.management-primary,.primary-btn,.adviser-button.is-primary,.prism-btn.is-primary,.btn-primary) { border-color:#747696; }
-body.prism-workspace :is(.adviser-button,.prism-btn,.btn-secondary,.btn-secondary-sm,.management-secondary) { border-radius:10px; font-size:var(--prism-font-body); min-height:40px; }
 body.prism-workspace :is(input:not([type=checkbox]):not([type=radio]):not([type=hidden]):not([type=file]),select,textarea) {
     max-width:100%; min-width:0; min-height:42px; border-radius:9px; border-color:var(--prism-border);
     background:var(--input-bg); color:var(--prism-text); font-size:var(--prism-font-body);
@@ -124,11 +95,6 @@ body.prism-workspace :is(.prism-empty,.adviser-panel-state,.empty-state) { color
 body.prism-workspace :is(.prism-dialog,.modal-content,.adviser-review-dialog,.support-modal-card) { border-radius:16px; max-width:calc(100vw - 24px); max-height:calc(100dvh - 32px); overflow-y:auto; }
 body.prism-workspace dialog::backdrop { background:rgba(12,14,63,.55); backdrop-filter:blur(3px); }
 body.prism-workspace .prism-badge { font-size:var(--prism-font-badge); }
-/* Older page buttons share the brand treatment and retain contrast in dark mode. */
-body.prism-workspace :is(.upload-document-button,.doc-primary,.ierb-primary,.ierb-add-link,.generate-report-button,.small-btn,.dashboard-detail-button) {
-    min-height:42px; padding:10px 14px; border-radius:10px; background:var(--prism-navy); color:#fff; font-size:var(--prism-font-body); border:1px solid transparent;
-}
-html.dark-theme body.prism-workspace :is(.upload-document-button,.doc-primary,.ierb-primary,.ierb-add-link,.generate-report-button,.small-btn,.dashboard-detail-button) { border-color:#747696; }
 html.dark-theme body.prism-workspace :is(.view-switch button.active,.day.active-day,.report-tool-icon,.quick-actions-toggle:hover,.quick-actions-toggle[aria-expanded=true],.dashboard-calendar-day:hover) { background:var(--prism-purple); color:#fff; }
 html.dark-theme body.prism-workspace :is(.record-action,.document-action-button,.ierb-action,.row-actions button,.report-row-actions a,.report-row-actions button):not(.prism-btn):not(.prism-action-item):hover { background:var(--workspace-primary); color:#fff; }
 
@@ -356,7 +322,7 @@ body.prism-workspace .portal-nav-links { scrollbar-width:none; -ms-overflow-styl
 body.prism-workspace .portal-nav-links::-webkit-scrollbar { display:none; }
 
 /* Enabled CSV actions use the shared secondary-action palette in both themes. */
-body.prism-workspace :is(#exportExcel,.header-actions a[href*="action=export_csv"],.data-export-card .prism-btn) { color:var(--text-primary); background:var(--card-bg); border:1px solid var(--border-color); opacity:1; min-height:42px; transition:border-color 160ms ease; }
+body.prism-workspace :is(#exportExcel,.header-actions a[href*="action=export_csv"],.data-export-card .prism-btn) { color:var(--text-primary); background:var(--card-bg); border:1px solid var(--border-color); opacity:1; min-height:var(--prism-control-height); transition:border-color 160ms ease; }
 body.prism-workspace :is(#exportExcel,.header-actions a[href*="action=export_csv"],.data-export-card .prism-btn):hover { background:var(--bg-color); border-color:var(--accent-pink); }
 @media(prefers-reduced-motion:reduce) { body.prism-workspace :is(#exportExcel,.header-actions a[href*="action=export_csv"],.data-export-card .prism-btn,.adviser-document-actions .adviser-button) { transition:none; } }
 
@@ -373,25 +339,6 @@ body.prism-workspace :is(.management-search,.ierb-search,.document-search) input
 }
 body.prism-workspace :is(.management-actions,.ierb-controls,.document-actions,.retention-toolbar-actions,.retention-cleanup) > button,
 body.prism-workspace .prism-btn,
-body.prism-workspace :is(.doc-primary,.doc-secondary,.primary-btn,.action-btn,.adviser-button) {
-    display:inline-flex; align-items:center; justify-content:center; gap:6px; min-height:38px;
-    height:auto; width:auto; max-width:100%; padding:7px 12px; margin:0; flex:0 0 auto;
-    border:1px solid var(--prism-border); border-radius:8px; font:600 var(--prism-font-body)/1.4 Montserrat,system-ui,sans-serif;
-    cursor:pointer; text-decoration:none; transition:background-color 160ms ease,border-color 160ms ease;
-}
-body.prism-workspace :is(.prism-btn,.doc-secondary,.action-btn,.prism-action-trigger) {
-    color:var(--prism-text); background:var(--prism-card);
-}
-body.prism-workspace :is(.primary-btn,.doc-primary,.upload-document-button,.prism-btn-primary,#addRecord,#inviteAccount,#addIerbEntry) {
-    color:#fff; background:#0c0e3f; border-color:#0c0e3f;
-}
-body.prism-workspace .prism-btn-secondary { color:var(--prism-info-fg); background:var(--prism-info-bg); border-color:var(--prism-info-bd); }
-body.prism-workspace .prism-btn-neutral { color:var(--prism-text); background:var(--prism-card); }
-body.prism-workspace :is(.prism-btn-danger,.prism-action-danger) { color:var(--prism-danger-fg); background:var(--prism-danger-bg); border-color:var(--prism-danger-bd); }
-body.prism-workspace :is(.prism-btn,.action-btn,.adviser-button,.doc-primary,.doc-secondary):hover:not(:disabled):not([aria-disabled=true]) { border-color:var(--prism-pink); }
-body.prism-workspace :is(button,a):focus-visible { outline:2px solid var(--prism-focus); outline-offset:3px; }
-body.prism-workspace :is(button,a)[aria-disabled=true],body.prism-workspace button:disabled { opacity:.6; cursor:not-allowed; }
-body.prism-workspace :is(.doc-primary,.upload-document-button,.primary-btn) i { margin:0; }
 body.prism-workspace .prism-filter-disclosure,
 body.prism-workspace .prism-filter-disclosure:has(> button[aria-expanded=true]) { flex:0 0 auto; width:auto; max-width:100%; }
 body.prism-workspace .prism-filter-panel {
@@ -427,8 +374,8 @@ body.prism-workspace .prism-action-panel[hidden],body.prism-workspace .prism-fil
 /* The watermark's isolated content layer must not put open menus behind navigation. */
 body.admin-shell .main-content:has(.prism-action-panel:not([hidden]),.prism-filter-panel:not([hidden]),.prism-account-links:not([hidden])) { z-index:810; }
 body.prism-workspace :is(.lifecycle-actions,.document-row-actions,.student-document-actions,.adviser-document-actions) { display:flex; align-items:center; flex-wrap:wrap; gap:8px; min-width:0; }
-body.prism-workspace .view-switch { padding:0; height:38px; align-items:center; }
-body.prism-workspace .view-switch button { width:36px; height:36px; }
+body.prism-workspace .view-switch { padding:0; height:44px; align-items:center; }
+body.prism-workspace .view-switch button { width:44px; height:44px; }
 
 /* Research Resources: native, equal-height stacked disclosures in all roles. */
 body.prism-workspace .prism-resource-grid { display:grid; grid-template-columns:minmax(0,1fr); gap:8px; }
@@ -457,7 +404,7 @@ body.prism-workspace .account-lifecycle .lifecycle-form input:not([type=checkbox
 body.prism-workspace .account-lifecycle .lifecycle-password-toggle { width:40px; height:40px; min-height:40px; }
 body.prism-workspace .account-lifecycle .lifecycle-check { display:grid; grid-template-columns:20px minmax(0,1fr); align-items:start; gap:10px; min-height:44px; line-height:1.5; font-weight:500; }
 body.prism-workspace .account-lifecycle .lifecycle-check input[type=checkbox] { width:20px; height:20px; min-height:20px; margin:0; padding:0; align-self:start; }
-body.prism-workspace .account-lifecycle .lifecycle-form > button[type=submit] { justify-self:start; width:auto; min-height:40px; padding:9px 16px; border:1px solid var(--prism-danger-bd); border-radius:8px; color:var(--prism-danger-fg); background:var(--prism-danger-bg); }
+body.prism-workspace .account-lifecycle .lifecycle-form > button[type=submit] { justify-self:start; width:auto; min-height:var(--prism-control-height); padding:10px 16px; border:1px solid var(--prism-danger-bd); border-radius:var(--prism-radius-control); color:var(--prism-danger-fg); background:var(--prism-danger-bg); }
 body.prism-workspace .account-lifecycle .lifecycle-destructive { border-top:1px solid var(--prism-border); margin-top:20px; padding-top:16px; }
 body.prism-workspace .account-lifecycle .lifecycle-destructive summary { min-height:44px; padding:8px 0; cursor:pointer; line-height:1.5; }
 body.prism-workspace .account-lifecycle #adminLifecycleResult { width:100%; max-width:480px; margin:10px 0 0; line-height:1.5; }
@@ -475,7 +422,7 @@ body.prism-workspace .account-lifecycle #adminLifecycleResult { width:100%; max-
 }
 
 body.prism-workspace .management-controls { display:flex; flex-direction:row; flex-wrap:wrap; align-items:center; justify-content:flex-start; gap:8px; }
-body.prism-workspace .management-controls .management-primary { min-height:38px; padding:7px 12px; margin:0; width:auto; display:inline-flex; align-items:center; justify-content:center; gap:6px; }
+body.prism-workspace .management-controls .management-primary { margin:0; width:auto; }
 body.prism-workspace .account-lifecycle #adminLifecycleResult { max-width:480px; margin:10px 0 0; line-height:1.5; }
 @media(max-width:600px) { body.prism-workspace .management-controls .management-primary { min-height:44px; } }
 body.prism-workspace .account-lifecycle [data-lifecycle-result] { margin:0; color:var(--prism-danger-fg); line-height:1.5; }
@@ -490,28 +437,6 @@ body.portal-shell .adviser-document-actions { display:flex; min-width:0; gap:8px
 body.prism-workspace .lifecycle-actions { width:auto; }
 
 /* Batch 4.5: visible semantic controls and stable workspace geometry. */
-body.prism-workspace {
-    --workspace-primary:#a21368; --workspace-primary-hover:#861052;
-    --workspace-secondary:#f8eaf3; --workspace-secondary-text:#832052; --workspace-secondary-border:#a85590;
-    --workspace-neutral-border:#79859a;
-}
-html.dark-theme body.prism-workspace {
-    --workspace-primary:#b52b79; --workspace-primary-hover:#9a2167;
-    --workspace-secondary:#35233f; --workspace-secondary-text:#ffd4ed; --workspace-secondary-border:#b86d9a;
-    --workspace-neutral-border:#8b99b0;
-}
-body.prism-workspace :is(.management-primary,.primary-btn,.doc-primary,.upload-document-button,.prism-btn-primary,.prism-btn.is-primary,.save-task,.adviser-button.prism-btn-primary,#addRecord,#inviteAccount,#addIerbEntry,.view-btn.active) {
-    color:#fff; background:var(--workspace-primary); border:1px solid var(--workspace-secondary-border);
-}
-body.prism-workspace :is(.management-primary,.primary-btn,.doc-primary,.upload-document-button,.prism-btn-primary,.prism-btn.is-primary,.save-task,.view-btn.active):hover:not(:disabled) { background:var(--workspace-primary-hover); }
-body.prism-workspace :is(.prism-btn,.doc-secondary,.action-btn,.adviser-button,.view-btn,.today-button,.cancel-edit):not(.prism-btn-primary):not(.is-primary):not(.is-danger):not(.is-override):not(.prism-btn-danger):not(.active) {
-    color:var(--workspace-secondary-text); background:var(--workspace-secondary); border:1px solid var(--workspace-secondary-border);
-}
-body.prism-workspace .prism-btn.prism-btn-neutral:not(.prism-btn-primary):not(.is-primary):not(.is-danger):not(.is-override):not(.prism-btn-danger):not(.active) { color:var(--prism-text); background:var(--prism-card); border-color:var(--workspace-neutral-border); }
-body.prism-workspace :is(.prism-btn,.doc-secondary,.action-btn,.adviser-button,.view-btn):not(.prism-btn-primary):not(.is-primary):not(.is-danger):not(.is-override):not(.prism-btn-danger):not(.active):hover:not(:disabled) { box-shadow:inset 0 0 0 1px var(--workspace-secondary-border); }
-body.prism-workspace :is(.prism-btn,.management-primary,.view-btn,.today-button):active:not(:disabled) { box-shadow:inset 0 0 0 2px var(--workspace-secondary-border); }
-body.prism-workspace :is(.prism-btn-danger,.lifecycle-danger,.prism-action-danger) { color:var(--prism-danger-fg); background:var(--prism-danger-bg); border-color:var(--prism-danger-bd); }
-body.prism-workspace :is(.prism-btn,.management-primary,.view-btn,.today-button,.save-task,.cancel-edit) { display:inline-flex; align-items:center; justify-content:center; gap:6px; min-height:38px; padding:7px 12px; line-height:1.4; border-radius:8px; }
 body.prism-workspace :is(.archive-tabs,.calendar-top-bar,.cal-view-selector) { display:flex; flex-wrap:wrap; align-items:center; gap:8px; }
 body.prism-workspace .archive-tabs { margin:0 0 16px; }
 body.prism-workspace[data-archive-workspace=true] .management-table-wrap table { min-width:1100px; table-layout:fixed; }
@@ -542,8 +467,6 @@ body.admin-shell .year-month-card { min-width:0; padding:12px 8px; }
 body.admin-shell .year-month-card .mini-day { min-width:0; min-height:24px; }
 @container (max-width:900px) { body.admin-shell #yearCalendarView { grid-template-columns:repeat(2,minmax(0,1fr)); } }
 @container (max-width:480px) { body.admin-shell #yearCalendarView { grid-template-columns:minmax(0,1fr); } }
-body.prism-workspace .dashboard-calendar-grid button.mini-day { position:relative; min-width:0; min-height:38px; border:1px solid var(--prism-border); border-radius:6px; background:var(--prism-card); color:var(--prism-text); cursor:pointer; }
-body.prism-workspace .dashboard-calendar-grid button.active-day { background:var(--workspace-primary); color:#fff; }
 @media(max-width:900px) {
     body.admin-shell .prism-sidebar ~ .main-content,body.admin-shell .prism-sidebar.is-collapsed ~ .main-content { margin-left:88px; width:calc(100% - 88px); }
 }

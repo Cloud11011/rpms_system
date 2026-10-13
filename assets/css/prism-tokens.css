@@ -1,0 +1,104 @@
+/* Batch 11.5: one token owner, derived from the accepted Batch 11/10.75 palette.
+   Loaded after legacy page styles by includes/frontend_styles.php. */
+:root {
+  --prism-font-family: Montserrat, Arial, sans-serif;
+  --prism-font-micro: 10px;
+  --prism-font-meta: 11.5px;
+  --prism-font-profile-meta: 10.5px;
+  --prism-font-label: 12.5px;
+  --prism-font-body: 13.5px;
+  --prism-font-nav: 13.5px;
+  --prism-font-nav-main: 14.5px;
+  --prism-font-badge: 12.5px;
+  --prism-font-subheading: 17.5px;
+  --prism-font-heading: 19.5px;
+  --prism-font-title: clamp(25.5px, 2.25vw, 31.5px);
+  --prism-font-hero: clamp(26px, 2.4vw, 33px);
+  --prism-font-reading: 14.5px;
+  --prism-space-1: 4px;
+  --prism-space-2: 8px;
+  --prism-space-3: 12px;
+  --prism-space-4: 16px;
+  --prism-space-5: 20px;
+  --prism-space-6: 24px;
+  --prism-space-8: 32px;
+  --prism-radius: 14px;
+  --prism-radius-control: 10px;
+  --prism-radius-record: 10px;
+  --prism-radius-calendar: 8px;
+  --prism-control-height: 44px;
+  --prism-control-compact: 36px;
+  --prism-pill-height: 28px;
+  --prism-pill-padding: 4px 10px;
+  --prism-pill-gap: 8px;
+  --prism-navy: #0c0e3f;
+  --prism-pink: #ee1280;
+  --prism-purple: #64175f;
+  --prism-accent: #bd0d65;
+  --prism-bg: #f5f7fb;
+  --prism-card: #fff;
+  --prism-text: #0c0e3f;
+  --prism-muted: #666;
+  --prism-border: #e8eaf0;
+  --prism-surface: var(--prism-card);
+  --prism-surface-2: var(--prism-bg);
+  --prism-focus: #b80b62;
+  --prism-pink-soft: #fbeaf3;
+  --prism-purple-soft: #eee7f5;
+  --prism-shadow: 0 8px 20px rgba(0,0,0,.06);
+  --prism-shadow-dialog: 0 20px 50px rgba(12,14,63,.25);
+  --prism-control-shadow: 0 1px 2px rgba(15,23,42,.04);
+  --prism-readable-muted: var(--prism-muted);
+  --prism-row-hover: rgba(63,68,127,.045);
+  --prism-disabled-opacity: .6;
+  --prism-primary: #a21368;
+  --prism-primary-hover: #861052;
+  --prism-secondary: #f8eaf3;
+  --prism-secondary-text: #832052;
+  --prism-secondary-border: #a85590;
+  --prism-neutral-border: #79859a;
+  --prism-success-bg: #e7f6ec; --prism-success-fg: #146c2e; --prism-success-bd: #b9e4c6;
+  --prism-info-bg: #e6f0ff; --prism-info-fg: #1d4ed8; --prism-info-bd: #bcd3ff;
+  --prism-warning-bg: #fff4dc; --prism-warning-fg: #8a5a00; --prism-warning-bd: #f3d9a0;
+  --prism-danger-bg: #fdeaea; --prism-danger-fg: #a01c1c; --prism-danger-bd: #f4bcbc;
+  --prism-danger-solid: #c62828; --prism-danger-hover: #a81f1f;
+  --prism-neutral-bg: #eef1f6; --prism-neutral-fg: #475269; --prism-neutral-bd: #d7dce6;
+  --prism-override-bg: #f1e9ff; --prism-override-fg: #5b21b6; --prism-override-bd: #d9c6fb;
+  --prism-override-solid: #6d28d9; --prism-override-hover: #5b21b6;
+}
+html.dark-theme {
+  color-scheme: dark;
+  --prism-bg: #10111e; --prism-card: #1b1d30; --prism-text: #f1f1fa;
+  --prism-muted: #b5b7ca; --prism-border: #34364e;
+  --prism-accent: #ff88bc; --prism-focus: #ff88bc;
+  --prism-pink-soft: #372135; --prism-purple-soft: #30263d;
+  --prism-shadow: 0 8px 20px rgba(0,0,0,.18);
+  --prism-shadow-dialog: 0 20px 50px rgba(0,0,0,.4);
+  --prism-row-hover: rgba(255,255,255,.045);
+  --prism-primary: #b52b79; --prism-primary-hover: #9a2167;
+  --prism-secondary: #35233f; --prism-secondary-text: #ffd4ed;
+  --prism-secondary-border: #b86d9a; --prism-neutral-border: #8b99b0;
+  --prism-success-bg: rgba(34,197,94,.15); --prism-success-fg: #86efac; --prism-success-bd: rgba(34,197,94,.35);
+  --prism-info-bg: rgba(96,165,250,.15); --prism-info-fg: #a9c9ff; --prism-info-bd: rgba(96,165,250,.35);
+  --prism-warning-bg: rgba(251,191,36,.14); --prism-warning-fg: #fcd34d; --prism-warning-bd: rgba(251,191,36,.35);
+  --prism-danger-bg: rgba(248,113,113,.15); --prism-danger-fg: #fca5a5; --prism-danger-bd: rgba(248,113,113,.35);
+  --prism-neutral-bg: rgba(148,163,184,.15); --prism-neutral-fg: #cbd5e1; --prism-neutral-bd: rgba(148,163,184,.3);
+  --prism-override-bg: rgba(167,139,250,.16); --prism-override-fg: #d4c2ff; --prism-override-bd: rgba(167,139,250,.38);
+}
+/* Compatibility names consumed by existing pages and scripts. */
+body:is(.prism-workspace,.unified-login,.public-legal-page,.help-support-page,.prism-public) {
+  --bg-color: var(--prism-bg); --card-bg: var(--prism-card); --input-bg: var(--prism-card);
+  --text-primary: var(--prism-text); --text-secondary: var(--prism-muted);
+  --border-color: var(--prism-border); --shadow: var(--prism-shadow);
+  --accent-pink: var(--prism-accent); --accent-purple: var(--prism-purple);
+  --workspace-primary: var(--prism-primary); --workspace-primary-hover: var(--prism-primary-hover);
+  --workspace-secondary: var(--prism-secondary); --workspace-secondary-text: var(--prism-secondary-text);
+  --workspace-secondary-border: var(--prism-secondary-border); --workspace-neutral-border: var(--prism-neutral-border);
+  --legal-bg: var(--prism-bg); --legal-card: var(--prism-card); --legal-text: var(--prism-text);
+  --legal-link: var(--prism-accent); --legal-border: var(--prism-border);
+  --public-bg: var(--prism-bg); --public-card: var(--prism-card); --public-text: var(--prism-text);
+  --public-muted: var(--prism-muted); --public-border: var(--prism-border);
+  --surface: var(--prism-card); --text: var(--prism-text); --border: var(--prism-border);
+  --background: var(--prism-bg); --accent: var(--prism-primary); --focus: var(--prism-focus);
+}
+html.dark-theme body.prism-workspace { --accent-purple: #c998da; }

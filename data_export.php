@@ -8,7 +8,6 @@ $authUser = require_login('admin');
 <title>Data Export | PRISM</title>
 <script>try{if(localStorage.getItem('prismTheme')==='dark')document.documentElement.classList.add('dark-theme')}catch(_){}</script>
 <link rel="icon" href="assets/images/prismicon.png">
-<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <?php foreach (['dashboard','prism-ui','workspace-pages','dashboard-sidebar','ceu-footer','prism-workspace'] as $sheet): ?>
 <link rel="stylesheet" href="<?= htmlspecialchars(asset_url('assets/css/'.$sheet.'.css'),ENT_QUOTES,'UTF-8') ?>">
 <?php endforeach; ?>
@@ -16,6 +15,7 @@ $authUser = require_login('admin');
 <script src="<?= htmlspecialchars(asset_url('assets/js/dashboard-sidebar.js'),ENT_QUOTES,'UTF-8') ?>" defer></script>
 <script src="<?= htmlspecialchars(asset_url('assets/js/prism-workspace.js'),ENT_QUOTES,'UTF-8') ?>" defer></script>
 <link rel="stylesheet" href="<?= htmlspecialchars(asset_url('assets/css/batch11.css'),ENT_QUOTES,'UTF-8') ?>">
+<?php prism_frontend_styles(); ?>
 </head><body class="prism-workspace admin-shell data-export-page">
 <div class="container"><aside class="sidebar prism-sidebar">
 <?php $prismCurrentPage='data_export.php'; require __DIR__ . '/includes/prism-navigation.php'; ?>

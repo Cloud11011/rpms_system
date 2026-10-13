@@ -14,13 +14,14 @@ if (current_user()) { header('Location: index.php'); exit; }
     <title>RPMS Staff Registration | PRISM</title>
 
     <link rel="icon" type="image/png" href="assets/images/prismicon.png">
-    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 
     <link rel="stylesheet" href="<?php echo htmlspecialchars(asset_url('assets/css/style.css'), ENT_QUOTES, 'UTF-8'); ?>">
 
     <link rel="stylesheet"
     href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.6.0/css/all.min.css">
 
+<script>try{if(localStorage.getItem('prismTheme')==='dark')document.documentElement.classList.add('dark-theme')}catch(_){}</script>
+<?php prism_frontend_styles(); ?>
 </head>
 
 <body class="unified-login">
@@ -85,7 +86,7 @@ if (current_user()) { header('Location: index.php'); exit; }
 
                 <input
                     type="text"
-                    name="fullname"
+                    name="fullname" aria-label="Full name"
                     aria-label="Full name"
                     placeholder="Enter your full name"
                     maxlength="190"

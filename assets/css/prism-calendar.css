@@ -1,0 +1,97 @@
+/* Calendar presentation owner. Batch 11 Administrator month view is the reference.
+   Each renderer and its role-scoped API remain independent. */
+body.prism-workspace :is(.calendar-box,.full-calendar-card,.prism-deadline-calendar,.dashboard-calendar-panel) {
+  min-width: 0; border: 1px solid var(--prism-border); border-radius: var(--prism-radius);
+  background: var(--prism-card); box-shadow: var(--prism-shadow);
+}
+body.prism-workspace :is(.full-calendar-card,.reminder-panel) { padding: 20px; }
+body.prism-workspace :is(.calendar-top-bar,.prism-deadline-toolbar,.dashboard-calendar-nav,.calendar-toolbar) {
+  display: flex; align-items: center; flex-wrap: wrap; gap: 8px; margin-bottom: 16px;
+}
+body.prism-workspace :is(.cal-nav,.prism-deadline-toolbar,.dashboard-calendar-nav,.calendar-toolbar) {
+  justify-content: center; flex-wrap: nowrap;
+}
+body.prism-workspace :is(#calendarLabel,#adviserCalendarMonth,#dashboardMonthLabel,#monthLabel) {
+  min-width: 0; margin: 0; color: var(--prism-accent);
+  font: 600 var(--prism-font-body)/1.4 var(--prism-font-family); text-align: center;
+}
+body.prism-workspace :is(#prevBtn,#nextBtn,#previousMonth,#nextMonth,#dashboardPreviousMonth,#dashboardNextMonth,[data-deadline-month]) {
+  display: inline-flex; align-items: center; justify-content: center; flex: 0 0 36px;
+  width: 36px; height: 36px; min-width: 36px; min-height: 36px; padding: 0;
+  border: 1px solid var(--prism-border); border-radius: 50%; cursor: pointer;
+  color: var(--prism-text); background: var(--prism-bg); font: 600 16px/1 var(--prism-font-family);
+}
+body.prism-workspace :is(#prevBtn,#nextBtn,#previousMonth,#nextMonth,#dashboardPreviousMonth,#dashboardNextMonth,[data-deadline-month]):hover {
+  color: var(--prism-secondary-text); border-color: var(--prism-accent); background: var(--prism-pink-soft);
+}
+body.prism-workspace :is(#calendarDays,#adviserCalendarDays,#dashboardCalendarGrid,#monthGrid,
+ #calendarGridHeader,.prism-deadline-weekdays,.dashboard-calendar-weekdays,.weekday-row) {
+  display: grid; grid-template-columns: repeat(7,minmax(0,1fr)); gap: 8px;
+  min-width: 0; min-height: 0; border: 0; text-align: center;
+}
+body.prism-workspace :is(#calendarGridHeader,.prism-deadline-weekdays,.dashboard-calendar-weekdays,.weekday-row) { margin: 0 0 8px; }
+body.prism-workspace :is(#calendarGridHeader > *, .prism-deadline-weekdays > *, .dashboard-calendar-weekdays > *, .weekday-row > *, .mini-day-name) {
+  min-width: 0; padding: 4px 0; color: var(--prism-muted); font: 600 var(--prism-font-meta)/1.4 var(--prism-font-family);
+}
+body.prism-workspace :is(#calendarDays,#adviserCalendarDays,#dashboardCalendarGrid,#monthGrid) > :is(button,.day,.mini-day) {
+  position: relative; box-sizing: border-box; display: grid; place-content: center;
+  width: 100%; height: auto; min-width: 0; min-height: 36px; margin: 0; padding: 8px 0;
+  border: 1px solid transparent; border-radius: var(--prism-radius-calendar);
+  color: var(--prism-text); background: transparent; box-shadow: none; outline: none;
+  font: 400 var(--prism-font-body)/1.4 var(--prism-font-family); text-align: center;
+}
+body.prism-workspace :is(#calendarDays,#adviserCalendarDays,#dashboardCalendarGrid,#monthGrid) > button { cursor: pointer; }
+body.prism-workspace :is(#calendarDays,#adviserCalendarDays,#dashboardCalendarGrid,#monthGrid) > button:hover {
+  background: var(--prism-pink-soft); border-color: var(--prism-accent);
+}
+body.prism-workspace :is(#calendarDays,#adviserCalendarDays,#dashboardCalendarGrid,#monthGrid) > :is(.text-muted,.outside,:disabled) { color: var(--prism-muted); opacity: .45; }
+body.prism-workspace :is(#calendarDays,#adviserCalendarDays,#dashboardCalendarGrid,#monthGrid) > :is(.today,.active-day,[data-today=true]) {
+  background: var(--prism-primary); color: #fff; font-weight: 600; box-shadow: inset 0 -3px 0 var(--prism-accent);
+}
+body.prism-workspace :is(#calendarDays,#adviserCalendarDays,#dashboardCalendarGrid,#monthGrid) > [data-official-deadline=true] {
+  background: var(--prism-pink-soft); color: var(--prism-text); border-color: var(--prism-accent);
+}
+body.prism-workspace :is(#calendarDays,#adviserCalendarDays,#dashboardCalendarGrid,#monthGrid) > :is(.selected,[data-selected-day=true]) {
+  outline: 2px solid var(--prism-focus); outline-offset: -2px;
+}
+body.prism-workspace :is(#calendarDays,#adviserCalendarDays,#dashboardCalendarGrid,#monthGrid) > button:focus-visible {
+  outline: 3px solid var(--prism-focus); outline-offset: 2px;
+}
+/* Standalone calendars reserve room for existing reminder previews; their chrome and states match. */
+body.prism-workspace #monthGrid > .calendar-day { min-height: 84px; padding: 8px; place-content: start; text-align: left; }
+body.prism-workspace #monthGrid .day-number { width: auto; height: auto; display: inline; font: inherit; color: inherit; background: transparent; border-radius: 0; }
+body.prism-workspace #monthGrid .day-tasks { min-width: 0; width: 100%; }
+body.prism-workspace .prism-calendar-legend {
+  display: flex; flex-wrap: wrap; align-items: center; gap: 12px; margin: 12px 0 8px;
+  color: var(--prism-muted); font: 400 var(--prism-font-meta)/1.5 var(--prism-font-family);
+}
+body.prism-workspace .prism-calendar-legend span { display: inline-flex; align-items: center; gap: 5px; }
+body.prism-workspace .prism-calendar-legend b { width: 10px; height: 10px; border-radius: 3px; border: 1px solid var(--prism-accent); background: var(--prism-pink-soft); }
+body.prism-workspace .prism-calendar-legend .is-today b { background: var(--prism-primary); border-bottom: 3px solid var(--prism-accent); }
+body.prism-workspace .prism-calendar-legend .is-selected b { background: transparent; border: 2px solid var(--prism-focus); }
+body.prism-workspace .calendar-box:not(.is-year-view) > .prism-calendar-legend.is-year { display: none; }
+body.prism-workspace .prism-calendar-detail { margin-top: 12px; padding: 10px 12px; border-radius: var(--prism-radius-control); background: var(--prism-bg); color: var(--prism-muted); font-size: var(--prism-font-meta); line-height: 1.5; }
+body.prism-workspace .prism-deadline-marker { width: 4px; height: 4px; font-size: 0; border-radius: 50%; background: var(--prism-accent); }
+body.prism-workspace .prism-deadline-load { font-size: var(--prism-font-meta); line-height: 1.5; }
+body.prism-workspace :is(.task-item,.prism-deadline-detail) { border-color: var(--prism-border); border-radius: var(--prism-radius-record); }
+body.prism-workspace .task-action { width: 36px; min-width: 36px; height: 36px; min-height: 36px; }
+/* The existing year overview deliberately uses compact cells. */
+body.prism-workspace #yearCalendarView .mini-day { border-radius: var(--prism-radius-calendar); }
+body.prism-workspace #yearCalendarView [data-official-deadline=true] { color: var(--prism-text); background: var(--prism-pink-soft); border: 1px solid var(--prism-accent); }
+body.prism-workspace #yearCalendarView [data-today=true] { box-shadow: inset 0 -3px 0 var(--prism-accent); }
+body.prism-workspace #yearCalendarView [data-selected-day=true] { outline: 2px solid var(--prism-focus); outline-offset: -2px; }
+@media(max-width:600px) {
+  body.prism-workspace :is(#calendarDays,#adviserCalendarDays,#dashboardCalendarGrid,#monthGrid,
+   #calendarGridHeader,.prism-deadline-weekdays,.dashboard-calendar-weekdays,.weekday-row) { gap: 4px; }
+  body.prism-workspace :is(.full-calendar-card,.reminder-panel) { padding: 12px; }
+  body.prism-workspace #monthGrid > .calendar-day { min-height: 58px; padding: 4px; }
+  body.prism-workspace #monthGrid > .has-official-deadline::after { content: ""; position: absolute; right: 3px; bottom: 3px; width: 4px; height: 4px; border-radius: 50%; background: var(--prism-accent); }
+  body.prism-workspace .calendar-toolbar { gap: 8px; }
+}
+@media(max-width:350px) {
+  /* Preserve the Admin rail while reserving usable space for seven dates. */
+  body.admin-shell :is(#calendarDays,#monthGrid,#calendarGridHeader,.weekday-row) { gap: 2px; }
+  body.admin-shell .prism-sidebar ~ .main-content.calendar-page,
+  body.admin-shell.dashboard-page .prism-sidebar ~ .main-content { padding-inline: 4px; }
+  body.admin-shell :is(.calendar-box,.full-calendar-card) { padding: 6px; }
+}

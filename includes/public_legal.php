@@ -23,6 +23,7 @@ $legalEscape = static function (string $text) use ($legalPlaceholders): string {
 <link rel="icon" href="assets/images/prismicon.png">
 <link rel="stylesheet" href="<?= $legalEscape(asset_url('assets/css/public-legal.css')) ?>">
 <script>try { if (localStorage.getItem('prismTheme') === 'dark') document.documentElement.classList.add('dark-theme'); } catch (_) {}</script>
+<?php prism_frontend_styles(); ?>
 </head>
 <body class="public-legal-page">
 <a class="legal-skip" href="#legalContent">Skip to policy content</a>

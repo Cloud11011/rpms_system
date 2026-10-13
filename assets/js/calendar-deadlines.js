@@ -45,7 +45,7 @@ window.PrismDeadlines = (() => {
                         target.textContent = 'All applicable students'; item.append(target);
                     }
                     if (manager && deadline.canCancel) {
-                        const button = document.createElement('button'); button.type = 'button'; button.className = 'cancel-edit';
+                        const button = document.createElement('button'); button.type = 'button'; button.className = 'cancel-edit prism-btn prism-btn-danger';
                         button.textContent = 'Cancel deadline';
                         button.addEventListener('click', async () => {
                             if (button.disabled) return;

@@ -1,0 +1,157 @@
+/* Shared component ownership for Batch 11.5. Existing classes are explicit aliases;
+   action cards, navigation links and calendar dates keep their specialized layouts. */
+body:is(.prism-workspace,.prism-public,.public-legal-page,.help-support-page,.unified-login) {
+  font-family: var(--prism-font-family);
+  color: var(--prism-text);
+  line-height: 1.55;
+  -webkit-font-smoothing: antialiased;
+}
+/* Buttons: default secondary; 44px toolbar/form and 36px explicit compact/icon size. */
+.prism-btn, .prism-link-btn,
+body.prism-workspace :is(.management-primary,.management-secondary,.primary-btn,.btn-primary,.btn-secondary,.btn-secondary-sm,
+ .doc-primary,.doc-secondary,.ierb-primary,.ierb-secondary,.ierb-add-link,.upload-document-button,.generate-report-button,
+ .adviser-button,.action-btn,.today-button,.save-task,.cancel-edit,.small-btn,.dashboard-detail-button,
+ .notification-secondary,.notification-copy-actions button,.panel-head > button,.prism-pagination button,.view-btn),
+body:is(.public-legal-page,.help-support-page) button,
+body.prism-public :is(.public-button,.public-nav button) {
+  display: inline-flex; align-items: center; justify-content: center; gap: var(--prism-space-2);
+  box-sizing: border-box; min-height: var(--prism-control-height); height: auto; max-width: 100%;
+  padding: 10px 16px; border: 1px solid var(--prism-secondary-border); border-radius: var(--prism-radius-control);
+  background: var(--prism-secondary); color: var(--prism-secondary-text);
+  font: 600 var(--prism-font-body)/1.4 var(--prism-font-family); text-decoration: none;
+  white-space: normal; overflow-wrap: anywhere; cursor: pointer;
+  transition: background-color 160ms ease, border-color 160ms ease;
+}
+body.prism-workspace :is(.management-primary,.primary-btn,.btn-primary,.doc-primary,.ierb-primary,.ierb-add-link,
+ .upload-document-button,.generate-report-button,.save-task,.small-btn,.dashboard-detail-button,.adviser-button.is-primary,.view-btn.active),
+.prism-btn:is(.is-primary,.prism-btn-primary),
+body.prism-public .public-button:not(.public-secondary),
+body:is(.public-legal-page,.help-support-page) form > button[type=submit] {
+  background: var(--prism-primary); border-color: var(--prism-primary); color: #fff;
+}
+body.prism-workspace :is(.management-primary,.primary-btn,.btn-primary,.doc-primary,.ierb-primary,.ierb-add-link,
+ .upload-document-button,.generate-report-button,.save-task,.small-btn,.dashboard-detail-button,.adviser-button.is-primary):hover:not(:disabled),
+.prism-btn:is(.is-primary,.prism-btn-primary):hover:not(:disabled),
+body.prism-public .public-button:not(.public-secondary):hover {
+  background: var(--prism-primary-hover); border-color: var(--prism-primary-hover);
+}
+.prism-btn:is(.is-outline,.prism-btn-neutral), body.prism-public .public-secondary,
+body.prism-workspace .prism-pagination button {
+  background: var(--prism-card); color: var(--prism-text); border-color: var(--prism-neutral-border);
+}
+.prism-btn.is-ghost, .prism-link-btn {
+  background: transparent; border-color: transparent; color: var(--prism-accent);
+}
+.prism-btn.is-danger {
+  background: var(--prism-danger-solid); border-color: var(--prism-danger-solid); color: #fff;
+}
+.prism-btn.is-danger:hover:not(:disabled) { background: var(--prism-danger-hover); }
+.prism-btn.prism-btn-danger, body.prism-workspace .prism-btn.prism-btn-danger, body.prism-workspace .lifecycle-danger {
+  background: var(--prism-danger-bg); border-color: var(--prism-danger-bd); color: var(--prism-danger-fg);
+}
+.prism-btn.is-override { background: var(--prism-override-solid); border-color: var(--prism-override-solid); color: #fff; }
+.prism-btn.is-override:hover:not(:disabled) { background: var(--prism-override-hover); }
+.prism-btn:is(.is-sm,.prism-btn-sm) { min-height: var(--prism-control-compact); padding: 6px 12px; }
+body.prism-workspace .prism-context-action { min-height: var(--prism-control-compact); padding: 6px 12px; }
+body.prism-workspace .profile-photo-control :is(.profile-photo-button,button) {
+  height: auto; min-height: var(--prism-control-compact); padding: 6px 12px; border-radius: var(--prism-radius-control);
+  font: 600 var(--prism-font-body)/1.4 var(--prism-font-family);
+}
+.prism-btn.is-icon { width: var(--prism-control-compact); min-width: var(--prism-control-compact); height: var(--prism-control-compact); min-height: var(--prism-control-compact); padding: 0; }
+body.prism-workspace :is(.prism-btn,.save-task,.management-primary,.doc-primary,.doc-secondary,.ierb-primary,.ierb-secondary) > i { margin: 0; flex: 0 0 auto; }
+body:is(.prism-workspace,.public-legal-page,.help-support-page,.unified-login,.prism-public) :is(button,input,select,textarea):disabled,
+.prism-btn[aria-disabled=true] { opacity: var(--prism-disabled-opacity); cursor: not-allowed; }
+.prism-btn[aria-busy=true] { cursor: wait; }
+body.prism-workspace .prism-pagination button[aria-current=page] { background: var(--prism-primary); border-color: var(--prism-primary); color: #fff; }
+/* Toolbars use layout, not offsets; controls share their siblings' baseline. */
+body.prism-workspace :is(.management-toolbar,.document-actions,.ierb-filters,.form-actions,.management-form-actions,
+ .account-form-actions,.prism-dialog-actions,.header-actions,.retention-toolbar-actions,.adviser-document-actions) {
+  display: flex; flex-wrap: wrap; align-items: center; gap: var(--prism-space-2);
+}
+body.prism-workspace :is(.management-toolbar,.document-actions,.ierb-filters) > * { min-width: 0; max-width: 100%; }
+body.prism-workspace .document-controls { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; }
+body.prism-workspace .document-controls .document-search { flex: 1 1 260px; width: auto; }
+body.prism-workspace .document-controls > .prism-filter-pills { flex: 1 1 100%; margin: 0; }
+body.prism-workspace :is(.management-search,.search-documents,.document-search,.ierb-search) {
+  display: flex; align-items: center; gap: var(--prism-space-2); min-width: 0; min-height: var(--prism-control-height);
+  padding: 0 12px; border: 1px solid var(--prism-border); border-radius: var(--prism-radius-control); background: var(--prism-card);
+}
+body.prism-workspace :is(.management-search,.search-documents,.document-search,.ierb-search) > i { position: static; transform: none; flex: 0 0 auto; }
+body.prism-workspace :is(.management-search,.search-documents,.document-search,.ierb-search):focus-within { outline: 3px solid var(--prism-focus); outline-offset: 2px; }
+/* Typography retains the accepted workspace scale and legal reading size. */
+body.prism-workspace :is(.topbar h1,.documents-heading h1,.ierb-heading h1,.calendar-heading h1),
+body:is(.public-legal-page,.help-support-page) main > h1 { font-size: var(--prism-font-title); line-height: 1.3; letter-spacing: -.025em; }
+body.prism-workspace :is(.management-card-head,.panel-head,.adviser-panel-heading,.account-card,.report-history-heading) h2 {
+  font-size: var(--prism-font-subheading); line-height: 1.35;
+}
+body.prism-workspace :is(.management-card,.panel,.adviser-panel,.account-card,.ierb-overview-card,.report-card,
+ .full-calendar-card,.reminder-panel,.form-panel,.legal-card) {
+  min-width: 0; border: 1px solid var(--prism-border); border-radius: var(--prism-radius); background: var(--prism-card); box-shadow: var(--prism-shadow);
+}
+body.prism-workspace :is(.account-card,.form-panel,.report-card) { padding: var(--prism-space-5); }
+body.prism-workspace :is(.management-card-head,.panel-head,.adviser-panel-heading,.documents-section-heading,.ierb-table-heading) { gap: var(--prism-space-3); }
+body.prism-workspace .report-history-heading { flex-wrap: wrap; gap: 12px; }
+body.prism-workspace .report-history-heading > div { flex: 1 1 200px; min-width: 0; }
+body.prism-workspace :is(.prism-empty,.empty-state,.empty-tasks,.adviser-panel-state) {
+  padding: 24px 16px; color: var(--prism-muted); font-size: var(--prism-font-body); line-height: 1.6; text-align: center;
+}
+/* Fields exclude switches and files. Required/invalid semantics remain caller-owned. */
+body.prism-workspace :is(input:not([type=checkbox],[type=radio],[type=hidden],[type=file]),select,textarea),
+body:is(.public-legal-page,.help-support-page) :is(input:not([type=checkbox],[type=hidden]),select,textarea) {
+  box-sizing: border-box; min-width: 0; max-width: 100%; min-height: var(--prism-control-height);
+  padding: 10px 12px; border-radius: var(--prism-radius-control); border: 1px solid var(--prism-border);
+  background: var(--prism-card); color: var(--prism-text); font-family: var(--prism-font-family); line-height: 1.4;
+}
+body.prism-workspace textarea { min-height: 92px; resize: vertical; }
+body.prism-workspace :is(.management-search,.search-documents,.document-search,.ierb-search) input {
+  flex: 1; width: 100%; min-width: 0; height: 42px; min-height: 42px; padding: 0;
+  background: transparent; border: 0; border-radius: 0; box-shadow: none;
+}
+body:is(.prism-workspace,.public-legal-page,.help-support-page,.unified-login) :is(input,textarea)[aria-invalid=true] { border-color: var(--prism-danger-fg); }
+body:is(.prism-workspace,.public-legal-page,.help-support-page,.unified-login) :is(.prism-field-error,.error-message,[role=alert]):not(:empty) { color: var(--prism-danger-fg); }
+.prism-dialog { border-radius: var(--prism-radius); border: 1px solid var(--prism-border); box-shadow: var(--prism-shadow-dialog); }
+body.prism-workspace :is(.prism-action-panel,.portal-profile-dropdown,.prism-account-links,.prism-filter-panel) {
+  border-color: var(--prism-border); border-radius: var(--prism-radius-control); background: var(--prism-card); color: var(--prism-text);
+}
+/* Public and mandatory account shells reuse Login's established card treatment. */
+body.unified-login { height: auto; min-height: 100dvh; overflow-y: auto; }
+body.unified-login .background-overlay { height: auto; min-height: 100dvh; padding: 24px 16px; }
+body.unified-login :is(.login-card,.register-card,.forgot-card,.onboarding-card) {
+  max-width: min(100%,430px); background: var(--prism-card); color: var(--prism-text); color-scheme: inherit;
+  border: 1px solid var(--prism-border); box-shadow: var(--prism-shadow-dialog);
+}
+body.unified-login :is(.forgot-card,.onboarding-card) { border-radius: 25px; }
+body.unified-login :is(.forgot-card,.register-card,.onboarding-card) :is(h1,h2,.subtitle,label,.register-text) { color: var(--prism-text); }
+body.unified-login :is(.input-group input,.onboarding-card input,.onboarding-card select) {
+  min-height: 50px; border-radius: var(--prism-radius-control); background: var(--prism-surface-2); border: 1px solid var(--prism-border); color: var(--prism-text);
+}
+body.unified-login :is(.forgot-card,.register-card,.onboarding-card) button[type=submit] { min-height: 52px; border-radius: 12px; background: var(--prism-navy); color: #fff; font-weight: 600; }
+body.unified-login :is(.forgot-card,.register-card,.onboarding-card) button[type=submit]:hover:not(:disabled) { background: var(--prism-primary); }
+body.unified-login :is(.register-text a,.form-options a,.login-legal-footer a,.onboarding-card > a) { color: var(--prism-accent); }
+body.unified-login .input-group .toggle-password { color: var(--prism-muted); background: transparent; border: 0; top: auto; bottom: 3px; transform: none; }
+body.unified-login .onboarding-password .toggle-password { top: 50%; bottom: auto; transform: translateY(-50%); }
+body.unified-login :is(.input-group input,.onboarding-card input)::placeholder { color: var(--prism-muted); opacity: 1; }
+body.unified-login .onboarding-card .toggle-password { color: var(--prism-muted); }
+body:is(.public-legal-page,.help-support-page) { font-size: var(--prism-font-reading); }
+body:is(.public-legal-page,.help-support-page) .legal-card { border-radius: var(--prism-radius); }
+body:is(.public-legal-page,.help-support-page) :is(.legal-theme,.legal-back) { border-radius: var(--prism-radius-control); }
+body.prism-public { font-family: var(--prism-font-family); }
+body.prism-public .public-stages li { border-radius: var(--prism-radius); box-shadow: var(--prism-shadow); }
+body:is(.prism-workspace,.prism-public,.public-legal-page,.help-support-page,.unified-login) :is(a,button,input,select,textarea,summary,[tabindex]):focus-visible {
+  outline: 3px solid var(--prism-focus); outline-offset: 3px;
+}
+/* Fixed-height UI never defeats the native hidden attribute. */
+body:is(.prism-workspace,.prism-public,.public-legal-page,.help-support-page,.unified-login) [hidden] { display: none !important; }
+@media(max-width:600px) {
+  body.prism-workspace :is(.form-actions,.management-form-actions,.account-form-actions,.prism-dialog-actions) { gap: 8px; }
+  body.prism-workspace :is(.form-actions,.management-form-actions,.account-form-actions) > button { flex: 1 1 auto; }
+  body.unified-login :is(.forgot-card,.onboarding-card) { padding: 24px 20px; }
+}
+@media(prefers-reduced-motion:reduce) {
+  body:is(.prism-workspace,.prism-public,.public-legal-page,.help-support-page,.unified-login),
+  body:is(.prism-workspace,.prism-public,.public-legal-page,.help-support-page,.unified-login) *,
+  body:is(.prism-workspace,.prism-public,.public-legal-page,.help-support-page,.unified-login) *::before,
+  body:is(.prism-workspace,.prism-public,.public-legal-page,.help-support-page,.unified-login) *::after {
+    animation: none !important; transition: none !important; scroll-behavior: auto !important;
+  }
+}

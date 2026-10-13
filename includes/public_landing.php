@@ -11,6 +11,7 @@ $prismPublicFooter = true;
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.6.0/css/all.min.css">
 <link rel="stylesheet" href="<?= htmlspecialchars(asset_url('assets/css/ceu-footer.css'), ENT_QUOTES, 'UTF-8') ?>">
 <link rel="stylesheet" href="<?= htmlspecialchars(asset_url('assets/css/batch11-public.css'), ENT_QUOTES, 'UTF-8') ?>">
+<?php prism_frontend_styles(); ?>
 </head><body class="prism-public">
 <a class="public-skip" href="#publicMain">Skip to content</a>
 <header class="public-nav"><a href="index.php" aria-label="PRISM home"><img src="assets/images/prismlogo1.png" alt="PRISM"></a><nav aria-label="Public navigation"><a href="#stages">IERB process</a><button type="button" id="publicTheme" aria-label="Toggle light or dark theme">Theme</button><a class="public-button" href="login.php">Log in</a></nav></header>

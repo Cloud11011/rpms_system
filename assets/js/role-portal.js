@@ -488,6 +488,7 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     // Profile photo is a local-only preview in this build (not persisted server-side).
+    $('previewProfileImage').addEventListener('click', () => $('profileImageInput').click());
     $('profileImageInput').addEventListener('change', () => {
         const file = $('profileImageInput').files[0];
         if (!file) return;

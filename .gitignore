@@ -140,3 +140,4 @@ storage/.purge/
 !/tests/batch11-regression.cjs
 !/tests/batch11-contrast.js
 !/tests/batch11-summarize.cjs
+!/tests/frontend-standardization-browser.cjs

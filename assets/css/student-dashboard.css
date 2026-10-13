@@ -1,7 +1,6 @@
 /* Student workspace presentation; guarded data and workflow controls stay unchanged. */
 .student-dashboard-page #dashboardCalendarGrid { grid-template-columns:repeat(7,minmax(0,1fr)); align-items:center; text-align:center; }
 .student-dashboard-page #dashboardCalendarGrid .mini-day { display:grid; place-items:center; min-height:34px; padding:0; }
-.student-dashboard-page #dashboardCalendarGrid .mini-day.active-day { width:26px; height:26px; min-height:26px; margin:auto; border-radius:7px; background:var(--accent-purple); color:#fff; }
 .student-dashboard-page #dashboardCalendarGrid .mini-day.active-day.has-event::after { bottom:2px; }
 .student-dashboard-page .student-summary-heading .student-summary-icon { display:grid; place-items:center; flex:0 0 36px; width:36px; min-height:36px; padding:0; }
 .student-dashboard-page .student-summary-heading .student-summary-icon > i { position:static; color:inherit; }

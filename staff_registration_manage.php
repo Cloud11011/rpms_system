@@ -37,12 +37,12 @@ $registrationLink=PRISM_PUBLIC_BASE_URL.'register.php';
 <!doctype html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Staff Registration | PRISM</title>
 <script>try{if(localStorage.getItem('prismTheme')==='dark')document.documentElement.classList.add('dark-theme')}catch(_){}</script>
 <link rel="icon" href="assets/images/prismicon.png">
-<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <?php foreach (['dashboard','admin-management','prism-ui','dashboard-sidebar','prism-workspace','staff-registration','ceu-footer'] as $style): ?>
 <link rel="stylesheet" href="<?= legal_escape(asset_url('assets/css/'.$style.'.css')) ?>"><?php endforeach; ?>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.6.0/css/all.min.css">
 <script src="<?= legal_escape(asset_url('assets/js/dashboard-sidebar.js')) ?>" defer></script>
 <script src="<?= legal_escape(asset_url('assets/js/staff-registration.js')) ?>" defer></script>
+<?php prism_frontend_styles(); ?>
 </head><body class="prism-workspace admin-shell"><div class="container"><aside class="sidebar prism-sidebar">
 <?php require __DIR__.'/includes/prism-navigation.php'; ?></aside>
 <main class="main-content management-page"><header class="topbar"><div><h1>Staff Registration</h1><p>Create a single-use code for one new administrator.</p></div><div class="top-controls"><button type="button" id="themeToggle" class="theme-toggle" aria-label="Toggle light or dark theme"><i class="fa-solid fa-sun light-icon" aria-hidden="true"></i><i class="fa-solid fa-moon dark-icon" aria-hidden="true"></i></button></div></header>

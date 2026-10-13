@@ -16,7 +16,8 @@ $outstanding=legal_outstanding(db(),(int)$user['id'],$current);
 if (!$outstanding) { header('Location: index.php'); exit; }
 $_SESSION['legal_csrf']??=bin2hex(random_bytes(32));
 ?>
-<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Review Privacy &amp; Terms | PRISM</title><link rel="icon" href="assets/images/prismicon.png"><link rel="stylesheet" href="<?= legal_escape(asset_url('assets/css/public-legal.css')) ?>"><script>try{if(localStorage.getItem('prismTheme')==='dark')document.documentElement.classList.add('dark-theme')}catch(_){}</script></head>
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Review Privacy &amp; Terms | PRISM</title><link rel="icon" href="assets/images/prismicon.png"><link rel="stylesheet" href="<?= legal_escape(asset_url('assets/css/public-legal.css')) ?>"><script>try{if(localStorage.getItem('prismTheme')==='dark')document.documentElement.classList.add('dark-theme')}catch(_){}</script><?php prism_frontend_styles(); ?>
+</head>
 <body class="public-legal-page"><div class="legal-shell"><?php $legalBackUrl='index.php'; $legalBackLabel='Back to PRISM'; $legalShowLogout=true; require __DIR__.'/includes/legal_header.php'; ?>
 <main><h1>Review Privacy &amp; Terms</h1><p>Before continuing to PRISM, please review the current Privacy Policy and Terms of Service.</p><p>Signed in as <?= legal_escape($user['email']) ?>.</p>
 <?php if ($error): ?><p role="alert" class="legal-notice"><?= legal_escape($error) ?></p><?php endif; ?>

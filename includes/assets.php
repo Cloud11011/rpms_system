@@ -17,3 +17,9 @@ function asset_url(string $path): string
     return $url . (str_contains($url, '?') ? '&' : '?') . 'v=' . $mtime
         . ($fragment === false ? '' : substr($path, $fragment));
 }
+
+/** Emit the shared presentation assets from this stable source-relative directory. */
+function prism_frontend_styles(): void
+{
+    require __DIR__ . '/frontend_styles.php';
+}

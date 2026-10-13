@@ -14,6 +14,7 @@ $escape=static fn($value)=>htmlspecialchars((string)$value,ENT_QUOTES,'UTF-8');
 <link rel="stylesheet" href="<?= $escape(asset_url('assets/css/public-legal.css')) ?>">
 <link rel="stylesheet" href="<?= $escape(asset_url('assets/css/help-support.css')) ?>">
 <?php require __DIR__.'/includes/session_browser.php'; ?>
+<?php prism_frontend_styles(); ?>
 </head><body class="help-support-page"><div class="legal-shell support-shell">
 <?php $legalBackUrl=$pending?'complete_profile.php':'index.php'; $legalBackLabel=$pending?'Back to profile setup':'Back to PRISM'; $legalShowLogout=false; require __DIR__.'/includes/legal_header.php'; ?>
 <main><h1>Help &amp; Support</h1><p>Send a private request to the currently active RPMS Administrators. Requests and responses are available in PRISM only.</p>

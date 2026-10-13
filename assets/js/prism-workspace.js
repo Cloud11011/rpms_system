@@ -122,11 +122,6 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     window.addEventListener('hashchange', updateSectionLocation);
     updateSectionLocation();
-    document.querySelectorAll('#calendarDays,#adviserCalendarDays,#dashboardCalendarGrid,#calendarGrid').forEach(grid=>{
-        const legend=document.createElement('div');legend.className='prism-calendar-legend';legend.setAttribute('aria-label','Calendar legend');
-        legend.innerHTML='<span><b aria-hidden="true"></b>Official deadline</span><span class="is-today"><b aria-hidden="true"></b>Today</span><span>Outlined: selected date</span>';
-        grid.after(legend);
-    });
     if(body.classList.contains('adviser-dashboard-page')){
         const resources=document.getElementById('prismResourcesTitle');
         if(resources){const link=document.createElement('a');link.href='#prismResourcesTitle';link.className='prism-btn';link.textContent='Research Resources';document.querySelector('.prism-workspace-hero')?.after(link);}

@@ -28,13 +28,14 @@ if (!$tokenValid) {
     <title>Reset Password | PRISM</title>
 
     <link rel="icon" type="image/png" href="assets/images/prismicon.png">
-    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 
     <link rel="stylesheet" href="<?php echo htmlspecialchars(asset_url('assets/css/style.css'), ENT_QUOTES, 'UTF-8'); ?>">
 
     <link rel="stylesheet"
     href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.6.0/css/all.min.css">
 
+<script>try{if(localStorage.getItem('prismTheme')==='dark')document.documentElement.classList.add('dark-theme')}catch(_){}</script>
+<?php prism_frontend_styles(); ?>
 </head>
 
 <body class="unified-login">
@@ -92,7 +93,7 @@ if (!$tokenValid) {
                 placeholder="New Password"
                 autocomplete="new-password"
                 minlength="12"
-                required>
+                required aria-label="New password">
 
                 <button type="button" class="toggle-password" aria-label="Show password" data-password-label="password" aria-controls="password" aria-pressed="false"><i class="fa-solid fa-eye" id="togglePassword" aria-hidden="true"></i></button>
 
@@ -109,7 +110,7 @@ if (!$tokenValid) {
                 placeholder="Confirm Password"
                 autocomplete="new-password"
                 minlength="12"
-                required>
+                required aria-label="Confirm new password">
 
                 <button type="button" class="toggle-password" aria-label="Show confirm password" data-password-label="confirm password" aria-controls="confirmPassword" aria-pressed="false"><i class="fa-solid fa-eye" id="toggleConfirmPassword" aria-hidden="true"></i></button>
 

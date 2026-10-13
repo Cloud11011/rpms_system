@@ -226,13 +226,6 @@ document.addEventListener('DOMContentLoaded', () => {
         dashboardMonthLabel.textContent = dashboardMonth.toLocaleDateString('en-PH', { month: 'long', year: 'numeric' });
         dashboardGrid.replaceChildren();
 
-        ['S', 'M', 'T', 'W', 'T', 'F', 'S'].forEach(d => {
-            const name = document.createElement('div');
-            name.className = 'mini-day-name';
-            name.textContent = d;
-            dashboardGrid.appendChild(name);
-        });
-
         const year = dashboardMonth.getFullYear(), month = dashboardMonth.getMonth();
         const firstDayIndex = new Date(year, month, 1).getDay();
         const lastDate = new Date(year, month + 1, 0).getDate();

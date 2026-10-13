@@ -151,7 +151,7 @@ const stateFilter=document.createElement('select');stateFilter.id='documentState
 const stateLabel=document.createElement('label');stateLabel.textContent='Workflow status';stateLabel.append(stateFilter);filterPanel.append(stateLabel);
 const pager=PrismUI.recordPager(document.getElementById('documentsCourseView'),document.getElementById('documentCount'),[search,typeFilter,courseFilter,yearFilter,sortSelect,stateFilter].filter(Boolean),load,
     {host:filterPanel,toolbar:document.querySelector('.document-actions')});
-const statePills=document.createElement('div');filterPanel.after(statePills);
+const statePills=document.createElement('div');document.querySelector('.document-controls').append(statePills);
 const stateDefinitions=[['','All'],['Pending Adviser Review','Pending review'],['Needs Revision','Needs revision'],['Returned for Revision','Returned by RPMS'],['Submitted to RPMS','Submitted to RPMS']];
 stateFilter.addEventListener('change',()=>{pager.reset();load();});
 document.addEventListener('click',event=>{if(event.target.closest('.prism-clear-filters')){stateFilter.value='';}});
