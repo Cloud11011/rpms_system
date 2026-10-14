@@ -141,3 +141,5 @@ storage/.purge/
 !/tests/batch11-contrast.js
 !/tests/batch11-summarize.cjs
 !/tests/frontend-standardization-browser.cjs
+!includes/legal/privacy.md
+!includes/legal/terms.md
