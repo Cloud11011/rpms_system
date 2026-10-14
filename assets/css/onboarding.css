@@ -38,3 +38,17 @@ body.unified-login.onboarding-page { padding:0; background:url('../images/ceu_bg
 .onboarding-page .onboarding-card a { color:var(--prism-accent); }
 @media(max-width:500px) { .unified-login.onboarding-page .onboarding-card { padding:24px 20px; } }
 @media(prefers-reduced-motion:reduce) { .onboarding-page .onboarding-card :is(input,select,button,a) { transition:none; } }
+
+/* Invitation setup spacing and onboarding card entrance. */
+body.unified-login.account-setup-page .onboarding-card { width:min(100%,520px); padding:32px; border:1px solid rgba(238,18,128,.2); box-shadow:0 12px 40px rgba(238,18,128,.14); }
+body.account-setup-page .onboarding-card .logo-container { margin:0 0 20px; }
+body.account-setup-page .onboarding-card h1 { margin:0 0 16px; line-height:1.35; }
+body.account-setup-page .onboarding-card > p { margin:0 0 18px; line-height:1.7; }
+body.account-setup-page .onboarding-card > p[role=alert]:empty { display:none; }
+body.account-setup-page .onboarding-card form > label { margin:18px 0 8px; }
+body.account-setup-page .onboarding-password input { padding-right:56px; }
+body.account-setup-page .onboarding-card form > button[type=submit] { width:100%; margin:24px 0 0; border-radius:12px; }
+body.unified-login.onboarding-page .onboarding-card { animation:prismOnboardingEnter 380ms ease-out both; }
+@keyframes prismOnboardingEnter { from { opacity:0; transform:translateY(16px); } to { opacity:1; transform:translateY(0); } }
+@media(max-width:500px) { body.unified-login.account-setup-page .onboarding-card { padding:24px 20px; } }
+@media(prefers-reduced-motion:reduce) { body.unified-login.onboarding-page .onboarding-card { animation:none; } }

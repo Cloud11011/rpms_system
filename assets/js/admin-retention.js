@@ -5,7 +5,13 @@
         const api='account_lifecycle_api.php';
         const selected=new Set(); let allIds=null, selectionToken=null, scopeKey='', total=0, bulkBusy=false;
         let selecting=false, selectionEpoch=0;
+        const compactStudentActions=document.body.classList.contains('student-records-page');
         const toggle=document.createElement('button');toggle.type='button';toggle.id='retentionSelectionMode';toggle.className='prism-btn prism-btn-secondary';toggle.textContent='Selection Mode: Off';toggle.setAttribute('aria-pressed','false');
+        if(compactStudentActions) {
+            toggle.innerHTML='<i class="fa-solid fa-list-check" aria-hidden="true"></i><span>Selection Mode: Off</span>';
+            toggle.title='Selection Mode: Off';
+            toggle.setAttribute('aria-label','Selection Mode: Off');
+        }
         document.querySelector('.management-controls').append(toggle);
         const toolbar=document.createElement('section');toolbar.className='retention-toolbar';toolbar.setAttribute('aria-label','Bulk account lifecycle');
         const summary=document.createElement('p');summary.setAttribute('role','status');summary.setAttribute('aria-live','polite');
@@ -16,7 +22,9 @@
         const clear=document.createElement('button');clear.type='button';clear.className='prism-btn';clear.textContent='Clear selection';
         const action=document.createElement('select');action.id='retentionBulkAction';action.setAttribute('aria-label','Bulk lifecycle action');
         (options.archived ? [['restore','Restore'],['hold','Place Retention Hold'],['remove_hold','Remove Retention Hold'],['permanent_delete','Permanent Purge'],['retention_cleanup','Run Retention Cleanup']] : [['archive','Archive']]).forEach(([v,l])=>action.add(new Option(l,v)));
-        const run=document.createElement('button');run.type='button';run.className='prism-btn';run.textContent='Review selected accounts';
+        const run=document.createElement('button');run.type='button';run.className='prism-btn';run.innerHTML='<i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i><span>Review selection</span>';
+        clear.classList.add('retention-icon-button');clear.innerHTML='<i class="fa-solid fa-xmark" aria-hidden="true"></i>';clear.title='Clear selection';clear.setAttribute('aria-label','Clear selection');
+        all.classList.add('retention-icon-button');
         const holdLabel=document.createElement('label');holdLabel.textContent='Hold reason (optional)';
         const holdReason=document.createElement('input');holdReason.type='text';holdReason.maxLength=500;holdReason.setAttribute('aria-label','Retention Hold reason');holdLabel.append(holdReason);holdLabel.hidden=true;
         action.addEventListener('change',()=>{holdLabel.hidden=action.value!=='hold';});
@@ -30,7 +38,8 @@
         const recovery=document.createElement('div');recovery.className='retention-recovery';
         const maintenanceTitle=document.createElement('h3');maintenanceTitle.textContent='Retention Maintenance';
         runCleanup.classList.add('prism-btn-danger');
-        cleanup.append(maintenanceTitle,cleanupCounts,review,runCleanup,recovery);if(options.archived)document.getElementById('recordFilters').append(cleanup);
+        const maintenanceActions=document.createElement('div');maintenanceActions.className='retention-maintenance-actions';maintenanceActions.append(review,runCleanup);
+        cleanup.append(maintenanceTitle,cleanupCounts,maintenanceActions,recovery);if(options.archived)document.getElementById('recordFilters').append(cleanup);
         const header=document.createElement('th');header.scope='col';header.textContent='Select';options.rows.closest('table').querySelector('thead tr').prepend(header);
         const getIds=()=>allIds || selected;
         function scopeLabel() {
@@ -44,12 +53,19 @@
         }
         function update() {
             toolbar.hidden=!selecting;header.hidden=!selecting;results.hidden=!selecting;
-            toggle.disabled=bulkBusy;toggle.textContent='Selection Mode: '+(selecting?'On':'Off');toggle.setAttribute('aria-pressed',String(selecting));
+            toggle.disabled=bulkBusy;
+            const modeLabel='Selection Mode: '+(selecting?'On':'Off');
+            if(compactStudentActions) {
+                toggle.querySelector('span').textContent=modeLabel;
+                toggle.title=modeLabel;
+                toggle.setAttribute('aria-label',modeLabel);
+            } else toggle.textContent=modeLabel;
+            toggle.setAttribute('aria-pressed',String(selecting));
             options.rows.querySelectorAll('.retention-select').forEach(cell=>{cell.hidden=!selecting;});
             const ids=getIds();summary.textContent=`${ids.size} accounts selected • ${scopeLabel()}${allIds?' • snapshot of all matching accounts':''}`;
             const records=options.getRecords();const count=records.filter(r=>ids.has(r.id)).length;
             page.checked=records.length>0&&count===records.length;page.indeterminate=count>0&&count<records.length;
-            all.textContent=`Select all ${total} accounts matching current filters`;all.disabled=bulkBusy||!total||total>10000;
+            all.innerHTML='<i class="fa-solid fa-check-double" aria-hidden="true"></i>';all.title=`Select all ${total} matching accounts`;all.setAttribute('aria-label',all.title);all.disabled=bulkBusy||!total||total>10000;
             run.disabled=bulkBusy||!ids.size;clear.disabled=bulkBusy||!ids.size;page.disabled=bulkBusy||!records.length;
             action.disabled=bulkBusy;options.rows.querySelectorAll('[data-retention-id]').forEach(box=>{box.checked=ids.has(Number(box.dataset.retentionId));box.disabled=bulkBusy;});
         }

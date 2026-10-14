@@ -10,6 +10,18 @@ function document_returned_sql(string $alias = 'd'): string
     return "EXISTS (SELECT 1 FROM activity_logs wr WHERE wr.entity_type='document' AND wr.entity_id=$alias.id AND wr.action='document_returned_for_revision')";
 }
 
+/** Caller holds the Student lock. Contradictory current flags require Admin data review. */
+function document_current_version(PDO $pdo, int $studentId, string $stage, string $type): ?array
+{
+    if (!$pdo->inTransaction()) throw new LogicException('Current-version validation requires a transaction.');
+    $q = $pdo->prepare('SELECT * FROM documents WHERE student_id=? AND stage=? AND document_type=? AND is_current=1
+        ORDER BY version_no DESC,uploaded_at DESC,id DESC LIMIT 2 FOR UPDATE');
+    $q->execute([$studentId,$stage,$type]);
+    $rows = $q->fetchAll(PDO::FETCH_ASSOC);
+    if (count($rows) > 1) throw new DocumentWorkflowError('This document has conflicting current versions. Contact RPMS for record review; nothing was changed.',409);
+    return $rows[0] ?? null;
+}
+
 /** Return is immutable evidence; it never replaces the submitted version's approval. */
 function document_with_return(PDO $pdo, array $doc, bool $lock = false): array
 {
@@ -119,10 +131,8 @@ function document_workflow_change(PDO $pdo, array $actor, string $id, string $op
         if (!$doc || (int)$doc['student_id']!==(int)$sid || (int)$doc['is_current']!==1) {
             throw new DocumentWorkflowError('This is an older or changed version. Refresh and use the current version.',409);
         }
-        $q=$pdo->prepare('SELECT id FROM documents WHERE student_id=? AND stage=? AND document_type=? AND is_current=1
-            ORDER BY version_no DESC,uploaded_at DESC,id DESC LIMIT 1 FOR UPDATE');
-        $q->execute([$sid,$doc['stage'],$doc['document_type']]);
-        if ($q->fetchColumn()!==$id) throw new DocumentWorkflowError('Review the authoritative latest version instead.',409);
+        $currentVersion=document_current_version($pdo,(int)$sid,$doc['stage'],$doc['document_type']);
+        if (!$currentVersion || $currentVersion['id']!==$id) throw new DocumentWorkflowError('Review the authoritative latest version instead.',409);
         $doc=document_with_return($pdo,$doc,true);
         $before=document_workflow_state($doc); $audit=['entity_id'=>$id,'student_id'=>(int)$sid,
             'details'=>'Version '.(int)$doc['version_no'].' ('.$doc['document_type'].', '.$doc['stage'].')','reason'=>$reason];

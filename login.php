@@ -35,7 +35,13 @@ unset($_SESSION['error'], $_SESSION['success']);
 <body class="unified-login batch11-login">
 
 <div class="background-overlay">
-    <section class="login-campus" aria-labelledby="loginCampusTitle"><a href="index.php" aria-label="PRISM public home"><img src="assets/images/prismlogo1.png" alt="PRISM"></a><h2 id="loginCampusTitle">Welcome to PRISM</h2><p>Progress and Research Information System for Monitoring<br>Centro Escolar University · Malolos</p><a href="index.php#stages">Explore the IERB process</a></section>
+    <section class="login-campus" aria-labelledby="loginCampusTitle">
+        <a class="login-campus-brand" href="index.php" aria-label="PRISM public home"><img src="assets/images/prismlogo1.png" alt="PRISM"></a>
+        <div class="login-campus-copy"><p class="public-eyebrow">IERB PROGRESS &amp; REPORTING SYSTEM</p><h2 id="loginCampusTitle">Welcome to PRISM!</h2><p>Follow your research through ethics review, feedback and RPMS submission, all in one place.</p></div>
+        <p class="login-campus-institution"><strong>Centro Escolar University &ndash; Malolos Campus</strong><br>Research Planning and Monitoring Section</p>
+    </section>
+
+    <div class="login-form-column">
 
     <div class="login-card">
 
@@ -43,13 +49,7 @@ unset($_SESSION['error'], $_SESSION['success']);
             <img src="assets/images/prismlogo1.png" class="logo-main" alt="PRISM logo">
         </div>
 
-        <div class="prism-branding">
-            <h1>Welcome to <span>PRISM</span>!</h1>
-            <p><strong>IERB Progress &amp; Reporting System</strong></p>
-            <p>Centro Escolar University - Malolos <span aria-hidden="true">&bull;</span> RPMS</p>
-        </div>
-
-        <?php if ($loginError): ?><div class="error-message<?= $loginError === 'Your session expired due to inactivity. Please sign in again.' ? ' session-expiry-notice' : '' ?>"><?php echo htmlspecialchars($loginError, ENT_QUOTES, 'UTF-8'); ?></div><?php endif; ?>
+<?php if ($loginError): ?><div class="error-message<?= $loginError === 'Your session expired due to inactivity. Please sign in again.' ? ' session-expiry-notice' : '' ?>"><?php echo htmlspecialchars($loginError, ENT_QUOTES, 'UTF-8'); ?></div><?php endif; ?>
         <?php if ($loginSuccess): ?><div class="success-message"><?php echo htmlspecialchars($loginSuccess, ENT_QUOTES, 'UTF-8'); ?></div><?php endif; ?>
 
         <form action="login_process.php" method="POST">
@@ -73,17 +73,20 @@ unset($_SESSION['error'], $_SESSION['success']);
 
             <button type="submit">Log in</button>
 
-            <p class="login-account-note">Students and research advisers receive their PRISM account access from RPMS.</p>
+            <p class="login-account-note"><button class="login-access-info" type="button" aria-haspopup="dialog">Why is there no registration form?</button></p>
 
         </form>
 
-        <footer class="login-legal-footer" aria-label="Legal information"><a href="privacy.php">Privacy Policy</a><span aria-hidden="true"> · </span><a href="terms.php">Terms of Service</a></footer>
+
 
     </div>
 
+    <footer class="login-legal-footer" aria-label="Legal information"><a href="privacy.php">Privacy Policy</a><a href="terms.php">Terms of Service</a></footer>
+    </div>
 </div>
 
 <script src="<?php echo htmlspecialchars(asset_url('assets/js/script.js'), ENT_QUOTES, 'UTF-8'); ?>"></script>
+<script src="<?= htmlspecialchars(asset_url('assets/js/login-legal.js'), ENT_QUOTES, 'UTF-8') ?>" defer></script>
 
 </body>
 </html>

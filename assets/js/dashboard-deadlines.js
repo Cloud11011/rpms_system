@@ -99,12 +99,19 @@
         document.querySelectorAll('#prevBtn,#dashboardPreviousMonth,[data-deadline-month="-1"]').forEach(control=>{control.querySelector('i')?.replaceWith(document.createTextNode('‹'));});
         document.querySelectorAll('#nextBtn,#dashboardNextMonth,[data-deadline-month="1"]').forEach(control=>{control.querySelector('i')?.replaceWith(document.createTextNode('›'));});
         const days=adminDays||adviserDays||studentDays;
-        const detail=document.createElement('p');detail.className='prism-calendar-detail';detail.setAttribute('role','status');detail.textContent='Select a date to see its official deadline details. Calendar dates use Philippine time.';days.after(detail);
-        days.addEventListener('click',event=>{const day=event.target.closest('[data-deadline-date]');if(!day)return;days.querySelectorAll('[data-selected-day]').forEach(cell=>{delete cell.dataset.selectedDay;cell.removeAttribute('aria-current');});day.dataset.selectedDay='true';day.setAttribute('aria-current','date');detail.textContent=displayDate(day.dataset.deadlineDate)+(day.dataset.officialDeadline==='true'?' · Official deadlines; details opened.':' · No active official deadline.');},true);
+        let detail=null;
+        if(!adviserDays){detail=document.createElement('p');detail.className='prism-calendar-detail';detail.setAttribute('role','status');detail.textContent='Select a date to see its official deadline details. Calendar dates use Philippine time.';days.after(detail);}
+        days.addEventListener('click',event=>{const day=event.target.closest('[data-deadline-date]');if(!day)return;days.querySelectorAll('[data-selected-day]').forEach(cell=>{delete cell.dataset.selectedDay;cell.removeAttribute('aria-current');});day.dataset.selectedDay='true';day.setAttribute('aria-current','date');if(detail)detail.textContent=displayDate(day.dataset.deadlineDate)+(day.dataset.officialDeadline==='true'?' · Official deadlines; details opened.':' · No active official deadline.');},true);
         const container = adminDays ? adminDays.closest('.calendar-card') || adminDays.parentElement.parentElement : (adviserDays || studentDays).closest('.prism-deadline-calendar,.dashboard-calendar-panel');
         // Capture before the existing Admin personal-task click handler or year/month handler.
         const activate = event => {
             const trigger = event.target.closest('[data-deadline-date]');
+            if (adviserDays && trigger) {
+                event.preventDefault();
+                event.stopImmediatePropagation();
+                window.PrismAdviserReminders?.open(trigger.dataset.deadlineDate, trigger);
+                return;
+            }
             if (trigger?.dataset.officialDeadline !== 'true') return;
             event.preventDefault();
             event.stopImmediatePropagation();
@@ -118,21 +125,29 @@
             function render() {
                 document.getElementById('adviserCalendarMonth').textContent = date.toLocaleDateString('en-PH', { year: 'numeric', month: 'long' });
                 adviserDays.replaceChildren();
-                for (let i = 0; i < date.getDay(); i++) adviserDays.append(document.createElement('span'));
+                const first = new Date(date.getFullYear(), date.getMonth(), 1);
+                const start = new Date(first);
+                start.setDate(1 - first.getDay());
                 const last = new Date(date.getFullYear(), date.getMonth() + 1, 0).getDate();
-                for (let day = 1; day <= last; day++) {
+                const cellCount = Math.ceil((first.getDay() + last) / 7) * 7;
+                for (let index = 0; index < cellCount; index++) {
+                    const cellDate = new Date(start);
+                    cellDate.setDate(start.getDate() + index);
                     const cell = document.createElement('button');
                     cell.type = 'button';
-                    cell.textContent = day;
-                    cell.dataset.deadlineDate = dateKey(new Date(date.getFullYear(), date.getMonth(), day));
+                    cell.className = 'adviser-calendar-day';
+                    cell.textContent = cellDate.getDate();
+                    cell.dataset.deadlineDate = dateKey(cellDate);
+                    if (cellDate.getMonth() !== date.getMonth()) cell.classList.add('is-outside-month');
+                    if (cell.dataset.deadlineDate === dateKey(new Date())) cell.dataset.today = 'true';
                     const icon = document.createElement('i');
                     icon.className = 'fa-solid fa-calendar-day prism-deadline-marker';
                     icon.setAttribute('aria-hidden', 'true');
                     icon.hidden = true;
                     cell.append(icon);
-                    cell.addEventListener('click', () => openDay(cell.dataset.deadlineDate, cell));
                     adviserDays.append(cell);
                 }
+                window.PrismAdviserReminders?.refresh();
                 refresh(date);
             }
             container.querySelectorAll('[data-deadline-month]').forEach(button => button.addEventListener('click', () => {

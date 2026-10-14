@@ -1,7 +1,7 @@
 document.addEventListener('DOMContentLoaded',()=>{
-const currentRole=document.body.dataset.role||'admin';const isStaff=currentRole==='admin'||currentRole==='adviser';
+const currentRole=document.body.dataset.role||'admin';const isStaff=currentRole==='admin'||currentRole==='adviser';const uiPreview=new URLSearchParams(window.location.search).get('ui-preview')==='1';
 if(!isStaff){const studentField=document.getElementById('documentStudent');if(studentField){studentField.closest('div').style.display='none';studentField.required=false}}
-let documents=[],listData={},loadSequence=0,loadError=false,view='table';const defaultTypes=PrismUI.documentTypes;const body=document.getElementById('documentsTableBody'),search=document.getElementById('documentSearch'),typeFilter=document.getElementById('documentTypeFilter'),courseFilter=document.getElementById('documentCourseFilter'),yearFilter=document.getElementById('documentYearFilter'),sortSelect=document.getElementById('documentSort'),tableView=document.getElementById('documentsTableView'),folderView=document.getElementById('documentsFolderView'),courseView=document.getElementById('documentsCourseView'),uploadModal=document.getElementById('uploadModal'),uploadForm=document.getElementById('uploadForm');
+let documents=[],listData={},loadSequence=0,loadError=false,view='table',previewOnly=false;const defaultTypes=PrismUI.documentTypes;const body=document.getElementById('documentsTableBody'),search=document.getElementById('documentSearch'),typeFilter=document.getElementById('documentTypeFilter'),courseFilter=document.getElementById('documentCourseFilter'),yearFilter=document.getElementById('documentYearFilter'),sortSelect=document.getElementById('documentSort'),tableView=document.getElementById('documentsTableView'),folderView=document.getElementById('documentsFolderView'),courseView=document.getElementById('documentsCourseView'),uploadModal=document.getElementById('uploadModal'),uploadForm=document.getElementById('uploadForm');
 const esc=v=>String(v??'').replace(/[&<>'"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'})[c]);
 const size=v=>v<1024?`${v} B`:v<1048576?`${(v/1024).toFixed(1)} KB`:`${(v/1048576).toFixed(1)} MB`;const date=v=>new Date(v).toLocaleString('en-PH',{month:'short',day:'numeric',year:'numeric',hour:'numeric',minute:'2-digit'});
 async function api(action,options={}){return PrismUI.request(`documents_api.php?action=${encodeURIComponent(action)}`,options)}
@@ -100,9 +100,9 @@ function renderTable(){
             <td>${esc(d.student)}${d.course?` <small>(${esc(d.course)})</small>`:''}</td>
             <td><div class="doc-category"><span>${esc(d.documentType)} · ${esc(d.stageLabel||d.stage)}</span><span class="prism-pill-row">${PrismUI.badge(d.workflowState||d.reviewStatus,{small:true})}${d.adminOverride?PrismUI.badge('Admin Override',{small:true}):''}</span>${d.reviewRemarks?`<small>${esc(d.reviewRemarks)}</small>`:''}</div></td>
             <td><div class="document-row-actions">
-                <a class="document-action-button" href="documents_api.php?action=file&id=${encodeURIComponent(d.id)}" target="_blank" rel="noopener" title="View"><i class="fa-solid fa-eye"></i></a>
+                <a class="document-action-button" href="${documentFileHref(d)}" target="_blank" rel="noopener" title="View"><i class="fa-solid fa-eye"></i></a>
                 <a class="document-action-button" href="documents_api.php?action=file&download=1&id=${encodeURIComponent(d.id)}" title="Download"><i class="fa-solid fa-download"></i></a>
-                ${a.review?'<button class="document-action-button" data-review title="Full review / set status"><i class="fa-solid fa-clipboard-check"></i> Review Document</button>':''}
+                ${a.review?'<button class="document-action-button" data-review title="Full review / set status"><i class="fa-solid fa-file-pen" aria-hidden="true"></i> Review Document</button>':''}
                 <button class="document-action-button" data-versions title="Version history"><i class="fa-solid fa-clock-rotate-left"></i></button>
                 ${summaryButton(d)}
                 ${a.review?'<button class="document-action-button approve" data-approve title="Approve"><i class="fa-solid fa-check"></i></button><button class="document-action-button" data-comment title="Add comment"><i class="fa-regular fa-comment"></i></button><button class="document-action-button deny" data-deny title="Deny"><i class="fa-solid fa-xmark"></i></button>':''}
@@ -112,7 +112,8 @@ function renderTable(){
 
                 ${a.delete?'<button class="document-action-button delete" data-delete title="Delete"><i class="fa-solid fa-trash"></i></button>':''}
             </div></td>`;
-        tr.querySelector('[data-versions]').addEventListener('click',()=>PrismUI.showVersions(d.id));
+        if(d.preview){const preview=tr.querySelector('.document-row-actions');preview.replaceChildren(Object.assign(document.createElement('span'),{className:'document-preview-only',textContent:'Sample preview'}));const note=document.createElement('small');note.className='document-preview-label';note.textContent='UI preview · sample data only';tr.querySelector('.file-cell strong').append(note);}
+        tr.querySelector('[data-versions]')?.addEventListener('click',()=>PrismUI.showVersions(d.id));
         if(a.review){
             tr.querySelector('[data-approve]').addEventListener('click',e=>PrismUI.runAction(e.currentTarget,'Processing...',()=>reviewStatus(d,'Approved')));
             tr.querySelector('[data-deny]').addEventListener('click',e=>PrismUI.runAction(e.currentTarget,'Processing...',()=>reviewStatus(d,'Denied')));
@@ -124,14 +125,97 @@ function renderTable(){
         if(a.submitToRpms) tr.querySelector('[data-formal-submit]').addEventListener('click',e=>PrismUI.runAction(e.currentTarget,'Submitting...',async()=>{if(await PrismUI.submitToRpms(d))await load();}));
         if(a.delete) tr.querySelector('[data-delete]').addEventListener('click',e=>PrismUI.runAction(e.currentTarget,'Processing...',()=>remove(d)));
 
-        PrismUI.actionMenu(tr.querySelector('.document-row-actions'));
+        let adviserViewAction=null,adviserDownloadAction=null;
+        if(!d.preview){
+            const actionHost=tr.querySelector('.document-row-actions');
+            if(currentRole==='adviser'){
+                adviserViewAction=actionHost.querySelector('a[href*="document_preview.php"]');
+                adviserDownloadAction=actionHost.querySelector('a[href*="download=1"]');
+                adviserDownloadAction?.remove();
+                PrismUI.actionMenu(actionHost,{primary:adviserViewAction,label:'Document actions'});
+                if(adviserDownloadAction){const menu=actionHost.querySelector('.prism-action-menu');if(menu?.parentElement===actionHost)actionHost.insertBefore(adviserDownloadAction,menu);else actionHost.append(adviserDownloadAction);}
+            }else PrismUI.actionMenu(actionHost);
+        }
         body.appendChild(tr);
         PrismUI.compactRecord(tr,0,4,5,[['Adviser review decision',d.reviewStatus],['Version',d.versionNo],['Protocol',d.protocolCode],['Reviewer remarks',d.reviewRemarks],['RPMS return reason',d.rpmsReturnReason],['RPMS submission',d.rpmsSubmittedAt||'Not submitted']], [3]);
+        const card=tr.querySelector('.prism-record-card');
+        if(card){
+            card.classList.add('document-result-card');
+            const category=document.createElement('div');category.className='document-result-category';
+            category.innerHTML=`<small class="document-result-label">Category</small><span>${esc(d.documentType)}</span><small>${esc(d.stageLabel||d.stage)}</small>`;
+            const statusTarget=card.querySelector('.prism-record-status');
+            if(statusTarget?.parentElement===card)card.insertBefore(category,statusTarget);else card.append(category);
+            card.querySelector('.doc-category > span:first-child')?.remove();
+            const label=document.createElement('small');label.className='document-result-label';label.textContent='Status';card.querySelector('.prism-record-status').prepend(label);
+            const metadata=document.createElement('small');metadata.className='document-upload-caption';metadata.textContent='Uploaded by '+d.uploadedBy+' · '+date(d.uploadedAt);card.querySelector('.prism-record-primary').append(metadata);
+            const view=card.querySelector('.prism-context-action');if(view)view.textContent='View file';
+            if(currentRole==='adviser'){
+                card.classList.add('adviser-document-result-card');
+                view?.remove();
+                if(adviserViewAction){adviserViewAction.classList.add('prism-btn','adviser-document-view-icon');adviserViewAction.setAttribute('aria-label','View '+(d.originalName||'document'));adviserViewAction.title='View document';}
+                if(adviserDownloadAction){adviserDownloadAction.classList.add('prism-btn','adviser-document-download-icon');adviserDownloadAction.setAttribute('aria-label','Download '+(d.originalName||'document'));adviserDownloadAction.title='Download document';}
+                const fileCell=card.querySelector('.file-cell');
+                const fileCopy=fileCell?.querySelector(':scope > div');
+                const filename=fileCopy?.querySelector('strong');
+                const uploadCaption=fileCopy?.querySelector('span');
+                const student=String(d.student||'Student not recorded');
+                if(fileCell){
+                    const fileMark=fileCell.querySelector(':scope > i');
+                    fileMark?.classList.add('document-file-avatar');
+                    fileMark?.setAttribute('aria-hidden','true');
+                }
+                if(filename)filename.textContent=d.originalName||'Untitled document';
+                if(uploadCaption)uploadCaption.textContent=`${student} · ${d.documentType||'Document'} · ${d.stageLabel||d.stage||'Stage not recorded'}`;
+                card.querySelector('.prism-record-primary > .document-upload-caption')?.remove();
+                const previewNote=tr.querySelector('.document-preview-label');
+                if(previewNote)uploadCaption?.insertAdjacentElement('afterend',previewNote);
+                card.querySelector('.prism-record-summary')?.remove();
+                card.querySelector('.document-result-category')?.remove();
+                card.querySelector('.prism-record-status > .document-result-label')?.remove();
+                const statusBox=card.querySelector('.prism-record-status');
+                const dateLine=document.createElement('time');dateLine.className='document-review-date';dateLine.textContent=date(d.uploadedAt);statusBox?.append(dateLine);
+                if(statusBox){
+                    statusBox.setAttribute('aria-label','Document status and submission date');
+                }
+                card.querySelector('.doc-category > small')?.remove();
+                const details=card.querySelector('.prism-record-details');
+                const detailsSummary=details?.querySelector('summary');
+                const detailList=details?.querySelector('dl');
+                if(detailsSummary){
+                    detailsSummary.replaceChildren();
+                    const label=document.createElement('span');label.textContent='Show details & remarks';
+                    const chevron=document.createElement('i');chevron.className='fa-solid fa-chevron-down';chevron.setAttribute('aria-hidden','true');
+                    detailsSummary.append(label,chevron);
+                    details.addEventListener('toggle',()=>{label.textContent=details.open?'Hide details & remarks':'Show details & remarks';});
+                }
+                if(detailList){
+                    detailList.replaceChildren();
+                    const addDetail=(label,value)=>{const item=document.createElement('div'),term=document.createElement('dt'),description=document.createElement('dd');term.textContent=label;description.textContent=value==null||value===''?'Not recorded':String(value);item.append(term,description);detailList.append(item);};
+                    addDetail('Student',student);addDetail('Submission date',date(d.uploadedAt));addDetail('Document type',d.documentType);addDetail('Stage',d.stageLabel||d.stage);addDetail('Version',d.versionNo);addDetail('Review status',d.workflowState||d.reviewStatus);addDetail('RPMS submission',d.rpmsSubmittedAt?`Submitted · ${date(d.rpmsSubmittedAt)}`:'Not submitted to RPMS');addDetail('Adviser review decision',d.reviewStatus||'Under Review');
+                    const remarks=document.createElement('p');remarks.className='document-review-remarks';
+                    const remarksLabel=document.createElement('strong');remarksLabel.textContent='Reviewer remarks · ';
+                    remarks.append(remarksLabel,document.createTextNode(d.reviewRemarks||'No reviewer remarks yet.'));details.append(remarks);
+                }
+                if(d.preview){
+                    const actions=card.querySelector('.prism-record-actions');
+                    const sample=actions?.querySelector('.document-preview-only');
+                    if(sample){const viewButton=document.createElement('button');viewButton.type='button';viewButton.disabled=true;viewButton.className='prism-btn prism-context-action adviser-document-view-icon';viewButton.setAttribute('aria-label','Preview unavailable for sample document');viewButton.title='Preview unavailable for sample document';const eye=document.createElement('i');eye.className='fa-regular fa-eye';eye.setAttribute('aria-hidden','true');viewButton.append(eye);sample.replaceWith(viewButton);}
+                    const menuButton=document.createElement('button');menuButton.type='button';menuButton.disabled=true;menuButton.className='document-preview-menu';menuButton.setAttribute('aria-label','Sample actions unavailable');menuButton.textContent='...';actions?.append(menuButton);
+                    const downloadButton=document.createElement('button');downloadButton.type='button';downloadButton.disabled=true;downloadButton.className='prism-btn adviser-document-download-icon';downloadButton.setAttribute('aria-label','Download unavailable for sample document');downloadButton.title='Download unavailable for sample document';const downloadIcon=document.createElement('i');downloadIcon.className='fa-solid fa-download';downloadIcon.setAttribute('aria-hidden','true');downloadButton.append(downloadIcon);if(actions){const previewMenu=actions.querySelector('.document-preview-menu');if(previewMenu?.parentElement===actions)actions.insertBefore(downloadButton,previewMenu);else actions.append(downloadButton);}
+                } else {
+                    const actions=card.querySelector('.prism-record-actions');
+                    const view=actions?.querySelector('.prism-context-action');
+                    if(view){view.classList.add('adviser-document-view-icon');view.replaceChildren();const eye=document.createElement('i');eye.className='fa-regular fa-eye';eye.setAttribute('aria-hidden','true');view.append(eye);view.setAttribute('aria-label','View '+(d.originalName||'document'));view.title='View document';}
+                    if(adviserDownloadAction){adviserDownloadAction.classList.add('adviser-document-download-icon');adviserDownloadAction.setAttribute('aria-label','Download '+(d.originalName||'document'));adviserDownloadAction.title='Download document';}
+                }
+            }
+        }
     });
     bindSummaryButtons(body);
 }
-function renderFolders(){folderView.replaceChildren();const groups=new Map();filtered().forEach(d=>{if(!groups.has(d.student))groups.set(d.student,[]);groups.get(d.student).push(d)});groups.forEach((files,name)=>{const folder=document.createElement('div');folder.className='document-folder';folder.innerHTML=`<div class="folder-heading"><i class="fa-solid fa-folder"></i><strong>${esc(name)}</strong><span>${files.length}</span></div><div class="folder-files">${files.map(f=>`<a class="folder-file" href="documents_api.php?action=file&id=${encodeURIComponent(f.id)}" target="_blank"><i class="fa-regular ${fileIcon(f.originalName)}"></i>${esc(f.originalName)}</a>${summaryButton(f)}`).join('')}</div>`;folderView.appendChild(folder)});bindSummaryButtons(folderView)}
-function renderCourseView(){courseView.replaceChildren();const groups=new Map();filtered().forEach(d=>{const key=d.course||'Unassigned / No Course';if(!groups.has(key))groups.set(key,[]);groups.get(key).push(d)});[...groups.keys()].sort().forEach(course=>{const files=groups.get(course);const folder=document.createElement('div');folder.className='document-folder';folder.innerHTML=`<div class="folder-heading"><i class="fa-solid fa-layer-group"></i><strong>${esc(course)}</strong><span>${files.length}</span></div><div class="folder-files">${files.map(f=>`<a class="folder-file" href="documents_api.php?action=file&id=${encodeURIComponent(f.id)}" target="_blank"><i class="fa-regular ${fileIcon(f.originalName)}"></i>${esc(f.originalName)} <small>(${esc(f.student)}, ${esc(f.year||'')})</small></a>${summaryButton(f)}`).join('')}</div>`;courseView.appendChild(folder)});bindSummaryButtons(courseView)}
+function renderPreviewFolder(host,title,icon){const folder=document.createElement('div');folder.className='document-folder';const heading=document.createElement('div');heading.className='folder-heading';const mark=document.createElement('i');mark.className='fa-solid '+icon;const label=document.createElement('strong');label.textContent=title;const total=document.createElement('span');total.textContent='1';heading.append(mark,label,total);const files=document.createElement('div');files.className='folder-files';const sample=document.createElement('span');sample.className='folder-file document-preview-folder-item';sample.textContent='Screenshot 2025-05-24 104329.png · UI preview sample only';files.append(sample);folder.append(heading,files);host.replaceChildren(folder)}
+function renderFolders(){folderView.replaceChildren();if(previewOnly){renderPreviewFolder(folderView,'Cyrus Salvador','fa-folder');return}const groups=new Map();filtered().forEach(d=>{if(!groups.has(d.student))groups.set(d.student,[]);groups.get(d.student).push(d)});groups.forEach((files,name)=>{const folder=document.createElement('div');folder.className='document-folder';folder.innerHTML=`<div class="folder-heading"><i class="fa-solid fa-folder"></i><strong>${esc(name)}</strong><span>${files.length}</span></div><div class="folder-files">${files.map(f=>`<a class="folder-file" href="${documentFileHref(f)}" target="_blank"><i class="fa-regular ${fileIcon(f.originalName)}"></i>${esc(f.originalName)}</a>${summaryButton(f)}`).join('')}</div>`;folderView.appendChild(folder)});bindSummaryButtons(folderView)}
+function renderCourseView(){courseView.replaceChildren();if(previewOnly){renderPreviewFolder(courseView,'BSIT','fa-layer-group');return}const groups=new Map();filtered().forEach(d=>{const key=d.course||'Unassigned / No Course';if(!groups.has(key))groups.set(key,[]);groups.get(key).push(d)});[...groups.keys()].sort().forEach(course=>{const files=groups.get(course);const folder=document.createElement('div');folder.className='document-folder';folder.innerHTML=`<div class="folder-heading"><i class="fa-solid fa-layer-group"></i><strong>${esc(course)}</strong><span>${files.length}</span></div><div class="folder-files">${files.map(f=>`<a class="folder-file" href="${documentFileHref(f)}" target="_blank"><i class="fa-regular ${fileIcon(f.originalName)}"></i>${esc(f.originalName)} <small>(${esc(f.student)}, ${esc(f.year||'')})</small></a>${summaryButton(f)}`).join('')}</div>`;courseView.appendChild(folder)});bindSummaryButtons(courseView)}
 function render(){renderFilters();renderTypeManager();renderTable();renderFolders();renderCourseView()}
 function openModal(m){m.classList.add('show');m.setAttribute('aria-hidden','false')}function closeModal(m){
     m.classList.remove('show');m.setAttribute('aria-hidden','true');
@@ -153,13 +237,15 @@ const pager=PrismUI.recordPager(document.getElementById('documentsCourseView'),d
     {host:filterPanel,toolbar:document.querySelector('.document-actions')});
 const statePills=document.createElement('div');document.querySelector('.document-controls').append(statePills);
 const stateDefinitions=[['','All'],['Pending Adviser Review','Pending review'],['Needs Revision','Needs revision'],['Returned for Revision','Returned by RPMS'],['Submitted to RPMS','Submitted to RPMS']];
+function documentFileHref(d){return ['application/pdf','image/png','image/jpeg'].includes(d.mime)?'document_preview.php?id='+encodeURIComponent(d.id):'documents_api.php?action=file&download=1&id='+encodeURIComponent(d.id)}
+function adviserPreviewRecord(){return{id:'ui-preview-sample',preview:true,originalName:'Research Proposal.pdf',uploadedBy:'Sample Student',uploadedAt:new Date('2026-10-14T19:52:19+08:00').toISOString(),student:'Sample Student',course:'BS in Information Technology',year:'2026',documentType:'Research Proposal',stage:'Stage 1',stageLabel:'Stage 1',workflowState:'Pending Adviser Review',reviewStatus:'Under Review',reviewRemarks:'Sample reviewer remarks appear here.',size:38700,versionNo:1,actions:{}}}
 stateFilter.addEventListener('change',()=>{pager.reset();load();});
 document.addEventListener('click',event=>{if(event.target.closest('.prism-clear-filters')){stateFilter.value='';}});
 async function load(){
     const sequence=++loadSequence;pager.loading();body.setAttribute('aria-busy','true');
     const qs=new URLSearchParams({action:'list',page:pager.page,q:search.value.trim(),type:typeFilter.value,course:courseFilter.value,year:yearFilter.value,sort:sortSelect?.value||'newest',state:stateFilter.value});
-    try{const data=await PrismUI.request('documents_api.php?'+qs);if(sequence!==loadSequence)return;listData=data;documents=data.documents;loadError=false;render();pager.render({...data,total:data.total??documents.length});PrismUI.statusPills(statePills,stateDefinitions,stateFilter,data.counts||{})}
-    catch(e){if(sequence!==loadSequence)return;documents=[];loadError=true;render();pager.error();toast(e.message,'error')}
+    try{const data=await PrismUI.request('documents_api.php?'+qs);if(sequence!==loadSequence)return;listData=data;documents=data.documents;previewOnly=uiPreview&&!documents.length&&!search.value.trim()&&!typeFilter.value&&!courseFilter.value&&!yearFilter.value&&!stateFilter.value;if(previewOnly)documents=[adviserPreviewRecord()];loadError=false;render();pager.render({...data,total:previewOnly?1:data.total??documents.length});if(previewOnly)document.getElementById('documentCount').textContent='UI preview · 1 sample record (not stored)';PrismUI.statusPills(statePills,stateDefinitions,stateFilter,previewOnly?{'Pending Adviser Review':1}:data.counts||{})}
+    catch(e){if(sequence!==loadSequence)return;loadError=true;documents=[];previewOnly=false;render();pager.error();toast(e.message,'error')}
     finally{if(sequence===loadSequence)body.setAttribute('aria-busy','false')}
 }
 uploadForm.addEventListener('submit',async e=>{
@@ -217,7 +303,7 @@ async function review(d){
     const allowed=['Under Review','Received','Verified','Resubmission Requested','Approved','Denied'];
     const options=allowed.map(s=>`<option${s===d.reviewStatus?' selected':''}>${esc(s)}</option>`).join('');
     const answer=await PrismUI.confirm({
-        title:'Review document',icon:'fa-clipboard-check',confirmText:'Save review',
+        title:'Review document',icon:'fa-clipboard-check',confirmText:'Save review',dialogClass:'document-review-dialog',
         message:`Update the review status for “${d.originalName}”. ${currentRole==='adviser'?'Approve also formally submits this current version to RPMS.':''}`,
         extraHtml:`<label for="prismReviewStatus">Review status</label><select id="prismReviewStatus">${options}</select>`,
         reasonLabel:'Reviewer remarks',reasonRequired:false,

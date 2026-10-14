@@ -1,0 +1,268 @@
+/* Keep the login split layout and place the profile introduction near the bottom. */
+body.profile-page .login-campus-copy { align-self:end; }
+body.profile-page .login-form-column { min-width:0; }
+body.profile-page .login-form-column .profile-card {
+    box-sizing:border-box;
+    width:min(520px,100%);
+    max-width:520px;
+    margin:0;
+    padding:22px clamp(18px,2.5vw,28px);
+    border:1px solid rgba(238,18,128,.2);
+    border-radius:22px;
+    background:#fff;
+    box-shadow:0 12px 40px rgba(238,18,128,.16),0 0 28px rgba(238,18,128,.12);
+    color:#171a2f;
+    text-align:left;
+}
+body.profile-page .profile-card .wiz-progress {
+    display:flex;
+    align-items:center;
+    gap:12px;
+    margin:0 0 8px;
+    color:#b5146e;
+    font-size:12px;
+    font-weight:800;
+    letter-spacing:.06em;
+    text-transform:uppercase;
+}
+body.profile-page .profile-card .wiz-bar {
+    flex:1;
+    height:6px;
+    overflow:hidden;
+    border-radius:999px;
+    background:#efe8fb;
+}
+body.profile-page .profile-card .wiz-bar i {
+    display:block;
+    width:50%;
+    height:100%;
+    border-radius:999px;
+    background:#b5146e;
+    transition:width .3s ease;
+}
+body.profile-page .profile-card .setup-email {
+    display:flex;
+    align-items:flex-start;
+    gap:8px;
+    margin:0 0 6px;
+    padding:9px 11px;
+    border-radius:10px;
+    background:#f4eef9;
+    color:#51416f;
+    font-size:12px;
+    line-height:1.5;
+}
+body.profile-page .profile-card .setup-email > i { flex:none; margin-top:2px; }
+body.profile-page .profile-card .setup-email .invited-email { overflow-wrap:anywhere; }
+body.profile-page .profile-card .wiz-panel { display:flex; flex-direction:column; }
+body.profile-page .profile-card .wiz-panel[hidden] { display:none; }
+body.profile-page .profile-card .wiz-back-icon {
+    display:flex;
+    width:48px;
+    height:48px;
+    flex:0 0 48px;
+    align-items:center;
+    justify-content:center;
+    margin:0;
+    padding:0;
+    border:1px solid #e5dfea;
+    border-radius:11px;
+    background:#fff;
+    color:#b5146e;
+    font-size:14px;
+    cursor:pointer;
+}
+body.profile-page .profile-card .wiz-back-icon:hover { background:#f6f4f8; }
+body.profile-page .profile-card .wiz-back-icon:focus-visible {
+    outline:3px solid rgba(181,20,110,.18);
+    outline-offset:2px;
+}
+body.profile-page .profile-card .wiz-back-icon[hidden] { display:none; }
+body.profile-page .profile-card .sr-only {
+    position:absolute;
+    width:1px;
+    height:1px;
+    overflow:hidden;
+    clip:rect(0 0 0 0);
+    white-space:nowrap;
+}
+body.profile-page .profile-card h1 {
+    margin:10px 0 6px;
+    color:#181b2e;
+    font-size:clamp(22px,2vw,27px);
+    line-height:1.25;
+    text-align:left;
+}
+body.profile-page .profile-lead {
+    margin:0 0 9px;
+    color:#585a6e;
+    font-size:13px;
+    line-height:1.55;
+}
+body.profile-page .profile-card form { display:flex; flex-direction:column; }
+body.profile-page .profile-card label,
+body.profile-page .profile-card .academic-fields-grid label {
+    display:block;
+    min-width:0;
+    margin:10px 0 5px;
+    color:#24243e;
+    font-size:14px;
+    font-weight:700;
+}
+body.profile-page .profile-card label em,
+body.profile-page .profile-card legend em {
+    margin-left:5px;
+    color:#b5146e;
+    font-size:10px;
+    font-style:normal;
+    font-weight:700;
+}
+body.profile-page .profile-card label em.opt { color:#666276; }
+body.profile-page .profile-card :is(input:not([type=checkbox]),select) {
+    box-sizing:border-box;
+    width:100%;
+    min-width:0;
+    min-height:44px;
+    margin:0;
+    padding:0 16px;
+    border:1.5px solid #d9d3e3;
+    border-radius:14px;
+    background:#fff;
+    color:#14173a;
+    font:500 15px/1.35 Montserrat,system-ui,sans-serif;
+}
+body.profile-page .profile-card :is(input,select):hover { border-color:#c76a9d; }
+body.profile-page .profile-card :is(input,select):focus-visible {
+    border-color:#ee1280;
+    outline:3px solid rgba(181,20,110,.18);
+    outline-offset:2px;
+}
+body.profile-page .profile-card select { padding-right:10px; }
+body.profile-page .profile-hint {
+    display:flex;
+    align-items:flex-start;
+    gap:8px;
+    margin:6px 0 0;
+    color:#5f5a70;
+    font-size:13px;
+    line-height:1.5;
+}
+body.profile-page .profile-hint i { margin-top:2px; color:#7651a1; }
+body.profile-page .profile-card fieldset {
+    min-width:0;
+    margin:7px 0 0;
+    padding:6px 9px 7px;
+    border:1px solid #e7e1ed;
+    border-radius:13px;
+    background:#fbfafd;
+}
+body.profile-page .profile-card #onboardingAcademics {
+    margin:0;
+    padding:0;
+    border:0;
+    background:transparent;
+}
+body.profile-page .profile-card legend {
+    padding:0 6px;
+    color:#24243e;
+    font-size:12px;
+    font-weight:700;
+}
+body.profile-page .academic-fields-grid {
+    display:grid;
+    grid-template-columns:minmax(0,1fr);
+    gap:0;
+}
+body.profile-page .profile-card .academic-fields-grid label { margin:10px 0 0; }
+body.profile-page .profile-card .academic-fields-grid label:first-child { margin-top:0; }
+body.profile-page .profile-card .academic-fields-grid select { display:block; margin-top:5px; }
+body.profile-page .profile-card fieldset button[data-academic=reset] {
+    min-height:40px;
+    margin:6px 0 0;
+    padding:4px 8px;
+    border:0;
+    background:transparent;
+    color:#b5146e;
+    font-size:12px;
+    font-weight:700;
+    text-decoration:underline;
+}
+body.profile-page .profile-error { margin:18px 0 0; }
+body.profile-page .profile-error:empty { display:none; }
+body.profile-page .profile-error:not(:empty) {
+    padding:9px 11px;
+    border:1px solid #f0cccc;
+    border-left:3px solid #ba3131;
+    border-radius:9px;
+    background:#fff3f3;
+    color:#9d2525;
+    font-size:12px;
+    line-height:1.5;
+}
+body.profile-page .profile-card .wiz-actions {
+    display:flex;
+    gap:12px;
+    margin-top:14px;
+}
+body.profile-page .profile-card .wiz-actions .wiz-back-icon[hidden] { display:none; }
+body.profile-page .profile-card .wiz-actions .setup-btn {
+    display:flex;
+    flex:1 1 0;
+    width:auto;
+    min-width:0;
+    min-height:48px;
+    align-items:center;
+    justify-content:center;
+    margin:0;
+    padding:8px 14px;
+    border:0;
+    border-radius:11px;
+    background:#b5146e;
+    color:#fff;
+    font:700 14px/1.4 Montserrat,system-ui,sans-serif;
+    cursor:pointer;
+}
+body.profile-page .profile-card .wiz-actions .setup-btn:hover:not(:disabled) { background:#c82e85; }
+body.profile-page .profile-card .wiz-actions .setup-btn[hidden] { display:none; }
+body.profile-page .profile-card .wiz-actions .setup-btn:disabled {
+    background:#adaaba;
+    color:#fff;
+    cursor:not-allowed;
+    opacity:1;
+}
+body.profile-page .profile-help { margin:10px 0 0; text-align:center; }
+body.profile-page .profile-help a { color:#b5146e; font-size:12px; font-weight:700; }
+body.profile-page .login-form-column > .login-legal-footer {
+    flex-wrap:wrap;
+    margin-top:18px;
+    gap:16px;
+    font-size:11px;
+}
+body.profile-page .login-form-column > .login-legal-footer a { color:#b5146e; text-decoration:none; }
+html.dark-theme body.profile-page .profile-card { border-color:rgba(238,18,128,.25); background:#242031; color:#f5f1fa; }
+html.dark-theme body.profile-page .profile-card h1,
+html.dark-theme body.profile-page .profile-card label,
+html.dark-theme body.profile-page .profile-card legend { color:#f5f1fa; }
+html.dark-theme body.profile-page .profile-lead,
+html.dark-theme body.profile-page .profile-hint { color:#c4bfcf; }
+html.dark-theme body.profile-page .profile-card :is(input:not([type=checkbox]),select) {
+    border-color:#494154;
+    background:#302b3d;
+    color:#f5f1fa;
+}
+html.dark-theme body.profile-page .profile-card fieldset { border-color:#494154; background:#1e1b29; }
+html.dark-theme body.profile-page .profile-card #onboardingAcademics { background:transparent; }
+html.dark-theme body.profile-page .profile-card .setup-email { background:#302b3d; color:#e4caef; }
+html.dark-theme body.profile-page .profile-card .wiz-bar { background:#3b3547; }
+html.dark-theme body.profile-page .profile-card .wiz-back-icon { border-color:#494154; background:#302b3d; color:#f5f1fa; }
+html.dark-theme body.profile-page .profile-error:not(:empty) { border-color:#633d46; background:#35242d; color:#ffd9dc; }
+html.dark-theme body.profile-page .login-form-column > .login-legal-footer a { color:#eaa0c4; }
+@media(max-width:700px) {
+    body.profile-page .login-form-column .profile-card { width:min(520px,100%); }
+}
+@media(max-width:520px) {
+    body.profile-page .login-form-column .profile-card { padding:22px 18px; }
+}
+@media(prefers-reduced-motion:reduce) {
+    body.profile-page .profile-card :is(input,select,button,a,.wiz-bar i) { transition:none; }
+}

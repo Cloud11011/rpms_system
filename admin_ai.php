@@ -102,7 +102,7 @@ $user_email = $authUser['email'];
                     button.type = 'button';
                     button.dataset.save = key;
                     button.className = 'management-primary';
-                    button.textContent = 'Save label';
+                    button.innerHTML = '<i class="fa-solid fa-floppy-disk" aria-hidden="true"></i>'; button.title = 'Save label'; button.setAttribute('aria-label', 'Save label');
 
                     row.append(keyBlock, input, button);
                     container.appendChild(row);
@@ -143,7 +143,7 @@ $user_email = $authUser['email'];
                 } finally {
                     button.disabled = false;
                     input.disabled = false;
-                    button.textContent = 'Save label';
+                    button.innerHTML = '<i class="fa-solid fa-floppy-disk" aria-hidden="true"></i>'; button.title = 'Save label'; button.setAttribute('aria-label', 'Save label');
                     button.setAttribute('aria-busy', 'false');
                 }
             });

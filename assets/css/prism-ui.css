@@ -67,6 +67,7 @@
   border-radius: 14px; background: var(--prism-surface); color: var(--prism-text);
   border: 1px solid var(--prism-border); box-shadow: 0 20px 50px rgba(15, 23, 42, .35);
 }
+.prism-dialog.calendar-delete-dialog { max-width: 24rem; }
 .prism-dialog h3 { margin: 0 0 .5rem; font-size:var(--prism-font-subheading); display: flex; gap: .55rem; align-items: center; }
 .prism-dialog p { margin: 0 0 .85rem; font-size:var(--prism-font-body); line-height: 1.5; color: var(--prism-muted); }
 .prism-dialog label { display: block; margin: .7rem 0 .25rem; font-size:var(--prism-font-label); font-weight: 600; }
@@ -83,6 +84,10 @@
   padding: .6rem .75rem; border: 1px solid var(--prism-border); border-radius: 8px; background: var(--prism-surface-2);
 }
 .prism-version-list small { color: var(--prism-muted); display: block; }
+body.prism-workspace .prism-dialog:has(.prism-version-list) { box-sizing:border-box; width:min(100%,24rem); max-width:24rem; }
+body.prism-workspace .prism-version-list li { display:grid; grid-template-columns:minmax(0,1fr); align-items:start; }
+body.prism-workspace .prism-version-list li > div:first-child { min-width:0; overflow-wrap:anywhere; }
+body.prism-workspace .prism-version-list li > .prism-badges { display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:8px; }
 
 /* ---------- Tooltips + first-time hints ---------- */
 .prism-tip {
@@ -1033,4 +1038,143 @@ input[type="radio"] { accent-color: var(--accent-purple, #A21368); }
   .notification-history-scroll { max-height:none; overflow-y:visible; overscroll-behavior-y:auto; }
   .notification-filters { padding:12px 0; }
   .notification-filters label { flex-basis:calc(50% - 12px); }
+}
+
+/* PRISM session changed top-center alert popup */
+#prismSessionChanged {
+  position: fixed !important;
+  top: 24px !important;
+  left: 50% !important;
+  right: auto !important;
+  bottom: auto !important;
+  transform: translateX(-50%) !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  border: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  z-index: 100000 !important;
+  max-width: min(620px, calc(100vw - 32px)) !important;
+  width: max-content !important;
+  outline: none !important;
+  overflow: visible !important;
+  animation: prismAlertDrop 0.32s cubic-bezier(0.16, 1, 0.3, 1) forwards !important;
+}
+#prismSessionChanged::backdrop {
+  background: rgba(14, 18, 42, 0.42) !important;
+  backdrop-filter: blur(4px) !important;
+}
+@keyframes prismAlertDrop {
+  from { opacity: 0; transform: translate(-50%, -18px) scale(0.97); }
+  to { opacity: 1; transform: translate(-50%, 0) scale(1); }
+}
+.prism-session-alert-card {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 16px 20px;
+  border: 1px solid rgba(181, 20, 110, 0.24);
+  border-left: 4px solid #b5146e;
+  border-radius: 16px;
+  background: #ffffff;
+  box-shadow: 0 16px 44px rgba(20, 23, 58, 0.22), 0 2px 10px rgba(0, 0, 0, 0.08);
+  font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+  color: #14173a;
+  box-sizing: border-box;
+}
+.dark-theme .prism-session-alert-card, html.dark-theme #prismSessionChanged .prism-session-alert-card {
+  background: #1f1f2e !important;
+  border-color: rgba(246, 82, 150, 0.35) !important;
+  border-left-color: #f65296 !important;
+  color: #f1eef8 !important;
+  box-shadow: 0 16px 44px rgba(0, 0, 0, 0.6) !important;
+}
+.prism-session-alert-icon {
+  display: flex;
+  width: 42px;
+  height: 42px;
+  flex: 0 0 42px;
+  align-items: center;
+  justify-content: center;
+  border-radius: 12px;
+  background: #fce9f3;
+  color: #b5146e;
+}
+.dark-theme .prism-session-alert-icon, html.dark-theme #prismSessionChanged .prism-session-alert-icon {
+  background: #3d2438 !important;
+  color: #f2a9ce !important;
+}
+.prism-session-alert-body {
+  flex: 1 1 auto;
+  min-width: 0;
+  text-align: left;
+}
+.prism-session-alert-body strong {
+  display: block;
+  font-size: 14.5px;
+  font-weight: 800;
+  line-height: 1.35;
+  color: #14173a;
+}
+.dark-theme .prism-session-alert-body strong, html.dark-theme #prismSessionChanged .prism-session-alert-body strong {
+  color: #fff !important;
+}
+.prism-session-alert-body p {
+  margin: 3px 0 0 !important;
+  font-size: 12.5px !important;
+  line-height: 1.45 !important;
+  color: #5f5a70 !important;
+}
+.dark-theme .prism-session-alert-body p, html.dark-theme #prismSessionChanged .prism-session-alert-body p {
+  color: #b0aabf !important;
+}
+.prism-session-alert-reload {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 40px;
+  height: 40px;
+  padding: 0 18px;
+  border: 0;
+  border-radius: 10px;
+  background: #b5146e;
+  color: #ffffff;
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  white-space: nowrap;
+  box-shadow: 0 4px 12px rgba(181, 20, 110, 0.28);
+  transition: transform 0.18s ease, background 0.18s ease, box-shadow 0.18s ease;
+}
+.prism-session-alert-reload:hover {
+  transform: translateY(-1px);
+  background: #960f5a;
+  box-shadow: 0 6px 18px rgba(181, 20, 110, 0.42);
+}
+.prism-session-alert-reload:active {
+  transform: translateY(0);
+}
+.prism-session-alert-reload:focus-visible {
+  outline: 3px solid #f65296;
+  outline-offset: 2px;
+}
+@media (max-width: 540px) {
+  .prism-session-alert-card {
+    flex-direction: column;
+    align-items: stretch;
+    text-align: center;
+    gap: 12px;
+    padding: 18px 16px;
+  }
+  .prism-session-alert-icon {
+    margin: 0 auto;
+  }
+  .prism-session-alert-body {
+    text-align: center;
+  }
+  .prism-session-alert-reload {
+    width: 100%;
+  }
 }

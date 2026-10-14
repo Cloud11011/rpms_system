@@ -231,21 +231,11 @@ function generate_document_summary(array $extraction, array $identifiers): array
     $redacted = deidentify_document_summary_text($extraction['text'], $identifiers);
     $partial = $extraction['partial'] || mb_strlen($redacted) > DOCUMENT_SUMMARY_MAX_INPUT_CHARS;
     $excerpt = summary_model_excerpt($redacted);
-    $input = 'Coverage: ' . ($partial ? 'bounded excerpt; other content omitted' : 'extracted document text') . "\n<document>\n" . $excerpt . "\n</document>";
-    try { $summary = openrouter_generate(DOCUMENT_SUMMARY_PROMPT, $input, true); }
-    catch (Throwable $error) { $summary = null; }
-    $source = 'ai';
-    if (!is_string($summary) || trim($summary) === '' || !mb_check_encoding($summary, 'UTF-8') || mb_strlen($summary) > 4000) $summary = null;
-    if ($summary !== null) {
-        $summary = trim(strip_tags($summary));
-        // Never retain a provider response that reintroduces obvious or known identifiers.
-        if ($summary === '' || deidentify_document_summary_text(str_replace('**', '', $summary), $identifiers) !== str_replace('**', '', $summary)) $summary = null;
-    }
-    if ($summary === null) {
-        // Skip identity-only cover lines so the deterministic review aid includes research content.
-        $local = preg_replace('/^.*(?:\[identifier removed\]|\[record identifier removed\]|\[email removed\]).*$/m', '', $excerpt);
-        $summary = local_extractive_summary($local, 6); $source = 'local_fallback';
-    }
+    // Known-identity redaction is best effort, not an approved external privacy boundary.
+    // Policy D keeps all document excerpts local until institutional processing is separately approved.
+    $local = preg_replace('/^.*(?:\[identifier removed\]|\[record identifier removed\]|\[email removed\]).*$/m', '', $excerpt);
+    $summary = local_extractive_summary($local, 6);
+    $source = 'local_fallback';
     if ($summary === '') throw new DocumentSummaryError('no_useful_text', 'No useful text remained after de-identification.');
     return ['summary' => $summary, 'source' => $source, 'partial' => $partial, 'pages' => $extraction['pages']];
 }

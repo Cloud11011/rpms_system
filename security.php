@@ -117,6 +117,59 @@ function new_password_is_valid(string $password): bool
     return mb_strlen($password, 'UTF-8') >= 12 && strlen($password) <= 200;
 }
 
+/** Full accepted input is hashed by a standard algorithm, never a bcrypt prehash scheme. */
+function prism_password_algorithm_available(): bool
+{
+    return defined('PASSWORD_ARGON2ID') && in_array('argon2id', password_algos(), true);
+}
+
+function prism_password_hash(string $password): string
+{
+    if (!prism_password_algorithm_available()) {
+        throw new RuntimeException('Argon2id is required to create a full-length password credential.');
+    }
+    return password_hash($password, PASSWORD_ARGON2ID, ['memory_cost' => 65536, 'time_cost' => 4, 'threads' => 1]);
+}
+
+/** Fixed synthetic credential only; no account password is stored here. */
+function prism_dummy_password_hash(): string
+{
+    return prism_password_algorithm_available()
+        ? '$argon2id$v=19$m=65536,t=4,p=1$QkdtbVd1MmUzZWdkRzN3MQ$4S2QOX5+4nF939R65QeS15L0OWft6gS7MK6UlHH9/8c'
+        : '$2y$10$vzBXNiy73d.9neRQSAf.f.x75YP44p7wvMVaX2ylMlrmulh0/jJCu';
+}
+
+/** Called only after successful verification; a compare-and-swap cannot overwrite a reset. */
+function prism_upgrade_password_hash(PDO $pdo, array $user, string $password): string
+{
+    $previous = (string)$user['password_hash'];
+    if (!prism_password_algorithm_available()
+        || !password_needs_rehash($previous, PASSWORD_ARGON2ID, ['memory_cost' => 65536, 'time_cost' => 4, 'threads' => 1])) {
+        return $previous;
+    }
+    // A legacy bcrypt digest cannot attest a suffix past 72 bytes. Preserve that login;
+    // an explicit password change/reset/setup can establish a complete new credential.
+    if (password_get_info($previous)['algoName'] === 'bcrypt' && strlen($password) > 72) return $previous;
+    if (!password_verify($password, $previous)) throw new RuntimeException('Password upgrade requires successful verification.');
+    $replacement = prism_password_hash($password);
+    $update = $pdo->prepare('UPDATE users SET password_hash = :replacement
+        WHERE id = :id AND password_hash = :previous AND status = :active');
+    $update->execute([':replacement' => $replacement, ':id' => $user['id'], ':previous' => $previous, ':active' => 'Active']);
+    if ($update->rowCount() !== 1) throw new RuntimeException('The account credential changed during authentication.');
+    return $replacement;
+}
+
+/** Only a started flow's exact random state can be consumed; replay has no session state. */
+function prism_consume_gmail_oauth_state(mixed $submitted): bool
+{
+    $expected = $_SESSION['gmail_oauth_state'] ?? null;
+    if (!is_string($expected) || !is_string($submitted)
+        || !preg_match('/\A[a-f0-9]{32}\z/', $expected) || !preg_match('/\A[a-f0-9]{32}\z/', $submitted)
+        || !hash_equals($expected, $submitted)) return false;
+    unset($_SESSION['gmail_oauth_state']);
+    return true;
+}
+
 /** A prefix distinguishes new digests from expiring legacy plaintext records. */
 function reset_token_parameters(string $token): array
 {
@@ -166,6 +219,7 @@ function application_configuration_issues(): array
     $issues = [];
     if (!in_array(APP_ENV, ['production', 'development'], true)) $issues[] = 'APP_ENV must be production or development.';
     if (!app_base_url_is_valid()) $issues[] = 'APP_BASE_URL must be a valid canonical URL without credentials, query or fragment; production requires public HTTPS.';
+    if (!prism_password_algorithm_available()) $issues[] = 'Argon2id support is required for full-length account password hashing.';
     if (APP_ENV !== 'development' && ALLOW_DEVELOPMENT_PASSWORD_RESPONSE) {
         $issues[] = 'Development password disclosure is requested outside development and is disabled.';
     }

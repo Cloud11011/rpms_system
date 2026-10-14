@@ -210,7 +210,7 @@
   /**
    * Confirmation dialog. Resolves to null when cancelled, else { reason, values }.
    * o: title, icon, message (plain text), tone (primary|danger|override), confirmText,
-   *    reasonLabel + reasonRequired + minReason, extraHtml (trusted markup), collect(dialog), validate(values)
+   *    reasonLabel + reasonRequired + minReason, overlayClass, dialogClass, extraHtml (trusted markup), collect(dialog), validate(values)
    */
   function confirmDialog(o) {
     return new Promise(function (resolve) {
@@ -225,6 +225,16 @@
         '<button type="button" class="prism-btn is-' + tone + '" data-act="ok">' + esc(o.confirmText || 'Confirm') + '</button></div>'
       );
       m.dialog.setAttribute('aria-labelledby', 'prismDlgTitle');
+      if (o.overlayClass) {
+        String(o.overlayClass).split(/\s+/).filter(Boolean).forEach(function (className) {
+          m.overlay.classList.add(className);
+        });
+      }
+      if (o.dialogClass) {
+        String(o.dialogClass).split(/\s+/).filter(Boolean).forEach(function (className) {
+          m.dialog.classList.add(className);
+        });
+      }
       if (tone === 'override') m.dialog.classList.add('prism-override-dialog');
       const err = m.dialog.querySelector('.prism-field-error');
       const reasonBox = m.dialog.querySelector('#prismReason');
@@ -372,7 +382,7 @@
         (v.rpmsReturnedAt ? '<small>RPMS returned for revision: ' + esc(fmtDate(v.rpmsReturnedAt)) + ' by ' + esc(v.rpmsReturnedBy) + '. Reason: ' + esc(v.rpmsReturnReason) + '</small>' : '') +
         (v.reviewRemarks ? '<small>Remarks: ' + esc(v.reviewRemarks) + '</small>' : '') +
         '</div><div class="prism-badges">' + badge(v.workflowState) + (v.adminOverride ? badge('Admin Override') : '') +
-        '<a class="prism-btn is-secondary is-sm" target="_blank" rel="noopener" href="documents_api.php?action=file&id=' + encodeURIComponent(v.id) + '">Open</a></div></li>';
+        '<a class="prism-btn is-secondary is-sm" target="_blank" rel="noopener" href="document_preview.php?id=' + encodeURIComponent(v.id) + '">Open</a></div></li>';
     }).join('');
     const m = modal('<h3><i class="fa-solid fa-clock-rotate-left" aria-hidden="true"></i>Version history</h3>' +
       '<ul class="prism-version-list">' + items + '</ul>' +
@@ -413,7 +423,8 @@
         html = compact ? '' : emptyState({
           icon: 'fa-file-circle-plus', title: 'No document action needed',
           text: 'No revisions require your attention. Adviser approval automatically submits an eligible version to RPMS.',
-          actionLabel: 'Submit a document', actionId: 'go-submit'
+          actionLabel: host.hasAttribute('data-prism-hide-submit') ? '' : 'Submit a document',
+          actionId: host.hasAttribute('data-prism-hide-submit') ? '' : 'go-submit'
         });
       } else {
         if (!compact) {
@@ -481,7 +492,7 @@
         '<div class="prism-badges">' + badge(s.stage, { text: s.stageLabel }) + badge(s.status) + '</div></li>';
     }).join('');
     const more = data.total > data.students.length
-      ? '<p class="prism-sub">Showing ' + data.students.length + ' of ' + data.total + '. <a href="ierbprog.php">See all in IERB Progress</a></p>' : '';
+      ? '<p class="prism-sub">Showing ' + data.students.length + ' of ' + data.total + '.</p>' : '';
     host.innerHTML = '<ul class="prism-attn-list">' + items + '</ul>' + more;
   }
 
@@ -615,6 +626,13 @@
       const el = document.createElement('button');
       el.type = 'button';
       el.textContent = label;
+      if (label === 'Previous' || label === 'Next') {
+        el.setAttribute('aria-label', label + ' page');
+        el.title = label + ' page';
+        el.innerHTML = label === 'Previous'
+          ? '<span aria-hidden="true">&#8249;</span>'
+          : '<span aria-hidden="true">&#8250;</span>';
+      }
       el.disabled = disabled;
       if (typeof label === 'number') {
         el.setAttribute('aria-label', `Page ${target}`);
@@ -735,16 +753,22 @@
   }
   function closeFloating(returnFocus = true) {
     if (!floating) return;
-    const { trigger, panel, observer } = floating;
+    const { trigger, panel, observer, portal, originParent, originNext } = floating;
     floating = null; observer.disconnect(); panel.hidden = true;
+    if (portal && originParent?.isConnected) {
+      originParent.insertBefore(panel, originNext?.parentNode === originParent ? originNext : null);
+    }
     trigger.setAttribute('aria-expanded', 'false');
     if (returnFocus && trigger.isConnected) trigger.focus({ preventScroll: true });
   }
-  function toggleFloating(trigger, panel) {
+  function toggleFloating(trigger, panel, portal = false) {
     if (floating?.trigger === trigger) { closeFloating(); return; }
-    closeFloating(false); panel.hidden = false; trigger.setAttribute('aria-expanded', 'true');
+    closeFloating(false);
+    const originParent = panel.parentNode, originNext = panel.nextSibling;
+    if (portal) document.body.append(panel);
+    panel.hidden = false; trigger.setAttribute('aria-expanded', 'true');
     const observer = new ResizeObserver(positionFloating);
-    floating = { trigger, panel, observer }; observer.observe(panel); positionFloating();
+    floating = { trigger, panel, observer, portal, originParent, originNext }; observer.observe(panel); positionFloating();
   }
   document.addEventListener('click', event => {
     if (floating && !floating.panel.contains(event.target) && !floating.trigger.contains(event.target))
@@ -766,7 +790,7 @@
     if (!items.length || host.querySelector('.prism-action-menu')) return;
     const wrap = document.createElement('div'); wrap.className = 'prism-action-menu';
     const trigger = document.createElement('button'); trigger.type = 'button'; trigger.className = 'prism-btn prism-btn-neutral prism-action-trigger';
-    trigger.textContent = '…';
+    trigger.textContent = '...';
     trigger.setAttribute('aria-label', label);
     trigger.title = label;
     const panel = document.createElement('div'); panel.id = 'prismActions' + (++floatingSequence);
@@ -793,11 +817,11 @@
       panel.append(item);
     });
     wrap.append(trigger, panel); host.append(wrap);
-    trigger.addEventListener('click', () => toggleFloating(trigger, panel));
+    trigger.addEventListener('click', () => toggleFloating(trigger, panel, true));
     wrap.addEventListener('keydown', event => {
       if (!['ArrowDown','ArrowUp','Home','End'].includes(event.key)) return;
       event.preventDefault();
-      if (panel.hidden) toggleFloating(trigger, panel);
+      if (panel.hidden) toggleFloating(trigger, panel, true);
       const available = [...panel.querySelectorAll('button:not(:disabled),a[href]')];
       if (!available.length) return;
       const index = available.indexOf(document.activeElement);
@@ -812,6 +836,14 @@
     const wrap = document.createElement('div'); wrap.className = 'prism-filter-disclosure';
     const trigger = document.createElement('button'); trigger.type = 'button'; trigger.className = 'prism-btn';
     trigger.setAttribute('aria-expanded', 'false'); trigger.setAttribute('aria-controls', host.id);
+    const compactStudentFilters = document.body.classList.contains('student-records-page') || !!document.querySelector('.ierb-page,.documents-page');
+    if (compactStudentFilters) {
+      trigger.classList.add('student-filter-action');
+      trigger.setAttribute('aria-label', 'Filters');
+      const icon = document.createElement('i'); icon.className = 'fa-solid fa-sliders'; icon.setAttribute('aria-hidden', 'true');
+      const text = document.createElement('span'); text.className = 'student-filter-text'; text.textContent = 'Filters';
+      trigger.append(icon,text);
+    }
     host.classList.add('prism-filter-panel'); host.hidden = true;
     const clear = document.createElement('button'); clear.type = 'button'; clear.className = 'prism-btn prism-filter-clear'; clear.textContent = 'Clear Filters';
     host.append(clear);
@@ -820,7 +852,12 @@
     const defaults = new Map(controls.map(control => [control, control.tagName === 'SELECT' ? control.options[0]?.value || '' : '']));
     function update() {
       const active = controls.filter(control => control.tagName === 'SELECT' && control.value !== defaults.get(control)).length;
-      trigger.textContent = 'Filters & Sort' + (active ? ' (' + active + ')' : '');
+      const label = document.body.classList.contains('student-records-page') ? 'Filters' : 'Filters & Sort';
+      if (compactStudentFilters) {
+        const accessibleLabel = label + (active ? ' (' + active + ')' : '');
+        trigger.setAttribute('aria-label', accessibleLabel);
+        trigger.querySelector('.student-filter-text').textContent = accessibleLabel;
+      } else trigger.textContent = label + (active ? ' (' + active + ')' : '');
       clear.disabled = !controls.some(control => control.value !== defaults.get(control));
     }
     function close() { if (floating?.panel === host) closeFloating(); else { host.hidden = true; trigger.setAttribute('aria-expanded', 'false'); } }
@@ -893,6 +930,8 @@
       const size = document.createElement('select');size.setAttribute('aria-label','Rows per page');
       [5,10,25].forEach(value => size.add(new Option(String(value),String(value),false,value===10)));
       label.append(size);pager.before(label);
+      const footer=document.createElement('div');footer.className='prism-record-footer';
+      label.before(footer);footer.append(label,pager);
       size.addEventListener('change',()=>{pageSize=Number(size.value);page=1;load();});
     }
     if (disclosure) {
@@ -957,7 +996,11 @@
     definitions.forEach(([value,label,keys]) => {
       const button=document.createElement('button');button.type='button';button.className='prism-filter-pill';button.dataset.filterState=value;
       const total=(keys||[value]).reduce((sum,key)=>sum+Number(counts?.[key]||0),0);
-      button.textContent=label+(counts===null?'':' · '+(value===''?Object.values(counts).reduce((sum,n)=>sum+Number(n),0):total));
+      if(host.classList.contains('student-stage-filters')) {
+        const count=counts==null?null:value===''?Object.values(counts).reduce((sum,n)=>sum+Number(n),0):total;
+        const text=document.createElement('span');text.textContent=label+(count===null?'':' \u00b7 '+count);
+        button.append(text);
+      } else button.textContent=label+(counts===null?'':' · '+(value===''?Object.values(counts).reduce((sum,n)=>sum+Number(n),0):total));
       button.setAttribute('aria-pressed',String(select.value===value));
       button.addEventListener('click',()=>{select.value=value;select.dispatchEvent(new Event('change',{bubbles:true}));});
       host.append(button);

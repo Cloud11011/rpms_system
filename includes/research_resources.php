@@ -7,47 +7,56 @@ if (realpath($_SERVER['SCRIPT_FILENAME'] ?? '') === __FILE__
     exit;
 }
 ?>
-<section class="prism-research-resources" data-prism-resources aria-labelledby="prismResourcesTitle">
-    <header class="prism-resources-heading"><h2 id="prismResourcesTitle">Research Resources</h2></header>
-    <div class="prism-resource-grid">
-        <a class="prism-resource-direct" data-resource="ierb" href="https://ceu-ierb.wixsite.com/ierb" target="_blank" rel="noopener noreferrer"><span class="prism-resource-title">IERB Portal</span><span>Open portal (new tab) ↗</span></a>
-        <details class="prism-resource" data-resource="sdg">
-            <summary><span class="prism-resource-title">Sustainable Development Goals</span><span class="prism-resource-subtitle">17 global goals</span></summary>
-            <div class="prism-resource-content">
-                <figure>
-                    <div class="prism-resource-image"><img src="assets/images/sdg.webp" alt="The 17 United Nations Sustainable Development Goals, also listed below." width="2048" height="1448" loading="lazy" decoding="async"></div>
-                    <figcaption>United Nations &middot; 17 Sustainable Development Goals</figcaption>
-                </figure>
-                <a class="prism-resource-open" data-resource-open href="assets/images/sdg.webp" target="_blank" rel="noopener noreferrer">Open SDG image at full size <span>(new tab)</span></a>
-                <div class="prism-resource-transcript">
-                    <h3>The 17 goals</h3>
-                    <ol>
-                        <li>No Poverty</li><li>Zero Hunger</li><li>Good Health and Well-being</li><li>Quality Education</li><li>Gender Equality</li><li>Clean Water and Sanitation</li><li>Affordable and Clean Energy</li><li>Decent Work and Economic Growth</li><li>Industry, Innovation and Infrastructure</li><li>Reduced Inequalities</li><li>Sustainable Cities and Communities</li><li>Responsible Consumption and Production</li><li>Climate Action</li><li>Life Below Water</li><li>Life on Land</li><li>Peace, Justice and Strong Institutions</li><li>Partnerships for the Goals</li>
-                    </ol>
-                </div>
+<section class="resources prism-research-resources" data-prism-resources aria-labelledby="prismResourcesTitle">
+    <h2 id="prismResourcesTitle">Research Resources</h2>
+    <a class="res-row" data-resource="ierb" href="https://ceu-ierb.wixsite.com/ierb" target="_blank" rel="noopener noreferrer">
+        <span>IERB Portal</span>
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M7 17 17 7M8 7h9v9"/>
+        </svg>
+    </a>
+    <div class="res-item">
+        <button class="res-row" type="button" aria-expanded="false" aria-controls="prism-sdg-panel">
+            <span>Sustainable Development Goals</span>
+            <svg class="chev" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="m6 9 6 6 6-6"/>
+            </svg>
+        </button>
+        <div class="res-panel" id="prism-sdg-panel" aria-hidden="true" inert>
+            <div>
+                <a href="assets/images/sdg.webp" data-prism-resource-preview data-resource-title="Sustainable Development Goals">
+                    <img src="assets/images/sdg.webp" alt="The 17 UN Sustainable Development Goals" width="2048" height="1448" loading="lazy" decoding="async">
+                </a>
             </div>
-        </details>
-        <details class="prism-resource" data-resource="agenda">
-            <summary><span class="prism-resource-title">Research Agenda</span><span class="prism-resource-subtitle">CEU Malolos &middot; 2023&ndash;2028</span></summary>
-            <div class="prism-resource-content">
-                <figure>
-                    <div class="prism-resource-image"><img src="assets/images/research-agenda-2023-2028.png" alt="Official CEU Malolos RPMS Research Agenda 2023&ndash;2028: six research clusters, Sustainable Development Goal mappings and NUHRA 2023&ndash;2028 themes." width="677" height="650" loading="lazy" decoding="async"></div>
-                    <figcaption>CEU Malolos &middot; Research Agenda 2023&ndash;2028</figcaption>
-                </figure>
-                <a class="prism-resource-open" data-resource-open href="assets/images/research-agenda-2023-2028.png" target="_blank" rel="noopener noreferrer">Open Research Agenda image at full size <span>(new tab)</span></a>
-                <div class="prism-resource-transcript">
-                    <h3>Research clusters and SDGs</h3>
-                    <ol>
-                        <li><strong>Health Science (Health and Wellness)</strong><span>SDGs 2, 3 and 9</span></li>
-                        <li><strong>Social Science and Humanities (Intercultural Ethics)</strong><span>SDGs 1, 5, 10 and 16</span></li>
-                        <li><strong>Education (Quality Teaching and Learning)</strong><span>SDG 4</span></li>
-                        <li><strong>Business and Hospitality Management (CSR and Entrepreneurship)</strong><span>SDGs 8 and 12</span></li>
-                        <li><strong>Environmental Research (Climate Change Mitigation, Biodiversity, and Ecosystem Conservation)</strong><span>SDGs 6, 7, 12, 13, 14 and 15</span></li>
-                        <li><strong>Institutional Research</strong><span>SDGs 10, 11, 13, 16 and 17</span></li>
-                    </ol>
-                </div>
+        </div>
+    </div>
+    <div class="res-item">
+        <button class="res-row" type="button" aria-expanded="false" aria-controls="prism-agenda-panel">
+            <span>Research Agenda</span>
+            <svg class="chev" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="m6 9 6 6 6-6"/>
+            </svg>
+        </button>
+        <div class="res-panel" id="prism-agenda-panel" aria-hidden="true" inert>
+            <div>
+                <a href="assets/images/research-agenda-2023-2028.png" data-prism-resource-preview data-resource-title="Research Agenda">
+                    <img class="narrow" src="assets/images/research-agenda-2023-2028.png" alt="CEU Malolos RPMS Research Agenda 2023 to 2028" width="677" height="650" loading="lazy" decoding="async">
+                </a>
             </div>
-        </details>
-
+        </div>
     </div>
 </section>
+<dialog class="prism-resource-preview" id="prismResourcePreview" aria-labelledby="prismResourcePreviewTitle">
+    <div class="prism-resource-preview-card">
+        <header class="prism-resource-preview-head">
+            <span class="prism-resource-preview-brand"><img src="assets/images/prismicon.png" alt="" aria-hidden="true"></span>
+            <div><p>PRISM RESEARCH LIBRARY</p><h2 id="prismResourcePreviewTitle">Research resource</h2></div>
+            <button type="button" class="prism-resource-preview-close" data-prism-preview-close aria-label="Close preview">&times;</button>
+        </header>
+        <div class="prism-resource-preview-image-wrap"><img id="prismResourcePreviewImage" alt=""></div>
+        <footer class="prism-resource-preview-actions">
+            <a id="prismResourcePreviewDownload" class="prism-resource-preview-download" download><i class="fa-solid fa-download" aria-hidden="true"></i> Download image</a>
+            <button type="button" data-prism-preview-close>Close</button>
+        </footer>
+    </div>
+</dialog>

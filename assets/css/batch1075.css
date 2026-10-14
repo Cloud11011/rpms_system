@@ -1,10 +1,16 @@
 /* Batch 10.75 presentation. Scoped to the existing authenticated PRISM shell. */
-body.prism-workspace .prism-topbar-group { display:flex; align-items:center; flex-wrap:wrap; gap:6px; padding:6px; border:1px solid var(--border-color); border-radius:18px; background:var(--card-bg); }
-body.prism-workspace .prism-topbar-group > :is(button,a), body.prism-workspace .prism-topbar-group .notification-icon { width:40px; height:40px; min-width:40px; margin:0; border-radius:12px; display:inline-flex; align-items:center; justify-content:center; border:1px solid var(--border-color); background:var(--card-bg); color:var(--text-primary); position:relative; }
-body.prism-workspace .prism-initials { flex:0 0 36px; width:36px; height:36px; border-radius:50%; display:inline-flex; justify-content:center; align-items:center; font-weight:700; font-size:13px; background:var(--prism-purple-soft); color:var(--text-primary); }
-body.prism-workspace .prism-topbar-group .portal-profile-btn > .prism-initials { display:inline-flex; }
-body.prism-workspace .prism-topbar-group .portal-profile-btn { margin:0; }
-body.prism-workspace .prism-topbar-group [data-prism-persistence] { opacity:.7; cursor:help; }
+body.prism-workspace .prism-topbar-group { display:flex; align-items:center; flex:0 0 auto; flex-wrap:nowrap; gap:3px; padding:3px 5px; border:1px solid var(--border-color); border-radius:999px; background:var(--card-bg); }
+body.prism-workspace .prism-topbar-group > :is(button,a), body.prism-workspace .prism-topbar-group .notification-icon { position:relative; display:inline-flex; flex:0 0 40px; align-items:center; justify-content:center; width:40px; min-width:40px; height:40px; margin:0; padding:0; border:0; border-radius:50%; background:transparent; color:var(--text-primary); }
+body.prism-workspace .prism-topbar-group > :is(button,a):hover, body.prism-workspace .prism-topbar-group .notification-icon:hover { background:var(--bg-color); }
+body.prism-workspace .prism-topbar-group svg { display:block; width:18px; height:18px; }
+body.prism-workspace .prism-topbar-group + :is(.prism-account-menu,.portal-profile-menu) { margin-left:4px; }
+body.prism-workspace .prism-initials { display:inline-flex; flex:0 0 32px; align-items:center; justify-content:center; width:32px; height:32px; border-radius:50%; background:#fdebf4; color:#c21870; font-size:13px; font-weight:700; }
+body.prism-workspace .prism-control-tooltip { position:fixed; z-index:1400; display:block; max-width:calc(100vw - 24px); padding:5px 10px; border:1px solid #f3bfd6; border-radius:9px; background:var(--card-bg); box-shadow:0 4px 14px #1011301c; color:var(--text-primary); font-size:12px; font-weight:600; line-height:1.3; white-space:nowrap; pointer-events:none; }
+body.prism-workspace .prism-control-tooltip::before,
+body.prism-workspace .prism-control-tooltip::after { position:absolute; left:50%; width:0; height:0; border-right:5px solid transparent; border-left:5px solid transparent; content:""; transform:translateX(-50%); }
+body.prism-workspace .prism-control-tooltip::before { top:-6px; border-bottom:6px solid #f3bfd6; }
+body.prism-workspace .prism-control-tooltip::after { top:-5px; border-bottom:5px solid var(--prism-card); }
+body.prism-workspace .prism-control-tooltip[hidden] { display:none; }
 body.prism-workspace .prism-topbar-group :focus-visible { outline:2px solid var(--accent-pink); outline-offset:2px; }
 body.prism-workspace :is(.management-search,.search-documents,.document-search) { display:flex; align-items:center; gap:10px; min-width:0; padding:0 12px; height:44px; border:1px solid var(--border-color); border-radius:10px; background:var(--input-bg); }
 body.prism-workspace :is(.management-search,.search-documents,.document-search):focus-within { outline:2px solid var(--accent-pink); outline-offset:2px; }
@@ -92,7 +98,7 @@ body.prism-workspace.student-page #completedRequirements .list-item { background
   body.prism-workspace.adviser-dashboard-page main .adviser-side-panels, body.prism-workspace .adviser-queue-filters { grid-template-columns:minmax(0,1fr); }
   body.prism-workspace .repo-item { flex-wrap:wrap; }
   body.prism-workspace .repo-item .prism-badge { margin-left:56px; }
-  body.prism-workspace .prism-topbar-group .portal-profile-btn > span:not(.prism-initials) { display:none; }
+  body.prism-workspace :is(.prism-account-menu,.portal-profile-menu) .portal-profile-btn > span:not(.prism-initials) { display:none; }
 }
 @media(max-width:400px) {
   body.prism-workspace.dashboard-page :is(.top-controls,.prism-topbar-group) { min-width:0; max-width:100%; }

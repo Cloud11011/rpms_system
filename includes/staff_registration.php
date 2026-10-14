@@ -156,7 +156,7 @@ function staff_account_fields(array $data): array
     $password=$data['password']??null;
     if (!is_string($password) || !mb_check_encoding($password,'UTF-8') || !new_password_is_valid($password)) throw new StaffRegistrationError('Password must be at least 12 characters and at most 200 bytes.');
     if ($password!==($data['confirm_password']??null)) throw new StaffRegistrationError('Password and confirmation do not match.');
-    $result['password_hash']=password_hash($password,PASSWORD_DEFAULT); return $result;
+    $result['password_hash']=prism_password_hash($password); return $result;
 }
 
 /** User insert, mandatory audit, and conditional consumption share the singleton transaction. */

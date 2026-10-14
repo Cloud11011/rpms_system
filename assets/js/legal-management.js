@@ -1,5 +1,6 @@
 /* Presentation/navigation only. Mutations remain the existing protected POST forms. */
 document.addEventListener('DOMContentLoaded', () => {
+    document.getElementById('dismissPublishingGuide')?.addEventListener('click', event => event.currentTarget.closest('.legal-publishing-guide').remove());
     const tabs = [...document.querySelectorAll('[data-policy-tab]')];
     const panels = [...document.querySelectorAll('[data-policy-panel]')];
     const selected = document.getElementById('versionDetails')?.dataset.policy;

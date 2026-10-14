@@ -17,6 +17,7 @@
         const controls = element('div', null, 'notification-filters');
         function select(label, choices, key) {
             const wrapper = element('label', label);
+            wrapper.dataset.filterField = key;
             const input = element('select'); input.dataset.notificationFilter = key;
             for (const [value, text] of choices) input.add(new Option(text, value));
             wrapper.append(input); controls.append(wrapper);
@@ -25,9 +26,26 @@
         }
         const view = select('View', options.support ? [['responses', 'Support Responses'], ['requests', 'My Requests']] : options.allowSent ? [['list', 'Inbox'], ['sent_history', 'Sent History'], ['legacy_history', 'Legacy History']] : [['list', 'Inbox']], 'view');
         const status = select('Status', [['All', 'All'], ['Unread', 'Unread'], ['Read', 'Read'], ['Archived', 'Archived']], 'status');
-        const kind = select('Kind', options.support ? [['support', 'Support']] : [['All', 'All'], ['staff', 'Staff'], ['workflow', 'Workflow'], ['system', 'System'], ['support', 'Support']], 'kind');
+        const kind = options.support ? null : select('Kind', [['All', 'All'], ['staff', 'Staff'], ['workflow', 'Workflow'], ['system', 'System'], ['support', 'Support']], 'kind');
         const sort = select('Sort', [['Newest', 'Newest'], ['Oldest', 'Oldest']], 'sort');
+        if (options.support) controls.classList.add('support-history-filters');
         const feedback = element('p', '', 'notification-result'); feedback.setAttribute('role', 'status'); feedback.setAttribute('aria-live', 'polite');
+        let syncTabs = () => {};
+        if(document.body.classList.contains('notification-center-page') || options.studentCenter) {
+            const tabs=element('div',null,'notification-inbox-tabs');tabs.setAttribute('role','group');tabs.setAttribute('aria-label','Inbox filters');
+            const buttons=[];
+            [['All','Inbox'],['Unread','Unread'],['Archived','Archived']].forEach(([value,label])=>{
+                const button=element('button',label);button.type='button';button.setAttribute('aria-pressed',String(status.value===value));
+                button.addEventListener('click',()=>{if(value==='Unread')view.value=inboxView;status.value=value;status.dispatchEvent(new Event('change'));});
+                buttons.push([button,value]);tabs.append(button);
+            });
+            syncTabs = () => buttons.forEach(([button,value]) => {
+                button.setAttribute('aria-pressed', String(status.value === value));
+            });
+            status.parentElement.hidden=true;
+            list.before(tabs);
+            controls.classList.add('notification-reference-filters');
+        }
         list.before(controls, feedback);
         list.classList.add('notification-history-scroll'); list.tabIndex = 0;
         list.setAttribute('role', 'region'); list.setAttribute('aria-label', options.support ? 'Support history' : 'Notification history');
@@ -36,6 +54,7 @@
             for (const option of status.options) if (['Unread', 'Read'].includes(option.value)) { option.hidden = !personal; option.disabled = !personal; }
             if (!personal && ['Unread', 'Read'].includes(status.value)) status.value = 'All';
             if (options.markAll) options.markAll.hidden = !personal || status.value === 'Archived';
+            syncTabs();
         }
         async function mutate(row, operation, button) {
             if (busy) return;
@@ -106,15 +125,26 @@
                 }
                 card.append(actions); list.append(card);
             }
-            if (!list.children.length) list.append(element('p', 'No notifications match this view.', 'workspace-empty-state'));
-            PrismUI.pagination(pager, count, { ...data, total: data.total ?? 0 }, load, 'notifications');
-            if (options.markAll) options.markAll.disabled = !(data.unread_count > 0);
+            if (!list.children.length) {
+                const emptyText = options.support
+                    ? (view.value === sentView ? 'No support requests found.' : 'No support responses found.')
+                    : 'No notifications match this view.';
+                list.append(element('p', emptyText, 'workspace-empty-state'));
+            }
+            const total = Number(data.total) || 0;
+            const limit = Math.max(1, Number(data.limit) || 10);
+            PrismUI.pagination(pager, count, { ...data, total: data.total ?? 0 }, load, options.support ? 'support items' : 'notifications');
+            if (options.support && total <= limit) pager.replaceChildren();
+            if (options.markAll) {
+                options.markAll.hidden = view.value !== inboxView || status.value === 'Archived' || !(data.unread_count > 0);
+                options.markAll.disabled = !(data.unread_count > 0);
+            }
             document.dispatchEvent(new CustomEvent('prism:notification-count',{detail:{unread:data.unread_count}}));
         }
         async function load(nextPage = 1) {
             page = nextPage; const current = ++sequence;
             list.setAttribute('aria-busy', 'true');
-            const query = new URLSearchParams({ action: view.value, status: status.value, kind: kind.value, sort: sort.value, page: String(page) });
+            const query = new URLSearchParams({ action: view.value, status: status.value, kind: kind?.value || (options.support ? 'support' : 'All'), sort: sort.value, page: String(page) });
             try {
                 const data = await PrismUI.request(`${endpoint}?${query}`, options.support
                     ? { headers: { 'X-PRISM-Generation': window.PRISM_SESSION_GENERATION || '' } } : undefined);

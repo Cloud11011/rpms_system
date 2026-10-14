@@ -1,6 +1,8 @@
 document.addEventListener('DOMContentLoaded', () => {
     'use strict';
     const form = document.getElementById('supportForm'), result = document.getElementById('supportResult');
+    if (!form || form.dataset.prismSupportInitialized === '1') return;
+    form.dataset.prismSupportInitialized = '1';
     const dirty = PrismUI.dirtyForm(form);
     let sending = false;
     const history = PrismNotifications.mount({ list: document.getElementById('supportHistory'), count: document.getElementById('supportCount'),

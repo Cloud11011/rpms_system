@@ -63,6 +63,14 @@ function begin_document_write(PDO $pdo, array $document): void
         catch (AccountLifecycleConflict $e) { throw new DocumentWriteConflict($e->getMessage(),0,$e); }
     }
     $current = fetch_doc($pdo, (string)$document['id'], true);
+    if ($current && !empty($current['student_id'])) {
+        try {
+            $version = document_current_version($pdo, (int)$current['student_id'], $current['stage'], $current['document_type']);
+            if ((int)$current['is_current'] === 1 && (!$version || $version['id'] !== $current['id'])) {
+                throw new DocumentWorkflowError('The current version changed. Refresh before continuing.',409);
+            }
+        } catch (DocumentWorkflowError $e) { throw new DocumentWriteConflict($e->getMessage(),0,$e); }
+    }
     $fields = ['student_id', 'adviser_id', 'archived_at', 'is_current', 'supersedes_id', 'review_status',
         'review_remarks', 'reviewed_by', 'reviewed_at', 'rpms_submitted_at', 'admin_override',
         'override_reason', 'override_by', 'override_at', 'rpms_returned_at', 'rpms_returned_by', 'rpms_return_reason'];
@@ -102,7 +110,7 @@ function doc_row(array $d, array $user, ?int $viewerAdviserId): array
     $isCurrent = !isset($d['is_current']) || (int)$d['is_current'] === 1;
     $role = $user['role'];
 
-    return [
+    $row = [
         'id' => $d['id'],
         'originalName' => $d['original_name'],
         'size' => (int)$d['size'],
@@ -156,6 +164,17 @@ function doc_row(array $d, array $user, ?int $viewerAdviserId): array
             'delete' => in_array($role, ['admin', 'adviser'], true) && (!$locked || $role === 'admin'),
         ],
     ];
+    if ($role === 'student') {
+        // Review feedback and explicit RPMS Return instructions are Student-facing;
+        // administrative override evidence and staff identity belong to staff views.
+        foreach (['adminOverride','overrideReason','overrideBy','overrideAt','reviewedBy','rpmsSubmittedBy','rpmsReturnedBy'] as $field) unset($row[$field]);
+        if (($d['uploaded_by_role'] ?? '') !== 'student') {
+            unset($row['uploadedBy']);
+            $row['notes'] = null; // Unclassified staff upload annotations are internal.
+        }
+        if (stripos((string)($row['reviewRemarks'] ?? ''),'Admin override: ') === 0) $row['reviewRemarks'] = null;
+    }
+    return $row;
 }
 
 // ---------------------------------------------------------------------
@@ -340,18 +359,16 @@ function upload_document_file(PDO $pdo, array $user, ?int $viewerAdviserId, arra
         if ($user['role'] === 'student' && (string)$currentStudent['stage'] !== (string)$studentStage) {
             throw new DocumentWriteConflict('Your IERB stage changed while the file was uploading. Refresh and upload the document for your current stage.');
         }
-        $p = $pdo->prepare('SELECT * FROM documents
-            WHERE student_id = :sid AND stage = :stage AND document_type = :type AND is_current = 1
-            ORDER BY version_no DESC, uploaded_at DESC LIMIT 1 FOR UPDATE');
-        $p->execute([':sid' => $studentDbId, ':stage' => $stage, ':type' => $documentType]);
-        $prev = $p->fetch() ?: null;
+        try { $prev = document_current_version($pdo, (int)$studentDbId, $stage, $documentType); }
+        catch (DocumentWorkflowError $e) { throw new DocumentWriteConflict($e->getMessage(),0,$e); }
         if ($prev) $prev = document_with_return($pdo, $prev, true);
         if ($revisionOf !== '' && (!$prev || $prev['id'] !== $revisionOf
             || !in_array(document_workflow_state($prev), [WF_NEEDS_REVISION, WF_RETURNED_REVISION], true))) {
             throw new DocumentWriteConflict('This revision was already replaced or changed. Refresh your documents.');
         }
-        if ($prev && $user['role'] === 'student' && document_is_locked($prev)
-            && !($revisionOf === $prev['id'] && document_workflow_state($prev) === WF_RETURNED_REVISION)) {
+        if ($prev && document_is_locked($prev)
+            && !($user['role'] === 'student' && $revisionOf === $prev['id']
+                && document_workflow_state($prev) === WF_RETURNED_REVISION)) {
             throw new DocumentWriteConflict('This document was already submitted to RPMS on '
                 . date('M j, Y', strtotime($prev['rpms_submitted_at']))
                 . ' and is locked. Contact RPMS if it needs to be replaced.');
@@ -442,7 +459,9 @@ if ($action === 'upload') {
         foreach (['documentType', 'notes', 'student', 'stage', 'studentDbId', 'requestId', 'revisionOf'] as $field) {
             if (isset($_POST[$field]) && !is_string($_POST[$field])) throw new DocumentUploadError('The upload request is malformed.', 400);
         }
-        if (!in_array($_POST['documentType'] ?? null, prism_document_types(), true)) {
+        // Historical labels are permitted only through the existing owned/current Student revision validation.
+        if (!in_array($_POST['documentType'] ?? null, prism_document_types(), true)
+            && !($user['role'] === 'student' && trim((string)($_POST['revisionOf'] ?? '')) !== '')) {
             throw new DocumentUploadError('Choose a document type from the PRISM document catalog.');
         }
         $files = prism_upload_files($_FILES['document'] ?? null);
@@ -850,8 +869,7 @@ if ($action === 'submit_to_rpms') {
     $whenText = date('M j, Y g:i A');
     if ($doc['student_id']) {
         $body = "Hello {student},\n\nYour document \"$docName\" was formally submitted to RPMS on $whenText."
-            . ($user['role'] === 'admin' ? "\nSubmitted on your behalf by RPMS ({$user['full_name']})." : '')
-            . ($isOverride ? "\nReason: $reason" : '')
+            . ($user['role'] === 'admin' ? "\nSubmitted on your behalf by RPMS." : '')
             . ($advancedTo ? "\n\nYour IERB stage has advanced to: " . stage_label($advancedTo) . " ($advancedTo)." : '')
             . "\n\nReference: $ref\n\n- CEU Malolos RPMS / PRISM";
         $srow = $pdo->prepare('SELECT full_name FROM students WHERE id = :id');
@@ -860,7 +878,7 @@ if ($action === 'submit_to_rpms') {
             str_replace('{student}', (string)$srow->fetchColumn(), $body),
             "\"$docName\" was formally submitted to RPMS (reference $ref)."
                 . ($advancedTo ? ' Your stage is now ' . stage_label($advancedTo) . '.' : ''),
-            'RPMS Submission', $user['full_name']);
+            'RPMS Submission', 'RPMS');
         $who = $doc['student_name'] ?: 'A student';
         if ($user['role'] === 'student') {
             $adminBody = "Student: $who\nDocument: $docName\nType: {$doc['document_type']}\n"
@@ -958,11 +976,11 @@ if ($action === 'override_review') {
                 : "\n\nRPMS must complete formal submission of this Admin Override record. Contact RPMS for assistance.")
             : '';
         notify_student($pdo, (int)$doc['student_id'], 'PRISM Document Status Update',
-            "Hello $sname,\n\nAn RPMS administrator changed the status of your document \"$docName\" from $before to $status."
-                . "\nReason: $reason$next\n\n- CEU Malolos RPMS / PRISM",
-            "An RPMS administrator changed \"$docName\" to $status. Reason: $reason"
+            "Hello $sname,\n\nRPMS updated the status of your document \"$docName\" to $status."
+                . "$next\n\n- CEU Malolos RPMS / PRISM",
+            "RPMS updated \"$docName\" to $status."
                 . ($advancedTo ? ' Your stage is now ' . stage_label($advancedTo) . '.' : ''),
-            'Status Update', $user['full_name'] . ' (Admin Override)');
+            'Status Update', 'RPMS');
         notify_adviser_of_student($pdo, (int)$doc['student_id'], 'Admin Override on a document',
             "{$user['full_name']} changed \"$docName\" from $before to $status. Reason: $reason"
                 . ($advancedTo ? ' The student advanced to ' . stage_label($advancedTo) . '.' : ''),

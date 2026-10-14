@@ -68,6 +68,18 @@ function notification_dispatch(PDO $pdo, int $id, ?string $staleCutoff=null, ?ar
         }
         $pdo->prepare("UPDATE notifications SET status='Sending',sending_started_at=NOW() WHERE id=? AND deleted_at IS NULL")->execute([$id]);
         $pdo->commit();
+        if ($row['recipient_type']==='student') {
+            // Historical queued copies retain their stored evidence; only the outgoing Student view is projected.
+            $deliveryRow=$row+['kind'=>$campaign['kind']??'system'];
+            $safe=notification_student_projection($deliveryRow);
+            $row['subject']=$safe['subject']??'PRISM Status Update';
+            $row['message']=$safe['message']??'';
+            if ($emailOverride!==null) {
+                $deliveryRow['subject']=$emailOverride[0]; $deliveryRow['message']=$emailOverride[1];
+                $safe=notification_student_projection($deliveryRow);
+                $emailOverride=[$safe['subject']??'PRISM Status Update',$safe['message']??''];
+            }
+        }
         $body='Hello '.($row['recipient_name']?:'there').",\n\n".$row['message']."\n\n"
             ."This is an automated notification from the CEU Malolos Research Planning and Monitoring Section (RPMS) via PRISM.\n";
         $result=deliver_notification_email($pdo,$id,(string)$row['recipient_email'],$emailOverride[0]??(string)$row['subject'],$emailOverride[1]??$body,$emailOverride===null);

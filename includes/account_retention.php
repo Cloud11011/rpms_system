@@ -143,7 +143,7 @@ function retention_change(PDO $pdo,array $actor,array $data,?array $authorizedSc
                 // Rotate the credential hash of the same password via a new random salt is impossible without the password.
                 // Require a fresh account setup after restoration; old sessions/tokens cannot become valid again.
                 $pdo->prepare('UPDATE users SET status="Active",password_hash=?,must_change_password=1 WHERE id=?')
-                    ->execute([password_hash(bin2hex(random_bytes(32)),PASSWORD_DEFAULT),$login['id']]);
+                    ->execute([prism_password_hash(bin2hex(random_bytes(32))),$login['id']]);
                 $pdo->prepare('DELETE FROM password_resets WHERE user_id=?')->execute([$login['id']]);
                 $token=bin2hex(random_bytes(32));
                 $invitation=lifecycle_rows($pdo,'SELECT * FROM account_invitations WHERE user_id=? FOR UPDATE',[$login['id']]);

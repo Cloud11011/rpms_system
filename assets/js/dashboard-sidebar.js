@@ -34,25 +34,41 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     let collapsed = media.matches;
     if (!media.matches) { try { collapsed = sessionStorage.getItem('prismNavigationMinimized') === 'true'; } catch (_) {} }
-    // Apply the saved/mobile state before enabling layout animation on first paint.
+    // Apply the saved/mobile state before the sidebar's initial paint.
     sidebar.classList.add('is-initializing');
     setCollapsed(collapsed);
     requestAnimationFrame(() => requestAnimationFrame(() => sidebar.classList.remove('is-initializing')));
-    toggle.addEventListener('click', () => { clearTimeout(hoverTimer); hoverExpanded=false; setCollapsed(toggle.getAttribute('aria-expanded') === 'true', true); });
+    toggle.addEventListener('click', () => {
+        clearTimeout(hoverTimer);
+        hoverExpanded = false;
+        setCollapsed(toggle.getAttribute('aria-expanded') === 'true', true);
+    });
     sidebar.addEventListener('pointerenter', event => {
         if (!hoverMedia.matches || event.pointerType === 'touch' || !sidebar.classList.contains('is-collapsed')) return;
         clearTimeout(hoverTimer);
-        hoverTimer=setTimeout(()=>{if(!hoverMedia.matches||!sidebar.matches(':hover'))return;hoverExpanded=true;setCollapsed(false);},180);
+        hoverTimer = setTimeout(() => {
+            if (!hoverMedia.matches || !sidebar.matches(':hover')) return;
+            hoverExpanded = true;
+            setCollapsed(false);
+        }, 240);
     });
     const endHover = () => {
         clearTimeout(hoverTimer);
         if (!hoverExpanded || sidebar.contains(document.activeElement)) return;
-        hoverTimer=setTimeout(()=>{if(!sidebar.matches(':hover')&&!sidebar.contains(document.activeElement)){hoverExpanded=false;setCollapsed(true);}},220);
+        hoverTimer = setTimeout(() => {
+            if (!sidebar.matches(':hover') && !sidebar.contains(document.activeElement)) {
+                hoverExpanded = false;
+                setCollapsed(true);
+            }
+        }, 320);
     };
-    sidebar.addEventListener('pointerleave',endHover);
-    sidebar.addEventListener('focusout',()=>{if(!sidebar.matches(':hover'))endHover();});
+    sidebar.addEventListener('pointerleave', endHover);
+    sidebar.addEventListener('focusout', () => {
+        if (!sidebar.matches(':hover')) endHover();
+    });
     groups.forEach(button => button.addEventListener('click', () => {
-        clearTimeout(hoverTimer); hoverExpanded=false;
+        clearTimeout(hoverTimer);
+        hoverExpanded = false;
         const open = button.getAttribute('aria-expanded') !== 'true';
         setCollapsed(false, true);
         setGroup(button, open);

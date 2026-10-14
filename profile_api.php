@@ -65,10 +65,11 @@ if ($action === 'change_password') {
     if (strlen($new) > 200) {
         json_out(['ok' => false, 'message' => 'New password is too long.'], 422);
     }
-    if (password_verify($new, $user['password_hash'])) {
+    // Compare the verified full input: legacy bcrypt cannot distinguish a new suffix.
+    if (hash_equals($current, $new)) {
         json_out(['ok' => false, 'message' => 'Choose a new password that is different from your current password.'], 422);
     }
-    $newHash = password_hash($new, PASSWORD_DEFAULT);
+    $newHash = prism_password_hash($new);
     $pdo->beginTransaction();
     try {
         $update = $pdo->prepare('UPDATE users SET password_hash = :p, must_change_password = 0

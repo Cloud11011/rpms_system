@@ -1,9 +1,11 @@
 document.addEventListener('DOMContentLoaded', () => {
     const body = document.body;
     const STAGES = ['Stage 1', 'Stage 2', 'Stage 3', 'Stage 4', 'Stage 5', 'Completed'];
+    const progressStageNames = ['Protocol Submission', 'Initial Ethics Review', 'Revisions & Resubmission', 'Certificate of Approval', 'Continuing Review / Monitoring', 'IERB Process Completed'];
     const stageLabels = window.PRISM_STAGE_LABELS || {};
     const labelForStage = stageKey => stageLabels[stageKey] || stageKey;
     const $ = id => document.getElementById(id);
+    const documentUiPreview = new URLSearchParams(window.location.search).get('ui-preview') === '1';
     PrismUI.documentTypes.forEach(type => $('documentType').add(new Option(type, type)));
     const esc = v => String(v ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
     const fmt = value => {
@@ -11,12 +13,23 @@ document.addEventListener('DOMContentLoaded', () => {
         return date && Number.isFinite(date.getTime())
             ? date.toLocaleString('en-PH', { dateStyle: 'medium', timeStyle: 'short' }) : 'N/A';
     };
+    const recentAge = value => {
+        const date = value ? new Date(value) : null;
+        if (!date || !Number.isFinite(date.getTime())) return 'Date unavailable';
+        const today = new Date();
+        const dayStart = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+        const uploadedDay = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+        const days = Math.max(0, Math.floor((dayStart - uploadedDay) / 86400000));
+        return days === 0 ? 'Today' : days === 1 ? 'Yesterday' : `${days} days ago`;
+    };
 
     let myRecord = null;   // this student's IERB record (or null if none yet)
     let myDocuments = [], dashboardDocumentTotal = 0, documentHistory = {records:[],total:0,page:1};
-    const documentCount = document.createElement('p'); $('documentRows').closest('table').parentElement.insertAdjacentElement('beforebegin',documentCount);
+    const documentTable = $('documentRows').closest('.document-table-wrap');
+    // The committed template has a table, not a separate document-card list/count.
+    const documentCount = {set textContent(value) {documentTable.setAttribute('aria-label', 'My documents table. ' + value);}};
     const documentSearch=$('studentDocumentSearch'),documentSort=$('studentDocumentSort');
-    const docPager = PrismUI.recordPager($('documentRows').closest('table').parentElement,documentCount,[$('documentFilter'),documentSearch,documentSort],refreshDocuments);
+    const docPager = PrismUI.recordPager(documentTable,documentCount,[$('documentFilter'),documentSearch,documentSort],refreshDocuments);
     const profileDirty = PrismUI.dirtyForm($('profileForm'));
     const passwordDirty = PrismUI.dirtyForm($('passwordForm'));
     let myHistory = [], historyState = {total:0,page:1}, historySequence = 0;
@@ -59,14 +72,48 @@ document.addEventListener('DOMContentLoaded', () => {
         submit: ['Document Submission', 'Upload requirements for RPMS/IERB review.'],
         documents: ['My Documents', ''],
         notifications: ['Notifications', 'Stay updated on reviews, reminders, and follow-ups.'],
-        calendar: ['Calendar', ''],
+        calendar: ['Personal Calendar', ''],
         profile: ['Profile', 'Manage your permitted personal and account information.'],
+        activity: ['Activity Logs', 'Review actions recorded for your student account.'],
     };
+
+    const dashboardStageDescriptions = [
+        'Submit your research proposal and required forms.',
+        'Your adviser reviews and endorses your proposal.',
+        'Revise your documents based on feedback, then upload the updated files.',
+        'The ethics board reviews your submitted documents.',
+        'Receive your ethics clearance.',
+        'Complete final reporting and close your IERB requirements.',
+    ];
+    let selectedProgressStage = 0;
+    function updateProgressStageDetail(index) {
+        const stage = STAGES[Math.max(0, Math.min(STAGES.length - 1, index))];
+        $('stageList').setAttribute('aria-label', `${labelForStage(stage)}: ${dashboardStageDescriptions[index] || ''}`);
+    }
+    $('stageList').addEventListener('click', event => {
+        const card = event.target.closest('[data-progress-stage]');
+        if (!card) return;
+        selectedProgressStage = Number(card.dataset.progressStage);
+        $('stageList').querySelectorAll('[data-progress-stage]').forEach((item,index) => {
+            item.classList.toggle('selected', index === selectedProgressStage);
+            item.setAttribute('aria-pressed', String(index === selectedProgressStage));
+        });
+        updateProgressStageDetail(selectedProgressStage);
+    });
 
     function go(page) {
         const active = PAGES[page] ? page : 'dashboard';
         const meta = PAGES[active];
         document.querySelectorAll('.portal-page').forEach(x => x.classList.toggle('active', x.dataset.section === active));
+        if (active === 'submit') {
+            const submitPage = document.querySelector('.portal-page[data-section="submit"]');
+            submitPage?.classList.remove('submit-page-entering');
+            if (submitPage) {
+                void submitPage.offsetWidth;
+                submitPage.classList.add('submit-page-entering');
+                window.setTimeout(() => submitPage.classList.remove('submit-page-entering'), 500);
+            }
+        }
         document.querySelectorAll('#portalNav [data-page]').forEach(button => {
             const current = button.dataset.page === active;
             button.closest('li').classList.toggle('active', current);
@@ -78,6 +125,7 @@ document.addEventListener('DOMContentLoaded', () => {
         $('pageTitle').textContent = meta[0];
         $('pageSubtitle').textContent = meta[1];
         $('pageSubtitle').hidden = !meta[1];
+        if (active === 'activity') loadStudentActivity();
         if (window.location.hash !== '#' + active) history.replaceState(null, '', '#' + active);
         window.scrollTo({ top: 0, behavior: 'smooth' });
     }
@@ -136,6 +184,41 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
+    let activityRequest = 0;
+    async function loadStudentActivity(page = 1) {
+        const requestId = ++activityRequest;
+        const host = $('studentActivityList');
+        const count = $('studentActivityCount');
+        const pager = $('studentActivityPagination');
+        host.setAttribute('aria-busy', 'true');
+        host.replaceChildren(Object.assign(document.createElement('p'), { className: 'student-activity-empty', textContent: 'Loading activity…' }));
+        try {
+            const data = await PrismUI.request(`audit_api.php?action=list&page=${page}`);
+            if (requestId !== activityRequest) return;
+            const entries = Array.isArray(data.entries) ? data.entries : [];
+            PrismUI.pagination(pager, count, { ...data, total: data.total ?? entries.length }, loadStudentActivity, 'entries');
+            if ((Number(data.total) || entries.length) <= Math.max(1, Number(data.limit) || 10)) pager.replaceChildren();
+            host.replaceChildren();
+            if (!entries.length) {
+                host.append(Object.assign(document.createElement('p'), { className: 'student-activity-empty', textContent: 'No activity has been recorded for your account yet.' }));
+                return;
+            }
+            entries.forEach(entry => {
+                const item = document.createElement('article'); item.className = 'activity-row';
+                const heading = document.createElement('header');
+                const title = document.createElement('strong'); title.textContent = entry.actionLabel || entry.action || 'Account activity';
+                const time = document.createElement('time'); time.textContent = fmt(entry.at);
+                heading.append(title, time); item.append(heading);
+                if (entry.details) { const details = document.createElement('p'); details.textContent = entry.details; item.append(details); }
+                host.append(item);
+            });
+        } catch (error) {
+            if (requestId !== activityRequest) return;
+            count.textContent = 'Activity unavailable'; pager.replaceChildren();
+            host.replaceChildren(Object.assign(document.createElement('p'), { className: 'student-activity-empty is-error', textContent: error.message || 'Could not load activity logs.' }));
+        } finally { if (requestId === activityRequest) host.setAttribute('aria-busy', 'false'); }
+    }
+
     // ------------------------------------------------------------------
     // Rendering
     // ------------------------------------------------------------------
@@ -155,45 +238,63 @@ document.addEventListener('DOMContentLoaded', () => {
         $('dashboardProtocolCode').textContent = dashboardProtocolCode;
         $('dashboardProtocol').hidden = !dashboardProtocolCode;
         $('dashboardStageValue').textContent = stageText;
-        $('dashboardProgressPercent').textContent = loadErrors.progress ? 'Unavailable' : `${progress}%`;
-        $('dashboardProgressBar').style.width = loadErrors.progress ? '0%' : `${progress}%`;
-        if (loadErrors.progress) {
-            $('dashboardProgressTrack').removeAttribute('aria-valuenow');
-            $('dashboardProgressTrack').setAttribute('aria-valuetext', 'Unavailable');
-        } else {
-            $('dashboardProgressTrack').setAttribute('aria-valuenow', progress);
-            $('dashboardProgressTrack').removeAttribute('aria-valuetext');
-        }
         $('dashboardStatusValue').textContent = status;
-        $('dashboardPendingValue').textContent = loadErrors.progress ? 'Unavailable' : pendingCount;
-        $('dashboardSubmissionValue').textContent = loadErrors.documents ? 'Unavailable' : `${dashboardDocumentTotal} ${dashboardDocumentTotal === 1 ? 'document' : 'documents'}`;
-        $('dashboardSubmissionStatus').textContent = loadErrors.documents ? 'Document status could not be loaded.' : latestDoc ? `Latest: ${latestDoc.workflowState || latestDoc.reviewStatus}` : '';
-        $('dashboardSubmissionStatus').hidden = !loadErrors.documents && !latestDoc;
-        $('studentCurrentDocument').textContent = loadErrors.documents ? 'Unable to load your latest submission.' : latestDoc?.originalName || '';
-        $('studentCurrentDocument').hidden = !loadErrors.documents && !latestDoc?.originalName;
-        $('studentReviewState').textContent = loadErrors.documents ? 'Unavailable' : latestDoc?.workflowState || latestDoc?.reviewStatus || 'No review yet';
-        $('studentReviewRemarks').textContent = loadErrors.documents ? 'Reviewer remarks could not be loaded.' : latestDoc?.rpmsReturnReason || latestDoc?.reviewRemarks || '';
-        $('studentReviewRemarks').hidden = !loadErrors.documents && !latestDoc?.rpmsReturnReason && !latestDoc?.reviewRemarks;
-
+        const track = $('dashboardProgressTrack');
+        $('dashboardProgressBar').style.width = `${progress}%`;
+        $('dashboardProgressPercent').textContent = loadErrors.progress ? 'N/A' : `${progress}%`;
+        if (loadErrors.progress) {track.removeAttribute('aria-valuenow');track.setAttribute('aria-valuetext','Unavailable');}
+        else {track.setAttribute('aria-valuenow',String(progress));track.removeAttribute('aria-valuetext');}
+        $('dashboardPendingValue').textContent = loadErrors.progress ? 'N/A' : String(pendingCount);
+        $('dashboardSubmissionValue').innerHTML = loadErrors.documents ? 'Unavailable' : dashboardDocumentTotal
+            ? `${dashboardDocumentTotal} <small>${dashboardDocumentTotal === 1 ? 'document' : 'documents'}</small>` : 'Nothing uploaded yet';
+        $('studentCurrentDocument').textContent = loadErrors.documents ? 'Your submissions could not be loaded.' : latestDoc
+            ? `${latestDoc.documentType || latestDoc.originalName} · ${latestDoc.stageLabel || latestDoc.stage || 'Research submission'}`
+            : 'Submit your first requirement to start your review.';
+        const submissionTag = $('dashboardSubmissionStatus');
+        submissionTag.textContent = loadErrors.documents ? 'Status unavailable' : latestDoc?.workflowState || latestDoc?.reviewStatus || '';
+        submissionTag.hidden = !loadErrors.documents && !latestDoc;
+        const reviewState = latestDoc?.workflowState || latestDoc?.reviewStatus || '';
+        $('studentReviewState').textContent = loadErrors.documents ? 'Unavailable' : !latestDoc ? 'No review yet'
+            : /pending adviser review|under review/i.test(reviewState) ? 'In review' : reviewState;
+        $('studentReviewRemarks').textContent = loadErrors.documents ? 'Reviewer updates could not be loaded.' : latestDoc
+            ? latestDoc.rpmsReturnReason || latestDoc.reviewRemarks || ( /pending adviser review|under review/i.test(reviewState)
+                ? 'Your adviser is reviewing your document.' : 'Your adviser will review any new submission.')
+            : 'Your adviser will review once you submit a document.';
+        $('studentRecentNotifications').innerHTML = loadErrors.notifications
+            ? empty('Notifications could not be loaded.')
+            : myNotifications.slice(0,3).map(n => noticeItem(n,false)).join('') || empty('No notifications yet.');
         const unread = unreadNotifications;
         $('navBadge').textContent = loadErrors.notifications ? '!' : unread;
         $('navBadge').hidden = !loadErrors.notifications && !unread;
         $('navBadge').title = loadErrors.notifications ? 'Notifications unavailable' : `${unread} unread notifications`;
 
         $('currentStage').textContent = loadErrors.progress ? 'Unavailable' : myRecord ? labelForStage(myRecord.stage) : 'No record yet';
-        $('progressRing').style.background = `conic-gradient(var(--accent-pink) ${progress}%, var(--bg-color) 0)`;
+        $('principalIndicator').hidden = !myRecord?.isPrincipalInvestigator;
+        $('principalIndicator').setAttribute('aria-expanded', String(!$('protocolCodeReveal').hidden));
+        $('protocolCodeReveal').textContent = myRecord?.protocolCode || 'No protocol code yet';
+        $('progressRing').style.setProperty('--progress-value', `${progress}%`);
         const progressText = document.createElement('b');
         progressText.textContent = loadErrors.progress ? 'N/A' : `${progress}%`;
-        $('progressRing').replaceChildren(progressText);
+        const progressLabel = document.createElement('span');
+        progressLabel.className = 'progress-ring-label';
+        progressLabel.textContent = 'complete';
+        $('progressRing').replaceChildren(progressText, progressLabel);
 
+        selectedProgressStage = myRecord ? Math.max(0, stageIndex - 1) : 0;
         $('stageList').innerHTML = loadErrors.progress ? empty('Unable to load your IERB progress. Please try again.') : STAGES.map((s, i) => {
             const cls = i + 1 < stageIndex ? 'complete' : i + 1 === stageIndex ? 'current' : '';
             const icon = i + 1 < stageIndex ? 'fa-circle-check' : 'fa-circle';
-            return `<div class="stage-card ${cls}"${cls==='current'?' aria-current="step"':''}><i class="fa-solid ${icon}" aria-hidden="true"></i><strong>Stage ${i + 1}</strong><small>${cls==='complete'?'✓ Completed':cls==='current'?"You're here":'Upcoming'}</small><span>${esc(labelForStage(s))}</span></div>`;
+            return `<button type="button" class="stage-card ${cls}" data-progress-stage="${i}"${cls==='current'?' aria-current="step"':''} aria-pressed="${i === selectedProgressStage ? 'true' : 'false'}"><i class="fa-solid ${icon}" aria-hidden="true"></i><strong>${esc(progressStageNames[i])}</strong><small>${cls==='complete'?'✓ Completed':cls==='current'?"You're here":'Upcoming'}</small><span>${esc(s)}</span></button>`;
         }).join('');
+        $('stageList').querySelectorAll('.stage-card').forEach((card, index) => {
+            const selected = index === selectedProgressStage;
+            card.classList.toggle('selected', selected);
+            card.setAttribute('aria-pressed', String(selected));
+        });
+        updateProgressStageDetail(selectedProgressStage);
 
         $('completedRequirements').innerHTML = loadErrors.progress ? empty('Completed requirements are unavailable.') : myRecord && stageIndex > 1
-            ? `<div class="list-item"><i class="fa-solid fa-circle-check"></i><div><strong>Stages 1-${stageIndex - 1}</strong><span>Completed</span></div></div>`
+            ? `<div class="list-item"><i class="fa-solid fa-circle-check"></i><div><strong>${stageIndex - 1 === 1 ? 'Stage 1' : `Stages 1-${stageIndex - 1}`}</strong><span>Completed</span></div></div>`
             : empty('No completed requirements yet.');
         $('pendingRequirements').innerHTML = loadErrors.progress ? empty('Pending requirements are unavailable.') : myRecord && myRecord.requirements && myRecord.requirements !== 'None'
             ? `<div class="list-item"><i class="fa-regular fa-clock"></i><div><strong>${esc(myRecord.requirements)}</strong><span>Pending</span></div></div>`
@@ -201,22 +302,14 @@ document.addEventListener('DOMContentLoaded', () => {
 
         renderHistory();
 
-        $('recentSubmissions').innerHTML = loadErrors.documents ? empty('Unable to load recent submissions. Please try again.') : myDocuments.slice(0, 4).map(docItem).join('') || empty('No submissions yet.');
-        $('studentRecentNotifications').innerHTML = loadErrors.notifications ? empty('Unable to load notifications. Please try again.') : myNotifications.slice(0, 3).map(n => noticeItem(n, false)).join('') || empty('You have no notifications.');
-
-        // Principal Investigator indicator + Protocol Code (feature requests
-        // 10-11). Kept intentionally simple: a small badge that reveals the
-        // code on click, plus a prominent card shown ahead of the raw file
-        // list once a protocol code has actually been assigned.
-        const piIndicator = $('principalIndicator');
-        const protocolReveal = $('protocolCodeReveal');
-        if (myRecord && myRecord.isPrincipalInvestigator) {
-            piIndicator.hidden = false;
-        } else {
-            piIndicator.hidden = true;
-            protocolReveal.hidden = true;
-        }
-
+        $('recentSubmissions').innerHTML = loadErrors.documents
+            ? empty('Unable to load recent submissions. Please try again.')
+            : myDocuments.slice(0, 4).map(recentSubmissionItem).join('') || `<div class="student-recent-empty">
+                <span class="student-recent-empty-icon"><i class="fa-regular fa-file" aria-hidden="true"></i></span>
+                <strong>No submissions yet</strong>
+                <p>When you upload a document, it will show up here with its status.</p>
+                <button type="button" class="student-recent-empty-action" data-go="submit"><i class="fa-solid fa-upload" aria-hidden="true"></i> Submit a document</button>
+            </div>`;
         const protocolCard = $('protocolCodeCard');
         if (myRecord && myRecord.protocolCode) {
             $('protocolCodeValue').textContent = myRecord.protocolCode;
@@ -235,29 +328,59 @@ document.addEventListener('DOMContentLoaded', () => {
         return `<div class="list-item"><i class="fa-solid fa-file-lines"></i><div><strong>${esc(d.documentType)}</strong><span>${esc(d.originalName)}${version} &middot; ${fmt(d.uploadedAt)} &middot; ${esc(state)}</span></div></div>`;
     }
 
+    function recentSubmissionItem(d) {
+        const state = d.workflowState || d.reviewStatus || 'Submitted';
+        const pending = /pending|review/i.test(state) && !/submitted to rpms/i.test(state);
+        const needsAction = /needs revision|returned/i.test(state);
+        const extension = (String(d.originalName || '').split('.').pop() || 'FILE').toUpperCase();
+        const extensionClass = /^(DOC|DOCX|RTF|ODT)$/.test(extension) ? 'is-doc' : 'is-pdf';
+        const version = Number(d.versionNo || 1) > 1 ? ` · v${Number(d.versionNo)}` : '';
+        return `<a class="student-recent-item" href="${documentHref(d)}" target="_blank" rel="noopener">
+            <span class="student-recent-file ${extensionClass}">${esc(extension)}</span>
+            <span class="student-recent-body"><strong>${esc(d.documentType || 'Document')}</strong><span>${esc(d.originalName || 'Uploaded file')}${version}</span></span>
+            <span class="student-recent-side"><span class="student-recent-status ${pending ? 'is-pending' : needsAction ? 'is-action' : 'is-submitted'}"><i class="fa-regular ${pending ? 'fa-clock' : needsAction ? 'fa-circle-xmark' : 'fa-circle-check'}" aria-hidden="true"></i>${esc(state)}</span><time>${esc(recentAge(d.uploadedAt))}</time></span>
+            <i class="fa-solid fa-chevron-right student-recent-arrow" aria-hidden="true"></i>
+        </a>`;
+    }
+
     function renderHistory() {
         if(loadErrors.progress||loadErrors.history)historyPager.error();else historyPager.render(historyState);
         $('progressHistory').innerHTML = loadErrors.progress || loadErrors.history ? empty('Unable to load progress history. Please try again.') : myHistory.length
-            ? myHistory.map(h => `<div class="list-item"><i class="fa-solid fa-clock-rotate-left"></i><div><strong>${esc(h.stage)} - ${esc(h.status)}</strong><span>${esc(h.note || 'Updated by RPMS')} &bull; ${esc(fmt(h.created_at))} &bull; ${esc(h.actor || 'System')}</span></div></div>`).join('')
+            ? myHistory.map(h => `<div class="list-item"><i class="fa-solid fa-circle" aria-hidden="true"></i><div><div class="progress-history-title"><strong>${esc(labelForStage(h.stage))}</strong><span class="progress-history-status ${/delay|pending|revision|return/i.test(h.status || '') ? 'is-attention' : ''}">${esc(h.status || 'On track')}</span></div><span class="progress-history-note">${esc(h.note || 'Updated by RPMS')}</span><span class="progress-history-meta">${esc(fmt(h.created_at))}</span></div></div>`).join('')
             : empty('No progress history yet.');
     }
 
+    function documentHref(doc) {
+        return ['application/pdf','image/png','image/jpeg'].includes(doc.mime)
+            ? 'document_preview.php?id=' + encodeURIComponent(doc.id)
+            : 'documents_api.php?action=file&download=1&id=' + encodeURIComponent(doc.id);
+    }
     function renderDocs() {
-        const filter = $('documentFilter').value;
-        const docs = documentHistory.records;
-        if (!loadErrors.documents) docPager.render(documentHistory);
-        if(!loadErrors.documents)PrismUI.statusPills($('studentDocumentPills'),[['','All'],['Pending Adviser Review','Pending review'],['Needs Revision','Needs revision'],['Returned for Revision','Returned by RPMS'],['Submitted to RPMS','Submitted to RPMS']],$('documentFilter'),documentHistory.counts||{});
-        $('documentRows').innerHTML = loadErrors.documents ? `<tr><td colspan="6">${empty('Unable to load your documents. Please try again.')}</td></tr>` : docs.map(d => `<tr>
-            <td><strong>${esc(d.originalName)}</strong>${Number(d.versionNo || 1) > 1 ? `<small> v${Number(d.versionNo)}</small>` : ''}<small>Document ID: ${esc(d.id)} &bull; ${esc(d.stageLabel || d.stage)}</small></td>
-            <td>${esc(d.documentType)}</td>
-            <td>${fmt(d.uploadedAt)}</td>
-            <td>${PrismUI.badge(d.workflowState || d.reviewStatus, { small: true })}${d.rpmsSubmittedAt ? `<small>Submitted: ${esc(fmt(d.rpmsSubmittedAt))}</small>` : ''}</td>
-            <td>${esc(d.rpmsReturnReason ? 'RPMS return reason: '+d.rpmsReturnReason : d.reviewRemarks || (d.workflowState === 'Submitted to RPMS' ? 'Formally submitted to RPMS' : 'No reviewer remarks yet'))}</td>
-            <td><div class="student-document-actions"><a class="action-btn" href="documents_api.php?action=file&id=${encodeURIComponent(d.id)}" target="_blank" rel="noopener">Preview</a>
-                <a class="action-btn" href="documents_api.php?action=file&download=1&id=${encodeURIComponent(d.id)}">Download</a><button type="button" class="action-btn" data-version-history="${esc(d.id)}">Version history</button>${d.actions?.uploadRevision ? `<button type="button" class="action-btn prism-btn-primary" data-upload-revision="${esc(d.id)}">Upload Revision</button>` : ''}</div></td>
-        </tr>`).join('') || `<tr><td colspan="6">${empty('No documents match this view.')}</td></tr>`;
-        document.querySelectorAll('.student-document-actions').forEach(host => PrismUI.actionMenu(host, {primary:host.querySelector('[data-formal-submit]')}));
-        if(!loadErrors.documents) [...$('documentRows').rows].forEach((row,index)=>{if(row.cells.length===6)PrismUI.compactRecord(row,0,3,5,[['Adviser review decision',docs[index]?.reviewStatus]]);});
+        const docs = documentHistory.records || [];
+        if (!loadErrors.documents) docPager.render(documentHistory); else docPager.error();
+        if (!loadErrors.documents) PrismUI.statusPills($('studentDocumentPills'),
+            [['','All'],['Pending Adviser Review','Pending review'],['Needs Revision','Needs revision'],['Returned for Revision','Returned by RPMS'],['Submitted to RPMS','Submitted to RPMS']],
+            $('documentFilter'),documentHistory.counts || {});
+        const rows = $('documentRows');
+        if (loadErrors.documents || !docs.length) {
+            const message = loadErrors.documents ? 'Unable to load your documents. Please try again.'
+                : $('documentFilter').value || documentSearch.value.trim() ? 'No documents match this view.' : "You haven't uploaded anything yet";
+            rows.innerHTML = `<tr><td colspan="6">${empty(message)}</td></tr>`;
+            return;
+        }
+        rows.innerHTML = docs.map(d => {
+            const state = d.workflowState || d.reviewStatus || 'Submitted';
+            const remarks = d.rpmsReturnReason || d.reviewRemarks || 'No reviewer remarks yet';
+            const inline = ['application/pdf','image/png','image/jpeg'].includes(d.mime);
+            return `<tr><td><strong>${esc(d.originalName)}</strong><br><small>v${Number(d.versionNo || 1)} · ${esc(d.stageLabel || d.stage)}</small></td>
+                <td>${esc(d.documentType)}</td><td>${esc(fmt(d.uploadedAt))}</td><td>${PrismUI.badge(state,{small:true})}</td>
+                <td>${esc(remarks)}</td><td><div class="student-document-actions">
+                <a class="action-btn" href="${documentHref(d)}" target="_blank" rel="noopener" aria-label="${inline ? 'View' : 'Download'} ${esc(d.originalName)}"><i class="fa-regular fa-eye" aria-hidden="true"></i> ${inline ? 'View' : 'Download'}</a>
+                <a class="action-btn" href="documents_api.php?action=file&download=1&id=${encodeURIComponent(d.id)}"><i class="fa-solid fa-download" aria-hidden="true"></i> Download</a>
+                <button type="button" class="action-btn" data-version-history="${esc(d.id)}"><i class="fa-solid fa-clock-rotate-left" aria-hidden="true"></i> Version history</button>
+                ${d.actions?.uploadRevision ? `<button type="button" class="action-btn" data-upload-revision="${esc(d.id)}"><i class="fa-solid fa-arrow-up-from-bracket" aria-hidden="true"></i> Upload revision</button>` : ''}
+                </div></td></tr>`;
+        }).join('');
     }
 
     function noticeItem(n, includeAction = true) {
@@ -266,7 +389,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     const notificationCenter = PrismNotifications.mount({ list: $('notificationList'), count: $('studentNotificationCount'),
-        pager: $('studentNotificationPagination'), markAll: $('markAllRead'), onChange: refreshNotificationOverview });
+        pager: $('studentNotificationPagination'), markAll: $('markAllRead'), studentCenter: true, onChange: refreshNotificationOverview });
     async function refreshNotificationOverview() {
         const data = await loadNotifications();
         myNotifications = data.records; unreadNotifications = data.unread ?? 0;
@@ -287,12 +410,12 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function fillSubmissionRecord() {
-        $('submissionResearchTitle').value = myRecord?.research || '';
-        $('submissionResearchGroup').value = myRecord?.groupId || '';
+        $('submissionResearchTitle').value = myRecord?.research || 'Not recorded';
+        $('submissionResearchGroup').value = myRecord?.groupId || 'Not recorded';
         $('submissionStudentId').value = myRecord?.studentId || 'Not recorded';
         $('submissionStage').value = myRecord?.stageLabel || myRecord?.stage || 'Not recorded';
         $('submissionAdviser').value = myRecord?.adviser || 'Unassigned';
-        $('submissionProtocol').value = myRecord?.protocolCode || 'No protocol code yet.';
+        $('submissionProtocol').value = myRecord?.protocolCode || 'No protocol code yet';
     }
 
     async function refreshAll() {
@@ -318,6 +441,7 @@ document.addEventListener('DOMContentLoaded', () => {
         loadErrors = { progress: progress.error, history: progress.historyError, documents: documents.error, notifications: notifications.error };
         render();
         fillSubmissionRecord();
+        updateSubmissionReadiness();
         const unavailable = Object.entries(loadErrors).filter(([, failed]) => failed).map(([area]) => area === 'history' ? 'progress history' : area);
         $('studentDashboardState').textContent = unavailable.length ? `Unable to load ${unavailable.join(', ')}. Please refresh to try again.` : '';
         $('studentDashboardState').setAttribute('aria-busy', 'false');
@@ -347,18 +471,7 @@ document.addEventListener('DOMContentLoaded', () => {
     document.addEventListener('prism:documents-changed', refreshAll);
     setNavigation(false);
 
-    document.querySelectorAll('[data-go]').forEach(b => b.addEventListener('click', () => go(b.dataset.go)));
-    document.querySelectorAll('#portalNav button').forEach(b => b.addEventListener('click', () => go(b.dataset.page)));
-
-    $('principalIndicator').addEventListener('click', () => {
-        const reveal = $('protocolCodeReveal');
-        if (reveal.hidden) {
-            reveal.textContent = myRecord?.protocolCode
-                ? `Protocol Code: ${myRecord.protocolCode}`
-                : 'No protocol code yet.';
-        }
-        reveal.hidden = !reveal.hidden;
-    });
+    document.querySelectorAll('#portalNav button[data-page]').forEach(b => b.addEventListener('click', () => go(b.dataset.page)));
 
     // ------------------------------------------------------------------
     // Document submission
@@ -368,14 +481,70 @@ document.addEventListener('DOMContentLoaded', () => {
     $('submissionForm').before(revisionNotice);
     const cancelRevision = document.createElement('button'); cancelRevision.type='button'; cancelRevision.textContent='Cancel revision'; cancelRevision.className='action-btn'; cancelRevision.hidden=true;
     revisionNotice.after(cancelRevision);
-    function clearRevision() { revisionDocument=null; revisionNotice.hidden=true; cancelRevision.hidden=true; $('documentType').disabled=false; $('documentFile').multiple=true; }
+    const submissionForm = $('submissionForm');
+    const submissionType = $('documentType');
+    const submissionFile = $('documentFile');
+    const submissionNotes = $('documentNotes');
+    const submissionButton = submissionForm.querySelector('[type="submit"]');
+    const maxUploadBytes = 20 * 1024 * 1024;
+
+    function updateSubmissionReadiness() {
+        const hasType = Boolean(submissionType.value);
+        const files = [...submissionFile.files];
+        const invalid = files.find(file => {
+            const extension = file.name.split('.').pop().toLowerCase();
+            return !['pdf', 'docx'].includes(extension) || file.size > maxUploadBytes;
+        });
+        const hasFiles = files.length > 0 && !invalid;
+        const fileSelection = $('uploadSelection');
+        fileSelection.replaceChildren();
+        files.forEach((file, index) => {
+            const card = document.createElement('div'); card.className = 'submission-file-card';
+            const badge = document.createElement('span'); badge.className = 'submission-file-badge';
+            badge.textContent = file.name.split('.').pop().toUpperCase();
+            const meta = document.createElement('span'); meta.className = 'submission-file-meta';
+            const name = document.createElement('strong'); name.textContent = file.name;
+            const size = document.createElement('small'); size.textContent = file.size < 1024 * 1024
+                ? `${Math.ceil(file.size / 1024)} KB` : `${(file.size / (1024 * 1024)).toFixed(1)} MB`;
+            meta.append(name, size);
+            const remove = document.createElement('button'); remove.type = 'button'; remove.className = 'submission-file-remove';
+            remove.setAttribute('aria-label', `Remove ${file.name}`); remove.textContent = 'Remove';
+            remove.addEventListener('click', () => {
+                const remaining = new DataTransfer();
+                [...submissionFile.files].forEach((selected, selectedIndex) => { if (selectedIndex !== index) remaining.items.add(selected); });
+                submissionFile.files = remaining.files;
+                submissionFile.dispatchEvent(new Event('change', { bubbles: true }));
+                submissionFile.focus();
+            });
+            card.append(badge, meta, remove); fileSelection.append(card);
+        });
+        submissionButton.disabled = !(hasType && hasFiles);
+        const error = invalid ? invalid.size > maxUploadBytes ? `${invalid.name} is over the 20 MB file limit.` : `${invalid.name} is not a PDF or DOCX file.` : '';
+        submissionFile.setCustomValidity(error);
+        if (error) $('uploadResults').textContent = error;
+    }
+
+    function clearRevision() {
+        revisionDocument=null; revisionNotice.hidden=true; cancelRevision.hidden=true;
+        submissionType.querySelectorAll('[data-legacy-revision]').forEach(option => option.remove());
+        submissionType.disabled=false; submissionFile.multiple=true; updateSubmissionReadiness();
+    }
     cancelRevision.addEventListener('click',clearRevision);
+    submissionType.addEventListener('change', updateSubmissionReadiness);
+    submissionFile.addEventListener('change', updateSubmissionReadiness);
+    submissionNotes.addEventListener('input', updateSubmissionReadiness);
     document.addEventListener('prism:upload-revision',event=>{
         const doc=event.detail; if(!doc?.actions?.uploadRevision)return;
-        revisionDocument=doc; $('documentType').value=doc.documentType; $('documentType').disabled=true; $('documentFile').multiple=false;
+        revisionDocument=doc;
+        submissionType.querySelectorAll('[data-legacy-revision]').forEach(option => option.remove());
+        if (![...submissionType.options].some(option => option.value === doc.documentType)) {
+            const option = new Option(doc.documentType, doc.documentType); option.dataset.legacyRevision='1'; submissionType.add(option);
+        }
+        $('documentType').value=doc.documentType; $('documentType').disabled=true; $('documentFile').multiple=false;
         revisionNotice.textContent=`Upload a NEW revision of ${doc.originalName} (version ${doc.versionNo}, ${doc.stageLabel || doc.stage}). The submitted file and history will be kept. ${doc.rpmsReturnReason || doc.reviewRemarks || ''}`;
-        revisionNotice.hidden=false; cancelRevision.hidden=false; $('documentFile').focus();
+        revisionNotice.hidden=false; cancelRevision.hidden=false; updateSubmissionReadiness(); $('documentFile').focus();
     });
+    updateSubmissionReadiness();
     $('submissionForm').addEventListener('submit', async event => {
         event.preventDefault();
         const files = $('documentFile').files;
@@ -406,6 +575,7 @@ document.addEventListener('DOMContentLoaded', () => {
             toast(e.message);
         } finally {
             release();
+            updateSubmissionReadiness();
         }
     });
 
@@ -436,16 +606,20 @@ document.addEventListener('DOMContentLoaded', () => {
     const documentSearchReload=PrismUI.debounce(()=>{docPager.reset();refreshDocuments();});
     documentSearch.addEventListener('input',documentSearchReload);
     documentSort.addEventListener('change',()=>{docPager.reset();refreshDocuments();});
-    $('documentRows').addEventListener('click', e => {
+    document.addEventListener('click', e => {
+        const goButton = e.target.closest('[data-go]');
+        if (goButton && !goButton.hasAttribute('data-page')) { e.preventDefault(); go(goButton.dataset.go); return; }
+        if (e.target.closest('#copyProtocolCode')) {
+            const code = $('protocolCodeValue').textContent;
+            if (code && navigator.clipboard) navigator.clipboard.writeText(code).then(() => toast('Protocol code copied')).catch(() => toast('Copy unavailable.'));
+            return;
+        }
         const history=e.target.closest('[data-version-history]'); if(history){PrismUI.showVersions(history.dataset.versionHistory);return;}
         const button = e.target.closest('[data-upload-revision]');
         if(!button)return;
-        const doc = documentHistory.records.find(d=>String(d.id)===button.dataset.uploadRevision);
+        const doc = [...documentHistory.records,...myDocuments].find(d=>String(d.id)===button.dataset.uploadRevision);
         if(doc)PrismUI.uploadRevision(doc);
     });
-
-
-
     // ------------------------------------------------------------------
     // Profile
     // ------------------------------------------------------------------
@@ -487,22 +661,26 @@ document.addEventListener('DOMContentLoaded', () => {
         } finally {release();}
     });
 
-    // Profile photo is a local-only preview in this build (not persisted server-side).
+    $('principalIndicator').addEventListener('click', () => {
+        $('protocolCodeReveal').hidden = !$('protocolCodeReveal').hidden;
+        $('principalIndicator').setAttribute('aria-expanded', String(!$('protocolCodeReveal').hidden));
+    });
+    let photoUrl = null;
     $('previewProfileImage').addEventListener('click', () => $('profileImageInput').click());
     $('profileImageInput').addEventListener('change', () => {
         const file = $('profileImageInput').files[0];
         if (!file) return;
-        if (!['image/jpeg', 'image/png', 'image/webp'].includes(file.type)) { toast('Choose a JPG, PNG, or WebP image.'); return; }
-        const reader = new FileReader();
-        reader.onload = () => {
-            $('profileImagePreview').src = reader.result;
-        };
-        reader.readAsDataURL(file);
+        if (!['image/png','image/jpeg','image/webp'].includes(file.type)) {toast('Choose a PNG, JPEG or WebP image.');return;}
+        if (photoUrl) URL.revokeObjectURL(photoUrl);
+        photoUrl = URL.createObjectURL(file);
+        $('profileImagePreview').src = photoUrl; $('navProfileImage').src = photoUrl;
     });
     $('removeProfileImage').addEventListener('click', () => {
+        if (photoUrl) URL.revokeObjectURL(photoUrl); photoUrl = null;
         $('profileImageInput').value = '';
-        $('profileImagePreview').src = 'assets/images/default-avatar.svg';
+        $('profileImagePreview').src = 'assets/images/default-avatar.svg'; $('navProfileImage').src = 'assets/images/default-avatar.svg';
     });
+    window.addEventListener('pagehide', () => {if (photoUrl) URL.revokeObjectURL(photoUrl);});
 
     $('themeToggle').addEventListener('click', () => {
         const isDark = document.documentElement.classList.toggle('dark-theme');
@@ -512,9 +690,9 @@ document.addEventListener('DOMContentLoaded', () => {
     $('dashboardCurrentDate').textContent = new Date().toLocaleDateString('en-PH', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' });
 
     (async function init() {
-        await refreshAll();
-        await fillProfile();
         const initial = window.location.hash.replace('#', '');
         go(PAGES[initial] ? initial : 'dashboard');
-    })();
+        await refreshAll();
+        await fillProfile();
+    })().catch(error => { $('studentDashboardState').setAttribute('aria-busy','false'); $('studentDashboardState').textContent = error.message || 'Workspace could not be initialized.'; });
 });

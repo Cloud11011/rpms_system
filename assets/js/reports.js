@@ -122,6 +122,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             });
             actions.append(del);
+            PrismUI.actionMenu(actions,{label:'Report actions'});
+            const direct=document.createElement('a');direct.className='prism-btn report-view-file';direct.textContent='View report';direct.href=view.href;direct.target='_blank';direct.rel='noopener';
+            if(!r.requiresRegeneration)actions.prepend(direct);
             body.appendChild(tr);
         });
     }

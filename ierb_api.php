@@ -120,8 +120,30 @@ if ($action === 'history') {
     } elseif (!adviser_may_access_student($pdo, $user, $studentId)) {
         json_out(['ok' => false, 'message' => 'This student is assigned to another adviser.'], 403);
     }
-    $page = prism_page_query($pdo, 'SELECT *', 'FROM ierb_history WHERE student_id = :id', [':id' => $studentId], 'created_at DESC, id DESC', $_GET);
+    // Historical free-text annotations have no reliable Student-facing classification.
+    // Keep official progress/dates; reviewer instructions remain in owned document feedback.
+    $select = 'SELECT *';
+    $scope = 'FROM ierb_history WHERE student_id = :id';
+    $order = 'created_at DESC, id DESC';
+    if ($user['role'] === 'student') {
+        $select = 'SELECT h.stage, h.status, h.submission_date, h.created_at';
+        // Only the initial official observation and actual stage/status changes are public.
+        // Note-only/repeated snapshots are filtered before counts and pagination.
+        $scope = 'FROM ierb_history h WHERE h.student_id = :id AND NOT EXISTS (
+            SELECT 1 FROM ierb_history previous WHERE previous.id = (
+                SELECT MAX(prior.id) FROM ierb_history prior
+                WHERE prior.student_id = h.student_id AND prior.id < h.id
+            ) AND previous.stage <=> h.stage AND previous.status <=> h.status
+        )';
+        $order = 'h.created_at DESC, h.id DESC';
+    }
+    $page = prism_page_query($pdo, $select, $scope, [':id' => $studentId], $order, $_GET);
     $rows = $page['rows']; unset($page['rows']);
+    if ($user['role'] === 'student') $rows = array_map(static fn($row) => [
+        'stage' => $row['stage'], 'status' => $row['status'],
+        'submission_date' => $row['submission_date'], 'created_at' => $row['created_at'],
+        'action' => 'progress_recorded', 'note' => null, 'feedback' => null,
+    ], $rows);
     json_out(['ok' => true, 'history' => $rows] + $page);
 }
 
@@ -259,8 +281,8 @@ if ($action === 'override') {
     }
 
     notify_student($pdo, $id, 'PRISM IERB Progress Updated',
-        "Hello {$cur['full_name']},\n\nAn RPMS administrator updated your IERB record.\n$change\nReason: $reason\n\n- CEU Malolos RPMS / PRISM",
-        "RPMS updated your IERB record. $change. Reason: $reason", 'Status Update', $user['full_name'] . ' (Admin Override)');
+        "Hello {$cur['full_name']},\n\nRPMS updated your IERB record.\nCurrent stage: " . stage_label($newStage) . " ($newStage)\nStatus: $newStatus\n\n- CEU Malolos RPMS / PRISM",
+        "RPMS updated your IERB record. Current stage: " . stage_label($newStage) . " ($newStage). Status: $newStatus.", 'Status Update', 'RPMS');
     notify_adviser_of_student($pdo, $id, 'Admin Override on a student record',
         "{$user['full_name']} updated {$cur['full_name']}'s IERB record. $change. Reason: $reason", 'Admin Override', $user['full_name']);
 
@@ -396,7 +418,7 @@ if ($action === 'save') {
                 $newLoginTempPassword = $tempPassword;
                 $pdo->prepare('INSERT INTO users (username,password_hash,role,full_name,email,ref_id,must_change_password)
                     VALUES (:u,:p,"student",:n,:e,:ref,1)')
-                    ->execute([':u' => $studentIdCode, ':p' => password_hash($tempPassword, PASSWORD_DEFAULT),
+                    ->execute([':u' => $studentIdCode, ':p' => prism_password_hash($tempPassword),
                         ':n' => $name, ':e' => $email, ':ref' => $studentIdCode]);
                 $newLoginUserId = (int)$pdo->lastInsertId();
             } else {
@@ -408,7 +430,7 @@ if ($action === 'save') {
                             password_hash=:p, must_change_password=1
                         WHERE id=:id AND role='student'")
                         ->execute([':u' => $studentIdCode, ':n' => $name, ':e' => $email, ':ref' => $studentIdCode,
-                            ':p' => password_hash($tempPassword, PASSWORD_DEFAULT), ':id' => $existingLogin['id']]);
+                            ':p' => prism_password_hash($tempPassword), ':id' => $existingLogin['id']]);
                     $newLoginUserId = (int)$existingLogin['id'];
                 } else {
                     $pdo->prepare("UPDATE users SET username=:u, full_name=:n, email=:e, ref_id=:ref
@@ -435,7 +457,8 @@ if ($action === 'save') {
             audit_override_atomic($pdo, $user, 'admin_override_student_progress', [
                 'entity_type' => 'student', 'entity_id' => $id, 'student_id' => $id, 'override' => true,
                 'reason' => $reason !== '' ? $reason : '(none recorded)',
-                'details' => $change, 'after' => "$stage / $status",
+                'details' => $change, 'before' => $oldRow['stage'] . ' / ' . $oldRow['status'],
+                'after' => "$stage / $status",
             ]);
         }
         $pdo->commit();
@@ -468,10 +491,9 @@ if ($action === 'save') {
     ]);
     if ($override) {
         notify_student($pdo, $id, 'PRISM IERB Progress Updated',
-            "Hello $name,\n\nAn RPMS administrator updated your IERB record.\n$change"
-                . ($reason !== '' ? "\nReason: $reason" : '') . "\n\n- CEU Malolos RPMS / PRISM",
-            "RPMS updated your IERB record. $change" . ($reason !== '' ? ". Reason: $reason" : ''),
-            'Status Update', $user['full_name']);
+            "Hello $name,\n\nRPMS updated your IERB record.\nCurrent stage: " . stage_label($stage) . " ($stage)\nStatus: $status\n\n- CEU Malolos RPMS / PRISM",
+            "RPMS updated your IERB record. Current stage: " . stage_label($stage) . " ($stage). Status: $status.",
+            'Status Update', 'RPMS');
     }
 
     $response = ['ok' => true, 'id' => $id, 'override' => $override,
@@ -485,6 +507,7 @@ if ($action === 'save') {
 
 if ($action === 'note') {
     api_require_login(['admin', 'adviser']);
+    if (isset($data['note']) && !is_string($data['note'])) json_out(['ok'=>false,'message'=>'Invalid note.'],422);
     $studentId = (int)($data['studentId'] ?? 0);
     $note = trim((string)($data['note'] ?? ''));
     if ($studentId <= 0 || $note === '') {
@@ -493,19 +516,48 @@ if ($action === 'note') {
     if (mb_strlen($note) > 500) {
         json_out(['ok' => false, 'message' => 'Notes must be 500 characters or fewer.'], 422);
     }
-    if (!adviser_may_access_student($pdo, $user, $studentId)) {
-        json_out(['ok' => false, 'message' => 'This student is assigned to another adviser.'], 403);
+    try {
+        $pdo->beginTransaction();
+        $current = $pdo->prepare('SELECT * FROM students WHERE id = :id FOR UPDATE');
+        $current->execute([':id' => $studentId]);
+        $row = $current->fetch();
+        if (!$row) throw new AccountLifecycleNotFound('Student not found.');
+        if (!empty($row['archived_at']) || empty($row['profile_completed_at'])) {
+            throw new AccountLifecycleConflict('The Student record is unavailable for current annotations.');
+        }
+        purge_require_no_pending($pdo,'student',$studentId);
+        $actor = $pdo->prepare('SELECT * FROM users WHERE id=? FOR UPDATE');
+        $actor->execute([$user['id']]); $live = $actor->fetch();
+        if (!$live || $live['role'] !== $user['role'] || $live['status'] !== 'Active'
+            || $live['email'] !== $user['email'] || !hash_equals((string)$live['password_hash'],(string)$user['password_hash'])
+            || !empty($live['must_change_password']) || legal_outstanding($pdo,(int)$live['id'])) {
+            throw new AccountLifecycleForbidden('Your account changed. Sign in again before continuing.');
+        }
+        if ($live['role'] === 'adviser') {
+            $assigned = $pdo->prepare('SELECT * FROM advisers WHERE id=? FOR UPDATE');
+            $assigned->execute([$row['adviser_id']]); $adviser = $assigned->fetch();
+            if (!$adviser || !empty($adviser['archived_at']) || $adviser['status'] !== 'Active'
+                || empty($adviser['profile_completed_at'])) throw new AccountLifecycleForbidden('An active assigned Adviser is required.');
+            $login = lifecycle_resolve_login($pdo,$adviser,'adviser');
+            if (!$login || (int)$login['id'] !== (int)$live['id'] || $login['status'] !== 'Active') {
+                throw new AccountLifecycleForbidden('This student is assigned to another adviser.');
+            }
+            purge_require_no_pending($pdo,'adviser',(int)$adviser['id']);
+        }
+        record_history($pdo, $studentId, $row['stage'], $row['status'], $note, null,
+            $live['full_name'] . ' (' . ucfirst($live['role']) . ')');
+        document_workflow_audit($pdo,$live,'ierb_note_added',[
+            'entity_type'=>'student','entity_id'=>$studentId,'student_id'=>$studentId,
+            'details'=>mb_substr($note,0,200),
+        ]);
+        $pdo->commit();
+    } catch (Throwable $e) {
+        if ($pdo->inTransaction()) $pdo->rollBack();
+        if ($e instanceof AccountLifecycleForbidden || $e instanceof AccountLifecycleConflict
+            || $e instanceof AccountLifecycleNotFound) json_out(['ok'=>false,'message'=>$e->getMessage()],lifecycle_error_status($e));
+        log_api_error('ierb_note','The annotation could not be persisted.');
+        json_out(['ok'=>false,'message'=>'The note could not be saved. Nothing was changed.'],500);
     }
-    $current = $pdo->prepare('SELECT stage, status FROM students WHERE id = :id');
-    $current->execute([':id' => $studentId]);
-    $row = $current->fetch();
-    if (!$row) {
-        json_out(['ok' => false, 'message' => 'Student not found.'], 404);
-    }
-    record_history($pdo, $studentId, $row['stage'], $row['status'], $note, null,
-        $user['full_name'] . ' (' . ucfirst($user['role']) . ')');
-    audit_log($user, 'ierb_note_added', ['entity_type' => 'student', 'entity_id' => $studentId,
-        'student_id' => $studentId, 'details' => mb_substr($note, 0, 200)]);
     json_out(['ok' => true, 'message' => 'Note saved to the progress history.']);
 }
 

@@ -187,6 +187,36 @@ function notification_finish_campaign(PDO $pdo, int $campaignId): void
         ->execute([$failed?'Failed':'Sent',$failed?null:date('Y-m-d H:i:s'),$campaignId]);
 }
 
+/** Student reads expose explicit notification fields, never operational actor metadata. */
+function notification_student_projection(array $row): array
+{
+    $subject=(string)($row['subject']??''); $message=(string)($row['message']??'');
+    $support=($row['kind']??'')==='support';
+    $override=stripos((string)($row['created_by']??''),'Admin Override')!==false
+        || stripos((string)($row['type']??''),'Admin Override')!==false || stripos($subject,'Admin Override')!==false
+        || preg_match('/\AAn RPMS administrator changed\b/i',$message)===1;
+    $review=$subject==='PRISM Document Status Update'
+        && preg_match('/\ADocument ".+"(?: \([^\r\n]*\))? is now (?:Submitted|Under Review|Received|Verified|Approved|Denied|Resubmission Requested)\./s',$message)===1;
+    $returned=$subject==='PRISM RPMS Return for Revision' && str_starts_with($message,'RPMS returned "');
+    if (!$support && ($override || $subject==='PRISM IERB Progress Updated')) {
+        $row['message']=$subject==='PRISM IERB Progress Updated'
+            ? 'Your IERB progress was updated. Open PRISM to view your official stage and status.'
+            : 'Your document status was updated by RPMS. Open your document record in PRISM for details.';
+        if ($override && !in_array($subject,['PRISM IERB Progress Updated','PRISM Document Status Update'],true)) $row['subject']='PRISM Status Update';
+    } elseif (!$support && $subject==='PRISM Formal RPMS Submission Confirmation') {
+        $row['message']='Your document was formally submitted to RPMS. Open your document record in PRISM for details.';
+    } elseif (!$support && !$review && !$returned && ($row['type']??'')==='Status Update'
+        && in_array($row['kind']??'system',['system','workflow'],true)
+        && preg_match('/\b(?:reason\s*:|admin\s+override\b)/i',$message)) {
+        // Historical unclassified administrative free text is internal by default.
+        $row['subject']='PRISM Status Update';
+        $row['message']='Your PRISM record was updated. Open PRISM to view the current details.';
+    }
+    return array_intersect_key($row,array_flip(['id','campaign_id','subject','message','type','status','kind',
+        'scheduled_at','sent_at','read_at','archived_at','created_at','support_category','reply_to_campaign_id',
+        'recipient_count','legacy','can_manage']));
+}
+
 /** Authorized queries never recover erased content from a campaign/other copy. */
 function notification_list(PDO $pdo, array $user, array $query, string $mode='list'): array
 {
@@ -239,6 +269,7 @@ function notification_list(PDO $pdo, array $user, array $query, string $mode='li
         unset($row['delivery_info']); // Operational diagnostics are never exposed to browser APIs.
         $row['legacy']=!$sender && $row['campaign_id']===null;
         $row['can_manage']=$sender || (!$legacy && notification_owns_copy($pdo,$user,$row));
+        if (($user['role']??'')==='student') $row=notification_student_projection($row);
     }
     unset($row);
     $unread=notification_rows($pdo,'SELECT COUNT(*) AS total FROM notifications n WHERE n.deleted_at IS NULL AND n.archived_at IS NULL

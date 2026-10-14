@@ -59,7 +59,7 @@ $user = $stmt->fetch();
 // Always run password_verify(), even for a nonexistent user, against a
 // fixed dummy hash — this keeps response time consistent so failed logins
 // can't be used to enumerate which emails exist on the system.
-$dummyHash = '$2y$10$vzBXNiy73d.9neRQSAf.f.x75YP44p7wvMVaX2ylMlrmulh0/jJCu';
+$dummyHash = prism_dummy_password_hash();
 $passwordOk = $user ? password_verify($password, $user['password_hash']) : password_verify($password, $dummyHash);
 
 if (!$user || !$passwordOk) {
@@ -71,6 +71,15 @@ if (!$user || !$passwordOk) {
 
 if (strcasecmp((string)$user['status'], 'Active') !== 0) {
     $_SESSION['error'] = 'This account is not active. Please contact the RPMS office.';
+    header('Location: login.php');
+    exit;
+}
+
+try {
+    $user['password_hash'] = prism_upgrade_password_hash(db(), $user, $password);
+} catch (Throwable $error) {
+    log_api_error('password_upgrade', 'The credential upgrade could not complete safely.');
+    $_SESSION['error'] = 'Invalid email or password.';
     header('Location: login.php');
     exit;
 }

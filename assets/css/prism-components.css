@@ -140,6 +140,10 @@ body.prism-public .public-stages li { border-radius: var(--prism-radius); box-sh
 body:is(.prism-workspace,.prism-public,.public-legal-page,.help-support-page,.unified-login) :is(a,button,input,select,textarea,summary,[tabindex]):focus-visible {
   outline: 3px solid var(--prism-focus); outline-offset: 3px;
 }
+/* Keep the search container as the single focus ring; its inner input gets no second outline. */
+body.prism-workspace :is(.management-search,.search-documents,.document-search,.ierb-search) > input:focus-visible {
+  outline: 0 !important; outline-offset: 0 !important;
+}
 /* Fixed-height UI never defeats the native hidden attribute. */
 body:is(.prism-workspace,.prism-public,.public-legal-page,.help-support-page,.unified-login) [hidden] { display: none !important; }
 @media(max-width:600px) {

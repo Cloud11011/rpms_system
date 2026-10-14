@@ -59,7 +59,7 @@ try {
     }
 
     $pdo->prepare('UPDATE users SET password_hash = :p, must_change_password = 0 WHERE id = :id')
-        ->execute([':p' => password_hash($password, PASSWORD_DEFAULT), ':id' => $row['user_id']]);
+        ->execute([':p' => prism_password_hash($password), ':id' => $row['user_id']]);
     $pdo->prepare('UPDATE password_resets SET used = 1 WHERE user_id = :uid')
         ->execute([':uid' => $row['user_id']]);
     $pdo->commit();

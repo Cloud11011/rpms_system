@@ -119,7 +119,8 @@ if ($action === 'save') {
     $requirementsProvided = array_key_exists('requirements', $data);
     $requirements = $requirementsProvided ? trim((string)$data['requirements']) : null;
     $protocolCode = trim((string)($data['protocolCode'] ?? ''));
-    $isPrincipal = !empty($data['isPrincipalInvestigator']) ? 1 : 0;
+    $isPrincipal = array_key_exists('isPrincipalInvestigator', $data)
+        ? (!empty($data['isPrincipalInvestigator']) ? 1 : 0) : null;
     if (isset($data['reason']) && !is_string($data['reason'])) json_out(['ok'=>false,'message'=>'Invalid progress change reason.'],422);
     $reason = trim((string)($data['reason'] ?? ''));
 
@@ -134,9 +135,8 @@ if ($action === 'save') {
         // Advisers may only add/assign their OWN students -- they cannot
         // hand a student to another adviser, whatever adviserId was sent.
         $adviserId = (int)$ownAdviserId;
-        // Protocol code and Principal Investigator status are RPMS-office
-        // decisions (item 12: admin has full authority over these), not
-        // something an adviser can self-assign while editing a record.
+        // Protocol codes and PI designation are RPMS-office decisions.
+        // Ignore forged Adviser values on creation and preserve them on edits.
         $protocolCode = null;
         $isPrincipal = null;
         $stage = 'Stage 1';
@@ -215,8 +215,8 @@ if ($action === 'save') {
                 $stage = (string)$before['stage'];
                 $status = (string)$before['status'];
             }
-            // Advisers can't touch protocol code / PI status (set to null
-            // above) -- keep whatever was already on the record.
+            // Advisers cannot change protocol code or PI status on existing
+            // records; retain the stored values when either field is null.
             $finalProtocolCode = $protocolCode !== null ? ($protocolCode !== '' ? $protocolCode : null) : $before['protocol_code'];
             $finalIsPrincipal = $isPrincipal !== null ? $isPrincipal : (int)$before['is_principal_investigator'];
             try {
@@ -306,7 +306,7 @@ if ($action === 'save') {
                 $newLoginTempPassword = $tempPassword;
                 $pdo->prepare('INSERT INTO users (username, password_hash, role, full_name, email, ref_id, must_change_password)
                     VALUES (:u,:p,"student",:n,:e,:ref,1)')->execute([
-                    ':u' => $studentId, ':p' => password_hash($tempPassword, PASSWORD_DEFAULT),
+                    ':u' => $studentId, ':p' => prism_password_hash($tempPassword),
                     ':n' => $name, ':e' => $email, ':ref' => $studentId,
                 ]);
                 $newLoginUserId = (int)$pdo->lastInsertId();
@@ -318,7 +318,7 @@ if ($action === 'save') {
                     $pdo->prepare("UPDATE users SET username=:u, full_name=:n, email=:e, ref_id=:ref, status='Active',
                             password_hash=:p, must_change_password=1 WHERE id=:id")
                         ->execute([':u' => $studentId, ':n' => $name, ':e' => $email, ':ref' => $studentId,
-                            ':p' => password_hash($tempPassword, PASSWORD_DEFAULT), ':id' => $existingLogin['id']]);
+                            ':p' => prism_password_hash($tempPassword), ':id' => $existingLogin['id']]);
                     $newLoginUserId = (int)$existingLogin['id'];
                 } else {
                     $pdo->prepare("UPDATE users SET username=:u, full_name=:n, email=:e, ref_id=:ref WHERE id=:id")
@@ -359,9 +359,9 @@ if ($action === 'save') {
     }
     if ($progressChanged) {
         notify_student($pdo, $id, 'PRISM IERB Progress Updated',
-            "Hello $name,\n\nYour IERB progress was updated.\n$progressChangeText\nReason: $reason\n\n- CEU Malolos RPMS / PRISM",
-            "Your IERB progress was updated. $progressChangeText. Reason: $reason",
-            'Status Update', $user['full_name']);
+            "Hello $name,\n\nYour IERB progress was updated.\nCurrent stage: " . stage_label($stage) . " ($stage)\nStatus: $status\n\n- CEU Malolos RPMS / PRISM",
+            "Your IERB progress was updated. Current stage: " . stage_label($stage) . " ($stage). Status: $status.",
+            'Status Update', 'RPMS');
     }
     log_activity($user['email'], 'student_saved', "student_id=$studentId");
     $response = ['ok' => true, 'id' => $id, 'message' => 'Student record saved.'];

@@ -37,13 +37,15 @@ $profile_img = 'assets/images/default-avatar.svg';
 
     <main class="main-content ierb-page">
         <header class="topbar">
-            <div class="ierb-heading"><h1>IERB Progress</h1></div>
-            <div class="top-controls"><button type="button" class="theme-toggle" id="themeToggle" title="Toggle light or dark theme" aria-label="Toggle light or dark theme"><i class="fa-solid fa-sun light-icon" aria-hidden="true"></i><i class="fa-solid fa-moon dark-icon" aria-hidden="true"></i></button></div>
+            <div class="ierb-heading"><h1>IERB Progress</h1><p><?= $authUser['role'] === 'adviser' ? 'See where each student is in the ethics review process.' : 'Track every research group through the IERB stages.' ?></p></div>
+            <div class="top-controls">
+                <button type="button" class="theme-toggle" id="themeToggle" title="Toggle light or dark theme" aria-label="Toggle light or dark theme"><i class="fa-solid fa-sun light-icon" aria-hidden="true"></i><i class="fa-solid fa-moon dark-icon" aria-hidden="true"></i></button>
+            </div>
         </header>
 
         <section class="progress-overview" aria-labelledby="progressOverviewTitle">
-            <div class="overview-heading"><div><span>Stage distribution</span><h2 id="progressOverviewTitle">Progress Overview</h2></div><strong id="overviewTotal">0 students</strong></div>
-            <div class="stage-chart" id="stageChart" role="img" aria-label="Bar chart of students by IERB stage"></div>
+            <div class="overview-heading"><div><span>IERB Progress</span><h2 id="progressOverviewTitle">Progress Overview</h2></div><strong id="overviewTotal">0 students · Select a stage to filter the list</strong></div>
+            <div class="stage-chart" id="stageChart" role="group" aria-label="Student counts by IERB stage"></div>
         </section>
 
         <section class="ierb-controls" aria-label="IERB progress filters">
@@ -52,14 +54,14 @@ $profile_img = 'assets/images/default-avatar.svg';
                 <label class="ierb-control-field" for="stageFilter"><span>Stage</span><select id="stageFilter"><option value="">All Stages</option><option value="Stage 1">Stage 1</option><option value="Stage 2">Stage 2</option><option value="Stage 3">Stage 3</option><option value="Stage 4">Stage 4</option><option value="Stage 5">Stage 5</option><option value="Completed">Completed</option></select></label>
                 <label class="ierb-control-field" for="ierbStatusFilter"><span>Status</span><select id="ierbStatusFilter"><option value="">All Statuses</option><option>On Track</option><option>Pending</option><option>Delayed</option></select></label>
             </div>
-            <?php if ($authUser['role'] === 'admin'): ?><button type="button" class="ierb-add-link" id="addIerbEntry"><i class="fa-solid fa-plus" aria-hidden="true"></i> Add IERB Entry</button><?php endif; ?>
+            <?php if ($authUser['role'] === 'admin'): ?><button type="button" class="ierb-add-link" id="addIerbEntry" title="Add IERB Entry" aria-label="Add IERB Entry"><i class="fa-solid fa-plus" aria-hidden="true"></i> Add IERB Entry</button><?php endif; ?>
         </section>
 
         <div id="ierbMoreFilters" class="prism-record-filters" aria-label="Academic and research filters"></div>
         <section class="ierb-directory" aria-labelledby="ierbTableTitle">
             <div class="ierb-table-heading"><div><h2 id="ierbTableTitle">Detailed Progress</h2><p id="ierbRecordCount">0 records</p></div></div>
             <div class="ierb-table-wrap"><table class="ierb-table">
-                <thead><tr><th>Student Name</th><th>Current Stage</th><th>Completed Stages</th><th>Pending Requirements</th><th>Submission Dates</th><th>Delay Status</th><th>Actions</th></tr></thead>
+                <thead><tr><th>Research group</th><th>Current Stage</th><th>Progress</th><th>Pending Requirements</th><th>Last Submission</th><th>Status</th><th>Actions</th></tr></thead>
                 <tbody id="ierbTableBody"></tbody>
             </table></div>
         </section>

@@ -37,16 +37,17 @@ $registrationLink=PRISM_PUBLIC_BASE_URL.'register.php';
 <!doctype html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Staff Registration | PRISM</title>
 <script>try{if(localStorage.getItem('prismTheme')==='dark')document.documentElement.classList.add('dark-theme')}catch(_){}</script>
 <link rel="icon" href="assets/images/prismicon.png">
-<?php foreach (['dashboard','admin-management','prism-ui','dashboard-sidebar','prism-workspace','staff-registration','ceu-footer'] as $style): ?>
+<?php foreach (['dashboard','admin-management','prism-ui','dashboard-sidebar','prism-workspace','staff-registration','ceu-footer','batch11'] as $style): ?>
 <link rel="stylesheet" href="<?= legal_escape(asset_url('assets/css/'.$style.'.css')) ?>"><?php endforeach; ?>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.6.0/css/all.min.css">
 <script src="<?= legal_escape(asset_url('assets/js/dashboard-sidebar.js')) ?>" defer></script>
 <script src="<?= legal_escape(asset_url('assets/js/staff-registration.js')) ?>" defer></script>
 <?php prism_frontend_styles(); ?>
+<link rel="stylesheet" href="<?= legal_escape(asset_url('assets/css/staff-registration.css')) ?>">
 </head><body class="prism-workspace admin-shell"><div class="container"><aside class="sidebar prism-sidebar">
 <?php require __DIR__.'/includes/prism-navigation.php'; ?></aside>
 <main class="main-content management-page"><header class="topbar"><div><h1>Staff Registration</h1><p>Create a single-use code for one new administrator.</p></div><div class="top-controls"><button type="button" id="themeToggle" class="theme-toggle" aria-label="Toggle light or dark theme"><i class="fa-solid fa-sun light-icon" aria-hidden="true"></i><i class="fa-solid fa-moon dark-icon" aria-hidden="true"></i></button></div></header>
-<p><a class="prism-btn prism-btn-secondary" href="account.php">Back to Account &amp; Activity</a></p>
+<p><a class="staff-back" href="account.php" aria-label="Back to Account &amp; Activity" title="Back to Account &amp; Activity"><i class="fa-solid fa-arrow-left" aria-hidden="true"></i></a></p>
 <?php require __DIR__.'/includes/staff_registration_card.php'; ?>
 <?php require __DIR__.'/includes/ceu_footer.php'; ?>
 </main></div><script src="<?= legal_escape(asset_url('assets/js/prism-workspace.js')) ?>" defer></script>

@@ -204,6 +204,7 @@ document.addEventListener('DOMContentLoaded', () => {
     async function deleteTask(id) {
         const answer = await PrismUI.confirm({
             title:'Delete reminder', icon:'fa-trash', tone:'danger', confirmText:'Delete',
+            dialogClass:'calendar-delete-dialog',
             message:'Delete this personal reminder from this browser?'
         });
         if (!answer) return;

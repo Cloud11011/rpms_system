@@ -32,6 +32,7 @@ $profile_img = 'assets/images/default-avatar.svg';
 <link rel="stylesheet" href="<?= htmlspecialchars(asset_url('assets/css/batch11.css'), ENT_QUOTES, 'UTF-8') ?>">
 <script src="<?php echo htmlspecialchars(asset_url('assets/js/prism-workspace.js'), ENT_QUOTES, 'UTF-8'); ?>" defer></script>
 <?php prism_frontend_styles(); ?>
+<link rel="stylesheet" href="<?php echo htmlspecialchars(asset_url('assets/css/calendar-clean.css'), ENT_QUOTES, 'UTF-8'); ?>">
 </head>
 <body class="prism-workspace <?= $authUser['role'] === 'admin' ? 'admin-shell' : 'portal-shell adviser-page' ?>" data-reminder-user="<?php echo htmlspecialchars(hash('sha256', $user_email), ENT_QUOTES, 'UTF-8'); ?>">
 <div class="container">
@@ -49,8 +50,6 @@ $profile_img = 'assets/images/default-avatar.svg';
                 <button type="button" class="theme-toggle" id="themeToggle" title="Toggle light or dark theme" aria-label="Toggle light or dark theme"><i class="fa-solid fa-sun light-icon" aria-hidden="true"></i><i class="fa-solid fa-moon dark-icon" aria-hidden="true"></i></button>
             </div>
         </header>
-
-        <p class="calendar-instructions">Click a date to add and manage personal reminders. Personal reminders are stored only in this browser. Official deadlines appear below.</p>
         <section class="calendar-layout">
             <div class="full-calendar-card">
                 <div class="calendar-toolbar">
@@ -64,6 +63,7 @@ $profile_img = 'assets/images/default-avatar.svg';
                 <div class="month-grid" id="monthGrid"></div>
             </div>
 
+            <div class="calendar-side">
             <aside class="reminder-panel">
                 <div class="panel-title">
                     <div>
@@ -87,8 +87,9 @@ $profile_img = 'assets/images/default-avatar.svg';
                 </form>
                 <div class="task-list" id="taskList"></div>
             </aside>
+            <section id="officialDeadlinePanel" class="reminder-panel official-deadline-panel" data-role="<?php echo htmlspecialchars($authUser['role'], ENT_QUOTES, 'UTF-8'); ?>"></section>
+            </div>
         </section>
-        <section id="officialDeadlinePanel" class="reminder-panel official-deadline-panel" data-role="<?php echo htmlspecialchars($authUser['role'], ENT_QUOTES, 'UTF-8'); ?>"></section>
     <?php require __DIR__ . '/includes/ceu_footer.php'; ?>
 </main>
 </div>

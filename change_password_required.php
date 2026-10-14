@@ -111,7 +111,7 @@ $landing = $user['role'] === 'admin' ? 'dashboard.php' : ($user['role'] === 'adv
 
             <div class="register-text">
 
-                <a href="logout.php">Log out instead</a>
+                <button form="prismLogoutForm" style="all:unset;outline:revert;color:var(--prism-accent);font-weight:700;cursor:pointer" onmouseover="this.style.textDecoration='underline'" onmouseout="this.style.textDecoration='none'">Log out instead</button>
 
             </div>
 
@@ -178,6 +178,7 @@ forcedForm.addEventListener('submit', async (event) => {
 });
 </script>
 
+<form id="prismLogoutForm" action="logout.php" method="post" hidden><input type="hidden" name="prism_generation" value="<?= htmlspecialchars(prism_session_generation(), ENT_QUOTES, 'UTF-8') ?>"></form>
 </body>
 
 </html>

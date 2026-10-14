@@ -837,3 +837,11 @@ html.dark-theme .unified-login .login-card .input-group input::placeholder { col
 html.dark-theme .unified-login .login-card .login-account-note { background:#25273e; color:#c3c5d7; }
 html.dark-theme .unified-login .login-card .login-legal-footer a { color:#d5a6e4; }
 .unified-login .login-legal-footer a:focus-visible { outline:2px solid #533184; outline-offset:4px; }
+
+/* Password recovery card entrance. */
+body.unified-login .forgot-card { animation:prismForgotCardEnter 380ms ease-out both; }
+@keyframes prismForgotCardEnter {
+    from { opacity:0; transform:translateY(16px); }
+    to { opacity:1; transform:translateY(0); }
+}
+@media(prefers-reduced-motion:reduce) { body.unified-login .forgot-card { animation:none; } }

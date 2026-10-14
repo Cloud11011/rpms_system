@@ -315,3 +315,396 @@ html.dark-theme .current-stage { color: #ff9dc7; }
         height: 85px;
     }
 }
+
+/* Progress monitor cards: keep the existing table data/actions, with a card-first presentation. */
+.ierb-page .ierb-heading p { display:block; }
+.ierb-page .top-controls { gap:8px; }
+.ierb-top-action {
+    display:inline-flex;
+    min-height:40px;
+    align-items:center;
+    justify-content:center;
+    gap:8px;
+    padding:0 14px;
+    border:1px solid #f4c0d8;
+    border-radius:10px;
+    background:#fdf0f6;
+    color:#a90e62;
+    font-size:12px;
+    font-weight:700;
+    text-decoration:none;
+    white-space:nowrap;
+    transition:transform .18s ease,background .18s ease,border-color .18s ease,box-shadow .18s ease;
+}
+.ierb-top-action:hover { transform:translateY(-1px); background:#fce4ef; border-color:#e98bb9; box-shadow:0 5px 14px rgba(181,20,110,.12); }
+.ierb-top-action.is-secondary { border-color:var(--prism-border); background:var(--prism-card); color:var(--prism-text); }
+.ierb-top-action.is-secondary:hover { background:var(--prism-surface-2); border-color:#cbb9c8; }
+.ierb-top-action:focus-visible { outline:3px solid rgba(181,20,110,.3); outline-offset:2px; }
+.ierb-directory { border:0; }
+.ierb-table-heading { padding:16px 2px 12px; }
+.ierb-table-heading h2 { font-size:20px; }
+.ierb-table-wrap {
+    overflow:visible;
+    padding:10px;
+    border:1px solid var(--prism-border);
+    border-radius:14px;
+    background:var(--prism-card);
+}
+.ierb-page .ierb-table.prism-compact-table { display:block; width:100%; min-width:0; border-collapse:separate; }
+.ierb-page .ierb-table.prism-compact-table>thead { display:none; }
+.ierb-page .ierb-table.prism-compact-table>tbody { display:grid; gap:9px; }
+.ierb-page .ierb-table.prism-compact-table>tbody>tr {
+    display:block;
+    min-width:0;
+    border:1px solid var(--prism-border);
+    border-left:3px solid #c10d72;
+    border-radius:12px;
+    background:var(--prism-card);
+    transition:transform .18s ease,border-color .18s ease,box-shadow .18s ease,background .18s ease;
+}
+.ierb-page .ierb-table.prism-compact-table>tbody>tr.is-delayed { border-left-color:#dc2626; }
+.ierb-page .ierb-table.prism-compact-table>tbody>tr.is-pending { border-left-color:#d97706; }
+.ierb-page .ierb-table.prism-compact-table>tbody>tr:hover,
+.ierb-page .ierb-table.prism-compact-table>tbody>tr:focus-within {
+    transform:translateY(-2px);
+    border-color:#e3c6d6;
+    box-shadow:0 9px 22px rgba(20,23,58,.09);
+}
+.ierb-page .ierb-table.prism-compact-table>tbody>tr.is-delayed:hover,
+.ierb-page .ierb-table.prism-compact-table>tbody>tr.is-delayed:focus-within { border-left-color:#dc2626; }
+.ierb-page .ierb-table.prism-compact-table>tbody>tr.is-pending:hover,
+.ierb-page .ierb-table.prism-compact-table>tbody>tr.is-pending:focus-within { border-left-color:#d97706; }
+.ierb-page .ierb-table.prism-compact-table>tbody>tr>td { display:block; min-width:0; padding:0; border:0; }
+.ierb-page .ierb-table .ierb-progress-card {
+    display:grid;
+    grid-template-columns:minmax(180px,1.45fr) minmax(270px,1.6fr) minmax(92px,.55fr) auto;
+    gap:14px;
+    align-items:center;
+    padding:12px 14px;
+}
+.ierb-page .ierb-progress-card>* { min-width:0; }
+.ierb-page .ierb-progress-card .prism-record-primary { min-width:0; }
+.ierb-page .ierb-card-identity { display:grid; gap:4px; min-width:0; }
+.ierb-page .ierb-card-identity .ierb-research-title { overflow:hidden; color:var(--prism-text); font-size:13px; font-weight:800; line-height:1.4; text-overflow:ellipsis; }
+.ierb-page .ierb-card-lead { color:var(--prism-muted); font-size:11px; line-height:1.35; }
+.ierb-page .ierb-card-meta { display:flex; flex-wrap:wrap; gap:4px; margin-top:2px; }
+.ierb-page .ierb-card-meta span {
+    max-width:100%;
+    padding:2px 6px;
+    overflow:hidden;
+    border:1px solid var(--prism-border);
+    border-radius:999px;
+    color:var(--prism-muted);
+    font-size:9px;
+    line-height:1.35;
+    text-overflow:ellipsis;
+    white-space:nowrap;
+}
+.ierb-page .ierb-progress-card .academic-record-summary { margin-top:5px; }
+.ierb-page .ierb-progress-card .prism-record-summary {
+    display:grid;
+    grid-template-columns:minmax(90px,.85fr) minmax(110px,1fr) minmax(100px,1fr);
+    gap:10px;
+    min-width:0;
+    margin:0;
+}
+.ierb-page .ierb-progress-card .prism-record-summary>div { min-width:0; }
+.ierb-page .ierb-progress-card .prism-record-summary dt {
+    margin:0 0 4px;
+    color:var(--prism-muted);
+    font-size:9px;
+    line-height:1.3;
+}
+.ierb-page .ierb-progress-card .prism-record-summary dd { min-width:0; margin:0; color:var(--prism-text); font-size:11px; line-height:1.4; }
+.ierb-page .ierb-progress-card .prism-record-summary .stage-tag { display:inline-flex; max-width:100%; padding:3px 8px; background:#f1e8ff; color:#7134bd; font-size:10px; }
+.ierb-page .ierb-card-progress { display:grid; gap:5px; }
+.ierb-page .ierb-card-progress>div { display:flex; justify-content:space-between; align-items:center; gap:6px; }
+.ierb-page .ierb-card-progress>div>span { color:var(--prism-muted); font-size:9px; }
+.ierb-page .ierb-card-progress>div>strong { color:var(--prism-text); font-size:11px; }
+.ierb-page .ierb-progress-track { display:block; height:5px; overflow:hidden; border-radius:99px; background:#eee8f1; }
+.ierb-page .ierb-progress-track>span { display:block; height:100%; border-radius:inherit; background:linear-gradient(90deg,#c10d72,#7a1d72); transition:width .35s ease; }
+.ierb-page .ierb-progress-card .prism-record-status { margin:0; }
+.ierb-page .ierb-progress-card .prism-record-actions { display:flex; align-items:center; justify-content:flex-end; }
+.ierb-page .ierb-progress-card .prism-action-trigger { width:34px; min-width:34px; height:34px; min-height:34px; border:1px solid var(--prism-border); border-radius:9px; background:var(--prism-card); color:var(--prism-text); }
+.ierb-page .ierb-progress-card .prism-action-trigger:hover { border-color:#d9a9c4; background:#fdf0f6; color:#a90e62; }
+.ierb-page .ierb-progress-card .prism-record-details { grid-column:1/-1; }
+.ierb-page .ierb-progress-card .prism-record-details>summary { width:fit-content; padding:2px 0; color:var(--prism-muted); font-size:10px; }
+.ierb-page .ierb-progress-card .prism-record-details>dl { display:flex; flex-wrap:wrap; gap:8px 18px; margin:8px 0 0; }
+.ierb-page .ierb-progress-card .prism-record-details>dl>div { min-width:120px; }
+.ierb-page .ierb-progress-card .prism-record-details dt { color:var(--prism-muted); font-size:9px; }
+.ierb-page .ierb-progress-card .prism-record-details dd { margin:2px 0 0; color:var(--prism-text); font-size:11px; }
+html.dark-theme .ierb-page .ierb-top-action { border-color:#754465; background:#302334; color:#f2a9ce; }
+html.dark-theme .ierb-page .ierb-top-action.is-secondary { border-color:var(--prism-border); background:var(--prism-card); color:var(--prism-text); }
+html.dark-theme .ierb-page .ierb-table-wrap,
+html.dark-theme .ierb-page .ierb-table.prism-compact-table>tbody>tr { background:var(--prism-card); }
+html.dark-theme .ierb-page .ierb-table.prism-compact-table>tbody>tr:hover,
+html.dark-theme .ierb-page .ierb-table.prism-compact-table>tbody>tr:focus-within { border-color:#754465; box-shadow:0 9px 22px rgba(0,0,0,.24); }
+html.dark-theme .ierb-page .ierb-card-meta span { background:#20202d; }
+html.dark-theme .ierb-page .ierb-progress-track { background:#3b3547; }
+html.dark-theme .ierb-page .ierb-progress-card .prism-record-summary .stage-tag { background:#332742; color:#d1afff; }
+html.dark-theme .ierb-page .ierb-progress-card .prism-action-trigger:hover { border-color:#754465; background:#302334; color:#f2a9ce; }
+@media(max-width:1000px) {
+    .ierb-page .ierb-progress-card { grid-template-columns:minmax(150px,1.2fr) minmax(220px,1.4fr) minmax(85px,.55fr) auto; gap:10px; }
+    .ierb-page .ierb-progress-card .prism-record-summary { grid-template-columns:repeat(3,minmax(0,1fr)); gap:7px; }
+}
+@media(max-width:760px) {
+    .ierb-page .ierb-table-wrap { padding:8px; }
+    .ierb-page .ierb-progress-card { grid-template-columns:minmax(0,1fr) auto; gap:10px 14px; padding:12px; }
+    .ierb-page .ierb-progress-card .prism-record-primary { grid-column:1; }
+    .ierb-page .ierb-progress-card .prism-record-summary { grid-column:1/-1; grid-template-columns:repeat(3,minmax(0,1fr)); }
+    .ierb-page .ierb-progress-card .prism-record-status { grid-column:1; grid-row:3; }
+    .ierb-page .ierb-progress-card .prism-record-actions { grid-column:2; grid-row:3; }
+    .ierb-page .ierb-progress-card .prism-record-details { grid-column:1/-1; }
+    .ierb-page .ierb-heading p { display:block; }
+}
+@media(max-width:500px) {
+    .ierb-page .top-controls { flex-wrap:wrap; justify-content:flex-end; }
+    .ierb-page .ierb-top-action { min-height:36px; padding:0 10px; font-size:11px; }
+    .ierb-page .ierb-progress-card .prism-record-summary { grid-template-columns:minmax(0,1fr); }
+    .ierb-page .ierb-progress-card .prism-record-summary>div { display:grid; grid-template-columns:minmax(105px,.7fr) minmax(0,1fr); gap:8px; align-items:center; }
+    .ierb-page .ierb-progress-card .prism-record-summary dt { margin:0; }
+}
+@media(prefers-reduced-motion:reduce) {
+    .ierb-page .ierb-top-action,
+    .ierb-page .ierb-table.prism-compact-table>tbody>tr,
+    .ierb-page .ierb-progress-track>span { transition:none; }
+}
+
+/* IERB result cards and compact filter toolbar. */
+body.prism-workspace .ierb-page .ierb-search-field { flex:1 1 280px; width:auto; }
+body.prism-workspace .ierb-page .student-filter-action { width:40px; min-width:40px; height:40px; min-height:40px; padding:0; justify-content:center; }
+.ierb-page .student-filter-text { display:none; }
+.ierb-page .prism-filter-panel { width:min(640px,calc(100vw - 24px)); display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:12px; padding:18px; }
+.ierb-page .prism-filter-panel label { margin:0; min-width:0; font-size:12px; }
+.ierb-page .prism-filter-panel select { width:100%; min-height:40px; margin-top:6px; font-size:12px; }
+body.prism-workspace .ierb-page .ierb-progress-card { grid-template-columns:minmax(0,1.4fr) minmax(0,1.6fr) auto auto; align-items:center; gap:14px; padding:14px; }
+body.prism-workspace .ierb-page .ierb-progress-card .prism-record-summary { display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1fr); gap:12px; }
+.ierb-page .ierb-pending-caption { display:block; color:var(--prism-muted); font-size:10px; margin-top:5px; }
+.ierb-page .ierb-open-documents { min-height:36px; padding:8px 12px; font-size:11px; white-space:nowrap; }
+.ierb-page .prism-record-summary dt { display:none; }
+@media(max-width:1000px){body.prism-workspace .ierb-page .ierb-progress-card{grid-template-columns:minmax(0,1fr) auto;}body.prism-workspace .ierb-page .ierb-progress-card .prism-record-summary{grid-column:1/-1;}}
+@media(max-width:600px){.ierb-page .prism-filter-panel{grid-template-columns:minmax(0,1fr);}body.prism-workspace .ierb-page .ierb-progress-card .prism-record-summary{grid-template-columns:minmax(0,1fr);}}
+/* IERB toolbar: search first, creation and filters at the right. */
+body.prism-workspace .ierb-page .ierb-controls { display:flex; flex-wrap:wrap; align-items:center; gap:10px; }
+body.prism-workspace .ierb-page .ierb-controls > .ierb-search-field { order:0; flex:1 1 280px; }
+body.prism-workspace .ierb-page .ierb-controls > #addIerbEntry { order:1; margin-left:auto; }
+body.prism-workspace .ierb-page .ierb-controls > .prism-filter-disclosure { order:2; flex:0 0 auto; }
+@media(max-width:600px) { body.prism-workspace .ierb-page .ierb-controls > .ierb-search-field { flex-basis:100%; } }
+body.prism-workspace .ierb-page .prism-filter-panel .prism-filter-clear { width:auto; min-height:40px; height:auto; padding:9px 16px; margin:0; align-self:end; font-size:12px; border-radius:9px; grid-column:auto; }
+body.prism-workspace .ierb-page .ierb-controls > #addIerbEntry { width:40px; min-width:40px; height:40px; min-height:40px; padding:0; font-size:0; justify-content:center; }
+body.prism-workspace .ierb-page #addIerbEntry i { font-size:16px; margin:0; }
+
+/* Stage distribution cards match the selectable progress overview design. */
+.ierb-page .progress-overview {
+    padding:22px 24px;
+    border:1px solid #ebe6f0 !important;
+    border-radius:18px;
+    background:var(--card-bg);
+}
+.ierb-page .overview-heading {
+    align-items:flex-end;
+    gap:12px;
+}
+.ierb-page .overview-heading span {
+    color:#c10d72;
+    font-size:12px;
+    font-weight:800;
+    letter-spacing:.04em;
+}
+.ierb-page .overview-heading h2 {
+    margin-top:3px;
+    color:#14173a;
+    font-size:20px;
+    font-weight:800;
+    line-height:1.25;
+}
+.ierb-page .overview-heading>strong {
+    padding-bottom:2px;
+    color:#403b63;
+    font-size:12px;
+    font-weight:500;
+    text-align:right;
+}
+.ierb-page .stage-chart {
+    grid-template-columns:repeat(6,minmax(0,1fr));
+    gap:12px;
+    height:auto;
+    margin-top:14px;
+    padding:0;
+    overflow:visible;
+    border:0;
+}
+.ierb-page .stage-summary-card {
+    display:flex;
+    min-width:0;
+    min-height:114px;
+    flex-direction:column;
+    align-items:flex-start;
+    padding:12px 16px;
+    border:2px solid #ebe6f0;
+    border-radius:15px;
+    background:var(--card-bg);
+    color:#14173a;
+    text-align:left;
+    cursor:pointer;
+    transition:border-color .16s ease,background-color .16s ease,transform .16s ease;
+}
+.ierb-page .stage-summary-card:hover {
+    transform:translateY(-1px);
+    border-color:#e6a2c7;
+}
+.ierb-page .stage-summary-card:focus-visible {
+    outline:3px solid rgba(193,13,114,.24);
+    outline-offset:2px;
+}
+.ierb-page .stage-summary-card[aria-pressed=true] {
+    border-color:#c10d72;
+    background:#fbedf5;
+}
+.ierb-page .stage-summary-count {
+    color:#14173a;
+    font-size:29px;
+    font-weight:800;
+    line-height:1;
+}
+.ierb-page .stage-summary-label {
+    display:block;
+    min-height:34px;
+    margin-top:7px;
+    color:#14173a;
+    font-size:12px;
+    font-weight:600;
+    line-height:1.35;
+}
+.ierb-page .stage-summary-track {
+    display:block;
+    width:100%;
+    height:4px;
+    margin-top:auto;
+    overflow:hidden;
+    border-radius:99px;
+    background:#f0ebf3;
+}
+.ierb-page .stage-summary-track>span {
+    display:block;
+    height:100%;
+    border-radius:inherit;
+    background:#c10d72;
+    transition:width .25s ease;
+}
+.ierb-page .stage-chart.is-empty {
+    grid-template-columns:minmax(0,1fr);
+    min-height:92px;
+    padding:14px;
+}
+.ierb-page .ierb-overview-empty {
+    flex-direction:column;
+    gap:8px;
+}
+.ierb-page .ierb-overview-empty i {
+    margin:0;
+    font-size:24px;
+}
+html.dark-theme .ierb-page .progress-overview { border-color:var(--prism-border) !important; }
+html.dark-theme .ierb-page .overview-heading h2,
+html.dark-theme .ierb-page .stage-summary-card,
+html.dark-theme .ierb-page .stage-summary-count,
+html.dark-theme .ierb-page .stage-summary-label { color:var(--prism-text); }
+html.dark-theme .ierb-page .overview-heading>strong { color:var(--prism-muted); }
+html.dark-theme .ierb-page .stage-summary-card { border-color:var(--prism-border); }
+html.dark-theme .ierb-page .stage-summary-card[aria-pressed=true] { border-color:#e35b9f; background:#332335; }
+html.dark-theme .ierb-page .stage-summary-track { background:#3b3547; }
+@media(max-width:1000px) {
+    .ierb-page .stage-chart { grid-template-columns:repeat(3,minmax(150px,1fr)); }
+}
+@media(max-width:600px) {
+    .ierb-page .progress-overview { padding:18px 16px; }
+    .ierb-page .overview-heading { align-items:flex-start; flex-direction:column; }
+    .ierb-page .overview-heading>strong { text-align:left; }
+    .ierb-page .stage-chart { grid-template-columns:repeat(2,minmax(0,1fr)); gap:9px; }
+    .ierb-page .stage-summary-card { min-height:108px; padding:11px 12px; }
+}
+@media(prefers-reduced-motion:reduce) {
+    .ierb-page .stage-summary-card,
+    .ierb-page .stage-summary-track>span { transition:none; }
+}
+
+/* Research adviser progress page: compact student cards based on the adviser UI reference. */
+body[data-role="adviser"] .ierb-page .ierb-heading p { max-width:680px; }
+body[data-role="adviser"] .ierb-page .ierb-controls { align-items:center; justify-content:flex-start; margin:18px 0 10px; }
+body[data-role="adviser"] .ierb-page .ierb-controls > .ierb-search-field { flex:1 1 320px; }
+body[data-role="adviser"] .ierb-page .ierb-controls > .ierb-visible-sort { display:grid; flex:0 1 210px; grid-template-columns:auto minmax(0,1fr); align-items:center; gap:7px; height:42px; min-width:165px; color:var(--prism-muted); font-size:11px; }
+body[data-role="adviser"] .ierb-page .ierb-visible-sort > span { position:static; line-height:1.2; white-space:nowrap; }
+body[data-role="adviser"] .ierb-page .ierb-visible-sort select { width:100%; min-width:0; min-height:42px; padding:8px 27px 8px 10px; border:1px solid var(--prism-border); border-radius:11px; background:var(--prism-card); color:var(--prism-text); font:inherit; font-size:11px; }
+body[data-role="adviser"] .ierb-page .ierb-controls > .prism-filter-disclosure { margin-left:auto; }
+body[data-role="adviser"] .ierb-page #ierbStatusPills.ierb-adviser-tabs { display:flex; flex-wrap:wrap; align-items:center; gap:8px; margin:12px 0 18px; }
+body[data-role="adviser"] .ierb-page #ierbStatusPills.ierb-adviser-tabs .prism-filter-pill { min-height:38px; padding:8px 14px; border:1px solid var(--prism-border); border-radius:999px; background:var(--prism-card); color:var(--prism-text); font-size:12px; font-weight:650; }
+body[data-role="adviser"] .ierb-page #ierbStatusPills.ierb-adviser-tabs .prism-filter-pill[aria-pressed="true"] { border-color:#14173a; background:#14173a; color:#fff; }
+body[data-role="adviser"] .ierb-page .ierb-table-heading { padding:4px 2px 11px; }
+body[data-role="adviser"] .ierb-page .ierb-table-heading h2 { font-size:18px; }
+body[data-role="adviser"] .ierb-page .ierb-table-wrap { padding:0; border:0; background:transparent; }
+body[data-role="adviser"] .ierb-page .ierb-table.prism-compact-table>tbody { gap:12px; }
+body[data-role="adviser"] .ierb-page .ierb-table.prism-compact-table>tbody>tr { border-left-width:4px; border-radius:15px; }
+body.prism-workspace[data-role="adviser"] .ierb-page .ierb-progress-card.has-summary { grid-template-columns:minmax(220px,1.45fr) minmax(165px,1.1fr) minmax(110px,.8fr) minmax(120px,.85fr) auto 44px; column-gap:16px; row-gap:8px; padding:12px 16px; border:0; border-radius:0; background:transparent; box-shadow:none; }
+body[data-role="adviser"] .ierb-page .ierb-progress-card .prism-record-primary { min-width:0; }
+body[data-role="adviser"] .ierb-page .ierb-student-head { display:flex; align-items:center; gap:11px; min-width:0; }
+body[data-role="adviser"] .ierb-page .ierb-student-avatar { display:grid; flex:0 0 42px; width:42px; height:42px; place-items:center; border-radius:50%; background:#fde8f3; color:#c10d72; font-size:12px; font-weight:800; }
+body[data-role="adviser"] .ierb-page .ierb-student-copy { display:grid; min-width:0; gap:3px; }
+body[data-role="adviser"] .ierb-page .ierb-student-name { overflow:hidden; color:var(--prism-text); font-size:13px; font-weight:800; line-height:1.35; text-overflow:ellipsis; }
+body[data-role="adviser"] .ierb-page .ierb-student-meta { overflow:hidden; color:var(--prism-muted); font-size:10px; line-height:1.35; text-overflow:ellipsis; }
+body[data-role="adviser"] .ierb-page .ierb-card-identity .ierb-research-title { display:block; margin:5px 0 0 53px; color:var(--prism-muted); font-size:10px; font-weight:600; line-height:1.3; }
+body[data-role="adviser"] .ierb-page .ierb-card-meta { margin:1px 0 0 53px; gap:4px; }
+body[data-role="adviser"] .ierb-page .ierb-progress-field { min-width:0; }
+body[data-role="adviser"] .ierb-page .ierb-progress-field dt { display:block; margin:0 0 5px; color:var(--prism-muted); font-size:9px; font-weight:750; letter-spacing:.07em; line-height:1.3; text-transform:uppercase; }
+body[data-role="adviser"] .ierb-page .ierb-progress-field dd { min-width:0; margin:0; overflow-wrap:break-word; word-break:normal; color:var(--prism-text); font-size:11px; font-weight:650; }
+body[data-role="adviser"] .ierb-page .ierb-progress-field .stage-tag { display:inline-flex; max-width:100%; padding:3px 8px; border-radius:999px; background:#f1e8ff; color:#7134bd; font-size:10px; }
+body[data-role="adviser"] .ierb-page .ierb-progress-field-1 { grid-column:auto; }
+body[data-role="adviser"] .ierb-page .ierb-stage-steps { display:flex; gap:3px; margin-top:8px; }
+body[data-role="adviser"] .ierb-page .ierb-stage-steps i { flex:1; height:4px; border-radius:99px; background:#ebe8f4; }
+body[data-role="adviser"] .ierb-page .ierb-stage-steps i.is-complete { background:#ee1280; }
+body[data-role="adviser"] .ierb-page .ierb-card-progress { margin-top:4px; }
+body[data-role="adviser"] .ierb-page .ierb-card-progress>div { justify-content:flex-start; }
+body[data-role="adviser"] .ierb-page .ierb-card-progress>div>span,
+body[data-role="adviser"] .ierb-page .ierb-card-progress .ierb-progress-track { display:none; }
+body[data-role="adviser"] .ierb-page .ierb-card-progress>div>strong { color:var(--prism-muted); font-size:10px; }
+body[data-role="adviser"] .ierb-page .ierb-card-progress>div>strong::after { content:" complete"; }
+body[data-role="adviser"] .ierb-page .ierb-pending-caption { margin-top:0; color:var(--prism-text); font-size:11px; line-height:1.45; }
+body[data-role="adviser"] .ierb-page .ierb-progress-card .prism-record-status { white-space:nowrap; }
+body[data-role="adviser"] .ierb-page .ierb-progress-card .prism-record-actions { position:relative; z-index:2; gap:0; pointer-events:auto; }
+body[data-role="adviser"] .ierb-page .ierb-progress-card .prism-action-menu { position:relative; z-index:2; pointer-events:auto; }
+body[data-role="adviser"] .ierb-page .ierb-progress-card .prism-action-trigger { position:relative; z-index:2; width:36px; min-width:36px; height:36px; min-height:36px; padding:0; cursor:pointer; pointer-events:auto; touch-action:manipulation; }
+body[data-role="adviser"] .ierb-page .ierb-progress-card .prism-record-details { padding-top:11px; border-top:1px solid var(--prism-border); }
+body[data-role="adviser"] .ierb-page .ierb-progress-card .prism-record-details>summary { color:#c10d72; font-size:11px; font-weight:700; }
+body[data-role="adviser"] .ierb-page .ierb-progress-card .prism-record-details>dl { display:grid; grid-template-columns:minmax(0,1fr); gap:12px; margin-top:12px; }
+body[data-role="adviser"] .ierb-page .ierb-progress-card .prism-record-details>dl>div { min-width:0; }
+body[data-role="adviser"] .ierb-page .ierb-progress-card .prism-record-details .academic-record-summary { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:14px; width:100%; max-width:none; margin:0; }
+body[data-role="adviser"] .ierb-page .ierb-progress-card .prism-record-details .academic-record-summary>div { min-width:0; margin:0; }
+body[data-role="adviser"] .ierb-page .ierb-progress-card .prism-record-details .academic-record-summary dt,
+body[data-role="adviser"] .ierb-page .ierb-progress-card .prism-record-details .academic-record-summary dd { display:block; margin:0; }
+body[data-role="adviser"] .ierb-page .ierb-progress-card .prism-record-details .academic-record-summary dt { color:var(--prism-muted); font-size:9px; }
+body[data-role="adviser"] .ierb-page .ierb-progress-card .prism-record-details .academic-record-summary dd { color:var(--prism-text); font-size:11px; font-weight:650; }
+body[data-role="adviser"] .ierb-page .ierb-progress-card .prism-record-details dd { overflow-wrap:anywhere; }
+body.prism-workspace .prism-overlay .prism-dialog.ierb-followup-dialog { box-sizing:border-box; width:min(440px,calc(100vw - 32px)); max-width:440px; }
+html.dark-theme body[data-role="adviser"] .ierb-page .ierb-student-avatar { background:#3a2433; color:#f2a9ce; }
+html.dark-theme body[data-role="adviser"] .ierb-page #ierbStatusPills.ierb-adviser-tabs .prism-filter-pill[aria-pressed="true"] { border-color:#e35b9f; background:#6f1749; }
+@media(max-width:1150px) {
+    body.prism-workspace[data-role="adviser"] .ierb-page .ierb-progress-card.has-summary { grid-template-columns:minmax(0,1fr) auto; }
+    body[data-role="adviser"] .ierb-page .ierb-progress-card .prism-record-primary,
+    body[data-role="adviser"] .ierb-page .ierb-progress-card .ierb-progress-field-1,
+    body[data-role="adviser"] .ierb-page .ierb-progress-card .prism-record-details { grid-column:1/-1; }
+}
+@media(max-width:650px) {
+    body[data-role="adviser"] .ierb-page .ierb-controls > .ierb-visible-sort { flex:1 1 210px; }
+    body[data-role="adviser"] .ierb-page .ierb-controls > .prism-filter-disclosure { margin-left:0; }
+    body[data-role="adviser"] .ierb-page .ierb-progress-card .ierb-progress-field-3 { grid-column:1; }
+    body[data-role="adviser"] .ierb-page .ierb-progress-card .ierb-progress-field-4 { grid-column:2; }
+    body[data-role="adviser"] .ierb-page .ierb-progress-card .prism-record-details>dl { grid-template-columns:repeat(2,minmax(0,1fr)); }
+    body[data-role="adviser"] .ierb-page .ierb-progress-card .prism-record-details .academic-record-summary { grid-template-columns:repeat(2,minmax(0,1fr)); }
+}
+@media(max-width:430px) {
+    body[data-role="adviser"] .ierb-page .ierb-progress-card .ierb-progress-field-3,
+    body[data-role="adviser"] .ierb-page .ierb-progress-card .ierb-progress-field-4,
+    body[data-role="adviser"] .ierb-page .ierb-progress-card .prism-record-details { grid-column:1/-1; }
+    body[data-role="adviser"] .ierb-page .ierb-progress-card .prism-record-details>dl { grid-template-columns:minmax(0,1fr); }
+    body[data-role="adviser"] .ierb-page .ierb-progress-card .prism-record-details .academic-record-summary { grid-template-columns:minmax(0,1fr); }
+}

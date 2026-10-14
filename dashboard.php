@@ -39,6 +39,7 @@ try {
 <link rel="stylesheet" href="<?php echo htmlspecialchars(asset_url('assets/css/dashboard.css'), ENT_QUOTES, 'UTF-8'); ?>">
 <link rel="stylesheet" href="<?php echo htmlspecialchars(asset_url('assets/css/prism-ui.css'), ENT_QUOTES, 'UTF-8'); ?>">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.6.0/css/all.min.css">
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="<?php echo htmlspecialchars(asset_url('assets/css/dashboard-sidebar.css'), ENT_QUOTES, 'UTF-8'); ?>">
 <script src="<?php echo htmlspecialchars(asset_url('assets/js/dashboard-sidebar.js'), ENT_QUOTES, 'UTF-8'); ?>" defer></script>
 <link rel="stylesheet" href="<?php echo htmlspecialchars(asset_url('assets/css/dashboard-overview.css'), ENT_QUOTES, 'UTF-8'); ?>">
@@ -49,6 +50,8 @@ try {
 <link rel="stylesheet" href="<?= htmlspecialchars(asset_url('assets/css/batch11.css'), ENT_QUOTES, 'UTF-8') ?>">
 <script src="<?php echo htmlspecialchars(asset_url('assets/js/prism-workspace.js'), ENT_QUOTES, 'UTF-8'); ?>" defer></script>
 <?php prism_frontend_styles(); ?>
+<link rel="stylesheet" href="<?php echo htmlspecialchars(asset_url('assets/css/dashboard-polish.css'), ENT_QUOTES, 'UTF-8'); ?>">
+<link rel="stylesheet" href="<?php echo htmlspecialchars(asset_url('assets/css/dashboard-ai-banner.css'), ENT_QUOTES, 'UTF-8'); ?>">
 </head>
 <body class="prism-workspace <?= $authUser['role'] === 'admin' ? 'admin-shell' : 'portal-shell adviser-page' ?> dashboard-page" data-reminder-user="<?php echo htmlspecialchars(hash('sha256', $user_email), ENT_QUOTES, 'UTF-8'); ?>">
 
@@ -83,22 +86,27 @@ try {
 </div>
 </div>
 </header>
-<section class="welcome-header"><p class="dashboard-eyebrow">ADMINISTRATION / OVERVIEW</p>
+<section class="welcome-header">
 <h1><?php echo $greeting; ?>, <span><?php echo htmlspecialchars($user_name); ?></span>! 👋</h1>
 <p class="current-date"><i class="fa-regular fa-calendar"></i> <?php echo $current_date_formatted; ?></p>
 </section>
 <div data-prism-hint="admin-dashboard"></div>
 <!-- AI SUMMARY BANNER -->
-<section class="ai-summary-banner" data-report-state="idle" aria-label="AI Progress Insights">
-<span class="ai-banner-orb" aria-hidden="true"></span><span class="ai-banner-orb" aria-hidden="true"></span><span class="ai-banner-spark" aria-hidden="true">✦</span>
-<div class="ai-summary-content">
-<div class="ai-badge">
-<i class="fa-solid fa-wand-magic-sparkles"></i> AI PROGRESS INSIGHTS
+<section class="ai-summary-banner ai-banner" data-report-state="idle" aria-label="AI progress insights">
+<span class="ai-orb o1" aria-hidden="true"></span><span class="ai-orb o2" aria-hidden="true"></span><span class="ai-orb o3" aria-hidden="true"></span>
+<svg class="ai-spark ai-spark-one" width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2l2.2 7.8L22 12l-7.8 2.2L12 22l-2.2-7.8L2 12l7.8-2.2z"/></svg>
+<svg class="ai-spark ai-spark-two" width="12" height="12" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2l2.2 7.8L22 12l-7.8 2.2L12 22l-2.2-7.8L2 12l7.8-2.2z"/></svg>
+<svg class="ai-spark ai-spark-three" width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2l2.2 7.8L22 12l-7.8 2.2L12 22l-2.2-7.8L2 12l7.8-2.2z"/></svg>
+<div class="ai-summary-content ai-content">
+<div class="ai-badge ai-chip">
+<svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2l2.2 7.8L22 12l-7.8 2.2L12 22l-2.2-7.8L2 12l7.8-2.2z"/></svg> AI PROGRESS INSIGHTS
 </div>
-<h2 id="aiBannerTitle">No workload insights available</h2>
-<p id="aiBannerStatus" role="status" aria-live="polite">Generate a report to review the research progress currently available to RPMS.</p>
+<h2 class="ai-title" id="aiBannerTitle">No workload insights available</h2>
+<p class="ai-body" id="aiBannerStatus" role="status" aria-live="polite">Generate a report to review the research progress currently available to RPMS.</p>
 </div>
-<div class="ai-banner-actions"><a class="ai-action-btn" id="aiBannerDownload" hidden target="_blank" rel="noopener">Download report</a><button type="button" id="aiBannerGenerate" class="ai-action-btn" onclick="openReportModal()"><i class="fa-solid fa-file-pdf" aria-hidden="true"></i> Generate AI PDF Report</button></div>
+<div class="ai-banner-actions ai-actions" id="aiBannerActions">
+<button type="button" id="aiBannerGenerate" class="ai-btn" onclick="openReportModal()"><i class="fa-solid fa-file-pdf" aria-hidden="true"></i> Generate AI PDF report</button>
+</div>
 </section>
 <!-- STATISTICAL METRICS CARDS -->
 <section class="cards">
@@ -126,34 +134,40 @@ try {
 <!-- CONTENT GRID -->
 <section class="content">
 <div class="content-box dashboard-attention">
-<div class="table-header">
-<h3><i class="fa-solid fa-bell-concierge"></i> Students Needing Attention <span data-prism-tip="Delayed students, documents waiting too long for an adviser, approved documents not yet submitted to RPMS, and students with no recent activity."></span></h3>
-<a class="prism-btn is-secondary is-sm" href="ierbprog.php">Open IERB Progress</a>
+<div class="table-header attention-header">
+<div class="attention-title">
+<span class="attention-icon"><i class="fa-solid fa-bell" aria-hidden="true"></i></span>
+<h3>Students needing attention</h3>
+</div>
+<a class="attention-link" href="ierbprog.php">Open IERB Progress <i class="fa-solid fa-arrow-right" aria-hidden="true"></i></a>
 </div>
 <div data-prism-needs-attention data-limit="8"></div>
 </div>
 <!-- STAGE PIPELINE FUNNEL WIDGET -->
 <div class="pipeline-card dashboard-stage">
-<div class="pipeline-title">
-<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M3 4h18l-7 8v7l-4-2v-5Z"/></svg> Research Stage Distribution
+<div class="pipeline-heading">
+<span class="pipeline-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M3 4h18l-7 8v7l-4-2v-5Z"/></svg></span>
+<div>
+<h3 class="pipeline-title">Research stage distribution</h3>
 </div>
-<p class="dashboard-stage-help">Select a stage to filter the list</p><div class="pipeline-steps">
-<button type="button" class="step-item" data-monitor-stage="initial" aria-pressed="false">
+</div>
+<div class="pipeline-steps">
+<div class="step-item">
 <span>Initial Submission</span>
 <strong id="initialStageCount">0 Groups</strong>
-</button>
-<button type="button" class="step-item" data-monitor-stage="review" aria-pressed="false">
+</div>
+<div class="step-item">
 <span>Ethics Review</span>
 <strong id="reviewStageCount">0 Groups</strong>
-</button>
-<button type="button" class="step-item delayed" data-monitor-stage="revision" aria-pressed="false">
+</div>
+<div class="step-item delayed">
 <span>Revision Phase</span>
 <strong id="revisionStageCount">0 Delayed</strong>
-</button>
-<button type="button" class="step-item approved" data-monitor-stage="approved" aria-pressed="false">
+</div>
+<div class="step-item approved">
 <span>Board Approved</span>
 <strong id="approvedStageCount">0 Groups</strong>
-</button>
+</div>
 </div>
 </div>
 <!-- INTERACTIVE CALENDAR WITH MONTH AND YEAR VIEWS -->
@@ -163,10 +177,6 @@ try {
 <button class="cal-nav-btn" id="prevBtn" title="Previous"><i class="fa-solid fa-chevron-left"></i></button>
 <span class="month-year" id="calendarLabel">July 2026</span>
 <button class="cal-nav-btn" id="nextBtn" title="Next"><i class="fa-solid fa-chevron-right"></i></button>
-</div>
-<div class="cal-view-selector">
-<button class="view-btn active" id="viewMonth">Month</button>
-<button class="view-btn" id="viewYear">Year</button>
 </div>
 </div>
 <!-- Month View Area -->
@@ -182,8 +192,6 @@ try {
 </div>
 <div class="calendar-grid" id="calendarDays"></div>
 </div>
-<!-- Year View Area -->
-<div id="yearCalendarView" class="year-grid"></div>
 <p class="prism-deadline-load" id="dashboardDeadlineState" role="status">Loading official deadlines...</p>
 <!-- REMINDERS AND FOLLOW-UPS -->
 <div class="reminders-section">
@@ -199,7 +207,7 @@ try {
 <div class="table-header">
 <h3><i class="fa-solid fa-list-check"></i> IERB Progress Monitor</h3>
 <div class="header-actions">
-<a href="ierbprog.php" class="prism-btn">View All Progress</a>
+<a href="ierbprog.php" class="prism-btn dashboard-open-ierb">View All</a>
 <select class="table-filter" id="courseFilter" aria-label="Filter by course">
 <option value="">All courses</option>
 </select>
@@ -220,7 +228,7 @@ try {
 <th>Stage</th>
 <th>Pending Requirements</th>
 <th>Overall Progress</th>
-<th>Status & Email Log</th>
+<th>Status</th>
 <th>Action</th>
 </tr>
 </thead>
@@ -229,7 +237,16 @@ try {
 </div>
 <!-- DOCUMENT REPOSITORY SUMMARY -->
 <div class="content-box dashboard-repository">
-<div class="table-header"><h3><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M3 6h6l2 2h10v11H3Z"/></svg> Recent Repository Uploads</h3><a class="prism-btn" href="documents.php">View All</a></div><p id="repositoryCount" role="status">Loading recent uploads...</p><div id="repositoryFilters" class="prism-filter-pills" aria-label="Recent upload filters"></div>
+<div class="repository-header">
+<div class="repository-title">
+<span class="repository-title-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M3 6h6l2 2h10v11H3Z"/></svg></span>
+<div><h3>Recent repository uploads</h3><p id="repositoryCount" role="status">Loading recent uploads...</p></div>
+</div>
+<div class="repository-header-actions">
+<div id="repositoryFilters" class="prism-filter-pills" aria-label="Recent upload filters"></div>
+<a class="repository-view-all" href="documents.php">View all</a>
+</div>
+</div>
 <div class="repo-list">
 <p>No documents yet. Uploads from students and advisers will appear here.</p>
 </div>
@@ -320,7 +337,7 @@ themeToggle?.addEventListener('click', () => {
 const courseFilter = document.getElementById('courseFilter');
 const progressSort = document.getElementById('progressSort');
 const progressTableBody = document.getElementById('ierbMonitorBody');
-let monitorRecords = [], monitorOverview = [], monitorCourses = [], monitorStage = "";
+let monitorRecords = [], monitorOverview = [], monitorCourses = [];
 let monitorError = '';
 let monitorRequest = 0;
 const escapeMonitorHtml = value => String(value ?? '').replace(/[&<>'"]/g, char => ({
@@ -333,7 +350,7 @@ async function loadMonitorStudents() {
     const requestId = ++monitorRequest;
     progressTableBody.setAttribute('aria-busy', 'true');
     try {
-        const data = await PrismUI.request('ierb_api.php?' + new URLSearchParams({action:'list',preview:10,course:courseFilter.value,sort:progressSort.value,dashboardStage:monitorStage}));
+        const data = await PrismUI.request('ierb_api.php?' + new URLSearchParams({action:'list',preview:10,course:courseFilter.value,sort:progressSort.value}));
         if (requestId !== monitorRequest) return;
         monitorRecords = data.records || [];
         monitorOverview = data.overview || monitorRecords.map(r => ({stage:r.stage,status:r.status,c:1}));
@@ -354,7 +371,12 @@ function updateMonitorMetrics() {
     document.getElementById('pendingIerbMetric').textContent = count(r => r.status === 'Pending');
     document.getElementById('approvedEthicsMetric').textContent = count(r => r.stage === 'Completed');
     document.getElementById('delayedSubmissionsMetric').textContent = count(r => r.status === 'Delayed');
-    const setCount = (id,value) => { const host=document.getElementById(id),number=document.createElement('b'),noun=document.createElement('small');number.textContent=value;noun.textContent=value===1?'student':'students';host.replaceChildren(number,noun); };
+    const setCount = (id,value) => {
+        const host=document.getElementById(id),number=document.createElement('b'),noun=document.createElement('small');
+        number.textContent=value;
+        noun.textContent=id==='revisionStageCount'?'delayed':(value===1?'group':'groups');
+        host.replaceChildren(number,noun);
+    };
     setCount('initialStageCount',count(r => r.stage === 'Stage 1'));
     setCount('reviewStageCount',count(r => r.stage === 'Stage 2'));
     setCount('revisionStageCount',count(r => ['Stage 3','Stage 4'].includes(r.stage)));
@@ -375,6 +397,7 @@ function populateCourseFilter(records) {
 
 function renderIerbMonitor() {
     progressTableBody.replaceChildren();
+    progressTableBody.closest('table').classList.toggle('is-empty', !!monitorError || monitorRecords.length === 0);
     if (monitorError) {
         ['totalResearchersMetric','pendingIerbMetric','approvedEthicsMetric','delayedSubmissionsMetric',
          'initialStageCount','reviewStageCount','revisionStageCount','approvedStageCount'].forEach(id => {
@@ -390,6 +413,7 @@ function renderIerbMonitor() {
     populateCourseFilter(monitorRecords);
     if (!monitorRecords.length) {
         const row = document.createElement('tr');
+        row.className = 'ierb-monitor-empty-row';
         row.innerHTML = '<td colspan="8">' + PrismUI.emptyState({ icon: 'fa-user-graduate', title: 'No IERB records yet', text: 'Add a student and assign an adviser to start tracking progress.', actionLabel: 'Add a student', actionHref: 'admin_students.php' }) + '</td>';
         progressTableBody.appendChild(row);
         return;
@@ -398,24 +422,25 @@ function renderIerbMonitor() {
         const row = document.createElement('tr');
         row.dataset.course = record.course || '';
         row.dataset.progress = record.progress || '0';
-        const statusClass = String(record.status || 'Pending').toLowerCase().replace(/\s+/g, '-');
+        const statusClass = record.status === 'Delayed' ? 'is-delayed' : (record.status === 'On Track' ? 'is-on-track' : 'is-pending');
+        const progress = Math.max(0, Math.min(100, progressNumber(record.progress)));
+        row.className = `ierb-monitor-row ${statusClass}`;
         row.innerHTML = `
             <td><strong>${escapeMonitorHtml(record.protocolCode || record.groupId || record.studentId)}</strong>${record.protocolCode ? `<small class="prism-sub">${escapeMonitorHtml(record.groupId || record.studentId)}</small>` : ''}</td>
             <td>${escapeMonitorHtml(record.course || 'Not set')}</td>
             <td><div class="title-cell"><span>${escapeMonitorHtml(record.research || 'Research title not set')}</span><small>Lead: ${escapeMonitorHtml(record.name)}</small></div></td>
             <td><span class="stage-tag" title="${escapeMonitorHtml(record.stage || 'Stage 1')}">${escapeMonitorHtml(record.stageLabel || record.stage || 'Stage 1')}</span>${PrismUI.docMini(record.docs)}</td>
             <td>${escapeMonitorHtml(record.requirements || 'None')}</td>
-            <td><span class="progress-value">${escapeMonitorHtml(record.progress || '0')}%</span></td>
+            <td><div class="ierb-card-progress"><div><span>Overall progress</span><strong>${progress}%</strong></div><span class="ierb-progress-track" role="progressbar" aria-label="Overall progress" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${progress}"><span style="width:${progress}%"></span></span></div></td>
             <td>${PrismUI.badge(record.status || 'Pending')}</td>
             <td><button class="icon-btn" data-monitor-action="remind" title="Send follow-up email"><i class="fa-solid fa-paper-plane"></i></button><a class="icon-btn" data-monitor-action="documents" href="documents.php" title="Open Documents" aria-label="Open Documents">Open Documents</a><button class="icon-btn prism-override-icon" data-monitor-action="override" title="Admin Override (always logged)" aria-label="Admin Override for ${escapeMonitorHtml(record.name)}"><i class="fa-solid fa-user-shield"></i></button></td>`;
         row.querySelector('[data-monitor-action="remind"]').addEventListener('click', e => PrismUI.runAction(e.currentTarget,'Sending...',() => sendMonitorFollowup(record)));
         row.querySelector('[data-monitor-action="override"]').addEventListener('click', e => PrismUI.runAction(e.currentTarget,'Processing...',async () => { if (await PrismUI.overrideStudent(record)) { await loadMonitorStudents(); renderIerbMonitor(); } }));
-        const identity=document.createElement('small');identity.textContent=(record.protocolCode||record.groupId||record.studentId||'No identifier')+' · '+(record.course||'Course not recorded');row.cells[2].querySelector('.title-cell').append(identity);
-        const metric=document.createElement('small');metric.textContent='Overall progress · '+(record.progress||'0')+'%';row.cells[3].append(metric);
-        row.cells[3].insertAdjacentHTML('beforeend',PrismUI.badge(record.status||'Pending'));
         PrismUI.actionMenu(row.cells[7],{primary:row.querySelector('[data-monitor-action="documents"]')});
         progressTableBody.appendChild(row);
-        PrismUI.compactRecord(row,2,3,7);
+        PrismUI.compactRecord(row,2,6,7,[],[0,1,3,4,5]);
+        const card = row.querySelector('.prism-record-card');
+        if (card) card.classList.add('ierb-monitor-card', statusClass);
     });
 }
 
@@ -441,9 +466,68 @@ courseFilter.addEventListener('change', filterAndSortProgress);
 progressSort.addEventListener('change', filterAndSortProgress);
 
 // Modal Control Handlers
+function setAIBannerActions(state, reportUrl = '') {
+    const actions = document.getElementById('aiBannerActions');
+    actions.replaceChildren();
+
+    if (state === 'busy') {
+        const button = document.createElement('button');
+        button.type = 'button';
+        button.className = 'ai-btn';
+        button.disabled = true;
+        button.setAttribute('aria-busy', 'true');
+        button.innerHTML = '<svg class="ai-spin" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M12 3a9 9 0 1 0 9 9"/></svg>Generating report…<span class="ai-bar" aria-hidden="true"></span>';
+        actions.appendChild(button);
+        return;
+    }
+
+    if (state === 'ready') {
+        const download = document.createElement('a');
+        download.id = 'aiBannerDownload';
+        download.className = 'ai-btn solid';
+        download.href = reportUrl;
+        download.target = '_blank';
+        download.rel = 'noopener';
+        download.innerHTML = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4v11M7 11l5 5 5-5M5 20h14"/></svg>Download report';
+        actions.appendChild(download);
+
+        const again = document.createElement('button');
+        again.type = 'button';
+        again.className = 'ai-btn ghost';
+        again.textContent = 'Generate again';
+        again.addEventListener('click', openReportModal);
+        actions.appendChild(again);
+        return;
+    }
+
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.id = 'aiBannerGenerate';
+    button.className = 'ai-btn';
+    button.innerHTML = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5M9 14h6M9 17h4"/></svg>' + (state === 'error' ? 'Try again' : 'Generate AI PDF report');
+    button.addEventListener('click', openReportModal);
+    actions.appendChild(button);
+}
+
 async function openReportModal() {
     if(dashboardGenerating)return;
-    const choice = await PrismUI.confirm({title:'Generate AI PDF Report',confirmText:'Generate report',message:'Choose an existing report format. Generated reports use the current authorized research records.',extraHtml:'<label for="aiBannerMode">Report format</label><select id="aiBannerMode"><option value="summary">AI Summary</option><option value="full">AI Full Report</option></select>',collect:d=>({mode:d.querySelector('#aiBannerMode').value})});
+    const options = '<fieldset class="report-choices" aria-label="Report format">'
+        + '<label><input type="radio" name="aiBannerMode" value="summary" checked><span class="report-card"><span class="report-radio" aria-hidden="true"></span><span class="report-text"><strong>AI Summary</strong><small>A short overview of where each research group stands.</small></span></span></label>'
+        + '<label><input type="radio" name="aiBannerMode" value="full"><span class="report-card"><span class="report-radio" aria-hidden="true"></span><span class="report-text"><strong>AI Full Report</strong><small>The detailed version with per-group progress and delays.</small></span></span></label>'
+        + '</fieldset><p class="report-note">Reports use the current authorized research records.</p>';
+    const pending = PrismUI.confirm({
+        title:'Generate AI PDF report',
+        icon:'fa-file-pdf',
+        dialogClass:'report-dialog',
+        confirmText:'Generate report',
+        message:'Pick the kind of report you need.',
+        extraHtml:options,
+        collect:d=>({mode:d.querySelector('input[name="aiBannerMode"]:checked').value})
+    });
+    const dialog = document.querySelector('.prism-overlay .prism-dialog.report-dialog');
+    const initialChoice = dialog ? dialog.querySelector('input[name="aiBannerMode"]:checked') : null;
+    if(initialChoice)initialChoice.focus();
+    const choice = await pending;
     if(choice)await generateAIReport(choice.values.mode,document.getElementById('aiBannerGenerate'));
 }
 function closeReportModal() {
@@ -455,19 +539,20 @@ async function generateAIReport(mode = 'summary', button) {
     if(dashboardGenerating)return;
     dashboardGenerating = true;
     const release = button ? PrismUI.busy(button,'Generating...') : () => {};
-    const banner=document.querySelector('.ai-summary-banner'),title=document.getElementById('aiBannerTitle'),status=document.getElementById('aiBannerStatus'),download=document.getElementById('aiBannerDownload');
-    banner.dataset.reportState='busy';banner.setAttribute('aria-busy','true');title.textContent='Preparing your insights';status.textContent='Reviewing current research progress. Please wait for the report response.';download.hidden=true;
+    const banner=document.querySelector('.ai-summary-banner'),title=document.getElementById('aiBannerTitle'),status=document.getElementById('aiBannerStatus');
+    banner.dataset.reportState='busy';banner.setAttribute('aria-busy','true');title.textContent='Preparing your insights';status.textContent='Reviewing current research progress. This takes a few seconds.';setAIBannerActions('busy');
     closeReportModal();
     try {
         const data = await PrismUI.postJson('reports_api.php?action=ai_report', { mode });
         if(!data.report?.id)throw new Error('The report response did not include a downloadable report.');
         banner.dataset.reportState='ready';title.textContent='Your report is ready';status.textContent=data.aiUsed?'Your AI progress report is ready. Review it before distribution.':'Your report uses the local fallback summary because the AI service was unavailable.';
-        download.href=`reports_api.php?action=file&id=${encodeURIComponent(data.report.id)}&download=1`;download.hidden=false;
+        setAIBannerActions('ready',`reports_api.php?action=file&id=${encodeURIComponent(data.report.id)}&download=1`);
         PrismUI.toast(data.aiUsed
             ? 'AI report generated. Review it before distribution.'
             : 'AI service was unavailable; PRISM used the local fallback summary.', data.aiUsed ? 'success' : 'info');
     } catch (e) {
         banner.dataset.reportState='error';title.textContent='Report could not be generated';status.textContent=e.message||'Please try again.';
+        setAIBannerActions('error');
         PrismUI.toast(e.message || 'The report could not be generated right now.', 'error');
     } finally { dashboardGenerating=false;banner.setAttribute('aria-busy','false'); release?.(); }
 }
@@ -487,55 +572,25 @@ const dateKey = (year, month, day) =>
     `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
 
 let currentDate = new Date();
-let currentView = 'month';
 const monthNames = ["January", "February", "March", "April", "May", "June",
     "July", "August", "September", "October", "November", "December"];
 
 const calendarLabel = document.getElementById('calendarLabel');
 const calendarDays = document.getElementById('calendarDays');
-const standardView = document.getElementById('standardCalendarView');
-const yearView = document.getElementById('yearCalendarView');
 const dashboardReminderList = document.getElementById('dashboardReminderList');
-const viewMonthBtn = document.getElementById('viewMonth');
-const viewYearBtn = document.getElementById('viewYear');
 
 document.getElementById('prevBtn').addEventListener('click', () => navigateCalendar(-1));
 document.getElementById('nextBtn').addEventListener('click', () => navigateCalendar(1));
-viewMonthBtn.addEventListener('click', () => setView('month'));
-viewYearBtn.addEventListener('click', () => setView('year'));
-
-function setView(view) {
-    currentView = view;
-    [viewMonthBtn, viewYearBtn].forEach(b => b.classList.remove('active'));
-    if(view === 'month') viewMonthBtn.classList.add('active');
-    if(view === 'year') viewYearBtn.classList.add('active');
-    renderCalendar();
-}
 
 function navigateCalendar(direction) {
-    if (currentView === 'month') {
-        currentDate.setMonth(currentDate.getMonth() + direction);
-    } else if (currentView === 'year') {
-        currentDate.setFullYear(currentDate.getFullYear() + direction);
-    }
+    currentDate.setMonth(currentDate.getMonth() + direction);
     renderCalendar();
 }
 
 function renderCalendar() {
-    yearView.closest('.calendar-box').classList.toggle('is-year-view', currentView === 'year');
-    if (currentView === 'year') {
-        standardView.style.display = 'none';
-        yearView.style.display = 'grid';
-        calendarLabel.textContent = currentDate.getFullYear();
-        renderYearView();
-        window.PrismDashboardDeadlines?.refresh(currentDate, currentView);
-    } else {
-        standardView.style.display = 'block';
-        yearView.style.display = 'none';
-        calendarLabel.textContent = `${monthNames[currentDate.getMonth()]} ${currentDate.getFullYear()}`;
-        renderMonthView();
-    window.PrismDashboardDeadlines?.refresh(currentDate, currentView);
-    }
+    calendarLabel.textContent = `${monthNames[currentDate.getMonth()]} ${currentDate.getFullYear()}`;
+    renderMonthView();
+    window.PrismDashboardDeadlines?.refresh(currentDate, 'month');
 }
 
 function renderMonthView() {
@@ -562,47 +617,6 @@ function renderMonthView() {
     const remainingSlots = (Math.ceil(totalSlots / 7) * 7) - totalSlots;
     for (let j = 1; j <= remainingSlots; j++) {
         calendarDays.innerHTML += `<div class="day text-muted">${j}</div>`;
-    }
-}
-
-function renderYearView() {
-    yearView.innerHTML = '';
-    const year = currentDate.getFullYear();
-    const today = new Date();
-
-    for (let m = 0; m < 12; m++) {
-        let monthCard = document.createElement('div');
-        monthCard.className = 'year-month-card';
-        let monthHTML = `<span class="month-title">${monthNames[m]}</span>`;
-        monthHTML += `<div class="mini-calendar-grid">`;
-        const dayHeaders = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
-        dayHeaders.forEach(day => {
-            monthHTML += `<div class="mini-day-name">${day}</div>`;
-        });
-        const firstDayIndex = new Date(year, m, 1).getDay();
-        const lastDate = new Date(year, m + 1, 0).getDate();
-        const prevMonthLastDate = new Date(year, m, 0).getDate();
-
-        for (let x = firstDayIndex; x > 0; x--) {
-            monthHTML += `<div class="mini-day text-muted">${prevMonthLastDate - x + 1}</div>`;
-        }
-        for (let d = 1; d <= lastDate; d++) {
-            let isToday = (d === today.getDate() && m === today.getMonth() && year === today.getFullYear()) ? 'active-day' : '';
-            const key = dateKey(year, m, d);
-            monthHTML += `<button type="button" class="mini-day ${isToday}" data-deadline-date="${key}" aria-label="View ${key}">${d}<i class="fa-solid fa-calendar-day prism-deadline-marker" aria-hidden="true" hidden></i></button>`;
-        }
-        const totalRendered = firstDayIndex + lastDate;
-        const remainingSlots = (Math.ceil(totalRendered / 7) * 7) - totalRendered;
-        for (let j = 1; j <= remainingSlots; j++) {
-            monthHTML += `<div class="mini-day text-muted">${j}</div>`;
-        }
-        monthHTML += `</div>`;
-        monthCard.innerHTML = monthHTML;
-        monthCard.addEventListener('click', () => {
-            currentDate.setMonth(m);
-            setView('month');
-        });
-        yearView.appendChild(monthCard);
     }
 }
 
@@ -720,6 +734,7 @@ function renderDashboardDayTasks() {
 async function deleteDashboardTask(id) {
     const answer = await PrismUI.confirm({
         title:'Delete reminder', icon:'fa-trash', tone:'danger', confirmText:'Delete',
+        dialogClass:'calendar-delete-dialog',
         message:'Delete this personal reminder from this browser?'
     });
     if (!answer) return;
@@ -777,7 +792,6 @@ dashboardDayModal.addEventListener('click', event => {
     } catch (_) { /* leave the default empty state */ }
 })();
 
-document.querySelectorAll('[data-monitor-stage]').forEach(button=>button.addEventListener('click',async()=>{monitorStage=monitorStage===button.dataset.monitorStage?'':button.dataset.monitorStage;document.querySelectorAll('[data-monitor-stage]').forEach(card=>card.setAttribute('aria-pressed',String(card.dataset.monitorStage===monitorStage)));await loadMonitorStudents();renderIerbMonitor();}));
 (async function loadRepositoryPreview() {
     const container=document.querySelector('.repo-list'),count=document.getElementById('repositoryCount'),filters=document.getElementById('repositoryFilters');
     try {
@@ -787,11 +801,37 @@ document.querySelectorAll('[data-monitor-stage]').forEach(button=>button.addEven
         const definitions=[['','All'],['Pending Adviser Review','Pending review'],['Needs Revision','Needs revision'],['Submitted to RPMS','Submitted to RPMS']];
         const render=()=>{
             const shown=docs.filter(doc=>!selected||doc.workflowState===selected);
-            count.textContent='Showing '+shown.length+' of '+docs.length+' recent uploads \u00b7 Preview only \u00b7 '+data.total+' current uploads in repository';
+            count.textContent='Showing '+shown.length+' of '+docs.length+' uploads';
             filters.replaceChildren();
-            definitions.forEach(([value,label])=>{const button=document.createElement('button');button.type='button';button.className='prism-filter-pill';button.setAttribute('aria-pressed',String(selected===value));button.dataset.repositoryState=value;button.textContent=label+' \u00b7 '+(value?docs.filter(d=>d.workflowState===value).length:docs.length);button.addEventListener('click',()=>{selected=value;render();[...filters.querySelectorAll('button')].find(b=>b.dataset.repositoryState===selected)?.focus();});filters.append(button);});
+            definitions.forEach(([value,label])=>{
+                const button=document.createElement('button');
+                button.type='button';
+                button.className='repository-filter';
+                button.setAttribute('aria-pressed',String(selected===value));
+                button.dataset.repositoryState=value;
+                const labelNode=document.createElement('span');
+                labelNode.textContent=label;
+                const countNode=document.createElement('small');
+                countNode.textContent=value?docs.filter(d=>d.workflowState===value).length:docs.length;
+                button.append(labelNode,countNode);
+                button.addEventListener('click',()=>{
+                    selected=value;
+                    render();
+                    [...filters.querySelectorAll('button')].find(b=>b.dataset.repositoryState===selected)?.focus();
+                });
+                filters.append(button);
+            });
             container.replaceChildren();
-            shown.forEach(d=>{const row=document.createElement('a');row.href='documents.php';row.className='repo-item';row.title=d.originalName;const extension=(d.originalName.match(/\.([A-Za-z0-9]{1,8})$/)?.[1]||'FILE').toUpperCase();row.innerHTML='<span class="repo-extension">'+escapeMonitorHtml(extension)+'</span><span class="repo-file-copy"><strong>'+escapeMonitorHtml(d.originalName)+(d.versionNo>1?' (v'+d.versionNo+')':'')+'</strong><small>Uploaded by '+escapeMonitorHtml(d.uploadedBy||'Not recorded')+' &middot; '+escapeMonitorHtml(d.protocolCode||d.student||'Unassigned')+'</small></span>'+PrismUI.badge(d.workflowState||d.reviewStatus,{small:true})+'<span aria-hidden="true">&#8250;</span>';container.append(row);});
+            shown.forEach(d=>{
+                const row=document.createElement('a');
+                row.href='documents.php';
+                row.className='repo-item';
+                row.title=d.originalName;
+                const extension=(d.originalName.match(/\.([A-Za-z0-9]{1,8})$/)?.[1]||'FILE').toUpperCase();
+                const status=d.workflowState||d.reviewStatus;
+                row.innerHTML='<span class="repo-extension">'+escapeMonitorHtml(extension)+'</span><span class="repo-file-copy"><strong>'+escapeMonitorHtml(d.originalName)+(d.versionNo>1?' (v'+d.versionNo+')':'')+'</strong><small>Uploaded by '+escapeMonitorHtml(d.uploadedBy||'Not recorded')+'</small></span>'+PrismUI.badge(status,{small:true})+'<span class="repo-item-arrow" aria-hidden="true"><i class="fa-solid fa-chevron-right"></i></span>';
+                container.append(row);
+            });
             if(!shown.length){const empty=document.createElement('p');empty.textContent=docs.length?'No matching uploads in the recent preview. View All to search the repository.':'No current uploads yet.';container.append(empty);}
         };render();
     } catch (_) {count.textContent='Recent uploads unavailable';container.textContent='Could not load uploads. Reload to try again.';}

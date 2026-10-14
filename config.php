@@ -1094,7 +1094,7 @@ function seed(PDO $pdo): void
         VALUES (:u, :p, 'admin', :n, :e, 'RPMS-0001', 1)");
     $stmt->execute([
         ':u' => 'rpms_admin',
-        ':p' => password_hash($bootstrapPassword, PASSWORD_DEFAULT),
+        ':p' => prism_password_hash($bootstrapPassword),
         ':n' => 'RPMS Administrator',
         ':e' => $bootstrapEmail,
     ]);
@@ -1463,57 +1463,49 @@ function log_api_error(string $service, string $message): void
  */
 function openrouter_generate(string $systemPrompt, string $userContent, bool $sensitiveContent = false): ?string
 {
-    if (!openrouter_available()) {
+    // Identifiable document contents have no approved external processing boundary.
+    if ($sensitiveContent || !openrouter_available() || !function_exists('curl_init')) return null;
+    $ch = null;
+    try {
+        if (!mb_check_encoding($systemPrompt, 'UTF-8') || !mb_check_encoding($userContent, 'UTF-8')) return null;
+        $payload = json_encode([
+            'model' => OPENROUTER_MODEL,
+            'messages' => [
+                ['role' => 'system', 'content' => $systemPrompt],
+                ['role' => 'user', 'content' => mb_substr($userContent, 0, 12000)],
+            ],
+            'temperature' => 0.3,
+        ], JSON_THROW_ON_ERROR);
+        $response = '';
+        $ch = curl_init('https://openrouter.ai/api/v1/chat/completions');
+        curl_setopt_array($ch, [
+            CURLOPT_RETURNTRANSFER => true, CURLOPT_POST => true, CURLOPT_POSTFIELDS => $payload,
+            CURLOPT_CONNECTTIMEOUT => 10, CURLOPT_TIMEOUT => 40,
+            CURLOPT_HTTPHEADER => ['Content-Type: application/json', 'Authorization: Bearer ' . OPENROUTER_API_KEY,
+                'HTTP-Referer: https://prism.ceu-malolos.local', 'X-Title: PRISM RPMS'],
+            CURLOPT_WRITEFUNCTION => static function ($handle, string $chunk) use (&$response): int {
+                if (strlen($response) + strlen($chunk) > 65536) return 0;
+                $response .= $chunk;
+                return strlen($chunk);
+            },
+        ]);
+        $result = curl_exec($ch);
+        $status = (int)curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        if ($result === false || $status < 200 || $status >= 300) {
+            log_api_error('openrouter', 'Aggregate request failed (HTTP ' . $status . ').');
+            return null;
+        }
+        $decoded = json_decode($response, true, 512, JSON_THROW_ON_ERROR);
+        $content = $decoded['choices'][0]['message']['content'] ?? null;
+        if (!is_string($content) || trim($content) === '' || strlen($content) > 48000
+            || !mb_check_encoding($content, 'UTF-8')) return null;
+        return $content;
+    } catch (Throwable $error) {
+        log_api_error('openrouter', 'Aggregate transport or response unavailable.');
         return null;
+    } finally {
+        if ($ch !== null && $ch !== false) curl_close($ch);
     }
-
-    if ($sensitiveContent && !function_exists('curl_init')) return null;
-    $request = [
-        'model'       => OPENROUTER_MODEL,
-        'messages'    => [
-            ['role' => 'system', 'content' => $systemPrompt],
-            ['role' => 'user', 'content' => mb_substr($userContent, 0, 12000)],
-        ],
-        'temperature' => 0.3,
-    ];
-    // Document calls opt in; the aggregate report request remains unchanged.
-    if ($sensitiveContent) $request['max_tokens'] = 900;
-    $payload = json_encode($request);
-
-    $ch = curl_init('https://openrouter.ai/api/v1/chat/completions');
-    curl_setopt_array($ch, [
-        CURLOPT_RETURNTRANSFER => true,
-        CURLOPT_POST           => true,
-        CURLOPT_POSTFIELDS     => $payload,
-        CURLOPT_TIMEOUT        => 40,
-        CURLOPT_HTTPHEADER     => [
-            'Content-Type: application/json',
-            'Authorization: Bearer ' . OPENROUTER_API_KEY,
-            'HTTP-Referer: https://prism.ceu-malolos.local',
-            'X-Title: PRISM RPMS',
-        ],
-    ]);
-    $boundedResponse = '';
-    if ($sensitiveContent) {
-        curl_setopt($ch, CURLOPT_WRITEFUNCTION, static function ($handle, string $chunk) use (&$boundedResponse): int {
-            if (strlen($boundedResponse) + strlen($chunk) > 65536) return 0;
-            $boundedResponse .= $chunk;
-            return strlen($chunk);
-        });
-    }
-    $response  = curl_exec($ch);
-    $status    = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-    $curlError = curl_error($ch);
-    curl_close($ch);
-
-    if ($response === false || $status >= 400) {
-        log_api_error('openrouter', $sensitiveContent ? "Document summary request failed (HTTP $status)."
-            : ($curlError !== '' ? $curlError : "HTTP $status: " . substr((string)$response, 0, 500)));
-        return null;
-    }
-    if ($sensitiveContent) $response = $boundedResponse;
-    $decoded = json_decode($response, true);
-    return $decoded['choices'][0]['message']['content'] ?? null;
 }
 
 /** Local extractive fallback used when OpenRouter is not configured/unreachable. */

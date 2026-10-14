@@ -17,7 +17,7 @@ if (realpath($_SERVER['SCRIPT_FILENAME'] ?? '') === __FILE__
             <img src="assets/images/ceu-logo.webp" alt="Centro Escolar University logo" width="256" height="307" loading="lazy" decoding="async">
             <span><strong>CENTRO ESCOLAR UNIVERSITY</strong><small>Malolos Campus</small></span>
         </a>
-        <section class="ceu-footer-contact" aria-label="CEU Malolos contact information">
+        <section class="ceu-footer-contact" <?= !empty($prismPublicFooter) ? 'id="publicContact"' : '' ?> aria-label="CEU Malolos contact information">
             <h2>Contact Us</h2>
             <address>
                 <p>Km. 44 McArthur Highway,<br>City of Malolos, Bulacan, Philippines</p>
@@ -30,5 +30,12 @@ if (realpath($_SERVER['SCRIPT_FILENAME'] ?? '') === __FILE__
             <a href="https://www.youtube.com/@CEUofficial" target="_blank" rel="noopener noreferrer" aria-label="CEU on YouTube (opens in a new tab)"><i class="fa-brands fa-youtube" aria-hidden="true"></i></a>
         </nav><a class="ceu-footer-website" href="https://www.ceu.edu.ph/" target="_blank" rel="noopener noreferrer">www.ceu.edu.ph <span aria-hidden="true">&nearr;</span></a></section>
     </div>
-    <div class="ceu-footer-bottom"><span>&copy; <?= htmlspecialchars(date('Y'), ENT_QUOTES, 'UTF-8') ?> Centro Escolar University</span><span>PRISM &middot; Research Planning and Monitoring Section</span></div>
+    <div class="ceu-footer-bottom">
+        <?php if (!empty($prismPublicFooter)): ?>
+        <span>&copy; <?= htmlspecialchars(date('Y'), ENT_QUOTES, 'UTF-8') ?> Centro Escolar University &middot; PRISM &middot; Research Planning and Monitoring Section</span>
+        <nav class="ceu-footer-legal" aria-label="Legal information"><a href="privacy.php">Privacy Policy</a><a href="terms.php">Terms of Service</a></nav>
+        <?php else: ?>
+        <span>&copy; <?= htmlspecialchars(date('Y'), ENT_QUOTES, 'UTF-8') ?> Centro Escolar University</span><span>PRISM &middot; Research Planning and Monitoring Section</span>
+        <?php endif; ?>
+    </div>
 </footer>

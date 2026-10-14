@@ -1,0 +1,670 @@
+/* Dashboard calendar refinement; existing calendar markup and behavior stay unchanged. */
+body.prism-workspace .calendar-box {
+    padding:24px 26px;
+    border-radius:20px;
+}
+body.prism-workspace .calendar-box .calendar-top-bar {
+    display:flex;
+    flex-wrap:wrap;
+    align-items:center;
+    justify-content:space-between;
+    gap:12px;
+    margin-bottom:18px;
+}
+body.prism-workspace .calendar-box .cal-nav {
+    display:flex;
+    align-items:center;
+    justify-content:flex-start;
+    gap:6px;
+}
+body.prism-workspace .calendar-box #calendarLabel {
+    min-width:140px;
+    color:#14173a;
+    font-size:18px;
+    font-weight:800;
+    letter-spacing:-.01em;
+}
+body.prism-workspace .calendar-box :is(#prevBtn,#nextBtn) {
+    flex:0 0 44px;
+    width:44px;
+    height:44px;
+    min-width:44px;
+    min-height:44px;
+    border:0;
+    border-radius:12px;
+    background:#f6f4f8;
+    color:#14173a;
+    transition:background .15s,color .15s;
+}
+body.prism-workspace .calendar-box :is(#prevBtn,#nextBtn):hover {
+    background:#fce9f3;
+    color:#b5146e;
+}
+body.prism-workspace .calendar-box .cal-view-selector {
+    display:inline-flex;
+    gap:2px;
+    padding:4px;
+    border-radius:14px;
+    background:#f6f4f8;
+}
+body.prism-workspace .calendar-box .view-btn {
+    min-height:40px;
+    padding:0 18px;
+    border:0;
+    border-radius:10px;
+    background:transparent;
+    color:#5f5a70;
+    font:inherit;
+    font-size:14px;
+    font-weight:700;
+    cursor:pointer;
+    box-shadow:none;
+}
+body.prism-workspace .calendar-box .view-btn:hover { color:#b5146e; }
+body.prism-workspace .calendar-box .view-btn.active {
+    background:#fff;
+    color:#b5146e;
+    box-shadow:0 1px 4px rgba(20,23,58,.14);
+}
+body.prism-workspace .calendar-box #calendarGridHeader {
+    gap:6px;
+    margin-bottom:6px;
+}
+body.prism-workspace .calendar-box #calendarGridHeader>* {
+    color:#8e88a3;
+    font-size:11px;
+    font-weight:800;
+    letter-spacing:.08em;
+    text-transform:uppercase;
+}
+body.prism-workspace .calendar-box #calendarDays { gap:6px; }
+body.prism-workspace .calendar-box #calendarDays>.day {
+    min-height:48px;
+    padding:0;
+    border:0;
+    border-radius:14px;
+    background:transparent;
+    color:#14173a;
+    font-size:15px;
+    font-weight:600;
+    box-shadow:none;
+    transition:background .15s,color .15s,transform .15s;
+}
+body.prism-workspace .calendar-box #calendarDays>button.day:hover {
+    transform:translateY(-1px);
+    border:0;
+    background:#fce9f3;
+    color:#b5146e;
+}
+body.prism-workspace .calendar-box #calendarDays>.day.text-muted {
+    color:#c3bed2;
+    opacity:1;
+    pointer-events:none;
+}
+body.prism-workspace .calendar-box #calendarDays>.day.has-event::after {
+    position:absolute;
+    bottom:7px;
+    left:50%;
+    width:6px;
+    height:6px;
+    margin-left:-3px;
+    border-radius:50%;
+    background:#b5146e;
+    content:"";
+}
+body.prism-workspace .calendar-box #calendarDays>[data-official-deadline=true] {
+    border:0;
+    background:#fff1d6;
+    color:#8a5300;
+}
+body.prism-workspace .calendar-box .prism-deadline-marker {
+    position:absolute;
+    top:7px;
+    right:9px;
+    width:6px;
+    height:6px;
+    border-radius:50%;
+    background:#c9741a;
+}
+body.prism-workspace .calendar-box .prism-deadline-marker[hidden] { display:none; }
+body.prism-workspace .calendar-box #calendarDays>:is(.today,.active-day,[data-today=true]) {
+    background:#b5146e;
+    color:#fff;
+    font-weight:800;
+    box-shadow:0 6px 14px rgba(181,20,110,.3);
+}
+body.prism-workspace .calendar-box #calendarDays>:is(.today,.active-day,[data-today=true]).has-event::after {
+    background:#fff;
+}
+body.prism-workspace .calendar-box #calendarDays>:is(.selected,[data-selected-day=true]) {
+    outline:2px solid #14173a;
+    outline-offset:2px;
+}
+body.prism-workspace .calendar-box #calendarDays>button:focus-visible {
+    outline:3px solid rgba(181,20,110,.4);
+    outline-offset:2px;
+}
+body.prism-workspace .calendar-box .prism-calendar-legend {
+    gap:6px 16px;
+    margin:16px 0 10px;
+    color:#5f5a70;
+    font-size:12px;
+}
+body.prism-workspace .calendar-box .prism-calendar-legend b {
+    width:10px;
+    height:10px;
+    border:0;
+    border-radius:50%;
+    background:#c9741a;
+}
+body.prism-workspace .calendar-box .prism-calendar-legend .is-today b {
+    border:0;
+    background:#b5146e;
+}
+body.prism-workspace .calendar-box .prism-calendar-legend .is-selected b {
+    border:2px solid #14173a;
+    background:transparent;
+}
+body.prism-workspace .calendar-box .prism-calendar-detail {
+    margin-top:12px;
+    padding:12px 14px;
+    border-radius:14px;
+    background:#f6f4f8;
+    color:#5f5a70;
+    font-size:13px;
+}
+body.dashboard-page .calendar-box .prism-calendar-detail {
+    display:none!important;
+}
+/* Dashboard stage summaries are informational cards; only hover is interactive feedback. */
+body.admin-shell.dashboard-page .dashboard-stage .step-item {
+    cursor:default;
+}
+body.prism-workspace .calendar-box .prism-deadline-load {
+    margin:10px 0 0;
+    color:#5f5a70;
+    font-size:13px;
+}
+body.prism-workspace .calendar-box .year-month-card {
+    padding:14px;
+    border:1.5px solid #ece8f1;
+    border-radius:16px;
+    background:#fff;
+    cursor:pointer;
+    transition:border-color .15s,box-shadow .15s;
+}
+body.prism-workspace .calendar-box .year-month-card:hover {
+    border-color:#b5146e;
+    box-shadow:0 8px 20px rgba(20,23,58,.08);
+}
+body.prism-workspace .calendar-box .year-month-card .month-title {
+    display:block;
+    margin-bottom:8px;
+    color:#14173a;
+    font-size:14px;
+    font-weight:800;
+}
+body.prism-workspace .calendar-box .reminders-section {
+    margin-top:18px;
+    padding-top:10px;
+    border-top:1px solid #ece8f1;
+}
+body.prism-workspace .calendar-box .reminders-header h4 {
+    font-size:15px;
+    font-weight:800;
+}
+body.prism-workspace .calendar-box .add-btn {
+    display:inline-flex;
+    width:44px;
+    height:44px;
+    align-items:center;
+    justify-content:center;
+    border-radius:12px;
+    background:#fce9f3;
+    color:#b5146e;
+    transition:background .15s,color .15s;
+}
+body.prism-workspace .calendar-box .add-btn:hover {
+    background:#b5146e;
+    color:#fff;
+}
+html.dark-theme body.prism-workspace .calendar-box #calendarLabel,
+html.dark-theme body.prism-workspace .calendar-box #calendarDays>.day { color:#f1eef8; }
+html.dark-theme body.prism-workspace .calendar-box :is(#prevBtn,#nextBtn,.cal-view-selector,.prism-calendar-detail) {
+    background:#2b2940;
+    color:#f1eef8;
+}
+html.dark-theme body.prism-workspace .calendar-box .view-btn.active {
+    background:#20202d;
+    color:#eaa0c4;
+}
+html.dark-theme body.prism-workspace .calendar-box #calendarDays>.day.text-muted { color:#5b566b; }
+html.dark-theme body.prism-workspace .calendar-box #calendarDays>button.day:hover { background:#3a2740; }
+html.dark-theme body.prism-workspace .calendar-box .year-month-card {
+    border-color:#3b3547;
+    background:#20202d;
+}
+@media(prefers-reduced-motion:reduce) {
+    body.prism-workspace .calendar-box * { transition:none!important; }
+}
+
+/* Admin sidebar: animated gradient, glass controls, and softer navigation rows. */
+body.admin-shell .sidebar.prism-sidebar {
+    background:
+        radial-gradient(120% 60% at 0 0,rgba(255,255,255,.28) 0%,rgba(255,255,255,0) 55%),
+        radial-gradient(90% 50% at 100% 35%,rgba(255,120,190,.35) 0%,rgba(255,120,190,0) 60%),
+        linear-gradient(180deg,#f0178a 0%,#c0167a 26%,#7b1a66 56%,#2a1550 84%,#14123c 100%);
+    background-size:100% 100%,100% 100%,100% 160%;
+    animation:prismSbShift 16s ease-in-out infinite;
+    box-shadow:0 18px 44px rgba(106,20,88,.35),inset 0 0 0 1px rgba(255,255,255,.12);
+    transition:width .5s cubic-bezier(.2,.75,.25,1);
+}
+@keyframes prismSbShift {
+    0%,100% { background-position:0 0,0 0,0 0; }
+    50% { background-position:0 0,0 0,0 100%; }
+}
+body.admin-shell .prism-sidebar .prism-sidebar-brand {
+    margin-bottom:6px;
+    padding:6px 6px 12px;
+    text-align:center;
+}
+body.admin-shell .prism-sidebar .sidebar-brand-logo {
+    filter:drop-shadow(0 6px 14px rgba(20,18,60,.35));
+}
+body.admin-shell .prism-sidebar .prism-sidebar-toggle {
+    display:flex;
+    min-height:48px;
+    align-items:center;
+    gap:12px;
+    padding:0 14px;
+    border:0;
+    border-radius:14px;
+    background:rgba(255,255,255,.14);
+    color:#fff;
+    font-weight:700;
+    backdrop-filter:blur(6px);
+    transition:background .2s;
+}
+body.admin-shell .prism-sidebar .prism-sidebar-toggle:hover { background:rgba(255,255,255,.24); }
+body.admin-shell .prism-sidebar .prism-nav-section-label {
+    display:flex;
+    align-items:center;
+    gap:10px;
+    margin:18px 6px 6px;
+    color:rgba(255,255,255,.85);
+    font-size:11px;
+    font-weight:800;
+    letter-spacing:.14em;
+}
+body.admin-shell .prism-sidebar .prism-nav-section-label::after {
+    flex:1;
+    height:1px;
+    background:rgba(255,255,255,.2);
+    content:"";
+}
+body.admin-shell .prism-sidebar :is(.prism-nav-home,.prism-nav-group-toggle) {
+    position:relative;
+    display:flex;
+    min-height:48px;
+    align-items:center;
+    gap:12px;
+    padding:8px 14px;
+    border:0;
+    border-radius:14px;
+    background:transparent;
+    color:#fff;
+    text-align:left;
+    text-decoration:none;
+    transition:background .28s ease,transform .28s ease;
+}
+body.admin-shell .prism-sidebar :is(.prism-nav-home,.prism-nav-group-toggle):hover {
+    transform:translateX(3px);
+    background:rgba(255,255,255,.18);
+}
+body.admin-shell .prism-sidebar :is(.prism-nav-home,.prism-nav-group-toggle)>i:first-child {
+    width:22px;
+    text-align:center;
+    font-size:16px;
+    transition:transform .32s ease;
+}
+body.admin-shell .prism-sidebar :is(.prism-nav-home,.prism-nav-group-toggle):hover>i:first-child {
+    transform:scale(1.18) rotate(-4deg);
+}
+body.admin-shell .prism-sidebar .prism-nav-chevron {
+    margin-left:auto;
+    font-size:12px;
+    opacity:.85;
+    transition:transform .32s ease;
+}
+body.admin-shell .prism-sidebar .prism-nav-group-toggle[aria-expanded=true] { background:rgba(255,255,255,.16); }
+body.admin-shell .prism-sidebar .prism-nav-group-toggle[aria-expanded=true] .prism-nav-chevron { transform:rotate(180deg); }
+body.admin-shell .prism-sidebar a[aria-current=page] {
+    background:#fff;
+    color:#14173a;
+    font-weight:800;
+    box-shadow:0 8px 18px rgba(20,18,60,.28);
+}
+body.admin-shell .prism-sidebar .prism-nav-home[aria-current=page]>i:first-child { color:#b5146e; }
+body.admin-shell .prism-sidebar .prism-nav-submenu {
+    display:flex;
+    flex-direction:column;
+    gap:2px;
+    margin:4px 0 6px 22px;
+    padding:2px 0 2px 12px;
+    border-left:2px solid rgba(255,255,255,.28);
+    list-style:none;
+}
+body.admin-shell .prism-sidebar .prism-nav-submenu[hidden] { display:none; }
+body.admin-shell .prism-sidebar .prism-nav-submenu a {
+    display:flex;
+    min-height:40px;
+    align-items:center;
+    padding:0 12px;
+    color:rgba(255,255,255,.92);
+    text-decoration:none;
+    transition:background .28s ease,transform .28s ease;
+}
+body.admin-shell .prism-sidebar .prism-nav-submenu a:hover {
+    transform:translateX(3px);
+    background:rgba(255,255,255,.16);
+    color:#fff;
+}
+body.admin-shell .prism-sidebar .prism-nav-submenu a[aria-current=page] { color:#14173a; }
+body.admin-shell .prism-sidebar .prism-account-menu {
+    margin-top:auto;
+    padding:10px;
+    border-radius:16px;
+    background:rgba(255,255,255,.12);
+    backdrop-filter:blur(6px);
+}
+body.admin-shell .prism-sidebar .portal-profile-btn { color:#fff; }
+body.admin-shell .prism-sidebar :is(a,button):focus-visible {
+    outline:2px solid #fff;
+    outline-offset:2px;
+}
+@media(prefers-reduced-motion:reduce) {
+    body.admin-shell .sidebar.prism-sidebar { animation:none; }
+    body.admin-shell .prism-sidebar * { transition:none!important; }
+}
+
+/* Dashboard IERB monitor polish. Loaded after dashboard-overview and shared UI styles. */
+body.prism-workspace .dashboard-monitor {
+    padding:24px 28px;
+    border-radius:20px;
+}
+body.prism-workspace .dashboard-monitor .table-header {
+    display:flex;
+    flex-wrap:wrap;
+    align-items:center;
+    justify-content:space-between;
+    gap:14px 20px;
+    margin-bottom:18px;
+}
+body.prism-workspace .dashboard-monitor .table-header h3 {
+    display:flex;
+    align-items:center;
+    gap:12px;
+    margin:0;
+    color:#14173a;
+    font-size:20px;
+    font-weight:800;
+    letter-spacing:-.01em;
+}
+body.prism-workspace .dashboard-monitor .table-header h3>i {
+    display:inline-flex;
+    width:40px;
+    height:40px;
+    flex:none;
+    align-items:center;
+    justify-content:center;
+    border-radius:12px;
+    background:#fce9f3;
+    color:#b5146e;
+    font-size:16px;
+}
+body.prism-workspace .dashboard-monitor .header-actions {
+    display:flex;
+    flex-wrap:wrap;
+    align-items:center;
+    gap:10px;
+}
+body.prism-workspace .dashboard-monitor .table-filter {
+    min-height:44px;
+    padding:0 36px 0 14px;
+    border:1.5px solid #d9d3e3;
+    border-radius:12px;
+    background-color:#fff;
+    color:#14173a;
+    font:inherit;
+    font-size:14px;
+    font-weight:600;
+    cursor:pointer;
+    transition:border-color .15s,box-shadow .15s;
+}
+body.prism-workspace .dashboard-monitor .table-filter:hover { border-color:#b5146e; }
+body.prism-workspace .dashboard-monitor .table-filter:focus-visible {
+    border-color:#b5146e;
+    outline:3px solid rgba(181,20,110,.18);
+    outline-offset:0;
+}
+body.prism-workspace .dashboard-monitor .header-actions .prism-btn {
+    display:inline-flex;
+    min-height:44px;
+    align-items:center;
+    gap:8px;
+    padding:0 18px;
+    border-radius:12px;
+    font-size:14px;
+    font-weight:700;
+    text-decoration:none;
+    transition:background .15s,color .15s,transform .15s;
+}
+body.prism-workspace .dashboard-monitor .header-actions a.prism-btn:not(.is-secondary) {
+    order:3;
+    border:0;
+    background:#b5146e;
+    color:#fff;
+}
+body.prism-workspace .dashboard-monitor .header-actions a.prism-btn:not(.is-secondary):hover {
+    transform:translateY(-1px);
+    background:#8f0f58;
+}
+body.prism-workspace .dashboard-monitor .header-actions .prism-btn.is-secondary {
+    order:2;
+    border:1.5px solid #d9d3e3;
+    background:#fff;
+    color:#14173a;
+}
+body.prism-workspace .dashboard-monitor .header-actions .prism-btn.is-secondary:hover {
+    border-color:#b5146e;
+    color:#b5146e;
+}
+body.prism-workspace .dashboard-monitor .header-actions .table-filter { order:1; }
+body.prism-workspace .dashboard-monitor .dashboard-table-scroll {
+    overflow:auto;
+    border:1.5px solid #ece8f1;
+    border-radius:16px;
+}
+body.prism-workspace .dashboard-monitor .data-table {
+    width:100%;
+    border-collapse:separate;
+    border-spacing:0;
+}
+body.prism-workspace .dashboard-monitor .data-table th {
+    padding:14px 16px;
+    border:0;
+    background:#f6f4f8;
+    color:#5f5a70;
+    font-size:11px;
+    font-weight:800;
+    letter-spacing:.08em;
+    text-align:left;
+    text-transform:uppercase;
+    white-space:nowrap;
+}
+body.prism-workspace .dashboard-monitor .data-table td {
+    padding:16px;
+    border:0;
+    border-top:1px solid #ece8f1;
+    color:#14173a;
+    font-size:14px;
+    vertical-align:middle;
+}
+body.prism-workspace .dashboard-monitor .data-table tbody tr { transition:background .15s; }
+body.prism-workspace .dashboard-monitor .data-table tbody tr:hover { background:#fbfafd; }
+body.prism-workspace .dashboard-monitor .data-table td small {
+    display:block;
+    margin-top:2px;
+    color:#5f5a70;
+    font-size:12px;
+}
+body.prism-workspace .dashboard-monitor .stage-tag {
+    display:inline-flex;
+    padding:4px 12px;
+    border-radius:999px;
+    background:#efe8fb;
+    color:#5b2bb5;
+    font-size:12px;
+    font-weight:700;
+}
+body.prism-workspace .dashboard-monitor .progress-value {
+    display:inline-flex;
+    padding:4px 12px;
+    border-radius:999px;
+    background:#f6f4f8;
+    font-size:13px;
+    font-weight:800;
+}
+body.prism-workspace .dashboard-monitor .icon-btn {
+    min-width:40px;
+    min-height:40px;
+    border-radius:12px;
+}
+body.prism-workspace .dashboard-monitor .prism-empty {
+    padding:44px 20px;
+    text-align:center;
+}
+body.prism-workspace .dashboard-monitor .prism-empty>i {
+    display:flex;
+    width:64px;
+    height:64px;
+    align-items:center;
+    justify-content:center;
+    margin:0 auto 14px;
+    border-radius:50%;
+    background:#fce9f3;
+    color:#b5146e;
+    font-size:26px;
+    opacity:1;
+}
+body.prism-workspace .dashboard-monitor .prism-empty h4 {
+    margin:0 0 6px;
+    font-size:18px;
+    font-weight:800;
+}
+body.prism-workspace .dashboard-monitor .prism-empty p {
+    max-width:380px;
+    margin:0 auto 18px;
+    color:#5f5a70;
+    font-size:14px;
+    line-height:1.6;
+}
+body.prism-workspace .dashboard-monitor .prism-empty .prism-btn {
+    display:inline-flex;
+    min-height:48px;
+    align-items:center;
+    padding:0 24px;
+    border-radius:14px;
+    background:#b5146e;
+    color:#fff;
+    font-weight:800;
+    text-decoration:none;
+    transition:background .15s,transform .15s;
+}
+body.prism-workspace .dashboard-monitor .prism-empty .prism-btn:hover {
+    transform:translateY(-1px);
+    background:#8f0f58;
+}
+body.prism-workspace .dashboard-monitor .data-table td:has(.prism-empty) {
+    padding:0;
+    border-top:0;
+}
+body.prism-workspace .dashboard-monitor .dashboard-table-scroll:has(.prism-empty) {
+    border-style:dashed;
+    background:#fbfafd;
+}
+@media(max-width:700px) {
+    body.prism-workspace .dashboard-monitor { padding:18px; }
+    body.prism-workspace .dashboard-monitor .header-actions { width:100%; }
+    body.prism-workspace .dashboard-monitor .table-filter { flex:1 1 140px; }
+}
+html.dark-theme body.prism-workspace .dashboard-monitor .table-header h3 { color:#f1eef8; }
+html.dark-theme body.prism-workspace .dashboard-monitor :is(.table-filter,.header-actions .prism-btn.is-secondary) {
+    border-color:#62596d;
+    background-color:#20202d;
+    color:#f1eef8;
+}
+html.dark-theme body.prism-workspace .dashboard-monitor .data-table th {
+    background:#2b2940;
+    color:#c9c2d6;
+}
+html.dark-theme body.prism-workspace .dashboard-monitor .data-table td {
+    border-color:#3b3547;
+    color:#f1eef8;
+}
+html.dark-theme body.prism-workspace .dashboard-monitor .data-table tbody tr:hover { background:#1a1a26; }
+html.dark-theme body.prism-workspace .dashboard-monitor .dashboard-table-scroll { border-color:#3b3547; }
+body.admin-shell.dashboard-page .dashboard-monitor .dashboard-table-scroll { overflow:auto; }
+@media(prefers-reduced-motion:reduce) {
+    body.prism-workspace .dashboard-monitor * { transition:none!important; }
+}
+
+/* Match section heading typography without changing card dimensions. */
+body.admin-shell.dashboard-page .dashboard-monitor .table-header h3 { font-size:15px; font-weight:800; line-height:1.3; }
+body.dashboard-page .dashboard-open-ierb { transition:box-shadow 200ms ease,border-color 200ms ease; }
+body.dashboard-page .dashboard-open-ierb:is(:hover,:focus-visible) { box-shadow:0 0 18px rgba(238,18,128,.24); border-color:#eea7cb; }
+@media(prefers-reduced-motion:reduce) { body.dashboard-page .dashboard-open-ierb { transition:none; } }
+/* Explicit attention destination and readable section titles. */
+body.admin-shell.dashboard-page .dashboard-monitor .table-header h3 { font-size:18px!important; line-height:1.35; font-weight:800; }
+body.admin-shell.dashboard-page .dashboard-attention .attention-title h3 { font-size:16px!important; line-height:1.3; font-weight:800; margin:0; }
+body.dashboard-page .dashboard-attention .prism-empty { display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center !important; width:100%; }
+body.dashboard-page .dashboard-attention .prism-empty > * { text-align:center !important; margin-left:auto !important; margin-right:auto !important; }
+body.dashboard-page .dashboard-attention .attention-link {
+    position: relative;
+    z-index: 2;
+    display: inline-flex;
+    min-height: 32px;
+    height: 32px;
+    align-items: center;
+    justify-content: center;
+    gap: 7px;
+    padding: 0 14px;
+    border: 1px solid #f2c2d9;
+    border-radius: 999px;
+    background: #fff;
+    color: #b5146e;
+    font-size: 12.5px;
+    font-weight: 700;
+    text-decoration: none;
+    white-space: nowrap;
+    transition: transform 0.2s ease, border-color 0.2s ease, background 0.2s ease, color 0.2s ease, box-shadow 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+body.dashboard-page .dashboard-attention .attention-link:is(:hover, :focus-visible) {
+    transform: translateY(-1px);
+    border-color: #f65296;
+    background: #fff;
+    color: #a21368;
+    box-shadow: 0 0 12px rgba(246, 82, 150, 0.65), 0 0 24px rgba(181, 20, 110, 0.4), 0 2px 6px rgba(181, 20, 110, 0.2);
+}
+html.dark-theme body.dashboard-page .dashboard-attention .attention-link {
+    border-color: #633252;
+    background: #20202d;
+    color: #f2a9ce;
+}
+html.dark-theme body.dashboard-page .dashboard-attention .attention-link:is(:hover, :focus-visible) {
+    border-color: #f65296;
+    background: #271e2e;
+    color: #fff;
+    box-shadow: 0 0 14px rgba(246, 82, 150, 0.65), 0 0 28px rgba(181, 20, 110, 0.45);
+}
+@media(prefers-reduced-motion:reduce) { body.dashboard-page .dashboard-attention .attention-link { transition: none; } }

@@ -24,7 +24,7 @@ require_once __DIR__.'/includes/help_support.php';
 <link rel="stylesheet" href="<?= htmlspecialchars(asset_url('assets/css/batch11.css'), ENT_QUOTES, 'UTF-8') ?>">
 <script src="<?php echo htmlspecialchars(asset_url('assets/js/prism-workspace.js'), ENT_QUOTES, 'UTF-8'); ?>" defer></script>
 <?php prism_frontend_styles(); ?>
-</head>
+<link rel="stylesheet" href="<?= htmlspecialchars(asset_url('assets/css/notification-center-ui.css'), ENT_QUOTES, 'UTF-8') ?>"></head>
 <body class="prism-workspace <?= $authUser['role'] === 'admin' ? 'admin-shell' : 'portal-shell adviser-page' ?> notification-center-page" data-admin-user="<?php echo htmlspecialchars(hash('sha256', $user_email), ENT_QUOTES); ?>" data-user-role="<?php echo htmlspecialchars($authUser['role'], ENT_QUOTES, 'UTF-8'); ?>">
 <div class="container">
     <?php if ($authUser['role'] === 'admin'): ?><aside class="sidebar prism-sidebar"><?php else: ?><header class="portal-navbar"><?php endif; ?>
@@ -67,8 +67,9 @@ require_once __DIR__.'/includes/help_support.php';
                     <label id="groupLabel" hidden>Research group<select id="noticeGroup" disabled><option value="">Loading research groups...</option></select></label>
                     <p id="noticeRecipientPreview" class="notification-recipient-preview" role="status" aria-live="polite">Checking recipients...</p>
                     <label class="notification-message-field">Message<textarea id="noticeMessage" rows="5" maxlength="600" aria-describedby="noticeMessageCount" required></textarea><span id="noticeMessageCount" class="notification-message-count">0 / 600 characters</span></label>
+                    <div class="notification-quick-fill" aria-label="Message templates"><span>Quick fill:</span><button type="button" data-notice-template="Reminder: please upload your pending IERB requirements before the deadline.">Deadline reminder</button><button type="button" data-notice-template="Your IERB submission status has been updated. Open PRISM to view the details.">Status changed</button></div>
                     <div class="notification-schedule-row">
-                        <label class="check-label"><input id="automatedNotice" type="checkbox"> Schedule for later</label>
+                        <label class="check-label"><input id="automatedNotice" type="checkbox"><span><strong>Schedule for later</strong><small>Off means it sends right away.</small></span></label>
                         <label id="scheduleLabel" hidden>Send date and time<input id="noticeSchedule" type="datetime-local"></label>
                         <div class="notification-submit"><button id="cancelNotification" class="notification-secondary" type="reset">Clear form</button><button class="management-primary" type="submit"><i class="fa-solid fa-paper-plane"></i> <span id="noticeSubmitLabel">Send notification</span></button></div>
                     </div>
@@ -93,5 +94,6 @@ require_once __DIR__.'/includes/help_support.php';
 <script src="<?php echo htmlspecialchars(asset_url('assets/js/prism-ui.js'), ENT_QUOTES, 'UTF-8'); ?>"></script>
 <script src="<?php echo htmlspecialchars(asset_url('assets/js/notification-history.js'), ENT_QUOTES, 'UTF-8'); ?>"></script>
 <script src="<?php echo htmlspecialchars(asset_url('assets/js/admin-notifications.js'), ENT_QUOTES, 'UTF-8'); ?>"></script>
+<script src="<?= htmlspecialchars(asset_url('assets/js/notification-center-ui.js'), ENT_QUOTES, 'UTF-8') ?>" defer></script>
 </body>
 </html>

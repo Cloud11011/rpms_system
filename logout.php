@@ -1,5 +1,13 @@
 <?php
+// A GET must not initialize, audit, clear or destroy an authenticated session.
+if (($_SERVER['REQUEST_METHOD'] ?? '') !== 'POST') {
+    http_response_code(405);
+    header('Allow: POST');
+    exit;
+}
 require __DIR__ . '/config.php';
+require_post_same_origin();
+require_session_generation(true);
 
 $user = current_user();
 if ($user) {

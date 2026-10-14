@@ -20,12 +20,22 @@
             button.innerHTML = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="m9 6 6 6-6 6"/></svg>';
         });
         document.querySelectorAll(grids).forEach(grid => {
+            // Student calendars already render their own legend with the portal styling.
+            // Avoid adding a second, differently styled legend above it.
+            if (grid.nextElementSibling?.classList.contains('calendar-legend')) {
+                decorate(grid);
+                new MutationObserver(() => decorate(grid)).observe(grid, {
+                    childList: true, subtree: true, attributes: true,
+                    attributeFilter: ['class', 'data-today', 'data-selected-day']
+                });
+                return;
+            }
             const legend = document.createElement('div');
             legend.className = 'prism-calendar-legend';
             if (grid.id === 'yearCalendarView') legend.classList.add('is-year');
             legend.setAttribute('aria-label', 'Calendar legend');
             legend.innerHTML = '<span><b aria-hidden="true"></b>Official deadline</span>'
-                + '<span class="is-today"><b aria-hidden="true"></b>Today (accent underline)</span>'
+                + '<span class="is-today"><b aria-hidden="true"></b>Today</span>'
                 + '<span class="is-selected"><b aria-hidden="true"></b>Selected date</span>';
             grid.after(legend);
             decorate(grid);

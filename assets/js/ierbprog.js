@@ -32,6 +32,17 @@
     const sort = PrismUI.recordFilters(document.getElementById('ierbMoreFilters'), [['sortBy','Sort by'],['direction','Direction']]);
     sort.update({sortBy:[['name','Name'],['studentId','Student ID'],['stage','IERB stage'],['status','Status'],['academicYear','Academic year'],['group','Research group']].map(([value,label])=>({value,label})),direction:[{value:'ASC',label:'Ascending'},{value:'DESC',label:'Descending'}]});
     sort.controls[0].options[0].textContent='Name (default)';sort.controls[1].options[0].textContent='Ascending (default)';
+    if (!isAdmin) {
+        ierbSearch.placeholder = 'Search by student name or ID';
+        const visibleSort = sort.controls[0].closest('label');
+        visibleSort.classList.add('ierb-visible-sort');
+        const sortCaption = document.createElement('span');
+        sortCaption.textContent = 'Sort by';
+        if (visibleSort.firstChild?.nodeType === Node.TEXT_NODE) visibleSort.firstChild.remove();
+        visibleSort.prepend(sortCaption);
+        visibleSort.querySelector('select')?.setAttribute('aria-label', 'Sort student progress');
+        document.querySelector('.ierb-controls').append(visibleSort);
+    }
     const filterControls = [...filters.controls,...sort.controls];
     // Move the existing stage/status filters with their labels; primary actions stay visible.
     [stageFilter,statusFilter].forEach(control => {
@@ -69,7 +80,7 @@
             filters.update(data.filterOptions);
             overview = data.overview || records.map(r => ({ stage: r.stage, status: r.status, c: 1 }));
             const statusSelect=statusFilter;
-            if(statusSelect){let pills=document.getElementById('ierbStatusPills');if(!pills){pills=document.createElement('div');pills.id='ierbStatusPills';document.querySelector('.ierb-controls').after(pills);}const counts={};overview.forEach(row=>{counts[row.status]=(counts[row.status]||0)+Number(row.c);});PrismUI.statusPills(pills,[['','All'],...[...statusSelect.options].filter(option=>option.value).map(option=>[option.value,option.textContent])],statusSelect,counts);}
+            if(statusSelect){let pills=document.getElementById('ierbStatusPills');if(!pills){pills=document.createElement('div');pills.id='ierbStatusPills';document.querySelector('.ierb-controls').after(pills);}pills.classList.toggle('ierb-adviser-tabs',!isAdmin);const counts={};overview.forEach(row=>{counts[row.status]=(counts[row.status]||0)+Number(row.c);});PrismUI.statusPills(pills,[['','All'],...[...statusSelect.options].filter(option=>option.value).map(option=>[option.value,option.textContent])],statusSelect,counts);}
             pager.render({ ...data, total: data.total ?? records.length });
         } catch (e) {
             if (requestSequence !== recordRequestSequence) return;
@@ -90,10 +101,12 @@
     function renderOverview() {
         const total = overview.reduce((sum, r) => sum + Number(r.c), 0);
         const stageCount = stage => overview.filter(r => r.stage === stage).reduce((sum, r) => sum + Number(r.c), 0);
-        overviewTotal.textContent = loadError ? 'Unavailable' : `${total} student${total === 1 ? '' : 's'}`;
+        overviewTotal.textContent = loadError
+            ? 'Unavailable'
+            : `${total} student${total === 1 ? '' : 's'} · Select a stage to filter the list`;
         stageChart.replaceChildren();
         stageChart.classList.toggle('is-empty', total === 0);
-        stageChart.setAttribute('role', total ? 'img' : 'status');
+        stageChart.setAttribute('role', total ? 'group' : 'status');
         if (!total) {
             stageChart.removeAttribute('aria-label');
             const state = document.createElement('div');
@@ -113,30 +126,43 @@
             stageChart.appendChild(state);
             return;
         }
-        const max = Math.max(1, ...STAGES.map(s => stageCount(s)));
         stageChart.setAttribute('aria-label', STAGES.map(stage => `${labelForStage(stage)}: ${stageCount(stage)}`).join('; '));
         STAGES.forEach(stage => {
             const count = stageCount(stage);
-            const col = document.createElement('div');
-            col.className = 'stage-bar-col';
-            const area = document.createElement('div');
-            area.className = 'stage-bar-area';
-            const bar = document.createElement('div');
-            bar.className = 'stage-bar';
-            bar.style.height = `${Math.max(4, (count / max) * 100)}%`;
-            const countLabel = document.createElement('span');
+            const card = document.createElement('button');
+            card.type = 'button';
+            card.className = 'stage-summary-card';
+            card.dataset.stage = stage;
+            card.setAttribute('aria-pressed', String(stageFilter.value === stage));
+            card.setAttribute('aria-label', `${labelForStage(stage)}: ${count} student${count === 1 ? '' : 's'}`);
+
+            const countLabel = document.createElement('strong');
+            countLabel.className = 'stage-summary-count';
             countLabel.textContent = String(count);
-            bar.appendChild(countLabel);
-            const stageLabel = document.createElement('small');
-            stageLabel.title = `${stage}: ${labelForStage(stage)}`;
+            const stageLabel = document.createElement('span');
+            stageLabel.className = 'stage-summary-label';
             stageLabel.textContent = labelForStage(stage);
-            area.appendChild(bar);
-            col.append(area, stageLabel);
-            stageChart.appendChild(col);
+            const track = document.createElement('span');
+            track.className = 'stage-summary-track';
+            track.setAttribute('aria-hidden', 'true');
+            const fill = document.createElement('span');
+            fill.style.width = `${(count / total) * 100}%`;
+            track.appendChild(fill);
+            card.append(countLabel, stageLabel, track);
+            stageChart.appendChild(card);
         });
     }
 
+    stageChart.addEventListener('click', event => {
+        const card = event.target.closest('.stage-summary-card');
+        if (!card) return;
+        stageFilter.value = stageFilter.value === card.dataset.stage ? '' : card.dataset.stage;
+        stageFilter.dispatchEvent(new Event('change', { bubbles: true }));
+    });
+
     function filteredRecords() { return records; }
+
+    const initialsFor = name => String(name || 'Student').trim().split(/\s+/).slice(0, 2).map(part => part.charAt(0)).join('').toUpperCase();
 
     function renderTable() {
         const rows = filteredRecords();
@@ -172,14 +198,17 @@
 
         rows.forEach(record => {
             const tr = document.createElement('tr');
+            const progress = Math.max(0, Math.min(100, Number(record.progress) || 0));
+            const statusClass = record.status === 'Delayed' ? 'is-delayed' : (record.status === 'On Track' ? 'is-on-track' : 'is-pending');
             tr.innerHTML = `
-                <td><strong>${escapeHtml(record.name)}</strong><br><small>${escapeHtml(record.studentId)}</small></td>
+                <td><div class="ierb-card-identity"><div class="ierb-student-head"><span class="ierb-student-avatar" aria-hidden="true">${escapeHtml(initialsFor(record.name))}</span><span class="ierb-student-copy"><strong class="ierb-student-name">${escapeHtml(record.name || 'Student name unavailable')}</strong><span class="ierb-student-meta">ID ${escapeHtml(record.studentId || 'Not recorded')}${record.course ? ` · ${escapeHtml(record.course)}` : ''}</span></span></div><strong class="ierb-research-title">${escapeHtml(record.research || 'Research title not set')}</strong><div class="ierb-card-meta">${record.protocolCode ? `<span>${escapeHtml(record.protocolCode)}</span>` : ''}${record.groupId ? `<span>${escapeHtml(record.groupId)}</span>` : ''}</div></div></td>
                 <td><span class="stage-tag" title="${escapeHtml(record.stage)}">${escapeHtml(record.stageLabel || labelForStage(record.stage))}</span></td>
-                <td>${escapeHtml(record.progress)}%</td>
+                <td><div class="ierb-card-progress"><div><span>Overall progress</span><strong>${progress}%</strong></div><span class="ierb-progress-track" role="progressbar" aria-label="Overall progress" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${progress}"><span style="width:${progress}%"></span></span></div></td>
                 <td>${escapeHtml(record.requirements || 'None')}</td>
                 <td>${escapeHtml(record.lastSubmissionDate || 'N/A')}</td>
                 <td>${PrismUI.badge(record.status)}</td>
                 <td class="row-actions"></td>`;
+            tr.className = `ierb-progress-row ${statusClass}`;
             PrismAcademicFields.appendSummary(tr.cells[0], record);
             const actions = tr.querySelector('.row-actions');
 
@@ -213,9 +242,46 @@
                 actions.appendChild(delBtn);
             }
 
-            PrismUI.actionMenu(actions);
+            if (!isAdmin) {
+                PrismUI.actionMenu(actions, { label: 'Student actions' });
+            } else {
+                PrismUI.actionMenu(actions);
+            }
             tableBody.appendChild(tr);
-            PrismUI.compactRecord(tr,0,5,6,[],[1,2,3]);
+            PrismUI.compactRecord(tr,0,5,6,[],[1,2,3,4]);
+            const card = tr.querySelector('.prism-record-card');
+            if (card) {
+                card.classList.add('ierb-progress-card', statusClass);
+                const metadata=card.querySelector('.prism-record-summary');
+                if (!isAdmin && metadata) {
+                    [...metadata.children].forEach((field,index)=>field.classList.add('ierb-progress-field',`ierb-progress-field-${index+1}`));
+                    metadata.replaceWith(...metadata.children);
+                }
+                const fields=card.querySelectorAll('.ierb-progress-field, .prism-record-summary > div');
+                const detailsSummary=card.querySelector('.prism-record-details > summary');
+                if(detailsSummary) detailsSummary.textContent='Show academic details';
+                if(fields[0]) {
+                    const stageSteps=document.createElement('span');
+                    stageSteps.className='ierb-stage-steps';
+                    stageSteps.setAttribute('aria-hidden','true');
+                    const stageIndex=STAGES.indexOf(record.stage);
+                    STAGES.forEach((stage,index)=>{
+                        const step=document.createElement('i');
+                        if(stageIndex>=0 && index<=stageIndex) step.classList.add('is-complete');
+                        stageSteps.append(step);
+                    });
+                    fields[0].append(stageSteps);
+                    if (!isAdmin && fields[1]) {
+                        const progress=fields[1].querySelector('.ierb-card-progress');
+                        if (progress) fields[0].append(progress);
+                        fields[1].remove();
+                    }
+                }
+                if(isAdmin) {
+                    const docs=document.createElement('a');docs.href='documents.php';docs.className='prism-btn ierb-open-documents';docs.textContent='Open documents';
+                    card.querySelector('.prism-record-actions').prepend(docs);
+                }
+            }
         });
     }
 
@@ -398,6 +464,7 @@
     async function sendFollowup(record) {
         const answer = await PrismUI.confirm({
             title:'Send follow-up', icon:'fa-paper-plane', confirmText:'Send follow-up',
+            dialogClass:'ierb-followup-dialog',
             message:`Send the standard IERB progress follow-up to ${record.name} at ${record.email}?`
         });
         if (!answer) return;

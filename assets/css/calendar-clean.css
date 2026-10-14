@@ -1,0 +1,163 @@
+/* PRISM Personal Calendar – clean layout.
+   Left: month calendar. Right: "Selected date" card on top, "Official deadlines" card underneath.
+   Load LAST in calendar.php. Scoped to .calendar-page so other pages are untouched. */
+
+body.prism-workspace .calendar-page{--cc-border:var(--prism-border,#ECE8F1);--cc-muted:var(--prism-muted,#5F5A70);--cc-text:var(--prism-text,#14173A);--cc-accent:var(--prism-accent,#B5146E);--cc-soft:var(--prism-pink-soft,#FCEAF4);--cc-card:var(--prism-card,#fff);--cc-bg:var(--prism-bg,#F6F4F8)}
+
+/* ---------- header ---------- */
+body.prism-workspace .calendar-page .calendar-instructions{max-width:62ch;margin:0 0 20px;font-size:14px;line-height:1.6;color:var(--cc-muted)}
+
+/* ---------- two-column layout ---------- */
+body.prism-workspace .calendar-page .calendar-layout{display:grid;grid-template-columns:minmax(0,1fr) 380px;gap:20px;align-items:start;margin-top:0}
+body.prism-workspace .calendar-page .calendar-side{display:grid;gap:20px;min-width:0}
+body.prism-workspace .calendar-page .calendar-side>.reminder-panel{margin:0;padding:22px;border-radius:18px}
+
+/* ---------- calendar card ---------- */
+body.prism-workspace .calendar-page .full-calendar-card{padding:24px;border-radius:18px}
+body.prism-workspace .calendar-page .calendar-toolbar{justify-content:center;gap:14px;margin-bottom:18px}
+body.prism-workspace .calendar-page #monthLabel{min-width:170px;font-size:18px;font-weight:700;color:var(--cc-text)}
+body.prism-workspace .calendar-page :is(#previousMonth,#nextMonth){width:40px;height:40px;min-width:40px;min-height:40px;flex-basis:40px;background:var(--cc-card)}
+body.prism-workspace .calendar-page .weekday-row{gap:8px;margin-bottom:6px}
+body.prism-workspace .calendar-page .weekday-row span{font-size:12px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:var(--cc-muted)}
+
+body.prism-workspace .calendar-page #monthGrid{gap:8px}
+body.prism-workspace .calendar-page #monthGrid>.calendar-day{min-height:92px;padding:10px;border:1px solid var(--cc-border);border-radius:14px;background:var(--cc-card);place-content:start;text-align:left;transition:background .15s,border-color .15s,box-shadow .15s}
+body.prism-workspace .calendar-page #monthGrid>.calendar-day:hover{background:var(--cc-soft);border-color:#E6B3D0}
+body.prism-workspace .calendar-page #monthGrid .day-number{display:inline-grid;place-items:center;width:28px;height:28px;font-size:14px;font-weight:600;color:var(--cc-text);border-radius:50%}
+body.prism-workspace .calendar-page #monthGrid>.calendar-day.outside{background:transparent;border-color:transparent;opacity:1}
+body.prism-workspace .calendar-page #monthGrid>.calendar-day.outside .day-number{color:#B4AFC2;font-weight:500}
+
+/* today: only the number is filled – the cell stays light */
+body.prism-workspace .calendar-page #monthGrid>.calendar-day.today{background:var(--cc-card);color:var(--cc-text);box-shadow:none;font-weight:inherit}
+body.prism-workspace .calendar-page #monthGrid>.calendar-day.today .day-number{background:var(--cc-accent);color:#fff;font-weight:700}
+
+/* selected: pink ring + soft fill */
+body.prism-workspace .calendar-page #monthGrid>.calendar-day.selected{outline:0;background:var(--cc-soft);border-color:var(--cc-accent);box-shadow:0 0 0 2px rgba(181,20,110,.18)}
+
+/* official deadline cells: quiet tint + small label */
+body.prism-workspace .calendar-page #monthGrid>[data-official-deadline=true]{background:#FFF8FB;border-color:#F0C4DB}
+body.prism-workspace .calendar-page #monthGrid>[data-official-deadline=true].selected{background:var(--cc-soft);border-color:var(--cc-accent)}
+body.prism-workspace .calendar-page .day-tasks{margin-top:6px;gap:4px}
+body.prism-workspace .calendar-page .day-task{padding:2px 7px;border-radius:999px;font-size:11.5px;font-weight:600;background:var(--cc-soft);color:#8F0F58}
+body.prism-workspace .calendar-page .day-task.official-marker{border-left:0;background:#fff;color:var(--cc-accent);box-shadow:inset 0 0 0 1px #F0C4DB}
+body.prism-workspace .calendar-page .day-task.official-marker::before{content:"";display:inline-block;width:6px;height:6px;margin-right:5px;border-radius:50%;background:var(--cc-accent);vertical-align:1px}
+
+/* legend */
+body.prism-workspace .calendar-page .prism-calendar-legend{gap:18px;margin:16px 0 0;padding-top:14px;border-top:1px solid var(--cc-border);font-size:12.5px;color:var(--cc-muted)}
+body.prism-workspace .calendar-page .prism-calendar-legend b{width:12px;height:12px;border-radius:50%}
+body.prism-workspace .calendar-page .prism-calendar-legend .is-today b{background:var(--cc-accent);border:0}
+body.prism-workspace .calendar-page .prism-calendar-legend .is-selected b{border:2px solid var(--cc-accent);background:var(--cc-soft)}
+
+/* ---------- shared card header ---------- */
+body.prism-workspace .calendar-page .reminder-panel .panel-title{padding-bottom:16px;border-bottom:1px solid var(--cc-border)}
+body.prism-workspace .calendar-page .reminder-panel .eyebrow{font-size:11px;font-weight:700;letter-spacing:.08em;color:var(--cc-accent)}
+body.prism-workspace .calendar-page .reminder-panel .panel-title h2{margin-top:4px;font-size:18px;font-weight:700;color:var(--cc-text)}
+body.prism-workspace .calendar-page .task-count{padding:5px 12px;border-radius:999px;background:var(--cc-bg);font-size:12px;font-weight:600;color:var(--cc-muted)}
+
+/* ---------- selected date form ---------- */
+body.prism-workspace .calendar-page #reminderForm{gap:6px;padding:18px 0}
+body.prism-workspace .calendar-page #reminderForm label{margin-top:8px;font-size:13px;font-weight:600}
+body.prism-workspace .calendar-page #reminderForm input,
+body.prism-workspace .calendar-page #reminderForm textarea{min-height:44px;padding:10px 14px;border:1px solid var(--prism-border-strong,#D9D3E3);border-radius:12px;background:var(--cc-card);font-size:14px;color:var(--cc-text)}
+body.prism-workspace .calendar-page #reminderForm textarea{min-height:84px;resize:vertical}
+body.prism-workspace .calendar-page #reminderForm :is(input,textarea):is(:focus,:focus-visible){outline:0!important;border-color:var(--cc-accent);box-shadow:0 0 0 3px rgba(181,20,110,.15)}
+body.prism-workspace .calendar-page .form-actions{margin-top:12px}
+body.prism-workspace .calendar-page .form-actions .save-task{flex:1;min-height:44px;justify-content:center;border-radius:12px;background:var(--cc-accent);font-size:14px;font-weight:700}
+body.prism-workspace .calendar-page .form-actions .save-task:hover{background:#8F0F58}
+body.prism-workspace .calendar-page .form-actions .cancel-edit{min-height:44px;padding:0 18px;border-radius:12px;background:var(--cc-bg)}
+body.prism-workspace .calendar-page .task-list{padding-top:16px;gap:10px}
+body.prism-workspace .calendar-page .task-item{padding:14px;border:1px solid var(--cc-border);border-left:4px solid var(--cc-accent);border-radius:12px;background:var(--cc-card)}
+body.prism-workspace .calendar-page .empty-tasks{padding:18px 8px 4px;font-size:13px;color:var(--cc-muted)}
+body.prism-workspace .calendar-page .empty-tasks i{margin-bottom:8px;font-size:22px;color:#C9C3D6}
+
+/* ---------- official deadlines card ---------- */
+body.prism-workspace .calendar-page .official-deadline-panel{margin:0}
+body.prism-workspace .calendar-page .official-deadline-panel .panel-title{padding-bottom:14px}
+body.prism-workspace .calendar-page .deadline-create{margin:16px 0 0}
+body.prism-workspace .calendar-page .deadline-create>summary{display:flex;align-items:center;justify-content:center;gap:8px;min-height:44px;padding:0 16px;list-style:none;border:1px solid var(--cc-accent);border-radius:12px;background:var(--cc-card);font-size:14px;font-weight:700;color:var(--cc-accent);cursor:pointer;transition:background .15s}
+body.prism-workspace .calendar-page .deadline-create>summary::-webkit-details-marker{display:none}
+body.prism-workspace .calendar-page .deadline-create>summary::before{content:"+";font-size:18px;line-height:1}
+body.prism-workspace .calendar-page .deadline-create>summary:hover{background:var(--cc-soft)}
+body.prism-workspace .calendar-page .deadline-create[open]>summary{background:var(--cc-soft)}
+body.prism-workspace .calendar-page .deadline-form{grid-template-columns:minmax(0,1fr);gap:12px;margin:14px 0 4px;padding:16px;border-radius:14px;background:var(--cc-bg)}
+body.prism-workspace .calendar-page .deadline-form label{font-size:13px;font-weight:600}
+body.prism-workspace .calendar-page .deadline-form :is(input,select,textarea){min-height:44px;padding:10px 12px;border:1px solid var(--prism-border-strong,#D9D3E3);border-radius:12px;background:var(--cc-card);font-size:14px}
+body.prism-workspace .calendar-page .deadline-form :is(input,select,textarea):is(:focus,:focus-visible){outline:0!important;border-color:var(--cc-accent);box-shadow:0 0 0 3px rgba(181,20,110,.15)}
+body.prism-workspace .calendar-page .deadline-form .save-task{justify-self:stretch;min-height:44px;border-radius:12px;background:var(--cc-accent);color:#fff;font-weight:700}
+body.prism-workspace .calendar-page .deadline-form .save-task:disabled{opacity:.5;cursor:not-allowed}
+body.prism-workspace .calendar-page .deadline-manage{display:flex;align-items:center;gap:10px;min-height:44px;margin:12px 0 0;padding:0 4px;font-size:13px;color:var(--cc-muted);cursor:pointer}
+body.prism-workspace .calendar-page .deadline-manage input[type=checkbox]{accent-color:var(--cc-accent)}
+body.prism-workspace .calendar-page .official-deadline-panel h3#officialDateLabel{margin:14px 0 0;padding-top:14px;border-top:1px solid var(--cc-border);font-size:15px;font-weight:700;color:var(--cc-text)}
+body.prism-workspace .calendar-page #officialLoadState,
+body.prism-workspace .calendar-page #officialDeadlineCount{margin:6px 0 0;font-size:13px;color:var(--cc-muted)}
+body.prism-workspace .calendar-page #officialDeadlineList{padding-top:12px}
+body.prism-workspace .calendar-page .official-deadline{border-left-color:var(--cc-text)}
+body.prism-workspace .calendar-page #officialDeadlinePager{display:flex;justify-content:flex-end;gap:6px;margin-top:10px}
+
+/* ---------- dark mode ---------- */
+html.dark-theme body.prism-workspace .calendar-page #monthGrid>[data-official-deadline=true]{background:rgba(181,20,110,.12);border-color:rgba(255,132,185,.35)}
+html.dark-theme body.prism-workspace .calendar-page .day-task{color:#FF9CC8}
+html.dark-theme body.prism-workspace .calendar-page .day-task.official-marker{background:transparent;box-shadow:inset 0 0 0 1px rgba(255,132,185,.4)}
+html.dark-theme body.prism-workspace .calendar-page #monthGrid>.calendar-day.outside .day-number{color:#6D6884}
+
+/* ---------- responsive ---------- */
+@media(max-width:1100px){
+  body.prism-workspace .calendar-page .calendar-layout{grid-template-columns:minmax(0,1fr)}
+}
+@media(max-width:680px){
+  body.prism-workspace .calendar-page .full-calendar-card{padding:12px}
+  body.prism-workspace .calendar-page #monthGrid,body.prism-workspace .calendar-page .weekday-row{gap:4px}
+  body.prism-workspace .calendar-page #monthGrid>.calendar-day{min-height:52px;padding:4px;border-radius:10px}
+  body.prism-workspace .calendar-page #monthGrid .day-number{width:24px;height:24px;font-size:13px}
+  body.prism-workspace .calendar-page .day-tasks{display:none}
+  body.prism-workspace .calendar-page .calendar-side>.reminder-panel{padding:16px}
+}
+@media(prefers-reduced-motion:reduce){body.prism-workspace .calendar-page *{transition:none!important}}
+
+/* =====================================================================
+   FIT-TO-SCREEN (desktop): everything visible without page scrolling.
+   Calendar fills the height; right column = Selected date (top) +
+   Official deadlines (bottom, scrolls inside its own card if long).
+   ===================================================================== */
+body.prism-workspace .calendar-page .calendar-instructions{max-width:none;margin:0 0 12px}
+body.prism-workspace .calendar-page .calendar-side>.reminder-panel{width:100%;box-sizing:border-box}
+@media(min-width:1101px) and (min-height:640px){
+  body.prism-workspace .calendar-page .calendar-layout{height:calc(100vh - 175px);min-height:540px;grid-template-columns:minmax(0,1fr) 400px}
+  body.prism-workspace .calendar-page .full-calendar-card{display:flex;flex-direction:column;height:100%;box-sizing:border-box;padding:18px 20px}
+  body.prism-workspace .calendar-page .calendar-toolbar{margin-bottom:10px}
+  body.prism-workspace .calendar-page .weekday-row{margin-bottom:4px}
+  body.prism-workspace .calendar-page .weekday-row span{padding:4px 0}
+  body.prism-workspace .calendar-page #monthGrid{flex:1 1 auto;min-height:0;grid-template-rows:repeat(6,minmax(0,1fr));gap:6px}
+  body.prism-workspace .calendar-page #monthGrid>.calendar-day{min-height:0;padding:6px 8px;overflow:hidden;border-radius:12px}
+  body.prism-workspace .calendar-page #monthGrid .day-number{width:24px;height:24px;font-size:13px}
+  body.prism-workspace .calendar-page .day-tasks{margin-top:3px}
+  body.prism-workspace .calendar-page .prism-calendar-legend{margin-top:10px;padding-top:10px}
+
+  body.prism-workspace .calendar-page .calendar-side{height:100%;min-height:0;grid-template-rows:minmax(0,max-content) minmax(150px,1fr);gap:14px}
+  body.prism-workspace .calendar-page .calendar-side>.reminder-panel{min-height:0;overflow-y:auto;padding:16px 18px;scrollbar-width:thin}
+  /* selected date: compact form */
+  body.prism-workspace .calendar-page .reminder-panel .panel-title{padding-bottom:10px}
+  body.prism-workspace .calendar-page .reminder-panel .panel-title h2{font-size:16px}
+  body.prism-workspace .calendar-page #reminderForm{display:grid;grid-template-columns:1fr 130px;gap:2px 10px;padding:10px 0 12px}
+  body.prism-workspace .calendar-page #reminderForm>label[for=taskTitle],body.prism-workspace .calendar-page #reminderForm>#taskTitle{grid-column:1}
+  body.prism-workspace .calendar-page #reminderForm>label[for=taskTime],body.prism-workspace .calendar-page #reminderForm>#taskTime{grid-column:2}
+  body.prism-workspace .calendar-page #reminderForm>label[for=taskTitle]{grid-row:1}
+  body.prism-workspace .calendar-page #reminderForm>#taskTitle{grid-row:2}
+  body.prism-workspace .calendar-page #reminderForm>label[for=taskTime]{grid-row:1}
+  body.prism-workspace .calendar-page #reminderForm>#taskTime{grid-row:2}
+  body.prism-workspace .calendar-page #reminderForm>label[for=taskNotes],body.prism-workspace .calendar-page #reminderForm>#taskNotes,body.prism-workspace .calendar-page #reminderForm>.form-actions{grid-column:1/-1}
+  body.prism-workspace .calendar-page #reminderForm label{margin-top:4px;font-size:12px}
+  body.prism-workspace .calendar-page #reminderForm label span{display:none}
+  body.prism-workspace .calendar-page #reminderForm input,body.prism-workspace .calendar-page #reminderForm textarea{min-height:40px;padding:8px 12px;font-size:13.5px}
+  body.prism-workspace .calendar-page #reminderForm textarea{min-height:56px;height:56px}
+  body.prism-workspace .calendar-page .form-actions{margin-top:8px}
+  body.prism-workspace .calendar-page .form-actions .save-task,body.prism-workspace .calendar-page .form-actions .cancel-edit{min-height:40px}
+  body.prism-workspace .calendar-page .task-list{padding-top:10px}
+  body.prism-workspace .calendar-page .empty-tasks{padding:6px 8px 0}
+  body.prism-workspace .calendar-page .empty-tasks i{display:none}
+  /* official deadlines: compact toolbar row */
+  body.prism-workspace .calendar-page .official-deadline-panel .panel-title{padding-bottom:10px}
+  body.prism-workspace .calendar-page .deadline-create>summary{min-height:40px}
+  body.prism-workspace .calendar-page .deadline-manage{min-height:36px;margin-top:6px}
+  body.prism-workspace .calendar-page .official-deadline-panel h3#officialDateLabel{margin-top:8px;padding-top:10px}
+}

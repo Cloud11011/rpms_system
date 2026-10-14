@@ -44,23 +44,32 @@ $identityKey = hash('sha256', $portalRole . '|' . $userId);
 <li><button data-page="progress">IERB Progress</button></li>
 <li><button data-page="documents">My Documents</button></li>
 <li><button data-page="calendar">Calendar</button></li>
-<li><a href="#prismResourcesTitle" data-prism-resources-link>Research Resources</a></li>
+<li class="portal-nav-dropdown-item" data-prism-dropdown>
+<button type="button" class="portal-dropdown-toggle" aria-expanded="false" aria-haspopup="true"><span>Research Resources</span><i class="fa-solid fa-chevron-down prism-dropdown-arrow" aria-hidden="true"></i></button>
+<div class="portal-dropdown-menu portal-resources-dropdown" hidden>
+<a class="portal-dropdown-item" href="https://ceu-ierb.wixsite.com/ierb" target="_blank" rel="noopener noreferrer">IERB Portal</a>
+<a class="portal-dropdown-item" href="assets/images/sdg.webp" target="_blank" rel="noopener noreferrer">Sustainable Development Goals</a>
+<a class="portal-dropdown-item" href="assets/images/research-agenda-2023-2028.png" target="_blank" rel="noopener noreferrer">Research Agenda</a>
+<div class="portal-dropdown-divider" role="separator"></div>
+<a class="portal-dropdown-item portal-dropdown-scroll" href="#prismResourcesTitle" data-prism-resources-link>View All on Dashboard</a>
+</div>
+</li>
 </ul>
 <div class="portal-nav-right">
-<a class="portal-help" href="help_support.php" title="Help and support" aria-label="Help and support"><i class="fa-regular fa-circle-question" aria-hidden="true"></i></a>
-<button class="portal-notification" type="button" data-go="notifications" title="Notifications" aria-label="Notifications"><i class="fa-solid fa-bell"></i><b class="nav-badge" id="navBadge">0</b></button>
+<button class="portal-help" type="button" data-prism-tour title="Quick tour" aria-label="Quick tour"><i class="fa-regular fa-circle-question" aria-hidden="true"></i></button><button class="portal-notification" type="button" data-go="notifications" title="Notifications" aria-label="Notifications"><i class="fa-solid fa-bell"></i><b class="nav-badge" id="navBadge">0</b></button>
 <div class="portal-profile-menu">
 <button class="portal-profile-btn" id="portalProfileToggle" type="button" aria-expanded="false" aria-controls="portalProfileLinks" aria-label="Account menu"><img id="navProfileImage" src="<?php echo htmlspecialchars($profileImg, ENT_QUOTES); ?>" alt="Profile picture"><span><strong id="sideName"><?php echo htmlspecialchars($userName); ?></strong><small><?php echo htmlspecialchars($portalRole); ?></small></span><i class="fa-solid fa-chevron-down"></i></button>
 <div class="portal-profile-dropdown" id="portalProfileLinks" hidden>
-<button type="button" data-go="profile"><i class="fa-solid fa-user"></i> Profile</button>
-<button type="button" data-prism-tour>Quick Tour</button>
-<button type="button" data-prism-guide>Navigation Guide</button>
-    <a href="logout.php"><i class="fa-solid fa-right-from-bracket"></i> Log out</a>
+<button type="button" data-go="profile"><i class="fa-regular fa-user" aria-hidden="true"></i> My account</button>
+<a href="#activity" data-go="activity"><i class="fa-solid fa-list" aria-hidden="true"></i> Activity logs</a>
+<a href="help_support.php" data-open-support><i class="fa-regular fa-circle-question" aria-hidden="true"></i> Help &amp; Support</a>
+<div class="prism-account-divider" role="separator"></div>
+<a class="prism-account-logout" href="logout.php"><i class="fa-solid fa-arrow-right-from-bracket" aria-hidden="true"></i> Log out</a>
 </div>
 </div>
 </div>
 </nav>
-<template data-prism-guide-role="student"></template>
+<template data-prism-guide-role="student" data-prism-guide-user="<?= htmlspecialchars($identityKey, ENT_QUOTES, 'UTF-8') ?>" data-prism-guide-auto="<?= ($_GET['welcome'] ?? '') === '1' ? '1' : '0' ?>"></template>
 <div class="container">
 <main class="main-content portal-main">
 <header class="topbar"><div><h1 id="pageTitle">Dashboard</h1><p id="pageSubtitle">Your research and IERB progress at a glance.</p></div><div class="top-controls"><button type="button" class="theme-toggle" id="themeToggle" title="Toggle light or dark theme" aria-label="Toggle light or dark theme"><i class="fa-solid fa-sun light-icon" aria-hidden="true"></i><i class="fa-solid fa-moon dark-icon" aria-hidden="true"></i></button></div></header>
@@ -107,10 +116,14 @@ $identityKey = hash('sha256', $portalRole . '|' . $userId);
 <section id="officialDeadlinePanel" class="reminder-panel official-deadline-panel" data-role="student"></section>
 </div>
 </section>
+<section class="portal-page" data-section="activity">
+<article class="panel"><div class="panel-head"><div><h2>Activity Logs</h2><p>Review actions recorded for your student account.</p></div></div><p id="studentActivityCount" aria-live="polite"></p><div id="studentActivityList" aria-busy="false"></div><nav id="studentActivityPagination" class="prism-pagination" aria-label="Activity pages"></nav></article>
+</section>
 <section class="portal-page" data-section="profile">
 <div class="portal-two-col"><article class="panel form-panel"><h2>Personal information</h2><p>Your role and account email are shown for reference. Photo changes are a preview for this visit and are not saved.</p><form id="profileForm"><div class="profile-photo-control"><img id="profileImagePreview" src="<?php echo htmlspecialchars($profileImg, ENT_QUOTES); ?>" alt="Profile preview"><button id="previewProfileImage" type="button" class="profile-photo-button prism-btn is-secondary is-sm">Preview photo</button><input id="profileImageInput" type="file" accept="image/png,image/jpeg,image/webp" hidden><button id="removeProfileImage" type="button" class="prism-btn is-secondary is-sm">Remove</button></div><div class="form-grid"><label>Full name<input id="profileName" required maxlength="120"></label><label>Email<input id="profileEmail" type="email" readonly></label><label>Role<input id="profileRole" readonly></label><label>Student / Employee ID<input id="profileId" maxlength="40" readonly></label></div><button class="primary-btn" type="submit">Save permitted information</button></form></article><article class="panel form-panel"><h2>Change password</h2><p>Use at least 12 characters.</p><form id="passwordForm"><label>Current password<div class="password-field-wrap"><input id="currentPassword" type="password" required><span class="toggle-password"><i class="fa-solid fa-eye" id="togglePortalCurrentPassword"></i></span></div></label><label>New password<div class="password-field-wrap"><input id="newPassword" type="password" minlength="12" required><span class="toggle-password"><i class="fa-solid fa-eye" id="togglePortalNewPassword"></i></span></div></label><label>Confirm new password<div class="password-field-wrap"><input id="confirmPassword" type="password" minlength="12" required><span class="toggle-password"><i class="fa-solid fa-eye" id="togglePortalConfirmPassword"></i></span></div></label><button class="primary-btn" type="submit">Change password</button></form></article></div>
 </section>
 <?php require __DIR__ . '/includes/ceu_footer.php'; ?>
+<?php $prismCurrentPage='role_portal.php'; require __DIR__.'/includes/help_support_modal.php'; ?>
 </main>
 </div>
 <div class="toast" id="toast" role="status"></div>

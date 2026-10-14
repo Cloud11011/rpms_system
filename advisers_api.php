@@ -130,7 +130,7 @@ if ($action === 'save') {
                 $newLoginTempPassword = $tempPassword;
                 $pdo->prepare('INSERT INTO users (username, password_hash, role, full_name, email, ref_id, status, must_change_password)
                     VALUES (:u,:p,"adviser",:n,:e,:ref,:status,1)')->execute([
-                    ':u' => $employeeId, ':p' => password_hash($tempPassword, PASSWORD_DEFAULT),
+                    ':u' => $employeeId, ':p' => prism_password_hash($tempPassword),
                     ':n' => $name, ':e' => $email, ':ref' => $employeeId, ':status' => $status,
                 ]);
                 $newLoginUserId = (int)$pdo->lastInsertId();
@@ -142,7 +142,7 @@ if ($action === 'save') {
                     $pdo->prepare('UPDATE users SET username=:u, full_name=:n, email=:e, ref_id=:ref, status=:status,
                             password_hash=:p, must_change_password=1 WHERE id=:id')
                         ->execute([':u' => $employeeId, ':n' => $name, ':e' => $email, ':ref' => $employeeId,
-                            ':status' => $status, ':p' => password_hash($tempPassword, PASSWORD_DEFAULT), ':id' => $existingLogin['id']]);
+                            ':status' => $status, ':p' => prism_password_hash($tempPassword), ':id' => $existingLogin['id']]);
                     $newLoginUserId = (int)$existingLogin['id'];
                 } else {
                     $pdo->prepare('UPDATE users SET username=:u, full_name=:n, email=:e, ref_id=:ref, status=:status WHERE id=:id')

@@ -1,8 +1,9 @@
 /* Batch 11 visual supersessions. All data and action eligibility remain server-owned. */
-body.prism-workspace .prism-topbar-group { gap:4px; padding:4px; border-radius:12px; }
-body.prism-workspace .prism-topbar-group > :is(button,a),body.prism-workspace .prism-topbar-group .notification-icon { width:36px; min-width:36px; height:36px; border-radius:9px; }
+/* Keep Quick Actions as the rounded pill from the approved top-bar reference. */
+body.prism-workspace .prism-topbar-group { gap:3px; padding:3px 5px; border-radius:999px; }
+body.prism-workspace .prism-topbar-group > :is(button,a),body.prism-workspace .prism-topbar-group .notification-icon { width:40px; min-width:40px; height:40px; border-radius:50%; }
 body.prism-workspace .prism-topbar-group [data-prism-tooltip] { position:relative; }
-body.prism-workspace .prism-control-tooltip { position:fixed; z-index:10050; max-width:calc(100vw - 24px); padding:6px 10px; border-radius:7px; background:var(--prism-text); color:var(--prism-surface); font-size:12px; pointer-events:none; }
+body.prism-workspace .prism-control-tooltip { position:fixed; z-index:10050; max-width:calc(100vw - 24px); padding:5px 10px; border:1px solid #f3bfd6; border-radius:9px; background:var(--prism-card); box-shadow:0 4px 14px #1011301c; color:var(--prism-text); font-size:12px; font-weight:600; pointer-events:none; }
 body.prism-workspace.dashboard-page .topbar { margin-bottom:14px; }
 body.prism-workspace.dashboard-page .welcome-header { margin-top:0; margin-bottom:20px; }
 body.prism-workspace .dashboard-stage .pipeline-steps { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:8px; flex:0 1 auto; }
@@ -37,18 +38,300 @@ body.prism-workspace .repo-list { gap:6px; margin-top:10px; }
 body.prism-workspace .repo-item { padding:10px 12px; gap:10px; }
 body.prism-workspace .repo-extension { width:34px; height:36px; flex-basis:34px; font-size:10px; }
 body.prism-workspace .dashboard-repository > .table-header { margin-bottom:4px; }
-body.prism-workspace .prism-research-resources { margin-top:24px; padding:16px; }
-body.prism-workspace .prism-research-resources h2 { font-size:17px; }
-body.prism-workspace .prism-resource { padding:0; }
-body.prism-workspace .prism-resource summary,body.prism-workspace .prism-resource-direct { padding:12px 14px; font-size:13px; }
-body.prism-workspace .prism-resource-title { font-size:13px; }
-body.prism-workspace .prism-resource-subtitle { font-size:11px; }
-body.prism-workspace .prism-resource-content { padding:12px 14px; font-size:13px; }
-body.prism-workspace .prism-resource-direct { display:flex; align-items:center; justify-content:space-between; text-decoration:none; color:var(--text-primary); border:1px solid var(--border-color); border-radius:10px; background:var(--card-bg); }
+body.prism-workspace .prism-research-resources.resources {
+    display:grid;
+    gap:8px;
+    margin-top:24px;
+    padding:16px;
+    border:0;
+    border-radius:16px;
+    background:var(--prism-card);
+    box-shadow:var(--prism-shadow);
+    color:var(--prism-text);
+}
+body.prism-workspace .prism-research-resources.resources h2 {
+    margin:0 0 4px;
+    font-size:16px;
+    font-weight:800;
+}
+body.prism-workspace .prism-research-resources .res-item,
+body.prism-workspace .prism-research-resources>a.res-row {
+    min-width:0;
+    overflow:hidden;
+    border:1px solid var(--prism-border);
+    border-radius:10px;
+}
+body.prism-workspace .prism-research-resources .res-row {
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:12px;
+    box-sizing:border-box;
+    width:100%;
+    min-height:48px;
+    padding:12px 14px;
+    border:0;
+    background:var(--prism-card);
+    color:var(--prism-text);
+    font:inherit;
+    font-size:13px;
+    font-weight:600;
+    line-height:1.5;
+    text-align:left;
+    text-decoration:none;
+    cursor:pointer;
+    transition:background-color .15s ease;
+}
+body.prism-workspace .prism-research-resources .res-row:hover {
+    background:var(--prism-surface-2);
+}
+body.prism-workspace .prism-research-resources .res-row:focus-visible {
+    outline:3px solid var(--prism-focus);
+    outline-offset:-3px;
+}
+body.prism-workspace .prism-research-resources .res-row>span {
+    min-width:0;
+    overflow-wrap:anywhere;
+}
+body.prism-workspace .prism-research-resources .res-row>svg {
+    flex:0 0 16px;
+}
+body.prism-workspace .prism-research-resources .chev {
+    transition:transform .25s ease;
+}
+body.prism-workspace .prism-research-resources .res-row[aria-expanded="true"] .chev {
+    transform:rotate(180deg);
+}
+body.prism-workspace .prism-research-resources .res-panel {
+    display:grid;
+    grid-template-rows:0fr;
+    transition:grid-template-rows .3s ease;
+}
+body.prism-workspace .prism-research-resources .res-panel.open {
+    grid-template-rows:1fr;
+}
+body.prism-workspace .prism-research-resources .res-panel>div {
+    min-height:0;
+    overflow:hidden;
+}
+body.prism-workspace .prism-research-resources .res-panel.open>div {
+    padding:0 14px 14px;
+}
+body.prism-workspace .prism-research-resources .res-panel a {
+    display:block;
+    width:fit-content;
+    max-width:100%;
+    margin:0 auto;
+    border-radius:6px;
+}
+body.prism-workspace .prism-research-resources .res-panel a:focus-visible {
+    outline:3px solid var(--prism-focus);
+    outline-offset:3px;
+}
+body.prism-workspace .prism-research-resources .res-panel img {
+    display:block;
+    width:100%;
+    height:auto;
+    margin:0 auto;
+    object-fit:contain;
+}
+body.prism-workspace .prism-research-resources #prism-sdg-panel img {
+    max-width:640px;
+}
+body.prism-workspace .prism-research-resources .res-panel img.narrow {
+    max-width:760px;
+}
+html.dark-theme body.prism-workspace .prism-research-resources .res-item,
+html.dark-theme body.prism-workspace .prism-research-resources>a.res-row {
+    border-color:var(--prism-border);
+}
 body.prism-workspace .prism-row-size { display:flex; align-items:center; gap:8px; font-size:12px; margin:12px 0 0; }
 body.prism-workspace .prism-row-size select { min-height:36px; border:1px solid var(--border-color); border-radius:7px; padding:6px 10px; font:inherit; background:var(--card-bg); color:var(--text-primary); }
 body.prism-workspace .prism-pagination { display:flex; justify-content:flex-end; gap:6px; flex-wrap:wrap; margin-top:10px; }
 body.prism-workspace .prism-pagination button { min-height:36px; min-width:36px; border-radius:8px; }
+/* Restore the shared workspace sidebar gradient and keep the logo transparent. */
+body.admin-shell .sidebar.prism-sidebar {
+    background:var(--sidebar-bg);
+}
+body.admin-shell .prism-sidebar .prism-sidebar-brand {
+    background:transparent;
+    box-shadow:none;
+}
+body.admin-shell .prism-sidebar .sidebar-brand-logo {
+    width:204px;
+    max-width:100%;
+    height:104px;
+    object-fit:cover;
+    object-position:center 48%;
+    filter:drop-shadow(0 2px 7px rgba(12,14,63,.18));
+}
+body.admin-shell .prism-sidebar .prism-navigation-caption {
+    color:#fff;
+    font-weight:700;
+    letter-spacing:.08em;
+    text-align:center;
+    text-transform:uppercase;
+    text-shadow:none;
+}
+body.admin-shell .sidebar.prism-sidebar,
+body.admin-shell .prism-sidebar ~ .main-content {
+    transition:width .5s cubic-bezier(.2,.75,.25,1),margin-left .5s cubic-bezier(.2,.75,.25,1);
+}
+body.admin-shell {
+    overflow-x:clip;
+}
+body.admin-shell .prism-sidebar #prismPrimaryNavigation,
+body.admin-shell .prism-sidebar .prism-nav-submenu {
+    min-width:0;
+    max-width:100%;
+    overflow-x:hidden;
+    scrollbar-width:none;
+    -ms-overflow-style:none;
+}
+body.admin-shell .prism-sidebar::-webkit-scrollbar,
+body.admin-shell .prism-sidebar #prismPrimaryNavigation::-webkit-scrollbar,
+body.admin-shell .prism-sidebar .prism-nav-submenu::-webkit-scrollbar {
+    display:none;
+}
+/* Shared sidebar polish across all authenticated admin workspaces. */
+body.admin-shell .sidebar.prism-sidebar {
+    background:
+        radial-gradient(120% 60% at 0 0,rgba(255,255,255,.28) 0%,rgba(255,255,255,0) 55%),
+        radial-gradient(90% 50% at 100% 35%,rgba(255,120,190,.35) 0%,rgba(255,120,190,0) 60%),
+        linear-gradient(180deg,#f0178a 0%,#c0167a 26%,#7b1a66 56%,#2a1550 84%,#14123c 100%);
+    background-size:100% 100%,100% 100%,100% 160%;
+    animation:prismSbShift 16s ease-in-out infinite;
+    box-shadow:0 18px 44px rgba(106,20,88,.35),inset 0 0 0 1px rgba(255,255,255,.12);
+}
+@keyframes prismSbShift {
+    0%,100% { background-position:0 0,0 0,0 0; }
+    50% { background-position:0 0,0 0,0 100%; }
+}
+body.admin-shell .prism-sidebar .prism-sidebar-brand {
+    margin-bottom:6px;
+    padding:6px 6px 12px;
+    border:0;
+    text-align:center;
+}
+body.admin-shell .prism-sidebar .sidebar-brand-logo {
+    filter:drop-shadow(0 6px 14px rgba(20,18,60,.35));
+}
+body.admin-shell .prism-sidebar .prism-sidebar-toggle {
+    display:flex;
+    min-height:48px;
+    align-items:center;
+    gap:12px;
+    padding:0 14px;
+    border:0;
+    border-radius:14px;
+    background:rgba(255,255,255,.14);
+    color:#fff;
+    font-weight:700;
+    backdrop-filter:blur(6px);
+    transition:background .2s;
+}
+body.admin-shell .prism-sidebar .prism-sidebar-toggle:hover { background:rgba(255,255,255,.24); }
+body.admin-shell .prism-sidebar .prism-nav-section-label {
+    display:flex;
+    align-items:center;
+    gap:10px;
+    margin:18px 6px 6px;
+    color:rgba(255,255,255,.85);
+    font-size:11px;
+    font-weight:800;
+    letter-spacing:.14em;
+}
+body.admin-shell .prism-sidebar .prism-nav-section-label::after {
+    flex:1;
+    height:1px;
+    background:rgba(255,255,255,.2);
+    content:"";
+}
+body.admin-shell .prism-sidebar :is(.prism-nav-home,.prism-nav-group-toggle) {
+    position:relative;
+    display:flex;
+    min-width:0;
+    min-height:48px;
+    align-items:center;
+    gap:12px;
+    padding:8px 14px;
+    border:0;
+    border-radius:14px;
+    background:transparent;
+    color:#fff;
+    text-align:left;
+    text-decoration:none;
+    transition:background .28s ease,transform .28s ease;
+}
+body.admin-shell .prism-sidebar :is(.prism-nav-home,.prism-nav-group-toggle):hover {
+    transform:translateX(3px);
+    background:rgba(255,255,255,.18);
+}
+body.admin-shell .prism-sidebar :is(.prism-nav-home,.prism-nav-group-toggle)>i:first-child {
+    width:22px;
+    flex:0 0 22px;
+    text-align:center;
+    font-size:16px;
+    transition:transform .32s ease;
+}
+body.admin-shell .prism-sidebar :is(.prism-nav-home,.prism-nav-group-toggle):hover>i:first-child {
+    transform:scale(1.18) rotate(-4deg);
+}
+body.admin-shell .prism-sidebar .prism-nav-chevron {
+    margin-left:auto;
+    font-size:12px;
+    opacity:.85;
+    transition:transform .32s ease;
+}
+body.admin-shell .prism-sidebar .prism-nav-group-toggle[aria-expanded=true] { background:rgba(255,255,255,.16); }
+body.admin-shell .prism-sidebar .prism-nav-group-toggle[aria-expanded=true] .prism-nav-chevron { transform:rotate(180deg); }
+body.admin-shell .prism-sidebar a[aria-current=page] {
+    background:#fff;
+    color:#14173a;
+    font-weight:800;
+    box-shadow:0 8px 18px rgba(20,18,60,.28);
+}
+body.admin-shell .prism-sidebar .prism-nav-home[aria-current=page]>i:first-child { color:#b5146e; }
+body.admin-shell .prism-sidebar .prism-nav-submenu {
+    display:flex;
+    flex-direction:column;
+    gap:2px;
+    margin:4px 0 6px 22px;
+    padding:2px 0 2px 12px;
+    border-left:2px solid rgba(255,255,255,.28);
+    list-style:none;
+}
+body.admin-shell .prism-sidebar .prism-nav-submenu[hidden] { display:none; }
+body.admin-shell .prism-sidebar .prism-nav-submenu li { min-width:0; }
+body.admin-shell .prism-sidebar .prism-nav-submenu a {
+    display:flex;
+    min-width:0;
+    min-height:40px;
+    align-items:center;
+    padding:0 12px;
+    color:rgba(255,255,255,.92);
+    overflow-wrap:anywhere;
+    text-decoration:none;
+    transition:background .28s ease,transform .28s ease;
+}
+body.admin-shell .prism-sidebar .prism-nav-submenu a:hover {
+    transform:translateX(3px);
+    background:rgba(255,255,255,.16);
+    color:#fff;
+}
+body.admin-shell .prism-sidebar .prism-nav-submenu a[aria-current=page] { color:#14173a; }
+body.admin-shell .prism-sidebar .prism-account-menu {
+    margin-top:auto;
+    padding:10px;
+    border-radius:16px;
+    background:rgba(255,255,255,.12);
+    backdrop-filter:blur(6px);
+}
+body.admin-shell .prism-sidebar .portal-profile-btn { color:#fff; }
+body.admin-shell .prism-sidebar :is(a,button):focus-visible {
+    outline:2px solid #fff;
+    outline-offset:2px;
+}
 /* Calendar presentation is owned by prism-calendar.css. */
 body.prism-workspace .notification-center-page { min-width:0; }
 body.prism-workspace.notification-center-page .admin-tool-grid { grid-template-columns:minmax(0,1fr) minmax(0,1fr); gap:16px; align-items:start; }
@@ -97,4 +380,31 @@ body.prism-workspace .dashboard-stage .pipeline-steps .step-item { min-height:10
 @media(max-width:900px) { body.prism-workspace.notification-center-page .admin-tool-grid { grid-template-columns:minmax(0,1fr); } }
 @media(max-width:700px) { body.prism-workspace .prism-record-card,body.prism-workspace .prism-record-card.has-summary { grid-template-columns:minmax(0,1fr); padding:12px; row-gap:10px; } body.prism-workspace .prism-record-card.has-summary .prism-record-summary { grid-row:2; } body.prism-workspace .prism-record-card.has-summary .prism-record-status { grid-row:3; } body.prism-workspace .prism-record-card.has-summary .prism-record-actions { grid-row:4; } body.prism-workspace .ai-summary-banner { padding:20px; } body.prism-workspace .ai-summary-banner h2 { font-size:21px; } body.prism-workspace .ai-banner-actions { width:100%; } body.prism-workspace .ai-summary-banner .ai-action-btn { flex:1 1 auto; } }
 @media(max-width:500px) { body.prism-workspace .dashboard-stage .pipeline-steps { grid-template-columns:minmax(0,1fr); } }
-@media(prefers-reduced-motion:reduce) { body.prism-workspace :is(.ai-summary-banner,.ai-banner-orb,.ai-banner-spark),body.prism-workspace .ai-summary-banner *::after { animation:none !important; } }
+@media(prefers-reduced-motion:reduce) {
+    body.prism-workspace :is(.ai-summary-banner,.ai-banner-orb,.ai-banner-spark),body.prism-workspace .ai-summary-banner *::after { animation:none !important; }
+    body.prism-workspace .prism-research-resources :is(.prism-resource,.prism-resource-direct) { transition:none; }
+    body.prism-workspace .prism-research-resources :is(.chev,.res-panel,.res-row) { transition:none; }
+    body.admin-shell .sidebar.prism-sidebar { animation:none; }
+    body.admin-shell .prism-sidebar * { transition:none!important; }
+    body.admin-shell .sidebar.prism-sidebar,
+    body.admin-shell .prism-sidebar ~ .main-content { transition:none; }
+}
+
+/* AI report footer and label-save controls. */
+body.prism-workspace .ai-report-page .ai-history-card { overflow:hidden; }
+body.prism-workspace .ai-report-page #aiHistory { padding:0 16px 16px; min-width:0; }
+body.prism-workspace .ai-report-page .ai-history-card .prism-pagination { display:flex; flex-wrap:wrap; gap:8px; align-items:center; justify-content:flex-end; margin:0; padding:16px; clear:both; }
+body.prism-workspace .ai-report-page .ai-history-card .prism-row-size { display:flex; align-items:center; gap:8px; margin:16px; width:fit-content; font-size:12px; }
+body.prism-workspace .ai-report-page #stageLabelEditor [data-save],
+body.prism-workspace .ai-report-page #stageLabelEditorContainer [data-save],
+body.prism-workspace .ai-report-page [data-save] { width:40px; min-width:40px; height:40px; min-height:40px; padding:0; display:inline-flex; align-items:center; justify-content:center; }
+/* Rows-per-page and page navigation share a padded, wrapping footer. */
+body.prism-workspace .prism-record-footer { display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:16px; padding:16px; box-sizing:border-box; width:100%; clear:both; }
+body.prism-workspace .prism-record-footer > .prism-row-size,
+body.prism-workspace .ai-report-page .ai-history-card .prism-record-footer > .prism-row-size { margin:0; flex:0 0 auto; }
+body.prism-workspace .prism-record-footer > .prism-pagination,
+body.prism-workspace .ai-report-page .ai-history-card .prism-record-footer > .prism-pagination { margin:0; padding:0; flex:0 1 auto; position:static; }
+@media(max-width:500px) { body.prism-workspace .prism-record-footer > .prism-pagination { width:100%; justify-content:flex-end; } }
+body.prism-workspace .prism-pagination > button { width:32px; min-width:32px; height:32px; min-height:32px; padding:0; border-radius:8px; font-size:12px; display:inline-flex; align-items:center; justify-content:center; }
+body.prism-workspace .prism-pagination > button[aria-label="Previous page"],
+body.prism-workspace .prism-pagination > button[aria-label="Next page"] { font-size:22px; line-height:1; }

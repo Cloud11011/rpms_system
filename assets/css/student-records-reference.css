@@ -1,0 +1,33 @@
+/* Student Records reference presentation, retaining real student actions. */
+body.student-records-page[data-management=student] .management-controls { gap:10px; flex-wrap:wrap; align-items:center; }
+body.student-records-page[data-management=student] .management-search { flex:1 1 280px; width:auto; height:46px; border-radius:12px; }
+body.student-records-page[data-management=student] .student-page-actions #inviteAccount { background:var(--prism-card); color:var(--prism-text); }
+body.student-records-page[data-management=student] .student-page-actions #addRecord { background:#a10f61; color:#fff; }
+body.student-records-page[data-management=student] .student-stage-filters { display:inline-flex; gap:4px; padding:4px; margin:16px 0; border:1px solid var(--prism-border); border-radius:14px; background:var(--prism-card); }
+body.student-records-page[data-management=student] .student-stage-filters .prism-filter-pill { min-height:40px; border:0; border-radius:10px; font-size:13px; padding:0 16px; }
+body.student-records-page[data-management=student] .management-card { border:1px solid var(--prism-border); border-radius:20px; background:var(--prism-card); box-shadow:0 6px 24px rgba(40,20,90,.06); }
+body.student-records-page[data-management=student] .management-card-head { display:block; padding:20px 24px; border-bottom:1px solid var(--prism-border); }
+body.student-records-page[data-management=student] .management-card-head h2 { display:block; font-size:18px; }
+body.student-records-page[data-management=student] .management-card-head p { margin-top:4px; font-size:13px; }
+body.student-records-page[data-management=student] .management-table-wrap > table tbody { gap:0; }
+body.student-records-page[data-management=student] .student-result-card { grid-template-columns:minmax(0,1.5fr) minmax(0,.8fr) minmax(0,1.7fr) auto auto; align-items:start; padding:18px 24px; gap:20px; border:0; border-bottom:1px solid var(--prism-border); border-radius:0; box-shadow:none; font-size:13px; }
+body.student-records-page[data-management=student] .student-result-card .student-avatar { width:44px; height:44px; flex-basis:44px; }
+body.student-records-page[data-management=student] .student-result-card .student-name-copy strong { font-size:14px; }
+body.student-records-page[data-management=student] .student-result-card small { font-size:12px; }
+body.student-records-page[data-management=student] .student-result-card .student-result-label { text-transform:none; letter-spacing:0; }
+body.student-records-page[data-management=student] .student-result-card .student-result-details { margin:0; padding:0; border:0; }
+body.student-records-page[data-management=student] .student-result-card .student-result-details summary { font-size:13px; font-weight:600; padding:4px 0; }
+body.student-records-page[data-management=student] .student-result-card .student-result-details[open] > div { padding:14px 16px; margin-top:8px; border-radius:12px; background:var(--prism-bg); }
+body.student-records-page[data-management=student] .student-result-card .prism-action-trigger { width:44px; height:44px; min-height:44px; border-radius:12px; }
+body.student-records-page[data-management=student] .adviser-group-chip { font-size:12px; border-radius:999px; }
+@media(max-width:900px){ body.student-records-page[data-management=student] .student-result-card { grid-template-columns:repeat(2,minmax(0,1fr)); } body.student-records-page[data-management=student] .student-result-card .student-name-layout { grid-column:1/-1; } body.student-records-page[data-management=student] .student-result-card .student-result-actions { grid-column:auto; } }
+@media(max-width:640px){ body.student-records-page[data-management=student] .adviser-toolbar-text { display:none; } body.student-records-page[data-management=student] .student-result-card { grid-template-columns:minmax(0,1fr); padding:18px; } }
+
+body.student-records-page[data-management=student] .student-page-actions .student-icon-action,
+body.student-records-page[data-management=student] .management-controls .student-filter-action { flex:0 0 44px; width:44px; min-width:44px; height:44px; min-height:44px; padding:0; justify-content:center; }
+body.student-records-page[data-management=student] .student-filter-text { display:none; }
+body.student-records-page[data-management=student] .student-result-card { grid-template-columns:minmax(0,1.5fr) minmax(0,1.3fr) minmax(0,1fr) minmax(0,.8fr) auto; }
+body.student-records-page[data-management=student] .student-result-actions { grid-column:auto; }
+body.student-records-page[data-management=student] .student-result-card .student-result-label { text-transform:uppercase; font-size:10px; }
+@media(max-width:1000px){body.student-records-page[data-management=student] .student-result-card{grid-template-columns:repeat(2,minmax(0,1fr));} body.student-records-page[data-management=student] .student-result-actions{grid-column:1/-1;}}
+@media(max-width:600px){body.student-records-page[data-management=student] .student-result-card{grid-template-columns:minmax(0,1fr);}}

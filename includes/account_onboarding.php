@@ -146,7 +146,7 @@ function onboarding_invite(PDO $pdo, array $actor, array $data): array
         $assignment=$role==='student'?onboarding_active_adviser($pdo,$ownAdviser?(int)$ownAdviser['id']:($data['adviserId']??null)):null;
         onboarding_email_available($pdo,$email);
         $pdo->prepare('INSERT INTO users (username,password_hash,role,full_name,email) VALUES (NULL,?,?,NULL,?)')
-            ->execute([password_hash(bin2hex(random_bytes(32)),PASSWORD_DEFAULT),$role,$email]);
+            ->execute([prism_password_hash(bin2hex(random_bytes(32))),$role,$email]);
         $uid=(int)$pdo->lastInsertId();
         if ($role==='student') $pdo->prepare('INSERT INTO students (student_id,full_name,email,user_id,adviser_id) VALUES (NULL,NULL,?,?,?)')->execute([$email,$uid,$assignment]);
         else $pdo->prepare('INSERT INTO advisers (employee_id,full_name,email,user_id) VALUES (NULL,NULL,?,?)')->execute([$email,$uid]);
@@ -253,7 +253,7 @@ function onboarding_accept(PDO $pdo, array $data): void
         $inv=lifecycle_rows($pdo,'SELECT *,expires_at>NOW() AS valid FROM account_invitations WHERE user_id=? FOR UPDATE',[$login['id']]);
         if (!$inv || $inv[0]['accepted_at']!==null || !$inv[0]['valid'] || !is_string($inv[0]['token_hash'])
             || !hash_equals($inv[0]['token_hash'],hash('sha256',$token))) throw new AccountLifecycleValidation('Setup link is invalid or expired.');
-        $pdo->prepare('UPDATE users SET password_hash=?,must_change_password=0 WHERE id=?')->execute([password_hash($password,PASSWORD_DEFAULT),$login['id']]);
+        $pdo->prepare('UPDATE users SET password_hash=?,must_change_password=0 WHERE id=?')->execute([prism_password_hash($password),$login['id']]);
         $pdo->prepare('UPDATE account_invitations SET token_hash=NULL,expires_at=NULL,accepted_at=NOW() WHERE user_id=?')->execute([$login['id']]);
         $pdo->prepare('UPDATE password_resets SET used=1 WHERE user_id=?')->execute([$login['id']]);
         onboarding_audit($pdo,$login,'account_setup_accepted',$login['role'],(int)$r['id']);
@@ -305,5 +305,5 @@ function onboarding_finish(PDO $pdo, array $user, array $data): array
         if ($e instanceof PDOException && (int)($e->errorInfo[1]??0)===1062) throw new AccountLifecycleConflict('That institutional ID was claimed concurrently. Use your own unique ID or request Admin review.');
         throw $e;
     }
-    return ['ok'=>true,'redirect'=>$role==='student'?'student.php':'ierbprog.php'];
+    return ['ok'=>true,'redirect'=>$role==='student'?'student.php?welcome=1':'ierbprog.php'];
 }

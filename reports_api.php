@@ -2,6 +2,7 @@
 require __DIR__ . '/config.php';
 require_once __DIR__ . '/workflow.php';
 require_once __DIR__ . '/includes/pagination.php';
+require_once __DIR__ . '/includes/report_lifecycle.php';
 $user = api_require_login('admin');
 $pdo = db();
 $action = $_GET['action'] ?? 'list';
@@ -541,11 +542,20 @@ if ($action === 'file') {
 }
 
 if ($action === 'delete') {
-    $pdo->prepare('DELETE FROM reports WHERE id = :id')->execute([':id' => $id]);
+    try {
+        $deleted = report_delete_atomic($pdo, $user, (string)$id);
+    } catch (ReportDeletionError $error) {
+        json_out(['ok'=>false,'message'=>$error->getMessage()], $error->status);
+    } catch (AccountLifecycleConflict $error) {
+        json_out(['ok'=>false,'message'=>$error->getMessage()], 409);
+    } catch (Throwable $error) {
+        log_api_error('report_deletion', 'Report deletion and audit could not commit.');
+        json_out(['ok'=>false,'message'=>'Report could not be deleted. Please try again.'], 503);
+    }
+    $path = REPORTS_DIR . DIRECTORY_SEPARATOR . basename($deleted['filename']);
     if (is_file($path) && !@unlink($path)) {
         log_api_error('report_file_cleanup', 'Could not remove file for report ' . $id . ' after committed deletion.');
     }
-    audit_log($user, 'report_deleted', ['entity_type'=>'report', 'entity_id'=>$id, 'before'=>$found['title'], 'after'=>'Deleted']);
     json_out(['ok' => true, 'message' => 'Report deleted.']);
 }
 

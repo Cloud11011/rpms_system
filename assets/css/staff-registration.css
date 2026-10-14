@@ -1,15 +1,92 @@
-.staff-registration { width: 100%; max-width: none; box-sizing: border-box; padding: clamp(18px, 3vw, 32px); overflow-wrap: anywhere; }
-.staff-registration h2 { margin-top: 0; }
-.staff-registration p { line-height: 1.65; margin: 16px 0; }
-.staff-registration form { margin-top: 22px; }
-.staff-registration .prism-btn { max-width: 100%; white-space: normal; margin: 6px 12px 6px 0; min-height: 44px; }
+/* Staff Registration: clean, guided layout. Uses PRISM tokens so light and dark themes both work. */
+.staff-registration { --sr-accent: var(--accent-pink, #bd0d65); --sr-line: var(--prism-border, #dfe4ec); --sr-soft: var(--prism-surface-2, #f5f7fb); --sr-muted: var(--prism-muted, #64708a);
+    width: 100%; max-width: none; box-sizing: border-box; padding: clamp(18px, 3vw, 32px); overflow-wrap: anywhere; }
+.staff-registration > * + * { margin-top: 22px; }
+.staff-registration h2 { margin: 0; }
+.staff-registration h3 { margin: 0 0 6px; font-size: 1rem; }
+.staff-registration p { margin: 0; line-height: 1.6; }
 .staff-registration a { color: inherit; }
-.staff-metadata { display: grid; gap: 12px; }
-.staff-metadata div { display: flex; flex-wrap: wrap; gap: 8px 20px; }
-.staff-metadata dt { font-weight: 600; min-width: 130px; }
-.staff-metadata dd { margin: 0; }
-.staff-plaintext { font-family: monospace; font-size: clamp(16px, 2.5vw, 24px); font-weight: 700; padding: 18px; border: 2px solid currentColor; border-radius: 12px; user-select: all; max-width: 680px; }
-.staff-check { display: flex; align-items: flex-start; gap: 10px; margin: 20px 0; line-height: 1.6; }
-.staff-check input { flex: 0 0 auto; margin-top: 6px; width: 18px; height: 18px; }
-.staff-registration :focus-visible { outline: 3px solid #c43c78; outline-offset: 4px; }
-.staff-error { border-left: 4px solid currentColor; padding-left: 12px; }
+.staff-registration .prism-btn { max-width: 100%; white-space: normal; min-height: 44px; margin: 0; }
+.staff-registration :focus-visible { outline: 3px solid #c43c78; outline-offset: 3px; }
+
+.staff-head { display: flex; flex-wrap: wrap; align-items: flex-start; justify-content: space-between; gap: 14px; }
+.staff-sub { margin-top: 4px !important; color: var(--sr-muted); }
+.staff-status { display: inline-flex; align-items: center; gap: 10px; padding: 8px 14px; border: 1px solid var(--sr-line); border-radius: 999px; background: var(--sr-soft); font-size: .85rem; }
+.staff-status span { color: var(--sr-muted); }
+.staff-status strong::before { content: ""; display: inline-block; width: 8px; height: 8px; margin-right: 8px; border-radius: 50%; background: var(--sr-muted); }
+.staff-status.is-active strong::before { background: #1f9d55; }
+.staff-status.is-pending strong::before { background: #d98a00; }
+.staff-status.is-ended strong::before { background: #c0392b; }
+
+.staff-notice { display: flex; align-items: flex-start; gap: 10px; padding: 12px 14px; border: 1px solid; border-radius: 12px; font-size: .92rem; }
+.staff-notice > i { flex: none; margin-top: 3px; }
+.staff-error { background: #fdeef3; border-color: #f4c0d3; color: #8f1043; }
+.staff-success { background: #e8f8ee; border-color: #b9e4c6; color: #1f7a3f; }
+.staff-warning { background: #fff6e0; border-color: #f3d9a0; color: #7a4b00; }
+.dark-theme .staff-error { background: rgba(248,113,113,.14); border-color: rgba(248,113,113,.35); color: #fca5a5; }
+.dark-theme .staff-success { background: rgba(34,197,94,.14); border-color: rgba(34,197,94,.35); color: #86efac; }
+.dark-theme .staff-warning { background: rgba(251,191,36,.14); border-color: rgba(251,191,36,.35); color: #fcd34d; }
+
+.staff-steps { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; margin-bottom: 0; padding: 0; list-style: none; }
+.staff-steps li { display: flex; align-items: center; gap: 12px; padding: 12px 14px; border: 1px solid var(--sr-line); border-radius: 14px; background: var(--sr-soft); opacity: .75; }
+.staff-steps li.is-current { opacity: 1; border-color: var(--sr-accent); background: color-mix(in srgb, var(--sr-accent) 8%, var(--prism-surface, #fff)); }
+.staff-steps li.is-done { opacity: 1; }
+.staff-step-num { flex: none; display: inline-flex; align-items: center; justify-content: center; width: 30px; height: 30px; border-radius: 50%; background: var(--sr-line); font-weight: 700; font-size: .85rem; }
+.is-current .staff-step-num { background: var(--sr-accent); color: #fff; }
+.is-done .staff-step-num { background: #1f9d55; color: #fff; }
+.staff-step-text strong, .staff-step-text small { display: block; }
+.staff-step-text small { color: var(--sr-muted); line-height: 1.35; }
+
+.staff-metadata { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 12px; margin-bottom: 0; }
+.staff-metadata div { padding: 12px 14px; border: 1px solid var(--sr-line); border-radius: 12px; }
+.staff-metadata dt { color: var(--sr-muted); font-size: .78rem; font-weight: 600; letter-spacing: .04em; text-transform: uppercase; }
+.staff-metadata dd { margin: 4px 0 0; font-weight: 600; }
+.staff-metadata dd small { color: var(--sr-muted); font-weight: 400; }
+
+.staff-code-panel { padding: 18px; border: 2px solid var(--sr-accent); border-radius: 16px; background: color-mix(in srgb, var(--sr-accent) 5%, var(--prism-surface, #fff)); }
+.staff-code-panel > * + * { margin-top: 16px; }
+.staff-code-row { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; }
+.staff-plaintext { flex: 1 1 280px; min-width: 0; padding: 16px 18px; border: 1px dashed var(--sr-accent); border-radius: 12px; background: var(--prism-surface, #fff); font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: clamp(16px, 2.5vw, 24px); font-weight: 700; letter-spacing: .04em; user-select: all; }
+.staff-check { display: flex; align-items: flex-start; gap: 10px; line-height: 1.55; }
+.staff-check input { flex: 0 0 auto; margin-top: 4px; width: 18px; height: 18px; accent-color: var(--sr-accent); }
+.staff-confirm > * + * { margin-top: 12px; }
+
+.staff-hint { color: var(--sr-muted); font-size: .9rem; }
+.staff-share { padding: 18px; border: 1px solid var(--sr-line); border-radius: 16px; }
+.staff-link-row { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin-top: 12px; }
+.staff-link { flex: 1 1 260px; min-width: 0; padding: 11px 14px; border: 1px solid var(--sr-line); border-radius: 12px; background: var(--sr-soft); font-size: .92rem; text-decoration: none; }
+.staff-link:hover { border-color: var(--sr-accent); }
+.staff-copy-result { margin-top: 10px !important; min-height: 0; color: #1f7a3f; font-size: .88rem; font-weight: 600; }
+.staff-copy-result:empty { display: none; }
+.dark-theme .staff-copy-result { color: #86efac; }
+
+.staff-actions > * + * { margin-top: 12px; }
+.staff-cancel { padding-top: 20px; border-top: 1px solid var(--sr-line); }
+
+@media (max-width: 720px) {
+    .staff-steps { grid-template-columns: 1fr; }
+    .staff-head { flex-direction: column; }
+    .staff-registration .prism-btn { width: 100%; }
+}
+@media (prefers-reduced-motion: reduce) { .staff-registration * { transition: none !important; animation: none !important; } }
+
+.staff-back { margin: 0 0 14px; }
+
+/* Screenshot geometry and a discreet borderless back control. */
+body.prism-workspace .staff-registration { max-width:1080px; border:1px solid var(--sr-line); border-radius:20px; background:var(--prism-card); padding:30px; }
+body.prism-workspace .staff-registration .staff-head h2 { font-size:24px; font-weight:800; }
+body.prism-workspace .staff-registration .staff-steps li { display:flex; align-items:center; gap:12px; padding:14px; border:1px solid var(--sr-line); border-radius:14px; background:var(--sr-soft); }
+.staff-steps li b { display:grid; place-items:center; flex:0 0 30px; height:30px; border-radius:50%; background:#e8eaf2; color:var(--prism-text); }
+.staff-steps li small { display:block; color:var(--sr-muted); font-size:12px; }
+body.prism-workspace .staff-steps .is-current { border-color:var(--sr-accent); background:color-mix(in srgb,var(--sr-accent) 5%,var(--prism-card)); }
+.staff-steps .is-current b { background:var(--sr-accent); color:#fff; }
+body.prism-workspace .staff-back { display:inline-flex; align-items:center; justify-content:center; width:30px; height:30px; color:var(--prism-text); background:transparent; border:0; text-decoration:none; }
+.staff-back:hover { color:var(--accent-pink); }
+.staff-registration .staff-code-panel form > * { margin-top:12px; }
+@media(max-width:600px){body.prism-workspace .staff-registration{padding:20px;}}
+/* Full-width staff card and readable confirmation alignment. */
+body.prism-workspace .staff-registration { width:100%; max-width:none; }
+body.prism-workspace .staff-registration .staff-check { display:flex; flex-direction:row; align-items:flex-start; gap:8px; font-size:13px; line-height:1.45; margin:0 0 12px; min-width:0; }
+body.prism-workspace .staff-registration .staff-check input[type=checkbox] { width:14px; height:14px; min-height:14px; flex:0 0 14px; margin:2px 0 0; padding:0; accent-color:var(--sr-accent); }
+body.prism-workspace .staff-registration form:has(input[value=invalidate]) { padding-top:16px; border-top:1px solid var(--sr-line); }
+body.prism-workspace .staff-registration form:has(input[value=invalidate]) > button { margin:0; min-height:38px; padding:8px 16px; font-size:13px; font-weight:700; border-radius:10px; }

@@ -7,7 +7,15 @@ function togglePassword(inputId, iconId){
 
         const control = icon.closest(".toggle-password") || icon;
 
-        control.addEventListener("click", function(){
+        if(control.tagName !== "BUTTON"){
+            control.setAttribute("role","button"); control.tabIndex = 0;
+            control.addEventListener("keydown", event => {if(event.key === "Enter" || event.key === " "){event.preventDefault();control.click();}});
+        }
+        const passwordLabel = control.dataset.passwordLabel || (inputId.toLowerCase().includes('confirm') ? "confirm password" : inputId.toLowerCase().includes('current') ? "current password" : inputId.toLowerCase().includes('new') ? "new password" : "password");
+        control.setAttribute("aria-label", "Show " + passwordLabel); control.setAttribute("aria-pressed","false");
+
+        control.addEventListener("click", function(event){
+            event.preventDefault(); // Keep a keyboard toggle inside a label focused on the control.
 
             if(input.type === "password"){
 
@@ -21,9 +29,9 @@ function togglePassword(inputId, iconId){
 
             }
 
-            if(control.tagName === "BUTTON"){
+            {
                 const visible = input.type === "text";
-                const label = control.dataset.passwordLabel || (inputId.toLowerCase().includes('confirm') ? "confirm password" : "password");
+                const label = control.dataset.passwordLabel || (inputId.toLowerCase().includes('confirm') ? "confirm password" : inputId.toLowerCase().includes('current') ? "current password" : inputId.toLowerCase().includes('new') ? "new password" : "password");
                 control.setAttribute("aria-label", (visible ? "Hide " : "Show ") + label);
                 control.setAttribute("aria-pressed", String(visible));
             }
