@@ -1,0 +1,143 @@
+<?php
+require __DIR__ . '/config.php';
+// Give the POST guard origin evidence without disclosing the reset URL or token.
+header('Referrer-Policy: origin');
+
+$token = trim((string)($_GET['token'] ?? $_POST['token'] ?? ''));
+$tokenRow = null;
+if ($token !== '') {
+    $stmt = db()->prepare('SELECT * FROM password_resets WHERE (token = :hashed OR token = :legacy) AND used = 0 AND expires_at > NOW() LIMIT 1');
+    $stmt->execute(reset_token_parameters($token));
+    $tokenRow = $stmt->fetch();
+}
+$tokenValid = $tokenRow && !$tokenRow['used'] && strtotime($tokenRow['expires_at']) > time()
+    && !onboarding_requires_invitation_setup(db(),(int)$tokenRow['user_id']);
+if (!$tokenValid) {
+    $_SESSION['error'] = 'This password reset link is invalid or has expired. Please request a new one.';
+}
+?>
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+
+    <meta charset="UTF-8">
+
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>Reset Password | PRISM</title>
+
+    <link rel="icon" type="image/png" href="assets/images/prismicon.png">
+
+    <link rel="stylesheet" href="<?php echo htmlspecialchars(asset_url('assets/css/style.css'), ENT_QUOTES, 'UTF-8'); ?>">
+
+    <link rel="stylesheet"
+    href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.6.0/css/all.min.css">
+
+<script>try{if(localStorage.getItem('prismTheme')==='dark')document.documentElement.classList.add('dark-theme')}catch(_){}</script>
+<?php prism_frontend_styles(); ?>
+</head>
+
+<body class="unified-login">
+
+<div class="background-overlay">
+
+    <div class="forgot-card">
+
+        <div class="logo-container">
+
+            <img src="assets/images/prismlogo1.png" class="logo-main" alt="PRISM logo">
+
+        </div>
+
+        <h2>Create New Password</h2>
+
+        <p class="subtitle">
+
+            Enter your new password below.
+
+        </p>
+
+        <?php
+
+        if(isset($_SESSION["error"])){
+
+            echo "<div class='error-message'>".htmlspecialchars((string)$_SESSION["error"], ENT_QUOTES, 'UTF-8')."</div>";
+
+            unset($_SESSION["error"]);
+
+        }
+
+        if(isset($_SESSION["success"])){
+
+            echo "<div class='success-message'>".htmlspecialchars((string)$_SESSION["success"], ENT_QUOTES, 'UTF-8')."</div>";
+
+            unset($_SESSION["success"]);
+
+        }
+
+        ?>
+
+        <form action="update_password.php" method="POST" <?php echo $tokenValid ? '' : 'style="display:none"'; ?>>
+
+            <input type="hidden" name="token" value="<?php echo htmlspecialchars($token, ENT_QUOTES, 'UTF-8'); ?>">
+
+            <div class="input-group">
+
+                <i class="fa-solid fa-lock"></i>
+
+                <input
+                type="password"
+                name="password"
+                id="password"
+                placeholder="New Password"
+                autocomplete="new-password"
+                minlength="12"
+                required aria-label="New password">
+
+                <button type="button" class="toggle-password" aria-label="Show password" data-password-label="password" aria-controls="password" aria-pressed="false"><i class="fa-solid fa-eye" id="togglePassword" aria-hidden="true"></i></button>
+
+            </div>
+
+            <div class="input-group">
+
+                <i class="fa-solid fa-lock"></i>
+
+                <input
+                type="password"
+                name="confirm_password"
+                id="confirmPassword"
+                placeholder="Confirm Password"
+                autocomplete="new-password"
+                minlength="12"
+                required aria-label="Confirm new password">
+
+                <button type="button" class="toggle-password" aria-label="Show confirm password" data-password-label="confirm password" aria-controls="confirmPassword" aria-pressed="false"><i class="fa-solid fa-eye" id="toggleConfirmPassword" aria-hidden="true"></i></button>
+
+            </div>
+
+            <button type="submit">
+
+                RESET PASSWORD
+
+            </button>
+
+            <div class="register-text">
+
+                Back to
+
+                <a href="login.php">Login</a>
+
+            </div>
+
+        </form>
+
+    </div>
+
+</div>
+
+<script src="<?php echo htmlspecialchars(asset_url('assets/js/script.js'), ENT_QUOTES, 'UTF-8'); ?>"></script>
+
+</body>
+
+</html>

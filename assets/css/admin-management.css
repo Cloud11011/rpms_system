@@ -1,0 +1,103 @@
+.management-page h1{color:var(--text-primary);font-size:var(--prism-font-title)}.management-page .topbar p{margin-top:5px;color:var(--text-secondary);font-size:var(--prism-font-body)}.management-controls{display:flex;justify-content:space-between;gap:12px;margin:20px 0}.management-search{display:flex;align-items:center;gap:9px;width:min(470px,100%);padding:11px 14px;border:1px solid var(--border-color);border-radius:8px;background:var(--card-bg)}.management-search input{width:100%;border:0;outline:0;color:var(--text-primary);background:transparent}.management-primary{padding:11px 14px;border:0;border-radius:8px;color:#fff;background:var(--accent-purple);font:600 var(--prism-font-body) Montserrat;cursor:pointer}.management-card{border:1px solid var(--border-color);border-radius:10px;background:var(--card-bg)}.management-card-head{padding:16px}.management-card-head h2{font-size:var(--prism-font-subheading)}.management-card-head p{margin-top:3px;color:var(--text-secondary);font-size:var(--prism-font-body)}.management-table-wrap{overflow-x:auto}.management-table-wrap table{width:100%;min-width:850px;border-collapse:collapse}.management-table-wrap th,.management-table-wrap td{padding:12px 14px;border-top:1px solid var(--border-color);font-size:var(--prism-font-label);text-align:left}.management-table-wrap th{color:var(--text-secondary);background:var(--bg-color);text-transform:uppercase}.record-person strong,.record-person span{display:block}.record-person span{margin-top:3px;color:var(--text-secondary);font-size:var(--prism-font-meta)}.record-chip{display:inline-block;padding:5px 8px;border-radius:12px;color:var(--accent-purple);background:rgba(162,19,104,.1);font-size:var(--prism-font-badge);font-weight:700}.record-action{width:29px;height:29px;margin-right:4px;border:0;border-radius:7px;color:var(--text-secondary);background:var(--bg-color);cursor:pointer}.record-action:hover{color:#fff;background:var(--accent-purple)}.management-empty{padding:35px!important;color:var(--text-secondary);text-align:center!important}.management-modal{display:none;position:fixed;inset:0;z-index:1500;align-items:center;justify-content:center;padding:20px;background:rgba(5,5,10,.6)}.management-modal.show{display:flex}.management-dialog{width:min(650px,100%);max-height:calc(100vh - 40px);overflow:auto;padding:21px;border-radius:10px;background:var(--card-bg)}.management-modal-head{display:flex;justify-content:space-between;padding-bottom:13px;border-bottom:1px solid var(--border-color)}.management-modal-head span{color:var(--accent-pink);font-size:var(--prism-font-meta);text-transform:uppercase}.management-modal-head h2{margin-top:3px;font-size:var(--prism-font-subheading)}.management-modal-head button{border:0;color:var(--text-secondary);background:transparent;cursor:pointer}.management-form-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:15px}.management-form-grid label{display:grid;gap:6px;color:var(--text-primary);font-size:var(--prism-font-label);font-weight:600}.management-form-grid .wide{grid-column:1/-1}.management-form-grid input,.management-form-grid select{padding:10px;border:1px solid var(--border-color);border-radius:7px;color:var(--text-primary);background:var(--input-bg);font:var(--prism-font-body) Montserrat}.management-actions{display:flex;justify-content:flex-end;gap:8px;margin-top:17px}.management-actions>button:first-child{padding:10px 13px;border:0;border-radius:8px;color:var(--text-secondary);background:var(--bg-color);cursor:pointer}@media(max-width:600px){.management-controls{flex-direction:column}.management-form-grid{grid-template-columns:1fr}.management-form-grid .wide{grid-column:auto}}
+.protocol-badge{display:inline-block;padding:4px 8px;border-radius:6px;color:var(--accent-purple);background:rgba(162,19,104,.1);font-size:var(--prism-font-badge);font-weight:700;letter-spacing:.3px}
+.pi-badge{display:inline-block;margin-left:4px;padding:3px 6px;border-radius:5px;color:#fff;background:#2e7d32;font-size:var(--prism-font-badge);font-weight:700;letter-spacing:.3px}
+.muted{color:var(--text-secondary);font-size:var(--prism-font-meta)}
+.management-form-grid label.check-label{display:flex;flex-direction:row;align-items:center;gap:8px}
+.management-form-grid label.check-label input[type="checkbox"]{width:15px;height:15px;padding:0}
+
+.account-lifecycle { margin:24px 0; }
+.account-lifecycle p,.lifecycle-dialog p { line-height:1.7; margin:8px 0 12px; }
+.lifecycle-destructive { margin-top:24px; padding-top:18px; border-top:1px solid var(--border-color); }
+.lifecycle-destructive summary { cursor:pointer; font-weight:600; }
+.lifecycle-destructive form { margin-top:16px; }
+.account-page .account-form .lifecycle-check,.lifecycle-dialog .account-form .lifecycle-check { display:flex; align-items:flex-start; gap:10px; }
+.account-page .account-form .lifecycle-check input[type=checkbox],.lifecycle-dialog .account-form .lifecycle-check input[type=checkbox] { flex:0 0 18px; width:18px; min-width:18px; height:18px; min-height:18px; padding:0; margin-top:3px; }
+.lifecycle-danger { border:1px solid #a82540; border-radius:8px; padding:10px 14px; color:#fff; background:#a82540; font:600 var(--prism-font-body) Montserrat,sans-serif; cursor:pointer; }
+.lifecycle-dialog { width:min(520px,calc(100vw - 24px)); padding:24px; color:var(--text-primary); background:var(--card-bg); border:1px solid var(--border-color); }
+.lifecycle-dialog:not([open]) { display:none; }
+.lifecycle-dialog h2 { font-size:var(--prism-font-subheading); }
+.lifecycle-dialog [role=status],#adminLifecycleResult { color:var(--text-primary); overflow-wrap:anywhere; }
+
+/* Specific lifecycle rules override the shared pale row-action backgrounds. */
+.lifecycle-actions { display:grid; gap:6px; width:40px; }
+body.prism-workspace .management-page .row-actions .lifecycle-action:not(.prism-action-item) {
+    display:grid; place-items:center; box-sizing:border-box;
+    width:40px; height:40px; min-width:40px; min-height:40px; padding:0;
+    border:1px solid var(--prism-border)!important; border-radius:8px;
+    color:var(--text-primary); background:var(--prism-surface-2)!important;
+    font-size:16px; opacity:1; filter:none;
+}
+body.prism-workspace .management-page .row-actions .lifecycle-danger:not(.prism-action-item) {
+    color:#a31d35!important; background:#fff1f3!important; border-color:#b9485e!important;
+}
+body.prism-workspace .management-page .row-actions .lifecycle-action:not(.prism-action-item):hover:not(:disabled):not([aria-disabled=true]) {
+    color:#fff!important; background:#454a85!important; border-color:#454a85!important;
+}
+body.prism-workspace .management-page .row-actions .lifecycle-archive:not(.prism-action-item):hover:not(:disabled):not([aria-disabled=true]) {
+    background:#805500!important; border-color:#805500!important;
+}
+body.prism-workspace .management-page .row-actions .lifecycle-danger:not(.prism-action-item):hover:not(:disabled):not([aria-disabled=true]) {
+    background:#a31d35!important; border-color:#a31d35!important;
+}
+body.prism-workspace .management-page .row-actions .lifecycle-action:not(.prism-action-item):is(:disabled,[aria-disabled=true]) {
+    color:#565b67!important; background:#e8eaf0!important; border-color:#777d8a!important;
+    opacity:1; filter:none; transform:none; cursor:not-allowed;
+}
+body.prism-workspace .management-page .row-actions .lifecycle-danger:not(.prism-action-item)[aria-disabled=true] {
+    color:#8b3446!important; background:#f4e6ea!important; border-color:#a75a6b!important;
+}
+body.prism-workspace .lifecycle-action:focus-visible,
+body.prism-workspace .lifecycle-password-toggle:focus-visible,
+body.prism-workspace .lifecycle-form button:focus-visible {
+    outline:3px solid #454a85; outline-offset:3px;
+}
+html.dark-theme body.prism-workspace .lifecycle-action:focus-visible,
+html.dark-theme body.prism-workspace .lifecycle-form button:focus-visible { outline-color:#f7a8d0; }
+body.prism-workspace dialog.lifecycle-dialog {
+    box-sizing:border-box; width:calc(100vw - 32px); max-width:760px;
+    max-height:calc(100vh - 32px); max-height:calc(100dvh - 32px);
+    margin:auto; padding:28px; overflow:auto;
+}
+.lifecycle-dialog::backdrop { background:rgba(15,23,42,.6); }
+body.prism-workspace .lifecycle-form {
+    display:grid; gap:18px; width:100%; min-width:0; margin-inline:auto; overflow-wrap:anywhere;
+}
+body.prism-workspace .lifecycle-form .lifecycle-form-group { display:grid; gap:8px; min-width:0; }
+body.prism-workspace .lifecycle-form .lifecycle-form-group > label,
+body.prism-workspace .lifecycle-form .lifecycle-check { margin:0; }
+body.prism-workspace .lifecycle-form > :is(h2,h3,p) { margin:0; }
+.lifecycle-password { position:relative; min-width:0; }
+body.prism-workspace .lifecycle-form .lifecycle-password input { padding-right:54px; }
+body.prism-workspace .lifecycle-password-toggle {
+    position:absolute; top:50%; right:4px; transform:translateY(-50%);
+    display:grid; place-items:center; width:40px; height:36px; padding:0;
+    border:1px solid transparent; border-radius:6px;
+    color:var(--text-primary); background:transparent; font-size:16px; cursor:pointer;
+}
+body.prism-workspace .lifecycle-password-toggle:hover { background:var(--prism-surface-2); border-color:var(--prism-border); }
+body.prism-workspace .lifecycle-form .lifecycle-check { display:flex; align-items:flex-start; gap:10px; line-height:1.5; }
+body.prism-workspace .lifecycle-form .lifecycle-danger[type=submit] {
+    color:#fff; background:#a82540; border:1px solid #a82540;
+}
+body.prism-workspace .lifecycle-form .lifecycle-danger[type=submit]:hover:not(:disabled) { background:#861b32; }
+#permanentDeleteAvailability { margin:12px 0; line-height:1.5; overflow-wrap:anywhere; }
+.retention-toolbar,.retention-cleanup { padding:16px; margin:12px 0; border:1px solid var(--border-color); border-radius:8px; background:var(--card-bg); color:var(--text-primary); }
+.retention-toolbar { position:sticky; top:12px; z-index:10; }
+.retention-toolbar-actions { display:flex; flex-wrap:wrap; align-items:center; gap:10px; margin-top:10px; }
+.retention-toolbar-actions select,.retention-toolbar-actions input[type=text],.retention-results input { max-width:100%; min-width:0; padding:10px; color:var(--text-primary); background:var(--input-bg); border:1px solid var(--border-color); border-radius:6px; }
+.retention-selection-label { display:flex; gap:8px; align-items:center; }
+.retention-select input,.retention-selection-label input { width:20px; height:20px; accent-color:var(--accent-purple); }
+.retention-state { display:block; margin-top:8px; max-width:280px; line-height:1.5; overflow-wrap:anywhere; }
+.retention-results { max-height:320px; overflow:auto; overflow-wrap:anywhere; }
+.retention-results p { margin:8px 0; }
+.retention-recovery { display:flex; flex-wrap:wrap; gap:8px; margin-top:8px; }
+.retention-cleanup p { margin-bottom:12px; line-height:1.6; }
+.retention-cleanup button { margin:0 8px 8px 0; }
+.retention-select input:focus-visible,.retention-toolbar :is(button,input,select):focus-visible,.retention-cleanup button:focus-visible { outline:3px solid var(--accent-purple); outline-offset:3px; }
+.lifecycle-form textarea { width:100%; box-sizing:border-box; resize:vertical; padding:10px; color:var(--text-primary); background:var(--input-bg); border:1px solid var(--border-color); border-radius:7px; font:inherit; }
+#permanentDeleteResult { white-space:pre-line; }
+.lifecycle-form [hidden] { display:none!important; }
+@media(max-width:600px) { .retention-toolbar { position:static; } .retention-toolbar-actions { align-items:stretch; flex-direction:column; } .retention-toolbar-actions :is(button,select) { width:100%; } }
+@media(max-width:600px) {
+    body.prism-workspace dialog.lifecycle-dialog { width:calc(100vw - 24px); padding:20px 16px; }
+}

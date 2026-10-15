@@ -1,0 +1,75 @@
+/* Generated report and export presentation shares workspace card spacing. */
+body.prism-workspace .reports-page .report-tools { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:16px; margin-bottom:24px; }
+body.prism-workspace .reports-page .report-tool { min-height:88px; padding:18px; border:1px solid var(--prism-border); border-radius:14px; background:var(--prism-card); transition:box-shadow 180ms ease,border-color 180ms ease; }
+body.prism-workspace .reports-page .report-tool:hover { border-color:#efafd1; box-shadow:0 6px 20px rgba(238,18,128,.1); }
+body.prism-workspace .reports-page .report-history { padding:20px; border:1px solid var(--prism-border); border-radius:14px; background:var(--prism-card); }
+body.prism-workspace .reports-page .report-history-heading { display:flex; align-items:center; justify-content:space-between; gap:16px; flex-wrap:wrap; margin-bottom:16px; padding:0; }
+body.prism-workspace .reports-page #exportExcel { display:inline-flex; align-items:center; gap:8px; min-height:40px; padding:9px 14px; border-radius:10px; font-size:12px; }
+body.prism-workspace .reports-page .report-table-wrap { overflow:visible; border:0; background:transparent; }
+body.prism-workspace .reports-page .report-table { display:block; width:100%; min-width:0; }
+body.prism-workspace .reports-page .report-table thead { display:none; }
+body.prism-workspace .reports-page .report-table tbody { display:grid; gap:10px; }
+body.prism-workspace .reports-page .report-table tbody tr { display:grid; grid-template-columns:minmax(0,1.6fr) minmax(0,1fr) minmax(0,.8fr) auto; align-items:center; gap:16px; padding:16px; border:1px solid var(--prism-border); border-radius:12px; }
+body.prism-workspace .reports-page .report-table tbody td { padding:0; border:0; font-size:12px; min-width:0; overflow-wrap:anywhere; }
+body.prism-workspace .reports-page .report-table tbody td:first-child { font-weight:600; }
+body.prism-workspace .reports-page .report-table tbody tr:has(.empty-state) { display:block; padding:32px 20px; text-align:center; }
+body.prism-workspace .reports-page .row-actions { display:flex; align-items:center; gap:8px; }
+body.prism-workspace .reports-page .report-view-file { min-height:36px; padding:8px 12px; font-size:11px; white-space:nowrap; }
+body.prism-workspace .reports-page .prism-record-footer { padding:16px 0 0; }
+body.prism-workspace.data-export-page .data-export-grid { grid-template-columns:repeat(2,minmax(0,1fr)); width:100%; max-width:920px; gap:14px; }
+body.prism-workspace.data-export-page .data-export-card { padding:18px; gap:10px; border:1px solid var(--prism-border); border-radius:12px; box-shadow:none; }
+body.prism-workspace.data-export-page .data-export-card h2 { font-size:16px; line-height:1.4; }
+body.prism-workspace.data-export-page .data-export-card p { margin:0; font-size:12px; line-height:1.6; }
+body.prism-workspace.data-export-page .data-export-card .prism-btn { align-self:flex-start; width:auto; max-width:100%; min-height:38px; padding:8px 12px; border-radius:8px; gap:8px; font-size:12px; }
+body.prism-workspace.data-export-page .data-export-note { max-width:920px; margin-top:14px; font-size:12px; line-height:1.6; }
+@media(max-width:700px){body.prism-workspace.data-export-page .data-export-grid{grid-template-columns:minmax(0,1fr);}}
+@media(max-width:700px){body.prism-workspace .reports-page .report-tools{grid-template-columns:minmax(0,1fr);}body.prism-workspace .reports-page .report-table tbody tr{grid-template-columns:minmax(0,1fr);}body.prism-workspace .reports-page .report-history{padding:16px;}}
+@media(prefers-reduced-motion:reduce){body.prism-workspace .reports-page .report-tool{transition:none;}}
+
+/* Friendly export cards: four across on wide screens. */
+body.prism-workspace.data-export-page .data-export-grid { grid-template-columns:repeat(2,minmax(0,1fr)); gap:16px; max-width:900px; }
+body.prism-workspace.data-export-page .data-export-card { position:relative; display:flex; flex-direction:column; align-items:stretch; gap:12px; padding:18px; border:1.5px solid #ece8f1; border-radius:16px; background:#fff; transition:transform .15s,box-shadow .15s,border-color .15s; }
+body.prism-workspace.data-export-page .data-export-card:hover { transform:translateY(-2px); border-color:#d9c3d1; box-shadow:0 12px 28px rgba(20,23,58,.08); }
+.data-export-page .data-export-icon { width:40px; height:40px; border-radius:12px; background:#fce9f3; color:#b5146e; display:flex; align-items:center; justify-content:center; font-size:18px; }
+.data-export-page .data-export-text { flex:1; display:flex; flex-direction:column; gap:6px; }
+body.prism-workspace.data-export-page .data-export-card h2 { margin:0; font-size:17px; font-weight:800; letter-spacing:-.01em; }
+body.prism-workspace.data-export-page .data-export-card p { margin:0; flex:0; font-size:12px; line-height:1.6; color:#5f5a70; }
+body.data-export-page .data-export-btn { min-height:40px; width:100%; padding:8px 14px; display:flex; align-items:center; justify-content:center; gap:8px; border:0; border-radius:10px; background:#b5146e; color:#fff; font-size:12px; font-weight:700; text-decoration:none; transition:background .15s; }
+body.data-export-page .data-export-btn:hover { background:#8f0f58; color:#fff; }
+body.data-export-page .data-export-btn.is-busy { background:#a9a7ba; cursor:wait; }
+body.data-export-page .data-export-btn:focus-visible { outline:3px solid rgba(181,20,110,.4); outline-offset:2px; }
+body.prism-workspace.data-export-page .data-export-note { max-width:none; margin:22px 0 0; padding:14px 16px; display:flex; align-items:flex-start; gap:10px; border-radius:14px; background:#efe8fb; color:#4a2a8f; font-size:13px; line-height:1.5; }
+.data-export-page .data-export-note i { margin-top:2px; }
+html.dark-theme body.prism-workspace.data-export-page .data-export-card { background:#20202d; border-color:#3b3547; }
+html.dark-theme body.prism-workspace.data-export-page .data-export-card p { color:#c9c2d6; }
+html.dark-theme body.prism-workspace.data-export-page .data-export-note { background:#2b2940; color:#d5c8ff; }
+@media(max-width:1100px){body.prism-workspace.data-export-page .data-export-grid{grid-template-columns:repeat(2,minmax(0,1fr));}}
+@media(max-width:768px){body.prism-workspace.data-export-page .data-export-grid{grid-template-columns:minmax(0,1fr);}}
+@media(prefers-reduced-motion:reduce){body.prism-workspace.data-export-page .data-export-card,body.data-export-page .data-export-btn{transition:none;}}
+
+body.prism-workspace.data-export-page .data-export-grid { margin-inline:auto; }
+body.prism-workspace.data-export-page .data-export-note { max-width:900px; margin-inline:auto; }
+.data-export-note-close { flex:0 0 28px; width:28px; height:28px; padding:0; margin-left:auto; border:0; background:transparent; color:inherit; font-size:22px; cursor:pointer; }
+
+/* Data Export: grouped download list matching the reference layout. */
+body.prism-workspace.data-export-page .main-content>.topbar{margin-bottom:24px}
+body.prism-workspace.data-export-page .topbar>div>p{margin:4px 0 0;color:var(--prism-muted);font-size:14px}
+body.prism-workspace.data-export-page .data-export-grid{display:block;width:100%;max-width:720px;margin:0 auto}
+body.prism-workspace.data-export-page .data-export-card{display:grid;grid-template-columns:44px minmax(0,1fr) auto;align-items:center;gap:16px;min-height:106px;padding:18px 22px;border:0;border-bottom:1px solid #e6e3f3;border-radius:0;background:#fff;box-shadow:none;transition:background .15s}
+body.prism-workspace.data-export-page .data-export-card:first-child{border-top:1px solid #e6e3f3;border-radius:18px 18px 0 0}
+body.prism-workspace.data-export-page .data-export-card:last-child{border-bottom:1px solid #e6e3f3;border-radius:0 0 18px 18px}
+body.prism-workspace.data-export-page .data-export-card:hover{transform:none;border-color:#e6e3f3;background:#fdf9fc;box-shadow:none}
+body.prism-workspace.data-export-page .data-export-icon{width:44px;height:44px;border-radius:12px;background:#fbe8f2;color:#a10f61;font-size:17px}
+body.prism-workspace.data-export-page .data-export-text{gap:2px}
+body.prism-workspace.data-export-page .data-export-card h2{font-size:16px;line-height:1.4;font-weight:700;letter-spacing:0;color:#14103f}
+body.prism-workspace.data-export-page .data-export-card p{font-size:13px;line-height:1.55;color:#5d5a85}
+body.prism-workspace.data-export-page .data-export-btn{width:auto;min-width:160px;min-height:44px;padding:0 16px;justify-content:center;border:1px solid #d9d5ee;border-radius:12px;background:#fff;color:#14103f;font-size:13px;font-weight:700;white-space:nowrap}
+body.prism-workspace.data-export-page .data-export-btn:hover{border-color:#a10f61;background:#fbe8f2;color:#870c52}
+body.prism-workspace.data-export-page .data-export-btn.is-busy{background:#fbe8f2;border-color:#fbe8f2;color:#870c52}
+body.prism-workspace.data-export-page .data-export-note{max-width:720px;margin:18px auto 0}
+html.dark-theme body.prism-workspace.data-export-page .data-export-card{background:var(--prism-card);border-color:var(--prism-border)}
+html.dark-theme body.prism-workspace.data-export-page .data-export-card:hover{background:rgba(255,255,255,.035)}
+html.dark-theme body.prism-workspace.data-export-page .data-export-card h2{color:var(--prism-text)}
+html.dark-theme body.prism-workspace.data-export-page .data-export-btn{background:var(--prism-card);border-color:var(--prism-border);color:var(--prism-text)}
+html.dark-theme body.prism-workspace.data-export-page .data-export-btn:hover{background:rgba(181,20,110,.14);border-color:var(--accent-pink);color:var(--accent-pink)}
+@media(max-width:560px){body.prism-workspace.data-export-page .data-export-card{grid-template-columns:44px minmax(0,1fr);align-items:start;padding:18px}body.prism-workspace.data-export-page .data-export-btn{grid-column:1/-1;width:100%}}

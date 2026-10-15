@@ -1,0 +1,191 @@
+/* Student calendar presentation: the dashboard preview and full calendar share the RPMS card style. */
+.student-dashboard-page .student-activity-panel { padding:20px; border:1px solid var(--border-color); border-radius:20px; background:var(--card-bg,#fff); box-shadow:0 3px 12px rgba(20,16,63,.05); }
+.student-dashboard-page .student-activity-panel > .panel-head { align-items:flex-start; margin-bottom:16px; }
+.student-dashboard-page .student-activity-panel > .panel-head h2 { margin:0; color:var(--text-primary); font-size:16px; font-weight:800; }
+.student-dashboard-page .student-activity-panel > .panel-head p { color:var(--text-secondary); font-size:11px; }
+.student-dashboard-page .student-activity-panel #studentActivityCount { margin:2px 0 0; white-space:nowrap; }
+.student-dashboard-page .student-activity-list { display:grid; gap:10px; }
+.student-dashboard-page .student-activity-item { padding:14px 16px; border:1px solid var(--border-color); border-radius:12px; background:var(--card-bg,#fff); }
+.student-dashboard-page .student-activity-item header { display:flex; flex-wrap:wrap; justify-content:space-between; gap:8px 14px; }
+.student-dashboard-page .student-activity-item strong { color:var(--text-primary); font-size:13px; }
+.student-dashboard-page .student-activity-item time { color:var(--text-secondary); font-size:11px; }
+.student-dashboard-page .student-activity-item p { margin:8px 0 0; color:var(--text-secondary); font-size:12px; line-height:1.55; overflow-wrap:anywhere; }
+.student-dashboard-page .student-activity-item .student-activity-reason { padding:9px 11px; border-radius:9px; background:var(--bg-color); }
+.student-dashboard-page .student-activity-empty { display:grid; min-height:150px; place-items:center; margin:0; padding:18px; border:1px dashed var(--border-color); border-radius:10px; color:var(--text-secondary); background:var(--bg-color); font-size:12px; text-align:center; }
+.student-dashboard-page .student-activity-empty.is-error { color:#a52332; }
+.student-dashboard-page .student-activity-panel .prism-pagination { display:flex; justify-content:flex-end; margin:16px 0 0; }
+@media(max-width:640px) { .student-dashboard-page .student-activity-panel { padding:16px; } }
+
+.student-dashboard-page .student-notification-history { box-sizing:border-box; padding:20px; border:1px solid var(--border-color); border-radius:20px; background:var(--card-bg,#fff); box-shadow:0 3px 12px rgba(20,16,63,.05); }
+.student-dashboard-page .student-notification-history > .panel-head { display:flex; align-items:flex-start; justify-content:space-between; gap:14px; margin:0 0 16px; padding:0; border:0; }
+.student-dashboard-page .student-notification-history > .panel-head h2 { margin:0; color:var(--text-primary); font-size:16px; font-weight:800; }
+.student-dashboard-page .student-notification-history > .panel-head p#studentNotificationCount { margin:4px 0 0; color:var(--text-secondary); font-size:11px; }
+.student-dashboard-page .student-notification-history #markAllRead[hidden] { display:none!important; }
+.student-dashboard-page .student-notification-history #markAllRead { min-height:34px; padding:7px 11px; border:1px solid var(--border-color); border-radius:10px; color:var(--text-primary); background:var(--card-bg,#fff); font:600 11px Montserrat,sans-serif; cursor:pointer; }
+.student-dashboard-page .student-notification-history .notification-inbox-tabs { display:flex; flex-wrap:wrap; gap:8px; margin:0 0 18px; }
+.student-dashboard-page .student-notification-history .notification-inbox-tabs button { min-height:31px; padding:6px 13px; border:1px solid var(--border-color); border-radius:999px; color:var(--text-primary); background:var(--card-bg,#fff); font:700 11px Montserrat,sans-serif; cursor:pointer; }
+.student-dashboard-page .student-notification-history .notification-inbox-tabs button[aria-pressed="true"] { border-color:#15113f; color:#fff; background:#15113f; }
+.student-dashboard-page .student-notification-history .notification-reference-filters { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:10px; margin:0 0 22px; }
+.student-dashboard-page .student-notification-history .notification-reference-filters label { display:grid; min-width:0; gap:6px; margin:0; color:#514d68; font-size:10px; }
+.student-dashboard-page .student-notification-history .notification-reference-filters label[hidden] { display:none!important; }
+.student-dashboard-page .student-notification-history .notification-reference-filters select { width:100%; min-width:0; min-height:39px; padding:8px 11px; border:1px solid var(--border-color); border-radius:9px; color:var(--text-primary); background:var(--card-bg,#fff); font:400 12px Montserrat,sans-serif; }
+.student-dashboard-page .student-notification-history .notification-result:empty { display:none; }
+.student-dashboard-page .student-notification-history .notification-result:not(:empty) { margin:0 0 10px; color:var(--text-secondary); font-size:11px; }
+.student-dashboard-page .student-notification-history #notificationList { display:grid; min-height:162px; gap:10px; margin:0; padding:0; border:0; overflow:visible; }
+.student-dashboard-page .student-notification-history #notificationList .workspace-empty-state { display:grid; min-height:162px; box-sizing:border-box; place-items:center; margin:0; padding:18px; border:1px dashed #dce0eb; border-radius:9px; color:var(--text-secondary); background:#f5f7fb; font-size:12px; text-align:center; }
+.student-dashboard-page .student-notification-history .prism-pagination { display:flex; justify-content:flex-end; margin:16px 0 0; }
+.student-dashboard-page .student-notification-history .history-item.notice { margin:0; padding:14px; border:1px solid var(--border-color); border-radius:12px; background:var(--card-bg,#fff); }
+@media(max-width:640px) { .student-dashboard-page .student-notification-history { padding:16px; } .student-dashboard-page .student-notification-history .notification-reference-filters { grid-template-columns:minmax(0,1fr); gap:8px; } .student-dashboard-page .student-notification-history #notificationList,.student-dashboard-page .student-notification-history #notificationList .workspace-empty-state { min-height:140px; } }
+
+.student-dashboard-page .dashboard-calendar-panel { padding:22px; border-radius:20px; }
+.student-dashboard-page .dashboard-calendar-head { display:flex; justify-content:center; align-items:center; margin:0 0 14px; }
+.student-dashboard-page .dashboard-calendar-head > div:first-child { display:none; }
+.student-dashboard-page .dashboard-calendar-nav { justify-content:center; gap:16px; }
+.student-dashboard-page .dashboard-calendar-nav strong { min-width:120px; color:var(--text-primary); font-size:var(--prism-font-subheading); font-weight:800; }
+.student-dashboard-page .dashboard-calendar-nav button { width:44px; height:44px; border:0; border-radius:13px; color:var(--text-primary); background:var(--bg-color); font-size:14px; }
+.student-dashboard-page .dashboard-calendar-weekdays,.student-dashboard-page #dashboardCalendarGrid { gap:5px; }
+.student-dashboard-page .dashboard-calendar-weekdays span { padding:7px 2px; color:#88839f; font-size:var(--prism-font-meta); letter-spacing:.03em; }
+.student-dashboard-page #dashboardCalendarGrid .mini-day { position:relative; min-height:42px; border:0; border-radius:12px; color:var(--text-primary); background:transparent; font:700 var(--prism-font-body) Montserrat,sans-serif; cursor:pointer; transition:background .15s,color .15s,box-shadow .15s; }
+.student-dashboard-page #dashboardCalendarGrid .mini-day.text-muted { display:grid; place-items:center; min-height:42px; color:#b8b4c8; opacity:1; }
+.student-dashboard-page #dashboardCalendarGrid .mini-day:hover { background:var(--bg-color); }
+.student-dashboard-page #dashboardCalendarGrid .mini-day.active-day { color:#fff; background:#b5146e; box-shadow:0 7px 15px rgba(181,20,110,.2); }
+.student-dashboard-page #dashboardCalendarGrid .mini-day.selected-day:not(.active-day) { box-shadow:inset 0 0 0 1.5px #0c0e3f; }
+.student-dashboard-page #dashboardCalendarGrid .mini-day[data-official-deadline="true"]:not(.active-day)::after,.student-dashboard-page #dashboardCalendarGrid .mini-day.has-event:not(.active-day)::after { position:absolute; bottom:4px; left:50%; width:5px; height:5px; transform:translateX(-50%); border-radius:50%; background:#c97a18; content:""; }
+.student-dashboard-page #dashboardCalendarGrid .mini-day.has-event:not([data-official-deadline="true"]):not(.active-day)::after { background:#b5146e; }
+.student-dashboard-page .calendar-legend { display:flex; flex-wrap:wrap; align-items:center; gap:14px; margin:15px 0 7px; color:var(--text-secondary); font-size:var(--prism-font-meta); }
+.student-dashboard-page .calendar-legend span { display:inline-flex; align-items:center; gap:6px; }
+.student-dashboard-page .calendar-legend i { display:inline-block; width:9px; height:9px; border-radius:50%; background:#c97a18; }
+.student-dashboard-page .calendar-legend .today-dot { background:#b5146e; }
+.student-dashboard-page .calendar-legend .selected-dot { border:2px solid #0c0e3f; background:transparent; }
+/* The shared calendar script injects a square-marker legend; these cards already have the circular portal legend. */
+.student-dashboard-page #dashboardCalendarGrid + .prism-calendar-legend { display:none !important; }
+.student-dashboard-page .dashboard-calendar-panel #dashboardDeadlineState { margin:0; color:var(--text-secondary); font-size:var(--prism-font-meta); }
+.student-dashboard-page .dashboard-calendar-panel .prism-calendar-detail { position:absolute; width:1px; height:1px; padding:0; margin:-1px; overflow:hidden; clip:rect(0,0,0,0); white-space:nowrap; border:0; }
+.student-dashboard-page .dashboard-calendar-tasks-head { display:flex; justify-content:space-between; align-items:center; gap:10px; margin-top:18px; padding-top:13px; border-top:1px solid var(--border-color); }
+.student-dashboard-page .dashboard-calendar-tasks-head h3 { margin:0; color:var(--text-primary); font-size:var(--prism-font-body); font-weight:800; }
+.student-dashboard-page .dashboard-calendar-tasks-head h3 i { margin-right:6px; }
+.student-dashboard-page .dashboard-calendar-tasks-head > button { display:grid; place-items:center; flex:0 0 42px; width:42px; height:42px; border:0; border-radius:12px; color:#b5146e; background:#fde8f3; font-size:14px; cursor:pointer; }
+.student-dashboard-page .dashboard-calendar-tasks { min-height:52px; }
+.student-dashboard-page .dashboard-calendar-task-empty { margin:17px 0 0; color:var(--text-secondary); font-size:var(--prism-font-body); text-align:center; }
+.student-dashboard-page .dashboard-calendar-task { display:flex; justify-content:space-between; gap:12px; margin-top:8px; padding:9px 11px; border:1px solid var(--border-color); border-radius:11px; background:var(--card-bg); }
+.student-dashboard-page .dashboard-calendar-task strong { min-width:0; color:var(--text-primary); font-size:var(--prism-font-meta); overflow-wrap:anywhere; }
+.student-dashboard-page .dashboard-calendar-task span { flex:0 0 auto; color:var(--text-secondary); font-size:var(--prism-font-meta); }
+.student-dashboard-page .portal-calendar .calendar-layout { display:grid; grid-template-columns:minmax(0,1fr); max-width:900px; margin:12px auto 0; }
+.student-dashboard-page .portal-calendar .full-calendar-card { padding:24px clamp(18px,4vw,38px); border-radius:20px; }
+.student-dashboard-page .portal-calendar .calendar-toolbar { gap:16px; margin:0 0 13px; }
+.student-dashboard-page .portal-calendar .calendar-toolbar h2 { min-width:150px; color:var(--text-primary); font-size:var(--prism-font-subheading); font-weight:800; }
+.student-dashboard-page .portal-calendar .calendar-nav { width:44px; height:44px; border:0; border-radius:13px; color:var(--text-primary); background:var(--bg-color); font-size:14px; }
+.student-dashboard-page .portal-calendar .weekday-row,.student-dashboard-page .portal-calendar .month-grid { gap:5px; border:0; }
+.student-dashboard-page .portal-calendar .weekday-row span { padding:7px 2px; color:#88839f; font-size:var(--prism-font-meta); letter-spacing:.03em; }
+.student-dashboard-page .portal-calendar .calendar-day { display:grid; place-items:center; min-height:55px; padding:3px; border:0; border-radius:12px; background:transparent; text-align:center; }
+.student-dashboard-page .portal-calendar .calendar-day:hover { background:var(--bg-color); }
+.student-dashboard-page .portal-calendar .calendar-day.selected { background:transparent; box-shadow:inset 0 0 0 1.5px #0c0e3f; }
+.student-dashboard-page .portal-calendar .calendar-day.today.selected { background:#b5146e; box-shadow:0 7px 15px rgba(181,20,110,.2); }
+.student-dashboard-page .portal-calendar .calendar-day.today:not(.selected) .day-number { color:#b5146e; background:#fde8f3; border-radius:12px; }
+.student-dashboard-page .portal-calendar .day-number { display:grid; place-items:center; width:42px; height:42px; border-radius:12px; font-weight:700; }
+.student-dashboard-page .portal-calendar .calendar-day.today.selected .day-number { color:#fff; background:transparent; }
+.student-dashboard-page .portal-calendar .calendar-day.selected .day-number { color:var(--text-primary); }
+.student-dashboard-page .portal-calendar .calendar-day.outside { color:#b8b4c8; opacity:1; }
+.student-dashboard-page .portal-calendar .day-tasks { display:none; }
+.student-dashboard-page .portal-calendar .calendar-day.has-official-deadline:not(.today)::after,.student-dashboard-page .portal-calendar .calendar-day:has(.official-marker)::after { position:absolute; bottom:5px; left:50%; width:6px; height:6px; transform:translateX(-50%); border-radius:50%; background:#c97a18; content:""; }
+.student-dashboard-page .portal-calendar .calendar-day:has(.day-task:not(.official-marker)):not(.today)::after { position:absolute; bottom:5px; left:50%; width:6px; height:6px; transform:translateX(-50%); border-radius:50%; background:#b5146e; content:""; }
+.student-dashboard-page .portal-calendar .calendar-tasks-section { margin-top:14px; padding-top:12px; border-top:1px solid var(--border-color); }
+.student-dashboard-page .portal-calendar .calendar-tasks-heading { display:flex; justify-content:space-between; align-items:center; gap:12px; }
+.student-dashboard-page .portal-calendar .calendar-tasks-heading h2 { margin:0; color:var(--text-primary); font-size:var(--prism-font-body); font-weight:800; }
+.student-dashboard-page .portal-calendar .calendar-tasks-heading h2 i { margin-right:6px; }
+.student-dashboard-page .portal-calendar .calendar-tasks-heading p { display:flex; align-items:center; flex-wrap:wrap; gap:8px; margin:4px 0 0; color:var(--text-secondary); font-size:var(--prism-font-meta); }
+.student-dashboard-page .portal-calendar .calendar-tasks-heading .task-count { padding:3px 8px; }
+.student-dashboard-page .portal-calendar .calendar-add-reminder { display:grid; place-items:center; flex:0 0 42px; width:42px; height:42px; border:0; border-radius:12px; color:#b5146e; background:#fde8f3; font-size:14px; cursor:pointer; }
+.student-dashboard-page .portal-calendar #reminderForm[hidden] { display:none; }
+.student-dashboard-page .portal-calendar #reminderForm { grid-template-columns:repeat(2,minmax(0,1fr)); gap:10px 14px; margin-top:12px; padding:13px; border:1px solid var(--border-color); border-radius:14px; background:var(--bg-color); }
+.student-dashboard-page .portal-calendar #reminderForm label[for="taskTitle"],.student-dashboard-page .portal-calendar #reminderForm #taskTitle,.student-dashboard-page .portal-calendar #reminderForm label[for="taskNotes"],.student-dashboard-page .portal-calendar #reminderForm #taskNotes,.student-dashboard-page .portal-calendar #reminderForm .form-actions { grid-column:1/-1; }
+.student-dashboard-page .portal-calendar #reminderForm .form-actions { padding:0; border:0; }
+.student-dashboard-page .portal-calendar .save-task { border-radius:10px; background:#b5146e; }
+.student-dashboard-page .portal-calendar .task-list { gap:8px; padding-top:10px; }
+.student-dashboard-page .portal-calendar .task-item { border-left-color:#b5146e; border-radius:12px; }
+.student-dashboard-page .portal-calendar .official-deadline-panel { margin-top:14px; padding-top:12px; border-top:1px solid var(--border-color); }
+.student-dashboard-page .portal-calendar .official-deadline-panel .panel-title { padding-bottom:8px; }
+@media(max-width:600px) {
+  .student-dashboard-page .dashboard-calendar-panel { padding:16px; }
+  .student-dashboard-page .dashboard-calendar-weekdays,.student-dashboard-page #dashboardCalendarGrid { gap:2px; }
+  .student-dashboard-page #dashboardCalendarGrid .mini-day,.student-dashboard-page #dashboardCalendarGrid .mini-day.text-muted { min-height:36px; }
+  .student-dashboard-page .portal-calendar .full-calendar-card { padding:16px 10px; }
+  .student-dashboard-page .portal-calendar .calendar-day { min-height:43px; }
+  .student-dashboard-page .portal-calendar .day-number { width:36px; height:36px; }
+  .student-dashboard-page .portal-calendar #reminderForm { grid-template-columns:minmax(0,1fr); }
+  .student-dashboard-page .portal-calendar #reminderForm > * { grid-column:1; }
+}
+
+/* The student calendar page follows the RPMS personal-calendar workspace layout. */
+.student-dashboard-page .portal-calendar .calendar-layout { display:grid; grid-template-columns:minmax(0,1fr) 380px; gap:20px; align-items:start; width:100%; max-width:none; margin:0; }
+.student-dashboard-page .portal-calendar .calendar-side { display:grid; gap:16px; min-width:0; }
+.student-dashboard-page .portal-calendar .full-calendar-card { min-width:0; padding:24px; border-radius:18px; }
+.student-dashboard-page .portal-calendar .calendar-toolbar { justify-content:center; gap:14px; margin:0 0 18px; }
+.student-dashboard-page .portal-calendar .calendar-toolbar h2 { min-width:170px; font-size:18px; }
+.student-dashboard-page .portal-calendar .weekday-row { gap:8px; margin-bottom:6px; }
+.student-dashboard-page .portal-calendar .weekday-row span { color:#858092; font-size:12px; font-weight:700; letter-spacing:.04em; text-transform:uppercase; }
+.student-dashboard-page .portal-calendar #monthGrid { gap:8px; }
+.student-dashboard-page .portal-calendar #monthGrid > .calendar-day { position:relative; display:block; min-width:0; min-height:84px; padding:10px; border:1px solid var(--border-color); border-radius:14px; background:var(--card-bg); place-content:start; text-align:left; }
+.student-dashboard-page .portal-calendar #monthGrid > .calendar-day:hover { border-color:#e6b3d0; background:#fff8fb; }
+.student-dashboard-page .portal-calendar #monthGrid > .calendar-day.outside { border-color:transparent; background:transparent; }
+.student-dashboard-page .portal-calendar #monthGrid .day-number { display:inline-grid; place-items:center; width:28px; height:28px; border-radius:50%; font-size:14px; }
+.student-dashboard-page .portal-calendar #monthGrid > .calendar-day.today { border-color:var(--border-color); background:var(--card-bg); box-shadow:none; }
+.student-dashboard-page .portal-calendar #monthGrid > .calendar-day.today .day-number { color:#fff; background:#b5146e; }
+.student-dashboard-page .portal-calendar #monthGrid > .calendar-day.selected { border-color:#b5146e; background:#fceaf4; box-shadow:0 0 0 2px rgba(181,20,110,.14); }
+.student-dashboard-page .portal-calendar #monthGrid > .calendar-day.selected .day-number { color:#11143d; background:transparent; }
+.student-dashboard-page .portal-calendar #monthGrid > .calendar-day.today.selected .day-number { color:#fff; background:#b5146e; }
+.student-dashboard-page .portal-calendar .day-tasks { display:grid; margin-top:6px; }
+.student-dashboard-page .portal-calendar .calendar-side > .reminder-panel { width:100%; box-sizing:border-box; margin:0; padding:22px; border-radius:18px; }
+.student-dashboard-page .portal-calendar .reminder-panel .panel-title { padding-bottom:14px; border-bottom:1px solid var(--border-color); }
+.student-dashboard-page .portal-calendar .reminder-panel .eyebrow { color:#b5146e; font-size:11px; font-weight:700; letter-spacing:.08em; text-transform:uppercase; }
+.student-dashboard-page .portal-calendar .reminder-panel .panel-title h2 { margin-top:4px; font-size:18px; }
+.student-dashboard-page .portal-calendar #reminderForm { display:grid; grid-template-columns:minmax(0,1fr) 130px; grid-template-areas:"title time" "title-input time-input" "notes notes" "notes-input notes-input" "actions actions"; grid-template-rows:auto 44px auto 84px auto; gap:6px 10px; margin:0; padding:14px 0 10px; border:0; border-radius:0; background:transparent; }
+.student-dashboard-page .portal-calendar #reminderForm label { margin-top:6px; font-size:12px; font-weight:600; }
+.student-dashboard-page .portal-calendar #reminderForm label[for="taskTitle"] { grid-area:title; }
+.student-dashboard-page .portal-calendar #reminderForm #taskTitle { grid-area:title-input; }
+.student-dashboard-page .portal-calendar #reminderForm label[for="taskTime"] { grid-area:time; }
+.student-dashboard-page .portal-calendar #reminderForm #taskTime { grid-area:time-input; }
+.student-dashboard-page .portal-calendar #reminderForm label[for="taskNotes"] { grid-area:notes; }
+.student-dashboard-page .portal-calendar #reminderForm #taskNotes { grid-area:notes-input; }
+.student-dashboard-page .portal-calendar #reminderForm .form-actions { grid-area:actions; }
+.student-dashboard-page .portal-calendar #reminderForm input,.student-dashboard-page .portal-calendar #reminderForm textarea { width:100%; box-sizing:border-box; }
+.student-dashboard-page .portal-calendar .form-actions { margin-top:4px; padding:0; border:0; }
+.student-dashboard-page .portal-calendar .form-actions .save-task { flex:1; min-height:44px; justify-content:center; border-radius:12px; background:#b5146e; }
+.student-dashboard-page .portal-calendar .task-list { gap:10px; padding-top:12px; }
+.student-dashboard-page .portal-calendar .empty-tasks { padding:14px 0 2px; text-align:center; }
+.student-dashboard-page .portal-calendar .official-deadline-panel { margin:0; padding:22px; border:1px solid var(--border-color); border-radius:18px; }
+.student-dashboard-page .portal-calendar .prism-calendar-detail { position:absolute; width:1px; height:1px; padding:0; margin:-1px; overflow:hidden; clip:rect(0,0,0,0); white-space:nowrap; border:0; }
+.student-dashboard-page .portal-calendar .prism-calendar-legend { gap:18px; margin:16px 0 0; padding-top:14px; border-top:1px solid var(--border-color); color:var(--text-secondary); font-size:var(--prism-font-meta); }
+.student-dashboard-page .portal-calendar .prism-calendar-legend b { width:12px; height:12px; border-radius:50%; }
+.student-dashboard-page .portal-calendar .prism-calendar-legend .is-today b { border:0; background:#b5146e; }
+.student-dashboard-page .portal-calendar .prism-calendar-legend .is-selected b { border:2px solid #b5146e; background:#fceaf4; }
+@media(max-width:1100px) {
+  .student-dashboard-page .portal-calendar .calendar-layout { grid-template-columns:minmax(0,1fr); }
+}
+@media(max-width:600px) {
+  .student-dashboard-page .portal-calendar .full-calendar-card,.student-dashboard-page .portal-calendar .calendar-side > .reminder-panel { padding:14px; }
+  .student-dashboard-page .portal-calendar #monthGrid > .calendar-day { min-height:54px; padding:5px; }
+  .student-dashboard-page .portal-calendar .day-tasks { display:none; }
+  .student-dashboard-page .portal-calendar #reminderForm { grid-template-columns:minmax(0,1fr); grid-template-areas:"title" "title-input" "time" "time-input" "notes" "notes-input" "actions"; grid-template-rows:none; }
+}
+.student-dashboard-page dialog.calendar-task-dialog { position:fixed; inset:0; width:min(500px,calc(100vw - 24px)); max-width:calc(100vw - 24px); max-height:calc(100dvh - 28px); margin:auto; padding:24px; overflow:auto; border:0; border-radius:12px; background:#fff; color:#10123c; box-shadow:0 20px 48px rgba(0,0,0,.26); }
+.student-dashboard-page dialog.calendar-task-dialog::backdrop { background:rgba(0,0,0,.5); }
+.student-dashboard-page .calendar-task-dialog-heading { display:flex; justify-content:space-between; align-items:flex-start; gap:14px; margin-bottom:14px; }
+.student-dashboard-page .calendar-task-dialog-heading span { color:#b5146e; font-size:11px; font-weight:700; letter-spacing:.08em; text-transform:uppercase; }
+.student-dashboard-page .calendar-task-dialog-heading h2 { margin:4px 0 0; font-size:18px; line-height:1.35; }
+.student-dashboard-page .calendar-task-dialog-icon-close { display:grid; place-items:center; flex:0 0 30px; width:30px; height:30px; padding:0; border:0; border-radius:50%; background:#f2f3f7; color:#666; font-size:20px; line-height:1; cursor:pointer; }
+.student-dashboard-page dialog.calendar-task-dialog #reminderForm { display:grid; grid-template-columns:minmax(0,1fr); grid-template-areas:"title" "title-input" "time" "time-input" "notes" "notes-input" "actions"; grid-template-rows:none; gap:4px; margin:0; padding:0 0 16px; border:0; background:transparent; }
+.student-dashboard-page dialog.calendar-task-dialog #reminderForm label { margin:4px 0 0; color:#10123c; font-size:13px; font-weight:700; }
+.student-dashboard-page dialog.calendar-task-dialog #reminderForm input,.student-dashboard-page dialog.calendar-task-dialog #reminderForm textarea { width:100%; min-height:46px; box-sizing:border-box; padding:10px 12px; border:1px solid #dedbe7; border-radius:10px; background:#fff; font:400 14px Montserrat,sans-serif; }
+.student-dashboard-page dialog.calendar-task-dialog #reminderForm #taskTitle { border:2px solid #b5146e; box-shadow:0 0 0 3px rgba(181,20,110,.12); }
+.student-dashboard-page dialog.calendar-task-dialog #reminderForm #taskTime { max-width:226px; }
+.student-dashboard-page dialog.calendar-task-dialog #reminderForm #taskNotes { min-height:86px; resize:vertical; }
+.student-dashboard-page dialog.calendar-task-dialog #reminderForm .form-actions { display:flex; justify-content:flex-end; gap:10px; margin-top:18px; padding:0; border:0; }
+.student-dashboard-page .calendar-task-dialog-close-action { min-height:44px; padding:0 18px; border:1px solid #b5146e; border-radius:11px; background:#fceaf4; color:#8f0f58; font:600 14px Montserrat,sans-serif; cursor:pointer; }
+.student-dashboard-page dialog.calendar-task-dialog #reminderForm .save-task { min-height:44px; padding:0 18px; border:0; border-radius:11px; background:#a60e69; color:#fff; font-weight:700; }
+.student-dashboard-page dialog.calendar-task-dialog > hr { height:1px; margin:0; border:0; background:#e8e5ee; }
+.student-dashboard-page dialog.calendar-task-dialog .task-list { display:grid; gap:10px; padding-top:18px; }
+.student-dashboard-page dialog.calendar-task-dialog .empty-tasks { padding:18px 0 0; color:#777; font-size:13px; text-align:center; }
+@media(max-width:600px) {
+  .student-dashboard-page dialog.calendar-task-dialog { padding:20px; }
+}

@@ -1,0 +1,33 @@
+/* Authenticated management only; public legal pages keep their existing stylesheet. */
+.legal-management .legal-card, .legal-management section[id^="history-"] {
+    padding: clamp(18px, 3vw, 28px); margin: 24px 0; border: 1px solid var(--prism-border);
+    border-radius: var(--prism-radius); box-shadow: var(--prism-shadow); background: var(--prism-surface);
+    overflow-wrap: anywhere;
+}
+.legal-management p, .legal-management li { line-height: 1.65; }
+.legal-management h2 { margin: 0 0 16px; }
+.legal-management form { display: flex; flex-direction: column; align-items: flex-start; gap: 14px; margin: 24px 0; }
+.legal-management input:not([type="hidden"]):not([type="checkbox"]), .legal-management textarea {
+    box-sizing: border-box; width: 100%; min-width: 0; padding: 12px; border: 1px solid var(--prism-border);
+    border-radius: 8px; background: var(--prism-surface-2); color: var(--prism-text); font: inherit;
+}
+.legal-management .legal-checkbox { display: flex; align-items: flex-start; gap: 12px; line-height: 1.6; }
+.legal-management .legal-checkbox input { flex: 0 0 auto; width: 18px; height: 18px; margin-top: 4px; }
+.legal-management .legal-notice { border-left: 4px solid var(--prism-focus); padding: 12px 16px; background: var(--prism-surface-2); }
+.legal-management .legal-policy-text { border-top: 1px solid var(--prism-border); padding-top: 20px; }
+.legal-management .legal-policy-text h2, .legal-management .legal-policy-text h3 { margin-top: 24px; }
+.legal-management .legal-history { padding-left: 24px; }
+.legal-management .legal-history li { margin-bottom: 20px; }
+.legal-management .legal-skip { position: fixed; z-index: 2000; top: 8px; left: 8px; transform: translateY(-200%); padding: 12px; background: var(--prism-surface); color: var(--prism-text); }
+.legal-management .legal-skip:focus { transform: none; }
+body.prism-workspace.legal-management .prism-btn { min-height: 44px; white-space: normal; }
+.legal-management :focus-visible { outline: 3px solid var(--prism-focus); outline-offset: 3px; }
+.legal-management .legal-publishing-guide { border:1px solid var(--prism-border); border-radius:12px; padding:18px; background:var(--prism-surface-2); }
+.legal-management .legal-publishing-guide h2 { font-size:var(--prism-font-subheading); margin:0 0 8px; }
+.legal-management .legal-policy-tabs { display:flex; flex-wrap:wrap; gap:8px; margin:18px 0; }
+.legal-management .legal-policy-tabs button { padding:10px 16px; min-height:44px; border:1px solid var(--prism-border); border-radius:24px; background:var(--prism-surface); color:var(--prism-text); font:600 var(--prism-font-body)/1.4 Montserrat,sans-serif; cursor:pointer; }
+.legal-management .legal-policy-tabs [aria-selected=true] { background:var(--prism-text); color:var(--prism-surface); }
+.legal-management [data-policy-panel][hidden] { display:none; }
+.legal-management .legal-draft-navigation { margin-bottom:18px; }
+.legal-management .legal-draft-actions { display:flex; flex-wrap:wrap; gap:12px; }
+.legal-management .legal-history li { border-bottom:1px solid var(--prism-border); padding-bottom:12px; }

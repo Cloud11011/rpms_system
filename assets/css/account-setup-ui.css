@@ -1,0 +1,77 @@
+/* Account setup uses the same split layout and card treatment as login. */
+body.unified-login.account-setup-page { min-height:100dvh; padding:0; background:#f4f6fb; }
+body.account-setup-page .background-overlay { width:100%; min-height:100dvh; height:auto; margin:0; padding:0; display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1fr); align-items:stretch; background:#f4f6fb; }
+body.account-setup-page .login-campus { box-sizing:border-box; align-self:stretch; min-height:100dvh; padding:clamp(32px,4vw,60px); display:grid; grid-template-rows:auto 1fr auto; justify-content:stretch; gap:24px; color:#fff; background:linear-gradient(100deg,rgba(28,18,68,.92),rgba(106,20,88,.74) 55%,rgba(181,20,110,.5)),url('../images/ceu_bg.png') center 35%/cover no-repeat; }
+body.account-setup-page .login-campus-brand { align-self:flex-start; }
+body.account-setup-page .login-campus img { width:120px; padding:0; background:transparent; }
+body.account-setup-page .login-campus-copy { width:auto; max-width:520px; margin-left:0; align-self:center; }
+body.account-setup-page .login-campus-copy h2 { margin:12px 0; font-size:clamp(26px,2.8vw,44px); line-height:1.1; }
+body.account-setup-page .login-campus-copy p { margin:0; max-width:460px; font-size:16px; line-height:1.6; color:#F3E6EF; }
+body.account-setup-page .login-campus-copy .public-eyebrow { margin:0; font-size:11px; font-weight:800; letter-spacing:.08em; color:#F4C4DD; }
+body.account-setup-page .login-campus-institution { margin:12px 0 0; font-size:12px; line-height:1.7; }
+body.account-setup-page .login-form-column { display:flex; flex-direction:column; align-items:center; justify-content:center; min-width:0; padding:40px 24px; }
+body.account-setup-page .setup-card { box-sizing:border-box; width:min(450px,100%); max-width:450px; margin:0; padding:22px 26px 20px; border:1px solid rgba(238,18,128,.2); border-radius:20px; background:#fff; color:#171a2f; box-shadow:0 12px 40px rgba(238,18,128,.16),0 0 28px rgba(238,18,128,.12); text-align:left; }
+body.account-setup-page .setup-card .logo-container { height:76px; margin:0 auto 10px; overflow:hidden; }
+body.account-setup-page .setup-card .logo-main { display:block; width:min(180px,65%); height:auto; margin:0 auto; object-fit:cover; }
+body.account-setup-page .setup-steps { list-style:none; margin:0 0 12px; padding:0; display:flex; align-items:center; justify-content:center; gap:7px; flex-wrap:wrap; color:#555268; font-size:11px; font-weight:700; }
+body.account-setup-page .setup-steps li { display:flex; align-items:center; gap:6px; white-space:nowrap; }
+body.account-setup-page .setup-steps li+li::before { content:""; width:12px; height:2px; margin-right:1px; background:#dedbe7; }
+body.account-setup-page .setup-steps b { display:flex; width:22px; height:22px; flex:none; align-items:center; justify-content:center; border:1px solid #dedbe7; border-radius:50%; background:#f3eef9; color:#5e5d6e; font-size:11px; }
+body.account-setup-page .setup-steps [aria-current=step] { color:#171a2f; }
+body.account-setup-page .setup-steps [aria-current=step] b { border-color:#b5146e; background:#b5146e; color:#fff; }
+body.account-setup-page .setup-steps .is-complete b { border-color:#b5146e; background:#b5146e; color:#fff; }
+body.account-setup-page .setup-card h1 { margin:10px 0 6px; color:#181b2e; font-size:clamp(23px,2.5vw,25px); line-height:1.2; letter-spacing:-.03em; text-align:left; }
+body.account-setup-page .setup-card .setup-lead { margin:0 0 12px; color:#585a6e; font-size:13px; line-height:1.55; }
+body.account-setup-page .setup-notice { display:flex; align-items:center; gap:10px; margin:6px 0 4px; padding:10px 12px; border:0; border-radius:11px; background:#fff1d6; color:#8a5300; font-size:12px; font-weight:600; line-height:1.5; }
+body.account-setup-page .setup-error { margin:0; }
+body.account-setup-page .setup-error:empty { display:none; }
+body.account-setup-page .setup-error:not(:empty) { padding:10px 12px; border:0; border-radius:10px; background:#fde7e7; color:#a12121; font-size:12px; font-weight:600; }
+body.account-setup-page .setup-card form { display:flex; flex-direction:column; }
+body.account-setup-page .setup-card form label { display:block; margin:14px 0 6px; color:#24243e; font-size:12px; font-weight:700; }
+body.account-setup-page .setup-card .onboarding-password { position:relative; }
+body.account-setup-page .setup-card .onboarding-password input { box-sizing:border-box; width:100%; min-height:44px; padding:0 62px 0 14px; border:1px solid #e5dfea; border-radius:12px; background:#f6f5f8; color:#14173a; font-size:14px; }
+body.account-setup-page .setup-card .onboarding-password input:focus-visible { border-color:#ee1280; outline:2px solid #ee1280; outline-offset:2px; }
+body.account-setup-page .setup-card .onboarding-password input.is-bad { border-color:#d64545; }
+body.account-setup-page .setup-card .onboarding-password .toggle-password { position:absolute; top:50%; right:8px; display:flex; width:auto; min-width:44px; height:44px; min-height:44px; align-items:center; justify-content:center; margin:0; padding:0 4px; transform:translateY(-50%); border:0; background:transparent; color:#b5146e; font-size:12px; font-weight:700; cursor:pointer; }
+body.account-setup-page .setup-rule { display:flex; align-items:center; gap:8px; margin:7px 0 0; color:#555268; font-size:11px; font-weight:600; }
+body.account-setup-page .setup-rule[hidden] { display:none; }
+body.account-setup-page .setup-dot { display:flex; width:17px; height:17px; flex:none; align-items:center; justify-content:center; border-radius:50%; background:#b9b3c9; color:#fff; font-size:10px; font-weight:800; }
+body.account-setup-page .setup-rule.ok { color:#14693a; }
+body.account-setup-page .setup-rule.ok .setup-dot { background:#2e9e5b; }
+body.account-setup-page .setup-rule.ok .setup-dot::after { content:"\2713"; }
+body.account-setup-page .setup-rule.bad { color:#a12121; }
+body.account-setup-page .setup-rule.bad .setup-dot { background:#d64545; }
+body.account-setup-page .setup-rule.bad .setup-dot::after { content:"!"; }
+body.account-setup-page .setup-btn { display:flex; width:100%; min-height:48px; align-items:center; justify-content:center; margin:20px 0 0; padding:0 20px; border:0; border-radius:11px; background:#b5146e; color:#fff; font-size:14px; font-weight:800; text-align:center; text-decoration:none; cursor:pointer; transition:background-color 180ms ease,transform 180ms ease; }
+body.account-setup-page .setup-btn:hover:not(:disabled) { transform:none; background:#c82e85; }
+body.unified-login.batch11-login.account-setup-page .setup-card form > .setup-btn:disabled { background:#adaaba; color:#fff; cursor:not-allowed; opacity:1; }
+body.account-setup-page .setup-help { margin:14px 0 0; color:#5f5a70; font-size:11px; line-height:1.5; text-align:center; }
+body.account-setup-page .setup-done { display:flex; flex-direction:column; align-items:stretch; text-align:center; }
+body.account-setup-page .setup-done .setup-steps { margin-bottom:20px; }
+body.account-setup-page .setup-done h1 { margin:12px 0 0; text-align:center; }
+body.account-setup-page .setup-done p { margin:8px 0 4px; color:#585a6e; font-size:13px; line-height:1.6; }
+body.account-setup-page .setup-done-icon { display:flex; width:58px; height:58px; align-self:center; align-items:center; justify-content:center; border-radius:50%; background:#e3f6ea; color:#16844a; font-size:27px; font-weight:800; }
+body.account-setup-page .login-form-column > .login-legal-footer { margin-top:24px; gap:24px; font-size:12px; }
+body.account-setup-page .login-form-column > .login-legal-footer a { color:#b5146e; text-decoration:none; }
+html.dark-theme body.account-setup-page { background:#181622; }
+html.dark-theme body.account-setup-page .background-overlay { background:#181622; }
+html.dark-theme body.account-setup-page .setup-card { border-color:rgba(238,18,128,.25); background:#242031; color:#f5f1fa; }
+html.dark-theme body.account-setup-page .setup-card h1,html.dark-theme body.account-setup-page .setup-card form label { color:#f5f1fa; }
+html.dark-theme body.account-setup-page .setup-lead,html.dark-theme body.account-setup-page .setup-done p,html.dark-theme body.account-setup-page .setup-help { color:#c4bfcf; }
+html.dark-theme body.account-setup-page .setup-card .onboarding-password input { border-color:#494154; background:#302b3d; color:#f5f1fa; }
+html.dark-theme body.account-setup-page .login-form-column > .login-legal-footer a { color:#eaa0c4; }
+@media(max-width:700px) {
+    body.account-setup-page .background-overlay { grid-template-columns:minmax(0,1fr); }
+    body.account-setup-page .login-campus { min-height:360px; padding:28px; gap:24px; }
+    body.account-setup-page .login-campus-copy { width:auto; margin-left:0; }
+    body.account-setup-page .login-form-column { padding:28px 16px; }
+}
+@media(max-width:400px) {
+    body.account-setup-page .setup-card { padding:24px 18px; }
+    body.account-setup-page .setup-steps { gap:5px; font-size:10px; }
+    body.account-setup-page .setup-steps li { gap:4px; }
+    body.account-setup-page .setup-steps li+li::before { width:8px; }
+}
+@media(prefers-reduced-motion:reduce) {
+    body.account-setup-page .setup-btn { transition:none; }
+}

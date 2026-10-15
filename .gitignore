@@ -1,0 +1,12 @@
+/config.local.php
+/vendor/
+/storage/
+/backups/
+/tests/
+/tools/
+*.sql
+*.patch
+*.log
+*.bak
+.env
+.env.*

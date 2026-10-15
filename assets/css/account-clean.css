@@ -1,0 +1,219 @@
+/* PRISM Account & Activity – clean layout. Load LAST in account.php (after batch11.css / prism_frontend_styles()).
+   Scoped to body.account-page. CSS only – no markup or JS changes. */
+body.prism-workspace.account-page{--ac-border:var(--prism-border,#ECE8F1);--ac-strong:var(--prism-border-strong,#D9D3E3);--ac-muted:var(--prism-muted,#5F5A70);--ac-text:var(--prism-text,#14173A);--ac-accent:var(--prism-accent,#B5146E);--ac-soft:var(--prism-pink-soft,#FCEAF4);--ac-card:var(--prism-card,#fff);--ac-bg:var(--prism-bg,#F6F4F8)}
+body.prism-workspace.account-page .management-page .topbar p{max-width:62ch;font-size:14px;line-height:1.6;color:var(--ac-muted)}
+
+/* ---- cards ---- */
+body.prism-workspace.account-page .account-card{padding:26px;border:1px solid var(--ac-border);border-radius:18px;background:var(--ac-card);box-shadow:0 1px 2px rgba(20,23,58,.04),0 8px 24px rgba(20,23,58,.04)}
+body.prism-workspace.account-page .account-card>.management-card-head{margin:0 0 20px;padding:0 0 16px;border-bottom:1px solid var(--ac-border)}
+body.prism-workspace.account-page .account-card .management-card-head h2{font-size:18px;font-weight:700;color:var(--ac-text)}
+body.prism-workspace.account-page .account-card .management-card-head p{margin-top:4px;font-size:13.5px;color:var(--ac-muted)}
+body.prism-workspace.account-page .account-grid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:20px;align-items:start}
+body.prism-workspace.account-page .management-page>.account-card,body.prism-workspace.account-page .management-page>section{margin-top:20px}
+
+/* ---- form fields ---- */
+body.prism-workspace.account-page .account-form{gap:16px}
+body.prism-workspace.account-page .account-form label{display:grid;gap:6px;font-size:13px;font-weight:600;color:var(--ac-text)}
+body.prism-workspace.account-page .account-form input:not([type=checkbox]){min-height:46px;padding:10px 14px;border:1px solid var(--ac-strong);border-radius:12px;background:var(--ac-card);font-size:14.5px;font-weight:500;color:var(--ac-text)}
+body.prism-workspace.account-page .account-form input:not([type=checkbox]):is(:focus,:focus-visible){outline:0!important;border-color:var(--ac-accent);box-shadow:0 0 0 3px rgba(181,20,110,.15)}
+body.prism-workspace.account-page .account-form input[readonly]{background:var(--ac-bg);border-color:var(--ac-border);color:var(--ac-muted);cursor:default}
+body.prism-workspace.account-page .account-form input[readonly]:focus{box-shadow:none;border-color:var(--ac-border)}
+body.prism-workspace.account-page .account-form .management-primary{justify-self:end;width:auto!important;min-width:160px;min-height:46px;padding:0 22px;border-radius:12px;font-size:14.5px;font-weight:700;background:var(--ac-accent)}
+body.prism-workspace.account-page .account-form .management-primary:hover{background:#8F0F58}
+
+/* profile: 2 columns of fields, button bottom-right */
+body.prism-workspace.account-page #accountProfileForm{grid-template-columns:repeat(2,minmax(0,1fr));column-gap:16px}
+body.prism-workspace.account-page #accountProfileForm>label:first-child{grid-column:1/-1}
+body.prism-workspace.account-page #accountProfileForm>.management-primary{grid-column:1/-1;margin-top:4px}
+
+/* security */
+body.prism-workspace.account-page #accountPasswordForm .management-primary{margin-top:4px}
+body.prism-workspace.account-page .account-note{display:flex;gap:8px;align-items:flex-start;margin:16px 0 0;padding:12px 14px;border-radius:12px;background:#F3EDFB;font-size:13px;line-height:1.5;color:#4A2A86}
+
+/* ---- staff registration: one compact row ---- */
+body.prism-workspace.account-page .staff-registration-entry{display:flex;flex-wrap:wrap;align-items:center;gap:14px 24px}
+body.prism-workspace.account-page .staff-registration-entry>.management-card-head{flex:1 1 320px;margin:0;padding:0;border:0}
+body.prism-workspace.account-page .staff-registration-entry .account-note{margin:0;padding:6px 14px;border-radius:999px;background:var(--ac-bg);color:var(--ac-muted)}
+body.prism-workspace.account-page .staff-registration-entry .account-note strong{color:var(--ac-text)}
+body.prism-workspace.account-page .staff-registration-entry .prism-btn{min-height:44px;padding:0 20px;border-radius:12px;font-weight:700}
+
+/* ---- danger zone ---- */
+body.prism-workspace.account-page .account-lifecycle{margin:20px 0;border-color:#F3CACA;background:linear-gradient(180deg,#FFF9F9 0,var(--ac-card) 120px)}
+body.prism-workspace.account-page .account-lifecycle>.management-card-head{border-bottom-color:#F3CACA}
+body.prism-workspace.account-page .account-lifecycle .management-card-head h2{color:#A12121}
+body.prism-workspace.account-page .account-lifecycle .management-card-head h2::before{content:"";display:inline-block;width:8px;height:8px;margin-right:10px;border-radius:50%;background:#C23A3A;vertical-align:2px}
+body.prism-workspace.account-page .account-lifecycle{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:0 28px;align-items:start}
+body.prism-workspace.account-page .account-lifecycle>.management-card-head,body.prism-workspace.account-page .account-lifecycle>#adminLifecycleResult{grid-column:1/-1}
+body.prism-workspace.account-page .account-lifecycle h3{font-size:15px;font-weight:700;color:var(--ac-text)}
+body.prism-workspace.account-page .account-lifecycle>.lifecycle-form{max-width:none;padding:0}
+body.prism-workspace.account-page .account-lifecycle .lifecycle-form p{margin:0;font-size:13.5px;line-height:1.6;color:var(--ac-muted)}
+body.prism-workspace.account-page .lifecycle-password input{padding-right:48px}
+body.prism-workspace.account-page .lifecycle-check{padding:12px 14px;border:1px solid var(--ac-border);border-radius:12px;background:var(--ac-card);font-size:13.5px;font-weight:600;cursor:pointer}
+body.prism-workspace.account-page .lifecycle-check input[type=checkbox]{accent-color:var(--ac-accent)}
+body.prism-workspace.account-page .account-lifecycle #adminArchiveForm .management-primary{justify-self:start;width:auto!important;background:#FDE7E7;color:#A12121;border:1px solid #F3CACA}
+body.prism-workspace.account-page .account-lifecycle #adminArchiveForm .management-primary:hover{background:#FAD3D3}
+body.prism-workspace.account-page .lifecycle-destructive{box-sizing:border-box;width:100%;max-width:none;margin:0;padding:0;border:1px solid var(--ac-border);border-radius:14px;background:var(--ac-card);overflow:hidden}
+body.prism-workspace.account-page .lifecycle-destructive>summary{display:flex;align-items:center;min-height:52px;padding:0 18px;font-size:14.5px;font-weight:700;color:#A12121;cursor:pointer}
+body.prism-workspace.account-page .lifecycle-destructive[open]>summary{border-bottom:1px solid var(--ac-border);background:#FFF9F9}
+body.prism-workspace.account-page .account-lifecycle .lifecycle-destructive>form{margin:0;padding:18px}
+body.prism-workspace.account-page .lifecycle-destructive :is(input:not([type=checkbox]),.lifecycle-password){box-sizing:border-box;width:100%;max-width:100%}
+body.prism-workspace.account-page .lifecycle-danger{min-height:46px;border-radius:12px;font-weight:700}
+body.prism-workspace.account-page .lifecycle-danger:disabled{opacity:.45;cursor:not-allowed}
+
+/* ---- activity logs ---- */
+body.prism-workspace.account-page .activity-filters{display:grid;grid-template-columns:minmax(220px,1.6fr) auto auto auto;gap:14px;align-items:end;margin-bottom:18px;padding:16px;border-radius:14px;background:var(--ac-bg)}
+body.prism-workspace.account-page .activity-filters input{min-height:44px;border:1px solid var(--ac-strong);border-radius:12px;background:var(--ac-card);padding:0 12px}
+body.prism-workspace.account-page .activity-filters .management-primary{min-height:44px;border-radius:12px}
+body.prism-workspace.account-page .activity-row{padding:16px 18px;border:1px solid var(--ac-border);border-radius:14px;background:var(--ac-card)}
+body.prism-workspace.account-page .activity-row+.activity-row{margin-top:10px}
+body.prism-workspace.account-page .activity-row>header{display:flex;justify-content:space-between;gap:12px;align-items:baseline}
+body.prism-workspace.account-page .activity-row>header strong{font-size:15px;color:var(--ac-text)}
+body.prism-workspace.account-page .activity-row>header time{font-size:12.5px;color:var(--ac-muted);white-space:nowrap}
+body.prism-workspace.account-page .activity-meta{display:flex;flex-wrap:wrap;gap:6px 10px;margin-top:4px;font-size:13px;color:var(--ac-muted)}
+body.prism-workspace.account-page .activity-audit-details>summary{cursor:pointer;font-size:13px;font-weight:600;color:var(--ac-accent)}
+
+/* ---- dark mode ---- */
+html.dark-theme body.prism-workspace.account-page .account-note{background:rgba(120,80,200,.18);color:#D9C9FF}
+html.dark-theme body.prism-workspace.account-page .account-lifecycle{background:var(--ac-card);border-color:rgba(255,120,120,.35)}
+html.dark-theme body.prism-workspace.account-page .account-lifecycle .management-card-head h2,html.dark-theme body.prism-workspace.account-page .lifecycle-destructive>summary{color:#FF9C9C}
+html.dark-theme body.prism-workspace.account-page .account-lifecycle #adminArchiveForm .management-primary{background:rgba(255,120,120,.14);color:#FFB4B4;border-color:rgba(255,120,120,.35)}
+
+/* ---- responsive ---- */
+@media(max-width:1000px){
+  body.prism-workspace.account-page .account-grid,body.prism-workspace.account-page .account-lifecycle{grid-template-columns:minmax(0,1fr)}
+  body.prism-workspace.account-page .lifecycle-destructive{margin-top:20px}
+  body.prism-workspace.account-page .activity-filters{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}
+}
+@media(max-width:600px){
+  body.prism-workspace.account-page .account-card{padding:18px}
+  body.prism-workspace.account-page #accountProfileForm{grid-template-columns:minmax(0,1fr)}
+  body.prism-workspace.account-page .account-form .management-primary{justify-self:stretch}
+  body.prism-workspace.account-page .activity-filters{grid-template-columns:minmax(0,1fr)}
+}
+/* Refined deletion disclosure, confirmation checkbox, and activity filter controls */
+body.prism-workspace.account-page .lifecycle-destructive {
+  box-sizing: border-box;
+  width: 100%;
+  max-width: 440px;
+  margin: 0;
+  padding: 0;
+  border: 1px solid var(--ac-border);
+  border-radius: 12px;
+  background: var(--ac-card);
+  overflow: hidden;
+}
+body.prism-workspace.account-page .lifecycle-destructive > summary {
+  display: flex;
+  align-items: center;
+  min-height: 44px;
+  padding: 10px 18px;
+  font-size: 13.5px;
+  font-weight: 700;
+  line-height: 1.4;
+  color: #a12121;
+  cursor: pointer;
+  user-select: none;
+  list-style: none;
+  overflow-wrap: normal;
+  white-space: normal;
+}
+body.prism-workspace.account-page .lifecycle-destructive > summary::-webkit-details-marker {
+  display: none;
+}
+body.prism-workspace.account-page .lifecycle-destructive[open] > summary {
+  border-bottom: 1px solid var(--ac-border);
+  background: #fff9f9;
+}
+body.prism-workspace.account-page .account-lifecycle .lifecycle-destructive > form {
+  margin: 0;
+  padding: 16px 18px;
+}
+body.prism-workspace.account-page .lifecycle-check {
+  display: flex;
+  flex-direction: row;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 10px 14px;
+  border: 1px solid var(--ac-border);
+  border-radius: 10px;
+  background: var(--ac-card);
+  font-size: 13px;
+  line-height: 1.45;
+  cursor: pointer;
+}
+body.prism-workspace.account-page .lifecycle-check input[type=checkbox] {
+  width: 14px;
+  height: 14px;
+  min-height: 14px;
+  flex: 0 0 14px;
+  margin: 2px 0 0;
+  padding: 0;
+  accent-color: var(--ac-accent);
+}
+body.prism-workspace.account-page .lifecycle-check > span {
+  min-width: 0;
+  overflow-wrap: anywhere;
+  font-size: 13px;
+  line-height: 1.45;
+  color: var(--ac-text);
+}
+body.prism-workspace.account-page .lifecycle-danger {
+  width: auto;
+  min-height: 42px;
+  padding: 9px 18px;
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 1.4;
+  border-radius: 10px;
+}
+body.prism-workspace.account-page .activity-filters {
+  grid-template-columns: minmax(180px, 1fr) repeat(4, auto);
+  align-items: end;
+}
+body.prism-workspace.account-page .activity-override-control {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 44px;
+  height: 44px;
+  padding: 0 14px;
+  box-sizing: border-box;
+  border: 1px solid var(--ac-strong);
+  border-radius: 12px;
+  background: var(--ac-card);
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1;
+  color: var(--ac-text);
+  cursor: pointer;
+  white-space: nowrap;
+  transition: border-color 0.15s ease;
+}
+body.prism-workspace.account-page .activity-override-control:hover {
+  border-color: var(--ac-accent);
+}
+body.prism-workspace.account-page .activity-override-control input[type=checkbox] {
+  width: 14px;
+  height: 14px;
+  min-height: 14px;
+  flex: 0 0 14px;
+  margin: 0;
+  padding: 0;
+  accent-color: var(--ac-accent);
+}
+body.prism-workspace.account-page #activityFilterForm .prism-clear-filters {
+  align-self: end;
+  min-height: 44px;
+  height: 44px;
+  padding: 0 14px;
+  margin: 0;
+  border-radius: 12px;
+  font-size: 13px;
+}
+@media(max-width:1100px) {
+  body.prism-workspace.account-page .activity-filters { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media(max-width:600px) {
+  body.prism-workspace.account-page .activity-filters { grid-template-columns: minmax(0, 1fr); }
+  body.prism-workspace.account-page .lifecycle-destructive { max-width: 100%; }
+}

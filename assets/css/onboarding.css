@@ -1,0 +1,54 @@
+:root{color-scheme:light;--surface:#fff;--text:#183348;--border:#b6c5d1;--background:#eef4f8;--accent:#185f83}
+html.dark-theme{color-scheme:dark;--surface:#152939;--text:#edf5fa;--border:#688195;--background:#0c1d29;--accent:#56b6e1}
+*{box-sizing:border-box}body{margin:0;padding:24px 16px;background:var(--background);color:var(--text);font:16px/1.5 system-ui,sans-serif}.onboarding-card{width:min(100%,640px);margin:24px auto;padding:clamp(20px,4vw,40px);border:1px solid var(--border);border-radius:16px;background:var(--surface);overflow-wrap:anywhere}h1{font-size:clamp(24px,4vw,32px);line-height:1.2}label{display:block;margin:16px 0 6px;font-weight:600}input,select,button{font:inherit;max-width:100%}input,select{width:100%;min-width:0;padding:12px;border:1px solid var(--border);border-radius:6px;background:var(--surface);color:var(--text)}button{padding:12px 20px;margin:16px 0;background:var(--accent);color:var(--surface);border:0;border-radius:6px;cursor:pointer}button:disabled{opacity:.65}a{color:var(--accent)}fieldset{margin:20px 0;padding:16px;border:1px solid var(--border);border-radius:6px;min-width:0}.academic-fields-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}.academic-fields-grid label{min-width:0}input:focus-visible,select:focus-visible,button:focus-visible,a:focus-visible{outline:3px solid var(--accent);outline-offset:3px}[role=alert]:not(:empty){padding:12px;border:1px solid var(--border);border-left:4px solid var(--accent)}.invited-email{overflow-wrap:anywhere}@media(max-width:500px){.academic-fields-grid{grid-template-columns:1fr}.onboarding-card{margin:0 auto}}
+:root { --text:#0C0E3F; --border:#d8d3e2; --background:#f5f3f8; --accent:#0C0E3F; --focus:#c30e68; }
+html.dark-theme { --surface:#20202d; --text:#f1eef8; --border:#62596d; --background:#15151e; --accent:#eaa0c4; --focus:#f6a1cb; }
+body { height:auto; min-height:100dvh; font-family:Montserrat,system-ui,sans-serif; background:linear-gradient(135deg,rgba(133,133,199,.12),rgba(222,75,158,.08)),var(--background); }
+.onboarding-card { border-radius:25px; box-shadow:0 12px 32px rgba(12,14,63,.08); }
+.onboarding-card > img { display:block; max-width:100%; height:auto; margin:0 auto; }
+.onboarding-card h1 { margin:20px 0 16px; font-size:clamp(22px,4vw,28px); }
+.onboarding-card p { margin:12px 0; }
+.onboarding-card :is(input,select) { border-radius:12px; transition:border-color 160ms ease; }
+.onboarding-card button[type=submit] { min-height:52px; border-radius:50px; font-weight:600; transition:background-color 160ms ease; }
+.onboarding-card button[type=submit]:hover:not(:disabled) { background:#c30e68; color:#fff; }
+.onboarding-card :is(input,select,button,a):focus-visible { outline-color:var(--focus); }
+.onboarding-password { position:relative; }
+.onboarding-password input { min-height:50px; border-radius:50px; padding-right:56px; }
+.onboarding-password .toggle-password { position:absolute; right:4px; top:50%; transform:translateY(-50%); display:flex; align-items:center; justify-content:center; width:44px; height:44px; min-height:44px; margin:0; padding:0; border:0; border-radius:50%; background:transparent; color:var(--text); transition:color 160ms ease; }
+.onboarding-password .toggle-password:hover { color:var(--focus); }
+@media(prefers-reduced-motion:reduce) { .onboarding-card :is(input,select,button,a), .onboarding-password .toggle-password { transition:none; } }
+
+/* Reuse Login's stylesheet, CEU background, overlay, card and button family. */
+body.unified-login.onboarding-page { padding:0; background:url('../images/ceu_bg.png') no-repeat center center/cover; background-attachment:fixed; }
+.onboarding-page .background-overlay { align-items:center; }
+.unified-login.onboarding-page .onboarding-card { max-width:560px; margin:0; border:1px solid #ffffff50; text-align:left; color:var(--prism-text); color-scheme:inherit; font-size:13.5px; line-height:1.6; }
+.onboarding-page .onboarding-card h1 { text-align:center; font-size:22px; margin:18px 0 14px; }
+.onboarding-page .onboarding-card label { font-size:13px; margin:14px 0 6px; }
+.onboarding-page .onboarding-card :is(input,select) { min-height:48px; background:#f3f3f3; color:#0c0e3f; border:1px solid transparent; border-radius:24px; padding:11px 16px; }
+.onboarding-page .onboarding-card :is(input,select):hover { border-color:#ee1280; }
+.onboarding-page .onboarding-card :is(input,select):focus-visible { border-color:#ee1280; outline:2px solid #ee1280; outline-offset:3px; }
+.onboarding-page .onboarding-card button[type=submit] { width:100%; min-height:52px; margin:16px 0 0; color:#fff; background:#0c0e3f; }
+.onboarding-page .onboarding-card button[type=submit]:hover:not(:disabled) { background:#ee1280; }
+.onboarding-page .onboarding-password input { padding-right:56px; }
+.onboarding-page .onboarding-password .toggle-password { color:#0c0e3f; }
+.onboarding-page .onboarding-card fieldset { border-color:var(--prism-border); border-radius:12px; padding:12px; }
+.onboarding-page .onboarding-card .academic-fields-grid label { margin:0; }
+.onboarding-page [role=alert] { min-height:24px; margin:8px 0; }
+.onboarding-page [role=alert]:not(:empty) { border-radius:8px; border-color:var(--prism-border); color:#a01c1c; }
+.onboarding-page .onboarding-card a { color:var(--prism-accent); }
+@media(max-width:500px) { .unified-login.onboarding-page .onboarding-card { padding:24px 20px; } }
+@media(prefers-reduced-motion:reduce) { .onboarding-page .onboarding-card :is(input,select,button,a) { transition:none; } }
+
+/* Invitation setup spacing and onboarding card entrance. */
+body.unified-login.account-setup-page .onboarding-card { width:min(100%,520px); padding:32px; border:1px solid rgba(238,18,128,.2); box-shadow:0 12px 40px rgba(238,18,128,.14); }
+body.account-setup-page .onboarding-card .logo-container { margin:0 0 20px; }
+body.account-setup-page .onboarding-card h1 { margin:0 0 16px; line-height:1.35; }
+body.account-setup-page .onboarding-card > p { margin:0 0 18px; line-height:1.7; }
+body.account-setup-page .onboarding-card > p[role=alert]:empty { display:none; }
+body.account-setup-page .onboarding-card form > label { margin:18px 0 8px; }
+body.account-setup-page .onboarding-password input { padding-right:56px; }
+body.account-setup-page .onboarding-card form > button[type=submit] { width:100%; margin:24px 0 0; border-radius:12px; }
+body.unified-login.onboarding-page .onboarding-card { animation:prismOnboardingEnter 380ms ease-out both; }
+@keyframes prismOnboardingEnter { from { opacity:0; transform:translateY(16px); } to { opacity:1; transform:translateY(0); } }
+@media(max-width:500px) { body.unified-login.account-setup-page .onboarding-card { padding:24px 20px; } }
+@media(prefers-reduced-motion:reduce) { body.unified-login.onboarding-page .onboarding-card { animation:none; } }

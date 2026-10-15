@@ -1,0 +1,52 @@
+/* Attached notification design mapped to existing live form/history controls. */
+body.notification-center-page .admin-tool-grid { display:grid; grid-template-columns:minmax(0,1.1fr) minmax(0,1fr); gap:18px; align-items:start; margin-top:16px; }
+body.notification-center-page .admin-tool-grid > .management-card { border:1px solid var(--prism-border); border-radius:22px; padding:20px; box-shadow:0 2px 8px rgba(20,16,63,.05); }
+body.notification-center-page .management-card-head { padding:0 0 16px; }
+body.notification-center-page .management-card-head h2 { font-size:16px; font-weight:800; }
+body.notification-center-page .notification-form-grid { padding:0; display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:14px 12px; }
+body.notification-center-page .notification-form-grid > label { min-width:0; margin:0; font-size:12px; font-weight:700; display:grid; gap:6px; }
+body.notification-center-page .notification-form-grid :is(input:not([type=checkbox]),select,textarea) { width:100%; min-width:0; min-height:42px; padding:11px 14px; border:1px solid var(--prism-border); border-radius:12px; font-size:13px; background:var(--prism-card); color:var(--prism-text); }
+body.notification-center-page .notification-message-field,
+body.notification-center-page .notification-recipient-preview,
+body.notification-center-page .notification-quick-fill,
+body.notification-center-page .notification-schedule-row { grid-column:1/-1; }
+body.notification-center-page .notification-recipient-preview { padding:10px 14px; margin:0; border-radius:12px; background:var(--prism-bg); color:var(--prism-muted); font-size:12px; }
+body.notification-center-page #noticeMessage { min-height:130px; resize:vertical; line-height:1.5; }
+.notification-quick-fill { display:flex; flex-wrap:wrap; align-items:center; gap:6px; font-size:11px; color:var(--prism-muted); }
+.notification-quick-fill button { padding:5px 10px; border:1px solid #f4b6d6; border-radius:999px; background:#fde8f3; color:#b5106b; font:600 11px Montserrat,sans-serif; cursor:pointer; }
+body.notification-center-page .notification-schedule-row { display:flex; flex-direction:column; gap:12px; margin:0; }
+body.notification-center-page .notification-schedule-row .check-label { display:flex; align-items:center; gap:10px; padding:12px 14px; border:1px solid var(--prism-border); border-radius:12px; width:100%; margin:0; }
+body.notification-center-page #automatedNotice { appearance:none; width:38px; height:22px; min-height:22px; border:0; border-radius:99px; background:#d7d3e4; position:relative; cursor:pointer; }
+body.notification-center-page #automatedNotice::after { content:""; position:absolute; top:3px; left:3px; width:16px; height:16px; border-radius:50%; background:#fff; transition:transform .2s; }
+body.notification-center-page #automatedNotice:checked { background:#b5106b; }
+body.notification-center-page #automatedNotice:checked::after { transform:translateX(16px); }
+body.notification-center-page .notification-submit { display:flex; justify-content:flex-end; gap:10px; width:100%; padding-top:16px; border-top:1px solid var(--prism-border); }
+body.notification-center-page .notification-submit button { min-height:40px; padding:9px 14px; border-radius:10px; font-size:13px; }
+body.notification-center-page #noticeHistory { display:grid; gap:10px; padding:2px; max-height:620px; overflow-y:auto; }
+body.notification-center-page .history-item.notice { padding:14px 16px; border:1px solid var(--prism-border); border-left:4px solid #b5106b; border-radius:14px; background:var(--prism-card); }
+body.notification-center-page .history-item.notice > strong { font-size:14px; }
+body.notification-center-page .notification-history-meta { display:flex; flex-wrap:wrap; gap:6px; margin-top:8px; font-size:11px; }
+body.notification-center-page .notification-copy-actions { display:flex; flex-wrap:wrap; gap:8px; margin-top:12px; }
+body.notification-center-page .notification-copy-actions button { border-radius:10px; padding:7px 12px; font-size:12px; }
+body.notification-center-page #noticePagination { margin-top:16px; }
+@media(max-width:1000px){body.notification-center-page .admin-tool-grid{grid-template-columns:minmax(0,1fr);}}
+@media(max-width:600px){body.notification-center-page .notification-form-grid{grid-template-columns:minmax(0,1fr);}}
+@media(prefers-reduced-motion:reduce){body.notification-center-page #automatedNotice::after{transition:none;}}
+
+/* Override old schedule positioning; keep the native checkbox accessible. */
+body.notification-center-page .notification-schedule-row > .check-label { position:static; display:flex; flex-direction:row; align-items:center; width:100%; gap:10px; }
+body.notification-center-page .notification-schedule-row #automatedNotice { position:relative; inset:auto; margin:0; flex:0 0 38px; padding:0; transform:none; }
+body.notification-center-page .notification-schedule-row .check-label > span { display:block; }
+body.notification-center-page .notification-schedule-row .check-label small { display:block; font-weight:400; color:var(--prism-muted); margin-top:3px; }
+body.notification-center-page #scheduleLabel { position:static; width:100%; margin:0; }
+.notification-inbox-tabs { display:flex; flex-wrap:wrap; gap:8px; margin:0 0 12px; }
+.notification-inbox-tabs button { padding:7px 14px; border:1px solid var(--prism-border); border-radius:999px; background:var(--prism-card); color:var(--prism-text); font:700 12px Montserrat,sans-serif; cursor:pointer; }
+.notification-inbox-tabs button[aria-pressed=true] { background:#14103f; color:#fff; }
+body.notification-center-page .notification-reference-filters { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:10px; margin:0 0 12px; }
+body.notification-center-page .notification-reference-filters label { margin:0; min-width:0; font-size:11px; }
+body.notification-center-page .notification-reference-filters label[hidden] { display:none; }
+body.notification-center-page .notification-reference-filters select { width:100%; min-height:38px; padding:8px 10px; border:1px solid var(--prism-border); border-radius:10px; background:var(--prism-card); color:var(--prism-text); font-size:12px; }
+body.notification-center-page #noticeHistory .history-item.notice { display:block; margin:0; border-left:3px solid #b5106b; padding:14px 16px; }
+body.notification-center-page #noticeHistory .history-item.notice > p { margin:10px 0; font-size:12px; line-height:1.6; }
+body.notification-center-page #noticeHistory .notification-history-meta > :is(span,small) { padding:3px 8px; border-radius:999px; background:var(--prism-bg); }
+@media(max-width:600px){body.notification-center-page .notification-reference-filters{grid-template-columns:minmax(0,1fr);}}

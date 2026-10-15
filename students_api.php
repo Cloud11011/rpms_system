@@ -1,0 +1,388 @@
+<?php
+require __DIR__ . '/config.php';
+require_once __DIR__.'/includes/account_lifecycle.php';
+require_once __DIR__ . '/includes/pagination.php';
+require_once __DIR__ . '/includes/record_filters.php';
+require_once __DIR__ . '/workflow.php';
+require_once __DIR__ . '/includes/academic_catalog.php';
+require_once __DIR__ . '/includes/research_groups.php';
+$user = api_require_login(['admin', 'adviser']);
+$pdo = db();
+$action = $_GET['action'] ?? 'list';
+if (in_array($action, ['save', 'delete'], true)) {
+    require_post_same_origin();
+}
+
+function student_default_password(string $studentId): string
+{
+    return generate_temporary_password();
+}
+
+function describe_student_progress(string $oldStage, string $oldStatus, string $newStage, string $newStatus): string
+{
+    $parts = [];
+    if ($oldStage !== $newStage) { $parts[] = "Stage: $oldStage -> $newStage"; }
+    if ($oldStatus !== $newStatus) { $parts[] = "Status: $oldStatus -> $newStatus"; }
+    return implode('; ', $parts);
+}
+
+function row_to_student(array $r): array
+{
+    return [
+        'id' => (int)$r['id'],
+        'profileStatus' => ($r['profile_completed_at'] ?? null) === null ? 'Pending' : 'Complete',
+        'profileCompletedAt' => $r['profile_completed_at'] ?? null,
+        'studentId' => $r['student_id'],
+        'name' => $r['full_name'],
+        'email' => $r['email'],
+        'research' => $r['research_title'],
+        'group' => $r['research_group'],
+        'course' => $r['course'],
+        'academicUnitKey' => $r['academic_unit_key'] ?? null,
+        'programKey' => $r['program_key'] ?? null,
+        'yearLevel' => $r['year_level'] ?? null,
+        'academicYear' => $r['academic_year'] ?? null,
+        'adviserId' => $r['adviser_id'] ? (int)$r['adviser_id'] : null,
+        'adviserName' => $r['adviser_name'] ?? null,
+        'stage' => $r['stage'],
+        'stageLabel' => stage_label($r['stage']),
+        'status' => $r['status'],
+        'requirements' => $r['requirements'],
+        'protocolCode' => $r['protocol_code'] ?? null,
+        'isPrincipalInvestigator' => !empty($r['is_principal_investigator']),
+        'lastSubmissionDate' => $r['last_submission_date'],
+        'progress' => stage_progress_percent($r['stage']),
+        'createdAt' => $r['created_at'],
+        'updatedAt' => $r['updated_at'],
+        'archivedAt' => $r['archived_at'] ?? null,
+        'lifecycle' => retention_state($r),
+    ];
+}
+
+// Progress percentage and stage sequencing now live centrally in
+// config.php (stage_progress_percent, STAGE_SEQUENCE, next_stage) so
+// every API agrees on the same numbers/order.
+
+if ($action === 'list' || $action === 'options') {
+    [$scope, $params] = prism_student_scope($user);
+    if ($action === 'options') {
+        $activeOnly = $_GET['activeOnly'] ?? '0';
+        if (!in_array($activeOnly, ['0', '1'], true)) json_out(['ok'=>false, 'message'=>'Invalid student scope.'], 422);
+        if ($activeOnly === '1') $scope .= ' AND s.archived_at IS NULL AND s.profile_completed_at IS NOT NULL';
+        $stmt = $pdo->prepare('SELECT s.id, s.student_id, s.full_name, s.protocol_code, s.stage ' . $scope . ' ORDER BY s.full_name, s.id');
+        $stmt->execute($params);
+        json_out(['ok' => true, 'students' => array_map(fn($r) => ['id' => (int)$r['id'], 'studentId' => $r['student_id'],
+            'name' => $r['full_name'], 'protocolCode' => $r['protocol_code'], 'stage' => $r['stage']], $stmt->fetchAll())]);
+    }
+    if ($user['role']==='admin') {
+        try { [$scope,$params,$filterOptions]=retention_list_scope($pdo,$user,'student',$_GET); }
+        catch (Throwable $e) { json_out(['ok'=>false,'message'=>$e->getMessage()],lifecycle_error_status($e)); }
+    } else {
+    $filterOptions = prism_student_filter_options($pdo, $scope, $params);
+    prism_apply_student_filters($scope, $params, $_GET, $filterOptions);
+    $q = prism_record_search($_GET);
+    if ($q !== '') $scope .= ' AND ' . prism_search_clause(['s.full_name', 's.student_id', 's.email', 's.research_title', 's.research_group', 'f.full_name'], $q, $params);
+    }
+    $order = prism_record_order($_GET, ['name'=>'s.full_name','studentId'=>'s.student_id','email'=>'s.email','archivedAt'=>'s.archived_at','group'=>'s.research_group','adviser'=>'f.full_name','stage'=>'s.stage','status'=>'s.status','academicYear'=>'s.academic_year'], 'name', 's.id ASC');
+    $page = prism_page_query($pdo, 'SELECT s.*, f.full_name AS adviser_name, '.retention_projection('student','s'), $scope, $params, $order, $_GET);
+    $rows = $page['rows']; unset($page['rows']);
+    json_out(['ok' => true, 'students' => array_map('row_to_student', $rows), 'filterOptions'=>$filterOptions] + $page);
+}
+
+if ($action === 'adviser_options') {
+    $rows = $pdo->query('SELECT id, full_name FROM advisers WHERE status = "Active" AND profile_completed_at IS NOT NULL AND archived_at IS NULL ORDER BY full_name')->fetchAll();
+    json_out(['ok' => true, 'advisers' => $rows]);
+}
+
+if ($action === 'group_options') {
+    try {
+        $academic = academic_validate($_GET);
+        json_out(['ok' => true, 'groups' => research_group_options($pdo, $user, $academic)]);
+    } catch (\InvalidArgumentException $e) {
+        json_out(['ok' => false, 'message' => $e->getMessage()], 422);
+    }
+}
+
+$data = json_body();
+
+if ($action === 'save') {
+    api_require_login(['admin', 'adviser']);
+    $id = (int)($data['id'] ?? 0);
+    $studentId = trim((string)($data['studentId'] ?? ''));
+    $name = trim((string)($data['name'] ?? ''));
+    $email = strtolower(trim((string)($data['email'] ?? '')));
+    $research = trim((string)($data['research'] ?? ''));
+    $group = trim((string)($data['group'] ?? ''));
+    $adviserId = $data['adviserId'] ?? null;
+    $stage = trim((string)($data['stage'] ?? 'Stage 1'));
+    $status = trim((string)($data['status'] ?? 'On Track'));
+    $requirementsProvided = array_key_exists('requirements', $data);
+    $requirements = $requirementsProvided ? trim((string)$data['requirements']) : null;
+    $protocolCode = trim((string)($data['protocolCode'] ?? ''));
+    $isPrincipal = array_key_exists('isPrincipalInvestigator', $data)
+        ? (!empty($data['isPrincipalInvestigator']) ? 1 : 0) : null;
+    if (isset($data['reason']) && !is_string($data['reason'])) json_out(['ok'=>false,'message'=>'Invalid progress change reason.'],422);
+    $reason = trim((string)($data['reason'] ?? ''));
+
+    $ownAdviserId = null;
+    if ($user['role'] === 'adviser') {
+        $ownAdviser = $pdo->prepare('SELECT id FROM advisers WHERE email = :e LIMIT 1');
+        $ownAdviser->execute([':e' => $user['email']]);
+        $ownAdviserId = $ownAdviser->fetchColumn();
+        if (!$ownAdviserId) {
+            json_out(['ok' => false, 'message' => 'No adviser record is linked to your account. Ask the RPMS office to set this up.'], 403);
+        }
+        // Advisers may only add/assign their OWN students -- they cannot
+        // hand a student to another adviser, whatever adviserId was sent.
+        $adviserId = (int)$ownAdviserId;
+        // Protocol codes and PI designation are RPMS-office decisions.
+        // Ignore forged Adviser values on creation and preserve them on edits.
+        $protocolCode = null;
+        $isPrincipal = null;
+        $stage = 'Stage 1';
+        $status = 'On Track';
+    }
+
+    $validStages = STAGE_SEQUENCE;
+    $validStatuses = ['On Track', 'Pending', 'Delayed'];
+
+    $adviserEdit = $user['role'] === 'adviser' && $id > 0;
+    if (!$adviserEdit && ($studentId === '' || $name === '' || !filter_var($email, FILTER_VALIDATE_EMAIL))) {
+        json_out(['ok' => false, 'message' => 'Student ID, name, and a valid email are required.'], 422);
+    }
+    if ((!$adviserEdit && (mb_strlen($studentId) > 100 || mb_strlen($name) > 190)) || mb_strlen($research) > 255
+        || mb_strlen($group) > 190
+        || ($protocolCode !== null && mb_strlen((string)$protocolCode) > 100)) {
+        json_out(['ok' => false, 'message' => 'One or more fields are too long. Please shorten the entry and try again.'], 422);
+    }
+    if (!$adviserEdit && !is_allowed_email_domain($email)) {
+        json_out(['ok' => false, 'message' => 'Only ' . allowed_email_domains_hint() . ' email addresses are allowed.'], 422);
+    }
+    if ($requirements !== null && mb_strlen($requirements) > 255) {
+        json_out(['ok' => false, 'message' => 'Pending requirements must be 255 characters or fewer.'], 422);
+    }
+    if (!in_array($stage, $validStages, true)) {
+        json_out(['ok' => false, 'message' => 'Invalid IERB stage.'], 422);
+    }
+    if (!in_array($status, $validStatuses, true)) {
+        json_out(['ok' => false, 'message' => 'Invalid status.'], 422);
+    }
+    if ($id === 0) {
+        // Creating a new student: the email/ID must not already belong to a
+        // login of a DIFFERENT role, or the auto-provisioned account below
+        // would silently be skipped and this student would have no way to
+        // log in.
+        $collision = $pdo->prepare('SELECT role FROM users WHERE (email = :e OR username = :u) AND role != "student"');
+        $collision->execute([':e' => $email, ':u' => $studentId]);
+        if ($existingRole = $collision->fetchColumn()) {
+            json_out(['ok' => false, 'message' => "That email or ID is already used by a $existingRole account. Use a different email/ID so this student can be given their own login."], 422);
+        }
+    }
+
+    $newLoginUserId = null;
+    $newLoginTempPassword = null;
+    $setupDelivery = null;
+    $progressChanged = false;
+    $progressChangeText = '';
+    try {
+        $pdo->beginTransaction();
+        if ($id===0) {
+            onboarding_email_available($pdo,$email);
+            onboarding_id_available($pdo,$studentId,'student',0,0);
+        }
+        $adviserId=onboarding_active_adviser($pdo,$adviserId);
+        if ($id > 0) {
+            $existing = $pdo->prepare('SELECT * FROM students WHERE id = :id FOR UPDATE');
+            $existing->execute([':id' => $id]);
+            $before = $existing->fetch();
+            if (!$before) {
+                $pdo->rollBack();
+                json_out(['ok' => false, 'message' => 'Student record not found.'], 404);
+            }
+            // Revalidate ownership on the locked row, after any concurrent reassignment.
+            if ($user['role'] === 'adviser' && (!empty($before['archived_at']) || (string)$before['adviser_id'] !== (string)$ownAdviserId)) {
+                $pdo->rollBack();
+                json_out(['ok' => false, 'message' => 'You can only manage students assigned to you.'], 403);
+            }
+            if (array_key_exists('profile_completed_at',$before) && $before['profile_completed_at']===null) throw new AccountLifecycleConflict('Pending identities must complete secure onboarding before record editing.');
+            current_workflow_student($pdo,$id,$user);
+            purge_require_no_pending($pdo,'student',$id);
+            $identityBefore = lifecycle_identity_capture($pdo,$before,'student');
+            if ($adviserEdit) {
+                $studentId = (string)$before['student_id'];
+                $name = (string)$before['full_name'];
+                $email = (string)$before['email'];
+                $adviserId = (int)$before['adviser_id'];
+                $stage = (string)$before['stage'];
+                $status = (string)$before['status'];
+            }
+            // Advisers cannot change protocol code or PI status on existing
+            // records; retain the stored values when either field is null.
+            $finalProtocolCode = $protocolCode !== null ? ($protocolCode !== '' ? $protocolCode : null) : $before['protocol_code'];
+            $finalIsPrincipal = $isPrincipal !== null ? $isPrincipal : (int)$before['is_principal_investigator'];
+            try {
+                $academic = academic_validate($data, $before);
+                $group = research_group_assignment($pdo, $user, $data, $academic, $before);
+            } catch (\InvalidArgumentException $e) {
+                $pdo->rollBack();
+                json_out(['ok' => false, 'message' => $e->getMessage()], 422);
+            }
+            $finalRequirements = $requirementsProvided ? $requirements : $before['requirements'];
+
+            $stmt = $pdo->prepare('UPDATE students SET student_id=:sid, full_name=:name, email=:email,
+                research_title=:research, research_group=:grp, course=:course,
+                academic_unit_key=:academic_unit, program_key=:program, year_level=:year_level,
+                academic_year=:academic_year, adviser_id=:adv,
+                stage=:stage, status=:status, requirements=:req, protocol_code=:pcode,
+                is_principal_investigator=:pi, updated_at=NOW() WHERE id=:id');
+            $stmt->execute([':sid' => $studentId, ':name' => $name, ':email' => $email, ':research' => $research,
+                ':grp' => $group, ':course' => $academic['course'],
+                ':academic_unit' => $academic['academic_unit_key'], ':program' => $academic['program_key'],
+                ':year_level' => $academic['year_level'], ':academic_year' => $academic['academic_year'], ':adv' => $adviserId, ':stage' => $stage,
+                ':status' => $status, ':req' => $finalRequirements, ':pcode' => $finalProtocolCode,
+                ':pi' => $finalIsPrincipal, ':id' => $id]);
+
+            if (!$adviserEdit) {
+                sync_student_login_identity($pdo, (string)$before['email'], $studentId, $name, $email);
+            }
+
+            if ($before['stage'] !== $stage || $before['status'] !== $status) {
+                if (!override_reason_valid($reason)) {
+                    if ($pdo->inTransaction()) $pdo->rollBack();
+                    research_group_release($pdo);
+                    json_out(['ok' => false, 'requiresReason' => true,
+                        'message' => 'Changing a student stage or status needs a reason for the progress history. ' . override_reason_message()], 422);
+                }
+                $progressChanged = true;
+                $progressChangeText = describe_student_progress($before['stage'], $before['status'], $stage, $status);
+                // v2 audit trail: this endpoint can also change stage/status, so it must be logged
+                // with who/what/before/after just like the IERB Override (it previously wasn't).
+                $progressAudit = [
+                    'entity_type' => 'student', 'entity_id' => $id, 'student_id' => $id,
+                    'override' => $user['role'] === 'admin',
+                    'before' => $before['stage'] . ' / ' . $before['status'], 'after' => "$stage / $status",
+                    'details' => $progressChangeText, 'reason' => $reason,
+                ];
+                if ($user['role'] === 'admin') {
+                    audit_override_atomic($pdo, $user, 'admin_override_student_progress', $progressAudit);
+                } else {
+                    audit_log($user, 'student_progress_changed', $progressAudit);
+                }
+                $pdo->prepare('INSERT INTO ierb_history (student_id, stage, status, note, requirements, actor)
+                    VALUES (:sid,:stage,:status,:note,:req,:actor)')->execute([
+                    ':sid' => $id, ':stage' => $stage, ':status' => $status,
+                    ':note' => 'Progress updated by ' . ($user['role'] === 'adviser' ? 'research adviser' : 'RPMS')
+                        . '. ' . $progressChangeText . '. Reason: ' . $reason,
+                    ':req' => ($requirementsProvided ? $requirements : $before['requirements']), ':actor' => $user['full_name'],
+                ]);
+            }
+        } else {
+            try {
+                $academic = academic_validate($data, null);
+                $group = research_group_assignment($pdo, $user, $data, $academic, null);
+            } catch (\InvalidArgumentException $e) {
+                $pdo->rollBack();
+                json_out(['ok' => false, 'message' => $e->getMessage()], 422);
+            }
+            $stmt = $pdo->prepare('INSERT INTO students (student_id, full_name, email, research_title,
+                research_group, course, academic_unit_key, program_key, year_level, academic_year,
+                adviser_id, stage, status, requirements, protocol_code, is_principal_investigator)
+                VALUES (:sid,:name,:email,:research,:grp,:course,:academic_unit,:program,:year_level,:academic_year,
+                    :adv,:stage,:status,:req,:pcode,:pi)');
+            $stmt->execute([':sid' => $studentId, ':name' => $name, ':email' => $email, ':research' => $research,
+                ':grp' => $group, ':course' => $academic['course'],
+                ':academic_unit' => $academic['academic_unit_key'], ':program' => $academic['program_key'],
+                ':year_level' => $academic['year_level'], ':academic_year' => $academic['academic_year'], ':adv' => $adviserId, ':stage' => $stage,
+                ':status' => $status, ':req' => ($requirements ?? ''),
+                ':pcode' => ($protocolCode !== null && $protocolCode !== '') ? $protocolCode : null,
+                ':pi' => $isPrincipal ?? 0]);
+            $id = (int)$pdo->lastInsertId();
+
+            // Auto-provision a student login account, per the study's "limited submission module" design.
+            $userStmt = $pdo->prepare('SELECT id, role, status FROM users WHERE email = :e OR username = :u LIMIT 1');
+            $userStmt->execute([':e' => $email, ':u' => $studentId]);
+            $existingLogin = $userStmt->fetch();
+            if (!$existingLogin) {
+                $tempPassword = student_default_password($studentId);
+                $newLoginTempPassword = $tempPassword;
+                $pdo->prepare('INSERT INTO users (username, password_hash, role, full_name, email, ref_id, must_change_password)
+                    VALUES (:u,:p,"student",:n,:e,:ref,1)')->execute([
+                    ':u' => $studentId, ':p' => prism_password_hash($tempPassword),
+                    ':n' => $name, ':e' => $email, ':ref' => $studentId,
+                ]);
+                $newLoginUserId = (int)$pdo->lastInsertId();
+            } elseif (($existingLogin['role'] ?? '') === 'student') {
+                $wasInactive = strcasecmp((string)($existingLogin['status'] ?? ''), 'Active') !== 0;
+                if ($wasInactive) {
+                    $tempPassword = student_default_password($studentId);
+                    $newLoginTempPassword = $tempPassword;
+                    $pdo->prepare("UPDATE users SET username=:u, full_name=:n, email=:e, ref_id=:ref, status='Active',
+                            password_hash=:p, must_change_password=1 WHERE id=:id")
+                        ->execute([':u' => $studentId, ':n' => $name, ':e' => $email, ':ref' => $studentId,
+                            ':p' => prism_password_hash($tempPassword), ':id' => $existingLogin['id']]);
+                    $newLoginUserId = (int)$existingLogin['id'];
+                } else {
+                    $pdo->prepare("UPDATE users SET username=:u, full_name=:n, email=:e, ref_id=:ref WHERE id=:id")
+                        ->execute([':u' => $studentId, ':n' => $name, ':e' => $email, ':ref' => $studentId, ':id' => $existingLogin['id']]);
+                }
+            }
+
+            $pdo->prepare('INSERT INTO ierb_history (student_id, stage, status, note, requirements, actor)
+                VALUES (:sid,:stage,:status,:note,:req,:actor)')->execute([
+                ':sid' => $id, ':stage' => $stage, ':status' => $status,
+                ':note' => 'Record created by RPMS.', ':req' => ($requirements ?? ''), ':actor' => $user['full_name'],
+            ]);
+        }
+        if (!isset($identityBefore)) $pdo->prepare('UPDATE students SET profile_completed_at=NOW() WHERE id=?')->execute([$id]);
+        $identityRow=$pdo->prepare('SELECT * FROM students WHERE id=:id FOR UPDATE');
+        $identityRow->execute([':id'=>$id]);
+        lifecycle_identity_persist($pdo,$user,'student',$identityBefore??null,lifecycle_identity_capture($pdo,$identityRow->fetch(),'student'));
+        $pdo->commit();
+        research_group_release($pdo);
+    } catch (Throwable $e) {
+        if ($pdo->inTransaction()) $pdo->rollBack();
+        research_group_release($pdo);
+        if ($e instanceof AccountLifecycleConflict || $e instanceof AccountLifecycleForbidden) json_out(['ok'=>false,'message'=>$e->getMessage()],lifecycle_error_status($e));
+        if ($e instanceof AccountLifecycleValidation) json_out(['ok'=>false,'message'=>$e->getMessage()],422);
+        $driverCode = $e instanceof PDOException ? (int)($e->errorInfo[1] ?? 0) : 0;
+        if ($driverCode === 1452) {
+            json_out(['ok' => false, 'message' => 'The selected adviser is invalid.'], 422);
+        }
+        if ($driverCode === 1062) {
+            json_out(['ok' => false, 'message' => 'That student ID or email is already in use.'], 422);
+        }
+        log_api_error('student_save', $e->getMessage());
+        json_out(['ok' => false, 'message' => 'The student record could not be saved. Please try again.'], 500);
+    }
+
+    if ($newLoginUserId) {
+        $setupDelivery = send_account_setup_email($pdo, $newLoginUserId, $email, $name);
+    }
+    if ($progressChanged) {
+        notify_student($pdo, $id, 'PRISM IERB Progress Updated',
+            "Hello $name,\n\nYour IERB progress was updated.\nCurrent stage: " . stage_label($stage) . " ($stage)\nStatus: $status\n\n- CEU Malolos RPMS / PRISM",
+            "Your IERB progress was updated. Current stage: " . stage_label($stage) . " ($stage). Status: $status.",
+            'Status Update', 'RPMS');
+    }
+    log_activity($user['email'], 'student_saved', "student_id=$studentId");
+    $response = ['ok' => true, 'id' => $id, 'message' => 'Student record saved.'];
+    if ($newLoginUserId) {
+        $response['accountCreated'] = true;
+        $response = array_merge($response, account_setup_response_fields($setupDelivery, $newLoginTempPassword));
+    }
+    json_out($response);
+}
+
+if ($action === 'delete') {
+    api_require_login('admin');
+    $id = (int)($data['id'] ?? 0);
+    try {
+        archive_student($pdo, $user, $id);
+    } catch (Throwable $e) {
+        log_api_error('student_archive', 'The archive operation could not be completed.');
+        json_out(['ok' => false, 'message' => $e instanceof AccountLifecycleConflict ? $e->getMessage() : ($e instanceof AccountLifecycleNotFound || $e instanceof \InvalidArgumentException ? 'Student record not found.' : 'The student could not be archived.')], $e instanceof AccountLifecycleConflict ? 409 : ($e instanceof AccountLifecycleNotFound || $e instanceof \InvalidArgumentException ? 404 : 500));
+    }
+    json_out(['ok' => true, 'message' => 'Student archived and login deactivated. All historical records are retained.']);
+}
+
+json_out(['ok' => false, 'message' => 'Unknown action.'], 400);
