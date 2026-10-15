@@ -441,6 +441,12 @@ document.addEventListener('DOMContentLoaded', () => {
         refreshOfficial();
         renderCalendar();
     });
+    document.getElementById('todayButton')?.addEventListener('click', () => {
+        visibleMonth = new Date(today.getFullYear(), today.getMonth(), 1);
+        selectedDate = toDateKey(today);
+        resetForm();
+        renderAll();
+    });
     document.getElementById('dashboardPreviousMonth')?.addEventListener('click', () => {
         dashboardMonth.setMonth(dashboardMonth.getMonth() - 1);
         renderDashboardCalendar();

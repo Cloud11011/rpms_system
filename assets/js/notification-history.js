@@ -28,6 +28,7 @@
         const status = select('Status', [['All', 'All'], ['Unread', 'Unread'], ['Read', 'Read'], ['Archived', 'Archived']], 'status');
         const kind = options.support ? null : select('Kind', [['All', 'All'], ['staff', 'Staff'], ['workflow', 'Workflow'], ['system', 'System'], ['support', 'Support']], 'kind');
         const sort = select('Sort', [['Newest', 'Newest'], ['Oldest', 'Oldest']], 'sort');
+        if (options.studentCenter && view.options.length === 1) view.parentElement.hidden = true;
         if (options.support) controls.classList.add('support-history-filters');
         const feedback = element('p', '', 'notification-result'); feedback.setAttribute('role', 'status'); feedback.setAttribute('aria-live', 'polite');
         let syncTabs = () => {};

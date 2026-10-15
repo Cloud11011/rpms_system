@@ -305,7 +305,8 @@ function positionNotificationDropdown() {
     const bounds = notificationDropdown.getBoundingClientRect();
     const shift = bounds.left < 16 ? 16 - bounds.left
         : (bounds.right > window.innerWidth - 16 ? window.innerWidth - 16 - bounds.right : 0);
-    notificationDropdown.style.transform = `translateX(${shift}px)`;
+    const vertical = bounds.bottom > window.innerHeight - 16 ? window.innerHeight - 16 - bounds.bottom : 0;
+    notificationDropdown.style.transform = `translate(${shift}px, ${Math.max(16 - bounds.top, vertical)}px)`;
 }
 window.addEventListener('resize', positionNotificationDropdown);
 function closeNotificationStatus() {

@@ -489,3 +489,23 @@ body.prism-workspace.student-dashboard-page .student-document-tools .student-doc
 @media (max-width:900px) { .student-dashboard-page .submission-layout { grid-template-columns:minmax(0,1fr); } .student-dashboard-page .submission-side { position:static; grid-template-columns:repeat(2,minmax(0,1fr)); order:1; } }
 @media (max-width:560px) { .student-dashboard-page .submission-tip { padding:11px 12px; } .student-dashboard-page .submission-layout { gap:12px; } .student-dashboard-page .submission-side { grid-template-columns:minmax(0,1fr); } .student-dashboard-page .submission-card,.student-dashboard-page .submission-research-card,.student-dashboard-page .submission-ready-card { padding:18px 16px; border-radius:16px; } .student-dashboard-page .submission-step { gap:10px; } }
 @media (prefers-reduced-motion:reduce) { .student-dashboard-page .submission-step-number,.student-dashboard-page .submission-dropzone,.student-dashboard-page .submission-submit { transition:none; } }
+/* The document toolbar follows the working table/card controller's IDs. */
+body.student-dashboard-page .student-documents-heading { display:flex; flex-wrap:wrap; align-items:center; gap:12px; }
+body.student-dashboard-page .student-documents-heading > div { flex:1 1 240px; min-width:0; }
+body.student-dashboard-page .student-documents-heading :is(button,select) { flex:0 1 auto; width:auto; max-width:100%; min-height:44px; margin:0; }
+body.student-dashboard-page .student-document-tools { display:grid; grid-template-columns:minmax(0,2fr) minmax(160px,1fr); gap:12px; align-items:end; }
+body.student-dashboard-page .student-document-tools label { display:grid; gap:6px; min-width:0; margin:0; }
+body.student-dashboard-page .student-document-tools :is(input,select) { box-sizing:border-box; width:100%; min-width:0; height:44px; margin:0; }
+body.student-dashboard-page .student-documents-panel .document-table-wrap { overflow:visible; }
+body.student-dashboard-page .student-document-card.has-summary { grid-template-columns:minmax(0,1.4fr) minmax(0,1fr) minmax(0,.8fr); align-items:start; }
+body.student-dashboard-page .student-document-card .prism-record-primary strong { display:block; overflow-wrap:anywhere; }
+body.student-dashboard-page .student-document-card .prism-record-actions { grid-column:1/-1; }
+body.student-dashboard-page .submission-file-picker { padding:20px; border:2px dashed var(--prism-border); border-radius:14px; background:var(--prism-bg); }
+body.student-dashboard-page .submission-file-hint { color:var(--prism-muted); font-size:var(--prism-font-meta); font-weight:400; }
+body.student-dashboard-page .submission-file-picker:focus-within { border-color:var(--prism-accent); }
+body.student-dashboard-page .submission-file-picker input[type=file] { max-width:100%; white-space:normal; }
+@media(max-width:600px) {
+  body.student-dashboard-page .student-document-tools { grid-template-columns:minmax(0,1fr); }
+  body.student-dashboard-page .student-documents-heading :is(button,select) { flex:1 1 100%; width:100%; }
+  body.student-dashboard-page .student-document-card.has-summary { grid-template-columns:minmax(0,1fr); }
+}

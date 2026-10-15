@@ -89,6 +89,7 @@ document.addEventListener('DOMContentLoaded', () => {
     function updateProgressStageDetail(index) {
         const stage = STAGES[Math.max(0, Math.min(STAGES.length - 1, index))];
         $('stageList').setAttribute('aria-label', `${labelForStage(stage)}: ${dashboardStageDescriptions[index] || ''}`);
+        $('progressStageDetail').textContent = `${labelForStage(stage)}: ${dashboardStageDescriptions[index] || ''}`;
     }
     $('stageList').addEventListener('click', event => {
         const card = event.target.closest('[data-progress-stage]');
@@ -204,7 +205,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 return;
             }
             entries.forEach(entry => {
-                const item = document.createElement('article'); item.className = 'activity-row';
+                const item = document.createElement('article'); item.className = 'activity-row student-activity-item';
                 const heading = document.createElement('header');
                 const title = document.createElement('strong'); title.textContent = entry.actionLabel || entry.action || 'Account activity';
                 const time = document.createElement('time'); time.textContent = fmt(entry.at);
@@ -362,6 +363,7 @@ document.addEventListener('DOMContentLoaded', () => {
             [['','All'],['Pending Adviser Review','Pending review'],['Needs Revision','Needs revision'],['Returned for Revision','Returned by RPMS'],['Submitted to RPMS','Submitted to RPMS']],
             $('documentFilter'),documentHistory.counts || {});
         const rows = $('documentRows');
+        rows.closest('table').classList.add('prism-compact-table');
         if (loadErrors.documents || !docs.length) {
             const message = loadErrors.documents ? 'Unable to load your documents. Please try again.'
                 : $('documentFilter').value || documentSearch.value.trim() ? 'No documents match this view.' : "You haven't uploaded anything yet";
@@ -381,6 +383,10 @@ document.addEventListener('DOMContentLoaded', () => {
                 ${d.actions?.uploadRevision ? `<button type="button" class="action-btn" data-upload-revision="${esc(d.id)}"><i class="fa-solid fa-arrow-up-from-bracket" aria-hidden="true"></i> Upload revision</button>` : ''}
                 </div></td></tr>`;
         }).join('');
+        [...rows.rows].forEach(row => {
+            PrismUI.compactRecord(row, 0, 3, 5, [], [1, 2]);
+            row.querySelector('.prism-record-card')?.classList.add('student-document-card');
+        });
     }
 
     function noticeItem(n, includeAction = true) {

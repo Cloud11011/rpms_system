@@ -63,6 +63,11 @@ body:is(.prism-workspace,.public-legal-page,.help-support-page,.unified-login,.p
 .prism-btn[aria-disabled=true] { opacity: var(--prism-disabled-opacity); cursor: not-allowed; }
 .prism-btn[aria-busy=true] { cursor: wait; }
 body.prism-workspace .prism-pagination button[aria-current=page] { background: var(--prism-primary); border-color: var(--prism-primary); color: #fff; }
+/* Pagination labels need intrinsic width even where compact pagers use square buttons. */
+body.prism-workspace .prism-pagination > button {
+  flex: 0 0 auto; width: auto; min-width: 36px; height: auto; min-height: 44px;
+  padding: 6px 10px; white-space: nowrap; overflow-wrap: normal;
+}
 /* Toolbars use layout, not offsets; controls share their siblings' baseline. */
 body.prism-workspace :is(.management-toolbar,.document-actions,.ierb-filters,.form-actions,.management-form-actions,
  .account-form-actions,.prism-dialog-actions,.header-actions,.retention-toolbar-actions,.adviser-document-actions) {

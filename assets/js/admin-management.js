@@ -483,7 +483,8 @@
                 details.append(academicGrid);
                 details.addEventListener('toggle',()=>{summary.textContent=details.open?'Hide academic details':'Show academic details';});
         const toolbar=document.createElement('div');toolbar.className='student-result-actions';
-                actionItems.forEach(item=>{item.classList.add('student-profile-action');if(item.title?.startsWith('Edit ')){item.innerHTML='<i class="fa-solid fa-pen" aria-hidden="true"></i>';item.title='Edit student profile';item.setAttribute('aria-label','Edit student profile');item.classList.add('student-profile-edit');}toolbar.append(item);});
+                toolbar.classList.toggle('student-invitation-actions',actionItems.some(item=>item.classList.contains('prism-btn')));
+                actionItems.forEach(item=>{if(item.classList.contains('icon-btn'))item.classList.add('student-profile-action');if(item.title?.startsWith('Edit ')){item.innerHTML='<i class="fa-solid fa-pen" aria-hidden="true"></i>';item.title='Edit student profile';item.setAttribute('aria-label','Edit student profile');item.classList.add('student-profile-edit');}toolbar.append(item);});
                 card.append(identity,block('Research / Group',`<strong>${escapeHtml(record.research||'Not set')}</strong><small>${escapeHtml(record.group||'No group')}</small>`),block('IERB status',cells[4].querySelector('.prism-pill-row')?.outerHTML||'Complete profile first'),block('Protocol / PI',cells[4].querySelector('.student-protocol-meta')?.innerHTML||'Not yet assigned'),toolbar,details);
                 const host=document.createElement('td');host.colSpan=tr.cells.length;
                 const selection=tr.querySelector('.retention-select');if(selection){const wrapper=document.createElement('span');wrapper.className='retention-select';wrapper.hidden=selection.hidden;while(selection.firstChild)wrapper.append(selection.firstChild);identity.prepend(wrapper);}

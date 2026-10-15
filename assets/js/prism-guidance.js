@@ -132,234 +132,72 @@
             return copy;
         }
         function sectionPreview(entry) {
+            // Illustrations use their own responsive layout. Cloned live pages inherit
+            // page grids and IDs and cannot safely be scaled into a small dialog.
             const figure = node('figure', null, 'prism-tour-preview');
             const bar = node('div', null, 'prism-tour-preview-bar');
-            const previewLabel = (entry.id === 'admin_notifications.php' || entry.target?.matches('.portal-notification,[aria-label="Notifications"]')) ? 'Notifications'
-                : entry.id === 'account.php#activity' ? 'Activity Logs' : entry.label;
-            bar.append(node('span', 'PRISM'), node('span', previewLabel));
-            const frame = node('div', null, 'prism-tour-live-frame');
-            const canvas = node('div', null, 'prism-tour-live-canvas');
-            canvas.inert = true;
-            frame.append(canvas);
-            figure.append(bar, frame);
-            function show(source) {
-                if (!source) { canvas.replaceChildren(node('p', 'This section is available from your portal navigation.')); return; }
-                const copy = source.cloneNode(true);
-                copy.querySelectorAll('script,style,iframe,dialog').forEach(el => el.remove());
-                for (const el of [copy, ...copy.querySelectorAll('*')]) {
-                    for (const attr of [...el.attributes]) {
-                        if (/^on/i.test(attr.name) || ['autofocus', 'srcdoc'].includes(attr.name)) el.removeAttribute(attr.name);
-                    }
-                    if (el.id) el.id = 'tour-preview-' + el.id;
-                    if (el.matches('input[type=password]')) { el.value = ''; el.removeAttribute('value'); }
-                }
-                if (entry.id === 'progress') {
-                    copy.classList.add('prism-tour-progress-preview');
-                    copy.querySelector('#tour-preview-principalIndicator')?.remove();
-                    copy.querySelector('#tour-preview-protocolCodeReveal')?.remove();
-                    copy.querySelector('.progress-meta')?.remove();
-                    copy.querySelector('.requirement-panels')?.remove();
-                    copy.querySelector('.progress-history-panel')?.remove();
-                    const ring = copy.querySelector('#tour-preview-progressRing');
-                    const percent = ring?.querySelector('b');
-                    if (ring && percent) {
-                        const label = node('span', 'complete', 'prism-tour-progress-ring-label');
-                        ring.replaceChildren(percent, label);
-                    }
-                }
-                if (entry.id === 'calendar.php') {
-                    copy.classList.add('prism-tour-calendar-preview');
-                    copy.querySelector('.official-deadline-panel')?.remove();
-                    copy.querySelector('.ceu-footer')?.remove();
-                    const now = new Date();
-                    const monthGrid = copy.querySelector('#tour-preview-monthGrid');
-                    const monthLabel = copy.querySelector('#tour-preview-monthLabel');
-                    const selectedDate = copy.querySelector('#tour-preview-selectedDateLabel');
-                    if (monthGrid) {
-                        const year = now.getFullYear(), month = now.getMonth();
-                        const firstWeekday = new Date(year, month, 1).getDay();
-                        const daysInMonth = new Date(year, month + 1, 0).getDate();
-                        monthGrid.replaceChildren();
-                        for (let cell = 0; cell < 42; cell++) {
-                            const day = cell - firstWeekday + 1;
-                            if (day < 1 || day > daysInMonth) {
-                                monthGrid.append(node('span', null, 'calendar-day outside'));
-                                continue;
-                            }
-                            const dateCell = node('span', null, `calendar-day${day === now.getDate() ? ' today selected' : ''}`);
-                            dateCell.append(node('span', String(day), 'day-number'));
-                            monthGrid.append(dateCell);
-                        }
-                        if (monthLabel) monthLabel.textContent = now.toLocaleDateString(undefined, { month: 'long', year: 'numeric' });
-                        if (selectedDate) selectedDate.textContent = now.toLocaleDateString(undefined, { month: 'long', day: 'numeric', year: 'numeric' });
-                    }
-                }
-                if (entry.id === 'admin_notifications.php') {
-                    copy.classList.add('prism-tour-notifications-preview');
-                    copy.querySelector('.notification-history-card')?.remove();
-                    copy.querySelector('.ceu-footer')?.remove();
-                }
-                if (entry.id === 'account.php#activity') {
-                    copy.classList.add('prism-tour-activity-preview');
-                    copy.querySelector('.ceu-footer')?.remove();
-                }
-                copy.classList.add('prism-tour-live-source');
-                copy.removeAttribute('hidden');
-                if (entry.id === 'navigation') {
-                    copy.querySelectorAll('[hidden]').forEach(el => el.removeAttribute('hidden'));
-                    copy.querySelectorAll('a').forEach(link => {
-                        if (/research agenda|sustainable development goals|\bsdgs?\b/i.test(link.textContent)) link.remove();
-                    });
-                }
-                canvas.replaceChildren(copy);
-                resize();
-            }
-            function resize() {
-                const isStaticPage = !!canvas.querySelector('.prism-tour-static-page');
-                const width = isStaticPage ? 560 : ['quick-actions', 'help'].includes(entry.id) ? 560
-                    : ['calendar.php', 'admin_notifications.php', 'account.php#activity'].includes(entry.id) ? 760
-                    : entry.id === 'navigation' && role === 'admin' ? 600 : 1050;
-                canvas.style.width = width + 'px';
-                canvas.style.padding = isStaticPage ? '0' : '';
-                canvas.style.transform = `scale(${frame.clientWidth / width})`;
-            }
-            function showStaticPage() {
-                const page = node('div', null, 'prism-tour-static-page');
-                const titles = {
-                    'research_adviser.php': 'Adviser Dashboard', 'dashboard.php': 'Dashboard',
-                    'admin_students.php': role === 'adviser' ? 'Assigned Students' : 'Students',
-                    'admin_advisers.php': 'Research Advisers', 'admin_archived_accounts.php': 'Archived Accounts',
-                    'documents.php': role === 'adviser' ? 'Documents to Review' : 'Research Documents',
-                    'ierbprog.php': 'IERB Progress', 'calendar.php': 'Personal Calendar',
-                    'admin_notifications.php': 'Notifications', 'reports.php': 'Reports',
-                    'admin_ai.php': 'AI Reports', 'data_export.php': 'Data Export',
-                    'account.php': 'My Account', 'account.php#activity': 'Activity Logs',
-                    'account.php#security': 'Security Settings', 'admin_legal_policies.php': 'Legal Policies'
-                };
-                const title = titles[entry.id] || previewLabel;
-                page.append(node('h3', title, 'prism-tour-static-title'));
-                const panel = (heading, ...items) => {
-                    const card = node('section', null, 'prism-tour-static-panel');
-                    card.append(node('h4', heading), ...items);
-                    return card;
-                };
-                const line = (text, className = '') => node('span', text, `prism-tour-static-line ${className}`);
-                const controls = (...labels) => {
-                    const row = node('div', null, 'prism-tour-static-controls');
-                    labels.forEach(label => row.append(line(label)));
-                    return row;
-                };
-                const stats = (...labels) => {
-                    const row = node('div', null, 'prism-tour-static-stats');
-                    labels.forEach(label => row.append(panel(label, line('—', 'is-value'))));
-                    return row;
-                };
-                const empty = label => node('div', label, 'prism-tour-static-empty');
-                if (['research_adviser.php', 'dashboard.php'].includes(entry.id)) {
-                    const hero = node('section', null, 'prism-tour-static-hero');
-                    hero.append(node('small', role === 'adviser' ? 'RESEARCH ADVISER WORKSPACE' : 'RPMS ADMIN WORKSPACE'), node('strong', role === 'adviser' ? 'Welcome to your adviser workspace' : 'Research management overview'), line(role === 'adviser' ? 'Review assigned research and documents.' : 'Monitor research activity across PRISM.'));
-                    page.append(hero, stats(...(role === 'adviser' ? ['Assigned students', 'Pending adviser review', 'Needs revision', 'Approved documents'] : ['Students', 'Research advisers', 'Documents', 'IERB progress'])), panel(role === 'adviser' ? 'Documents to Review' : 'Research Overview', controls('Search', 'Filter'), empty('Current records appear here.')));
-                } else if (entry.id === 'ierbprog.php') {
-                    page.append(panel('Progress Overview', stats('Protocol Submission', 'Initial Ethics Review', 'Revisions & Resubmission')), panel('Detailed Progress', controls('Search by student name or ID', 'Sort'), controls('All', 'On track', 'Delayed'), empty('Student progress cards appear here.')));
-                } else if (entry.id === 'documents.php') {
-                    page.append(panel('Documents to Review', controls('Search documents', 'Sort'), controls('All', 'Pending review', 'Needs revision', 'Submitted to RPMS'), empty('Document submissions appear here.')));
-                } else if (entry.id === 'calendar.php') {
-                    const calendar = node('div', null, 'prism-tour-static-calendar');
-                    ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', ...Array.from({ length: 28 }, (_, index) => String(index + 1))].forEach(day => calendar.append(line(day)));
-                    page.append(panel('Personal Calendar', controls('‹', 'Month', '›', 'Today'), calendar), panel('Selected date', line('Official deadlines and personal reminders appear here.')));
-                } else if (entry.id === 'admin_notifications.php') {
-                    page.append(panel('Notification History', controls('Inbox', 'Unread', 'Archived'), controls('View', 'Kind', 'Sort'), empty('Notifications appear here.')));
-                } else if (entry.id === 'account.php#activity') {
-                    page.append(panel('Activity Logs', controls('Search activity', 'Sort'), controls('Date', 'Action', 'Details'), empty('Account activity appears here.')));
-                } else if (entry.id.startsWith('account.php')) {
-                    page.append(panel(entry.id.endsWith('#security') ? 'Security Settings' : 'Profile Information', controls('Name', 'Email', 'Role'), empty('Account settings appear here.')));
-                } else if (['admin_students.php', 'admin_advisers.php', 'admin_archived_accounts.php'].includes(entry.id)) {
-                    page.append(panel(title, controls('Search by name or ID', 'Sort', 'Filters'), controls('Name', 'Email', 'Status', 'Actions'), empty('Account records appear here.')));
-                } else if (entry.id === 'reports.php') {
-                    page.append(panel('Research Progress Reports', controls('Report type', 'Date range', 'Generate report'), stats('Students', 'Documents', 'IERB progress')));
-                } else if (entry.id === 'admin_ai.php') {
-                    page.append(panel('AI Progress Reports', controls('Select report', 'Generate'), empty('Generated reports appear here.')));
-                } else if (entry.id === 'data_export.php') {
-                    page.append(panel('Export Research Data', controls('Data set', 'Date range', 'Download CSV'), empty('Choose the data you need to export.')));
-                } else if (entry.id === 'admin_legal_policies.php') {
-                    page.append(panel('Privacy and Terms', controls('Published', 'Drafts', 'Review'), empty('Policy versions appear here.')));
-                } else page.append(panel(title, empty('Page tools appear here.')));
-                canvas.replaceChildren(page);
-                resize();
-            }
-            const observer = new ResizeObserver(resize);
-            observer.observe(frame);
-            // Stop observing when this slide is replaced or the tour closes.
-            const cleanup = new MutationObserver(() => {
-                if (!figure.isConnected) { observer.disconnect(); cleanup.disconnect(); }
-            });
-            cleanup.observe(document.body, { childList: true, subtree: true });
-            if (entry.id === 'quick-actions') {
-                const wrapper = node('div', null, 'prism-tour-quick-actions');
-                [
-                    ['Quick tour', 'fa-circle-question'],
-                    ['Theme', 'fa-sun'],
-                    ['Notifications', 'fa-bell']
-                ].forEach(([label, iconName]) => {
-                    const action = node('div', null, 'prism-tour-quick-action');
-                    action.setAttribute('aria-label', label);
-                    action.title = label;
-                    const icon = node('span', null, 'prism-tour-quick-action-icon');
-                    const glyph = node('i', null, `fa-solid ${iconName}`);
-                    glyph.setAttribute('aria-hidden', 'true');
-                    icon.append(glyph);
-                    action.append(icon);
-                    wrapper.append(action);
-                });
-                wrapper.append(node('span', 'Tour', 'prism-tour-quick-tooltip'));
-                wrapper.classList.add('prism-tour-live-source');
-                canvas.replaceChildren(wrapper);
-                resize();
-            } else if (entry.id === 'navigation') {
-                const navigation = document.querySelector(role === 'student' ? '#portalNav' : '#prismPrimaryNavigation');
-                if (role === 'admin' && navigation) {
-                    const sidebar = node('div', null, 'sidebar prism-sidebar');
-                    sidebar.append(navigation.cloneNode(true));
-                    show(sidebar);
-                } else show(navigation);
-            } else if (entry.id === 'help') {
-                const preview = node('div', null, 'prism-tour-help-preview');
-                const title = node('h3', 'Help & Support');
-                const intro = node('p', 'Send a private request to RPMS Administrators. Replies appear here in PRISM only.');
-                const tabs = node('div', null, 'prism-tour-help-tabs');
-                tabs.append(node('span', 'New request', 'is-active'), node('span', 'My requests & replies'));
-                const form = node('div', null, 'prism-tour-help-form');
-                form.append(node('strong', 'What do you need help with?'));
-                const chips = node('div', null, 'prism-tour-help-chips');
-                const categories = [...document.querySelectorAll('#supportModal .sp-chip')].map(chip => chip.textContent.trim()).slice(0, 3);
-                (categories.length ? categories : ['Account & access', 'Documents', 'Other']).forEach(label => chips.append(node('span', label)));
-                form.append(chips, node('label', 'Subject'), node('div', 'Short summary of your request', 'prism-tour-help-field'), node('label', 'Message'), node('div', 'Describe the issue or question…', 'prism-tour-help-field is-message'), node('button', 'Send to RPMS', 'prism-tour-help-submit'));
-                preview.append(title, intro, tabs, form);
-                show(preview);
+            bar.append(node('span', 'PRISM'), node('span', entry.label));
+            const page = node('div', null, 'prism-tour-static-page');
+            page.inert = true;
+            const line = text => node('span', text, 'prism-tour-static-line');
+            const controls = (...labels) => {
+                const row = node('div', null, 'prism-tour-static-controls');
+                labels.forEach(label => row.append(line(label)));
+                return row;
+            };
+            const panel = (heading, ...items) => {
+                const card = node('section', null, 'prism-tour-static-panel');
+                card.append(node('h4', heading), ...items);
+                return card;
+            };
+            const empty = label => node('p', label, 'prism-tour-static-empty');
+            const stats = (...labels) => {
+                const row = node('div', null, 'prism-tour-static-stats');
+                labels.forEach(label => row.append(panel(label, line('Overview'))));
+                return row;
+            };
+            page.append(node('h3', entry.label, 'prism-tour-static-title'));
+            const id = entry.id;
+            if (id === 'navigation') {
+                const links = [...document.querySelectorAll(role === 'student' ? '#portalNav [data-page]' : '#prismPrimaryNavigation a')]
+                    .map(link => link.textContent.trim()).filter(Boolean);
+                page.append(panel('Your workspace', controls(...links)));
+            } else if (id === 'quick-actions') {
+                page.append(panel('Quick Actions', controls('Quick tour', 'Theme', 'Notifications'), empty('Reopen this guide, switch themes, or check your latest updates.')));
+            } else if (['dashboard', 'dashboard.php', 'research_adviser.php'].includes(id)) {
+                const hero = node('section', null, 'prism-tour-static-hero');
+                hero.append(node('strong', 'Welcome to your PRISM workspace'), line(role === 'student' ? 'Track your research and next steps.' : 'Monitor research activity and review submissions.'));
+                page.append(hero, stats(...(role === 'student' ? ['IERB progress', 'My documents', 'Upcoming reminders'] : ['Students', 'Documents', 'IERB progress'])));
+            } else if (['progress', 'ierbprog.php'].includes(id)) {
+                page.append(panel('IERB journey', controls('Submission', 'Ethics review', 'Revisions'), stats('Current stage', 'Requirements'), empty('Stage details and progress history appear here.')));
+            } else if (['documents', 'documents.php'].includes(id)) {
+                page.append(panel(role === 'student' ? 'My Documents' : 'Research Documents', controls('Search', 'Status', 'Sort'), empty('File details, review status, version history and permitted actions.')));
+            } else if (id === 'submit') {
+                page.append(panel('Submit a document', controls('Document type', 'Choose PDF / DOCX'), empty('Review your selection and submit for adviser review.')));
+            } else if (['calendar', 'calendar.php'].includes(id)) {
+                const calendar = node('div', null, 'prism-tour-static-calendar');
+                ['S', 'M', 'T', 'W', 'T', 'F', 'S', ...Array.from({length: 28}, (_, index) => String(index + 1))].forEach(day => calendar.append(line(day)));
+                page.append(panel('Personal Calendar', controls('Previous', 'Month', 'Next', 'Today'), calendar), empty('Official deadlines and your personal reminders.'));
+            } else if (['notifications', 'admin_notifications.php'].includes(id)) {
+                page.append(panel('Notification history', controls('Inbox', 'Unread', 'Archived'), empty('Submission updates, reminders and confirmations.')));
+            } else if (id === 'activity' || id === 'account.php#activity') {
+                page.append(panel('Activity Logs', controls('Date', 'Action', 'Details'), empty('Review events recorded for your account.')));
+            } else if (id === 'profile' || id.startsWith('account.php')) {
+                page.append(panel(id.endsWith('#security') ? 'Security settings' : 'Account information', controls('Name', 'Email', 'Role'), empty('Review your details and manage permitted account settings.')));
+            } else if (['admin_students.php', 'admin_advisers.php', 'admin_archived_accounts.php'].includes(id)) {
+                page.append(panel(entry.label, controls('Search by name or ID', 'Sort', 'Filters'), empty('Account records, status and permitted actions.')));
+            } else if (id === 'reports.php' || id === 'admin_ai.php') {
+                page.append(panel('Research reports', controls('Report type', 'Date range', 'Generate'), empty('Review reports using your permitted tools.')));
+            } else if (id === 'data_export.php') {
+                page.append(panel('Export research data', controls('Data set', 'Date range', 'Download CSV')));
+            } else if (id === 'help' || id === 'help_support.php') {
+                page.append(panel('Help & Support', controls('New request', 'My requests & replies'), empty('Choose a category, add a subject and describe your question.')));
+            } else if (id === 'resources') {
+                page.append(panel('Research resources', controls('Guidelines', 'Forms', 'Research links')));
             } else {
-                const section = role === 'student' && document.querySelector(`[data-section="${entry.id}"]`);
-                const href = entry.target?.getAttribute('href');
-                if (section) show(section);
-                else if (entry.id === 'resources') show(document.getElementById('prismResourcesTitle')?.closest('section,article'));
-                else if (role !== 'student') showStaticPage();
-                else if (href) {
-                    const url = new URL(href, location.href);
-                    const hashTarget = url.hash ? document.querySelector(decodeURIComponent(url.hash)) : null;
-                    if (url.pathname === location.pathname) show(hashTarget?.closest('.management-card,section,article') || hashTarget || document.querySelector('main,.main-content'));
-                    else {
-                        canvas.append(node('p', 'Loading section preview...'));
-                        fetch(url.href, { credentials: 'same-origin' }).then(r => {
-                            if (!r.ok) throw Error('Preview unavailable');
-                            return r.text();
-                        }).then(html => {
-                            if (!figure.isConnected) return;
-                            const page = new DOMParser().parseFromString(html, 'text/html');
-                            const pageTarget = url.hash ? page.querySelector(decodeURIComponent(url.hash)) : null;
-                            show(pageTarget?.closest('.management-card,section,article') || pageTarget || page.querySelector('main,.main-content'));
-                        }).catch(() => { if (figure.isConnected) show(null); });
-                    }
-                } else show(document.querySelector('main,.main-content'));
+                page.append(panel(entry.label, empty(entry.description || 'Open this section from your workspace navigation.')));
             }
+            figure.append(bar, page, node('figcaption', 'Illustration of the section; your records appear in the workspace.'));
             return figure;
         }
         function tour() {

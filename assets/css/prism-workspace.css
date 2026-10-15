@@ -764,28 +764,39 @@ body.prism-workspace.adviser-dashboard-page .adviser-review-table { min-width:65
     .prism-tour-buttons { margin-left: auto; }
 }
 
-/* Miniature UI previews accompany each tour explanation. */
+/* Responsive illustrations are isolated from the live page's grids and selectors. */
 body.prism-workspace .prism-tour-dialog { width:min(620px,calc(100vw - 32px)); }
 .prism-tour-preview { margin:0 0 20px; border:1px solid var(--tour-line); border-radius:14px; overflow:hidden; background:var(--prism-surface); }
 .prism-tour-preview-bar { display:flex; align-items:center; justify-content:space-between; gap:12px; padding:9px 12px; background:var(--tour-tint); color:var(--prism-text); font-size:11px; }
 .prism-tour-preview-bar > span:first-child { font-weight:800; letter-spacing:.08em; color:var(--tour-accent); }
-.prism-tour-live-frame { position:relative; height:230px; overflow:hidden; background:var(--prism-bg); }
-.prism-tour-live-canvas { transform-origin:top left; padding:18px; box-sizing:border-box; pointer-events:none; }
-.prism-tour-live-canvas .prism-tour-live-source { position:static!important; display:block!important; width:100%!important; max-width:none!important; margin:0!important; padding:0!important; height:auto!important; min-height:0!important; overflow:visible!important; }
-.prism-tour-live-source.portal-page { display:block!important; }
-.prism-tour-live-source.portal-nav-links { display:flex!important; flex-wrap:wrap; gap:8px; padding:16px!important; background:var(--prism-surface); }
-.prism-tour-live-source#tour-preview-prismPrimaryNavigation:not(.portal-nav-links) { width:280px!important; border-radius:14px; padding:16px!important; background:var(--sidebar-bg); color:#fff; }
-.prism-tour-live-source .prism-nav-submenu { display:block!important; }
-.prism-tour-live-toolbar { display:flex!important; align-items:center; justify-content:center; gap:12px; padding:24px 0!important; }
-.prism-tour-live-source .prism-topbar-group { flex:0 0 auto; }
-.prism-tour-preview:has(.prism-tour-live-toolbar) .prism-tour-live-frame { height:110px; }
-@media(max-width:480px) { .prism-tour-live-frame { height:190px; } }
+.prism-tour-static-page { display:grid; gap:12px; padding:16px; min-width:0; background:var(--prism-bg); color:var(--prism-text); font-size:12px; line-height:1.5; }
+.prism-tour-static-page :is(h3,h4,p) { margin:0; overflow-wrap:anywhere; }
+.prism-tour-static-title { font-size:16px; line-height:1.4; }
+.prism-tour-static-panel { display:grid; gap:10px; min-width:0; padding:12px; border:1px solid var(--prism-border); border-radius:12px; background:var(--prism-card); }
+.prism-tour-static-panel h4 { color:var(--prism-text); font-size:12px; line-height:1.4; }
+.prism-tour-static-controls { display:flex; flex-wrap:wrap; gap:6px; min-width:0; }
+.prism-tour-static-line { display:block; min-width:0; overflow-wrap:anywhere; }
+.prism-tour-static-controls > span { max-width:100%; padding:5px 9px; border:1px solid var(--prism-border); border-radius:8px; background:var(--prism-bg); color:var(--prism-text); }
+.prism-tour-static-stats { display:grid; grid-template-columns:repeat(auto-fit,minmax(110px,1fr)); gap:8px; min-width:0; }
+.prism-tour-static-stats .prism-tour-static-line { color:var(--prism-accent); }
+.prism-tour-static-hero { display:grid; gap:6px; padding:14px; border:1px solid var(--prism-border); border-radius:12px; background:var(--prism-pink-soft); }
+.prism-tour-static-empty { padding:12px; border:1px dashed var(--prism-border); border-radius:8px; color:var(--prism-muted); }
+.prism-tour-static-calendar { display:grid; grid-template-columns:repeat(7,minmax(0,1fr)); gap:4px; text-align:center; }
+.prism-tour-static-calendar > span { padding:3px 0; border-radius:4px; background:var(--prism-bg); }
 .prism-tour-preview figcaption { padding:7px 12px; color:var(--prism-muted); background:var(--prism-surface); font-size:10px; }
 .prism-tour-dialog .prism-tour-identity > div { min-width:0; }
 @media(max-width:480px) { .prism-tour-preview { margin-bottom:16px; } }
 
 body.prism-workspace .prism-bell-preview { position:fixed; z-index:1500; width:min(360px,calc(100vw - 24px)); max-height:calc(100dvh - 24px); overflow:auto; padding:18px; border:1px solid var(--prism-border); border-radius:16px; background:var(--prism-card); color:var(--prism-text); box-shadow:0 12px 36px #0c0e3f25; }
 .prism-bell-preview[hidden] { display:none!important; }
+.prism-bell-preview-heading { display:flex; align-items:flex-start; gap:12px; padding-bottom:12px; border-bottom:1px solid var(--prism-border); }
+.prism-bell-preview-heading > div { display:grid; gap:5px; min-width:0; flex:1; }
+.prism-bell-preview-heading small { color:var(--prism-accent); font-size:10px; line-height:1.4; letter-spacing:.08em; font-weight:700; }
+.prism-bell-preview-heading strong { color:var(--prism-text); font-size:16px; line-height:1.4; overflow-wrap:anywhere; }
+.prism-bell-preview-heading-icon { display:grid; place-items:center; flex:0 0 36px; width:36px; height:36px; border-radius:10px; background:var(--prism-pink-soft); color:var(--prism-accent); }
+.prism-bell-preview-heading-icon svg { width:22px; height:22px; }
+.prism-bell-preview-empty { display:grid; justify-items:center; gap:10px; padding:18px 0; text-align:center; color:var(--prism-muted); }
+.prism-bell-preview-empty p { margin:0; }
 .prism-bell-preview-list { margin:14px 0; font-size:12px; line-height:1.6; max-height:280px; overflow:auto; }
 .prism-bell-preview-item { padding:10px 0; border-bottom:1px solid var(--prism-border); }
 .prism-bell-preview-item p { margin:4px 0 0; overflow-wrap:anywhere; }
