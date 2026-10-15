@@ -1,0 +1,135 @@
+name: PRISM - Hostinger FTPS (manual)
+
+on:
+  workflow_dispatch:
+    inputs:
+      deploy_now:
+        description: 'Unchecked = encrypted connection and path preflight only; checked = upload 17 approved files'
+        type: boolean
+        required: true
+        default: false
+
+permissions:
+  contents: read
+
+concurrency:
+  group: prism-hostinger-production
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    name: Verify FTPS and optionally deploy
+    if: github.repository == 'Cloud11011/rpms_system' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-24.04
+    environment: prism-production
+    timeout-minutes: 15
+    steps:
+      - name: Check out approved PRISM release branch
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          ref: prism-v10-b12-1-full-ui-parity
+          persist-credentials: false
+
+      - name: Show release commit
+        run: git log -1 --format='%H %s'
+
+      - name: FTPS preflight and optional allowlisted upload
+        env:
+          FTPS_HOST: ${{ secrets.FTPS_HOST }}
+          FTPS_USERNAME: ${{ secrets.FTPS_USERNAME }}
+          FTPS_PASSWORD: ${{ secrets.FTPS_PASSWORD }}
+          FTPS_REMOTE_DIR: ${{ secrets.FTPS_REMOTE_DIR }}
+          DEPLOY_NOW: ${{ inputs.deploy_now }}
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          import hashlib
+          import os
+          from pathlib import Path, PurePosixPath
+          import ssl
+          import sys
+          from ftplib import FTP_TLS
+
+          # Batch 12.1's reviewed, explicit production-file allowlist.
+          # To deploy other files in a future release, review and edit this list on main.
+          files = (
+              'admin_people.php',
+              'assets/css/dashboard.css',
+              'assets/css/ierbprog.css',
+              'assets/css/prism-components.css',
+              'assets/css/prism-workspace.css',
+              'assets/css/student-calendar-ui.css',
+              'assets/css/student-dashboard.css',
+              'assets/css/student-ierb-progress.css',
+              'assets/css/student-records.css',
+              'assets/js/admin-management.js',
+              'assets/js/notification-history.js',
+              'assets/js/prism-guidance.js',
+              'assets/js/role-calendar.js',
+              'assets/js/role-portal.js',
+              'dashboard.php',
+              'includes/public_landing.php',
+              'role_portal.php',
+          )
+
+          host = os.environ.get('FTPS_HOST', '').strip()
+          user = os.environ.get('FTPS_USERNAME', '').strip()
+          password = os.environ.get('FTPS_PASSWORD', '')
+          remote_dir = os.environ.get('FTPS_REMOTE_DIR', '').strip()
+          deploy_now = os.environ.get('DEPLOY_NOW', '').lower() == 'true'
+
+          if not all((host, user, password, remote_dir)):
+              sys.exit('Missing FTPS environment secrets. No files were uploaded.')
+          if '://' in host or '/' in host or ':' in host:
+              sys.exit('FTPS_HOST must be a hostname only, without scheme/port/path.')
+          target = PurePosixPath(remote_dir)
+          if not remote_dir.startswith('/') or '..' in target.parts:
+              sys.exit('FTPS_REMOTE_DIR must be an absolute FTP path without .. segments.')
+          for name in files:
+              f = Path(name)
+              if (not f.is_file()) or f.is_symlink():
+                  sys.exit(f'Approved source file is absent or a symlink: {name}')
+          print('Release allowlist validated:', len(files), 'files.')
+          print('FTPS mode: explicit TLS, certificate verification, encrypted control and data.')
+          print('Deletion operations: disabled / not implemented.')
+
+          ftp = FTP_TLS(context=ssl.create_default_context(), timeout=30)
+          try:
+              ftp.connect(host, 21)
+              ftp.login(user=user, passwd=password)  # FTP_TLS requires AUTH TLS before sending credentials.
+              ftp.prot_p()  # Encrypt file listings, uploads and download verification.
+              ftp.cwd(remote_dir)
+
+              # Fail closed when the configured remote directory is not the real PRISM root.
+              present = {PurePosixPath(p.rstrip('/')).name for p in ftp.nlst()}
+              required = {'index.php', 'config.php', 'config.local.php', 'assets', 'includes'}
+              missing = sorted(required - present)
+              if missing:
+                  sys.exit('Wrong or incomplete remote PRISM directory: ' + ', '.join(missing))
+              print('Remote PRISM root verified. Server-only config.local.php is present.')
+              print('Protected: config.local.php, storage/, uploads, database, .git/, tests/.')
+
+              if not deploy_now:
+                  print('PREFLIGHT PASSED. Dry run selected; ZERO files uploaded.')
+              else:
+                  print('Approved manual deployment selected; uploading exact allowlist.')
+                  for name in files:
+                      p = PurePosixPath(name)
+                      ftp.cwd(remote_dir)
+                      if str(p.parent) != '.':
+                          ftp.cwd(str(p.parent))  # Must already exist; never create unexpected trees.
+                      with Path(name).open('rb') as source:
+                          ftp.storbinary('STOR ' + p.name, source, blocksize=65536)
+                      local_digest = hashlib.sha256(Path(name).read_bytes()).digest()
+                      remote_digest = hashlib.sha256()
+                      ftp.retrbinary('RETR ' + p.name, remote_digest.update)
+                      if remote_digest.digest() != local_digest:
+                          sys.exit('Hash verification failed for ' + name + '; inspect and roll back.')
+                      print('Uploaded and SHA-256 verified:', name)
+                  print('SUCCESS: all approved files uploaded; no remote files deleted.')
+          finally:
+              try:
+                  ftp.quit()
+              except Exception:
+                  ftp.close()
+          PY
