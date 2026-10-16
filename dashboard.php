@@ -428,7 +428,7 @@ function renderIerbMonitor() {
         row.innerHTML = `
             <td><strong>${escapeMonitorHtml(record.protocolCode || record.groupId || record.studentId)}</strong>${record.protocolCode ? `<small class="prism-sub">${escapeMonitorHtml(record.groupId || record.studentId)}</small>` : ''}</td>
             <td>${escapeMonitorHtml(record.course || 'Not set')}</td>
-            <td><div class="title-cell"><span>${escapeMonitorHtml(record.research || 'Research title not set')}</span><small>Lead: ${escapeMonitorHtml(record.name)}</small></div></td>
+            <td>${PrismUI.progressIdentityHtml(record)}</td>
             <td><span class="stage-tag" title="${escapeMonitorHtml(record.stage || 'Stage 1')}">${escapeMonitorHtml(record.stageLabel || record.stage || 'Stage 1')}</span>${PrismUI.docMini(record.docs)}</td>
             <td>${escapeMonitorHtml(record.requirements || 'None')}</td>
             <td><div class="ierb-card-progress"><div><span>Overall progress</span><strong>${progress}%</strong></div><span class="ierb-progress-track" role="progressbar" aria-label="Overall progress" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${progress}"><span style="width:${progress}%"></span></span></div></td>
@@ -438,13 +438,22 @@ function renderIerbMonitor() {
         row.querySelector('[data-monitor-action="override"]').addEventListener('click', e => PrismUI.runAction(e.currentTarget,'Processing...',async () => { if (await PrismUI.overrideStudent(record)) { await loadMonitorStudents(); renderIerbMonitor(); } }));
         PrismUI.actionMenu(row.cells[7],{primary:row.querySelector('[data-monitor-action="documents"]')});
         progressTableBody.appendChild(row);
-        PrismUI.compactRecord(row,2,6,7,[],[0,1,3,4,5]);
+        PrismUI.compactRecord(row,2,6,7,[],[3,4,5]);
         const card = row.querySelector('.prism-record-card');
         if (card) {
-            card.classList.add('ierb-monitor-card', statusClass);
+            card.classList.add('ierb-monitor-card', 'prism-progress-record', statusClass);
+            const statusLabel=document.createElement('span');statusLabel.className='ierb-field-label';statusLabel.textContent='Workflow status';
+            card.querySelector('.prism-record-status').prepend(statusLabel);
             const fields=card.querySelectorAll('.prism-record-summary > div');
-            const progressField=fields[4];
-            if(fields[2] && progressField){fields[2].querySelector('dd').append(progressField.querySelector('.ierb-card-progress'));progressField.remove();}
+            if(fields[0]) fields[0].querySelector('dt').textContent='Current Stage';
+            const progressField=fields[2];
+            if(fields[0] && progressField){fields[0].querySelector('dd').append(progressField.querySelector('.ierb-card-progress'));progressField.remove();}
+            const lastSubmission=document.createElement('div');
+            const dateLabel=document.createElement('dt');dateLabel.textContent='Last Submission';
+            const dateValue=document.createElement('dd');dateValue.textContent=record.lastSubmissionDate || 'N/A';
+            lastSubmission.append(dateLabel,dateValue);card.querySelector('.prism-record-summary').append(lastSubmission);
+            // Identifiers and Program are already labelled in the shared identity block.
+            card.querySelector('.prism-record-details').remove();
             const documents=card.querySelector('[data-monitor-action="documents"]');
             if(documents) PrismUI.documentAction(documents,'view','Open Documents');
         }

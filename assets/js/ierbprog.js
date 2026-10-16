@@ -162,8 +162,6 @@
 
     function filteredRecords() { return records; }
 
-    const initialsFor = name => String(name || 'Student').trim().split(/\s+/).slice(0, 2).map(part => part.charAt(0)).join('').toUpperCase();
-
     function renderTable() {
         const rows = filteredRecords();
         if (loadError) recordCount.textContent = 'Unavailable';
@@ -201,8 +199,8 @@
             const progress = Math.max(0, Math.min(100, Number(record.progress) || 0));
             const statusClass = record.status === 'Delayed' ? 'is-delayed' : (record.status === 'On Track' ? 'is-on-track' : 'is-pending');
             tr.innerHTML = `
-                <td><div class="ierb-card-identity"><div class="ierb-student-head"><span class="ierb-student-avatar" aria-hidden="true">${escapeHtml(initialsFor(record.name))}</span><span class="ierb-student-copy"><strong class="ierb-student-name">${escapeHtml(record.name || 'Student name unavailable')}</strong><span class="ierb-student-meta">ID ${escapeHtml(record.studentId || 'Not recorded')}${record.course ? ` · ${escapeHtml(record.course)}` : ''}</span></span></div><strong class="ierb-research-title">${escapeHtml(record.research || 'Research title not set')}</strong><div class="ierb-card-meta">${record.protocolCode ? `<span>${escapeHtml(record.protocolCode)}</span>` : ''}${record.groupId ? `<span>${escapeHtml(record.groupId)}</span>` : ''}</div></div></td>
-                <td><span class="stage-tag" title="${escapeHtml(record.stage)}">${escapeHtml(record.stageLabel || labelForStage(record.stage))}</span></td>
+                <td>${PrismUI.progressIdentityHtml(record)}</td>
+                <td><span class="stage-tag" title="${escapeHtml(record.stage)}">${escapeHtml(record.stageLabel || labelForStage(record.stage))}</span>${PrismUI.docMini(record.docs)}</td>
                 <td><div class="ierb-card-progress"><div><span>Overall progress</span><strong>${progress}%</strong></div><span class="ierb-progress-track" role="progressbar" aria-label="Overall progress" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${progress}"><span style="width:${progress}%"></span></span></div></td>
                 <td>${escapeHtml(record.requirements || 'None')}</td>
                 <td>${escapeHtml(record.lastSubmissionDate || 'N/A')}</td>
@@ -251,12 +249,9 @@
             PrismUI.compactRecord(tr,0,5,6,[],[1,2,3,4]);
             const card = tr.querySelector('.prism-record-card');
             if (card) {
-                card.classList.add('ierb-progress-card', statusClass);
-                const metadata=card.querySelector('.prism-record-summary');
-                if (!isAdmin && metadata) {
-                    [...metadata.children].forEach((field,index)=>field.classList.add('ierb-progress-field',`ierb-progress-field-${index+1}`));
-                    metadata.replaceWith(...metadata.children);
-                }
+                card.classList.add('ierb-progress-card', 'prism-progress-record', statusClass);
+                const statusLabel=document.createElement('span');statusLabel.className='ierb-field-label';statusLabel.textContent='Workflow status';
+                card.querySelector('.prism-record-status').prepend(statusLabel);
                 const fields=card.querySelectorAll('.ierb-progress-field, .prism-record-summary > div');
                 const detailsSummary=card.querySelector('.prism-record-details > summary');
                 if(detailsSummary) detailsSummary.textContent='Show academic details';

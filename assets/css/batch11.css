@@ -12,6 +12,11 @@ body.prism-workspace .dashboard-stage .step-item { min-height:102px; padding:12p
 body.prism-workspace .dashboard-stage .step-item strong,body.prism-workspace .dashboard-stage .step-item strong b { font-size:32px; }
 body.prism-workspace .dashboard-stage .step-item > span { font-size:12px; }
 body.prism-workspace .prism-record-card { padding:12px 14px; column-gap:16px; row-gap:8px; border-left:3px solid var(--accent-pink); border-radius:10px; }
+/* Progress rows own the outer status accent. Their nested layout cards keep
+   the existing border space for alignment, without painting a second curve. */
+body.prism-workspace .prism-compact-table > tbody > tr > td > .prism-record-card.prism-progress-record {
+    border-left-color:transparent;
+}
 body.prism-workspace[data-archive-workspace=true] .management-table-wrap > table.prism-compact-table { min-width:0; width:100%; table-layout:auto; }
 body.prism-workspace .prism-record-card :is(strong,dt) { line-height:1.4; }
 body.prism-workspace .prism-record-card > *,body.prism-workspace .prism-record-summary dd,body.prism-workspace .prism-record-status :is(small,span) { white-space:normal; }

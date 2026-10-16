@@ -23,7 +23,7 @@
         email.addEventListener('blur',()=>{email.value=email.value.trim();validateEmail();});
         let target=null,returnFocus=null;
         async function open(button,record=null) {
-            returnFocus=button;target=record;form.reset();result.textContent='';
+            returnFocus=PrismUI.actionOrigin(button);target=record;form.reset();result.textContent='';
             title.textContent=record?'Assign Pending Student':'Invite '+(type==='student'?'Student':'Adviser');
             email.value=record?.email || '';email.disabled=!!record;
             validateEmail();

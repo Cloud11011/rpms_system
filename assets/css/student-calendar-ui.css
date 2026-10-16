@@ -49,14 +49,21 @@
 .student-dashboard-page #dashboardCalendarGrid .mini-day.text-muted { display:grid; place-items:center; min-height:42px; color:#b8b4c8; opacity:1; }
 .student-dashboard-page #dashboardCalendarGrid .mini-day:hover { background:var(--bg-color); }
 .student-dashboard-page #dashboardCalendarGrid .mini-day.active-day { color:#fff; background:#b5146e; box-shadow:0 7px 15px rgba(181,20,110,.2); }
-.student-dashboard-page #dashboardCalendarGrid .mini-day.selected-day:not(.active-day) { box-shadow:inset 0 0 0 1.5px #0c0e3f; }
-.student-dashboard-page #dashboardCalendarGrid .mini-day[data-official-deadline="true"]:not(.active-day)::after,.student-dashboard-page #dashboardCalendarGrid .mini-day.has-event:not(.active-day)::after { position:absolute; bottom:4px; left:50%; width:5px; height:5px; transform:translateX(-50%); border-radius:50%; background:#c97a18; content:""; }
-.student-dashboard-page #dashboardCalendarGrid .mini-day.has-event:not([data-official-deadline="true"]):not(.active-day)::after { background:#b5146e; }
+.student-dashboard-page #dashboardCalendarGrid .mini-day.selected-day { box-shadow:inset 0 0 0 2px var(--prism-text); }
+.student-dashboard-page #dashboardCalendarGrid .mini-day.active-day.selected-day { box-shadow:inset 0 0 0 2px #fff,0 0 0 2px var(--prism-text); }
+/* Deadlines use one orange dot; reminder text stays in the date details. */
+body.prism-workspace.student-dashboard-page #dashboardCalendarGrid .mini-day[data-official-deadline="true"] { border-color:transparent; background:transparent; color:var(--prism-text); }
+body.prism-workspace.student-dashboard-page #dashboardCalendarGrid .mini-day.active-day { background:#b5146e; color:#fff; }
+body.prism-workspace.student-dashboard-page #dashboardCalendarGrid .mini-day::after { content:none; }
+body.prism-workspace.student-dashboard-page #dashboardCalendarGrid .mini-day .prism-deadline-marker { right:50%; bottom:3px; transform:translateX(50%); width:6px; height:6px; background:#c97a18; box-shadow:0 0 0 1px var(--prism-card); }
+body.prism-workspace.student-dashboard-page #dashboardCalendarGrid .mini-day:focus-visible { outline:3px dashed var(--prism-focus); outline-offset:2px; }
 .student-dashboard-page .calendar-legend { display:flex; flex-wrap:wrap; align-items:center; gap:14px; margin:15px 0 7px; color:var(--text-secondary); font-size:var(--prism-font-meta); }
 .student-dashboard-page .calendar-legend span { display:inline-flex; align-items:center; gap:6px; }
-.student-dashboard-page .calendar-legend i { display:inline-block; width:9px; height:9px; border-radius:50%; background:#c97a18; }
-.student-dashboard-page .calendar-legend .today-dot { background:#b5146e; }
-.student-dashboard-page .calendar-legend .selected-dot { border:2px solid #0c0e3f; background:transparent; }
+.student-dashboard-page .calendar-legend i { display:inline-grid; place-items:center; flex:none; box-sizing:border-box; font:700 10px Montserrat,sans-serif; }
+.student-dashboard-page .calendar-legend .official-dot { width:6px; height:6px; border-radius:50%; background:#c97a18; box-shadow:0 0 0 1px var(--prism-card); }
+.student-dashboard-page .calendar-legend :is(.today-dot,.selected-dot) { width:24px; height:24px; border-radius:8px; }
+.student-dashboard-page .calendar-legend .today-dot { background:#b5146e; color:#fff; }
+.student-dashboard-page .calendar-legend .selected-dot { box-shadow:inset 0 0 0 2px var(--prism-text); color:var(--prism-text); background:transparent; }
 /* The shared calendar script injects a square-marker legend; these cards already have the circular portal legend. */
 .student-dashboard-page #dashboardCalendarGrid + .prism-calendar-legend { display:none !important; }
 .student-dashboard-page .dashboard-calendar-panel #dashboardDeadlineState { margin:0; color:var(--text-secondary); font-size:var(--prism-font-meta); }

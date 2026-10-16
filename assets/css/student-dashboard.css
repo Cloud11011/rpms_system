@@ -491,9 +491,17 @@ body.prism-workspace.student-dashboard-page .student-document-tools .student-doc
 @media (prefers-reduced-motion:reduce) { .student-dashboard-page .submission-step-number,.student-dashboard-page .submission-dropzone,.student-dashboard-page .submission-submit { transition:none; } }
 
 /* Recent submissions retain readable metadata beside the shared file actions. */
-body.student-dashboard-page .student-recent-item { grid-template-columns:40px minmax(0,1fr) auto; }
-body.student-dashboard-page .student-recent-item .prism-document-quick-actions { grid-column:2/-1; justify-self:end; }
-@media(max-width:600px) {
+body.student-dashboard-page .student-recent-item { grid-template-columns:40px minmax(0,1fr) minmax(0,auto) 88px; gap:10px; }
+body.student-dashboard-page .student-recent-item .prism-document-quick-actions { grid-column:4; grid-row:1; justify-self:end; flex-wrap:nowrap; }
+body.student-dashboard-page .student-recent-body > :is(strong,span) { white-space:normal; overflow-wrap:anywhere; }
+body.student-dashboard-page .student-recent-side { min-width:0; }
+body.student-dashboard-page .student-recent-status { white-space:normal; overflow-wrap:anywhere; }
+@media(max-width:1280px) {
+ body.student-dashboard-page .student-recent-item { grid-template-columns:40px minmax(0,1fr) 88px; }
+ body.student-dashboard-page .student-recent-item .student-recent-side { grid-column:2; grid-row:2; justify-items:start; }
+ body.student-dashboard-page .student-recent-item .prism-document-quick-actions { grid-column:3; grid-row:1/3; }
+}
+@media(max-width:430px) {
  body.student-dashboard-page .student-recent-item { grid-template-columns:40px minmax(0,1fr); }
- body.student-dashboard-page .student-recent-item .prism-document-quick-actions { justify-self:start; grid-column:2; }
+ body.student-dashboard-page .student-recent-item .prism-document-quick-actions { justify-self:start; grid-column:2; grid-row:3; }
 }

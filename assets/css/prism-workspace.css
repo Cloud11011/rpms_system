@@ -611,11 +611,12 @@ body.prism-workspace .prism-action-panel {
 }
 body.prism-workspace:is(.adviser-dashboard-page,[data-role=adviser]) .prism-action-panel { width:220px; }
 body.prism-workspace .prism-action-panel .prism-action-item {
-    display:flex; align-items:center; justify-content:flex-start; gap:8px; width:100%; height:auto;
+    display:flex; align-items:center; justify-content:flex-start; gap:8px; flex:none; width:100%; min-width:0; max-width:100%; height:auto;
     min-height:38px; padding:8px 10px; margin:0; border:1px solid transparent; border-radius:6px;
     color:var(--prism-text); background:transparent; font:500 var(--prism-font-body)/1.4 Montserrat,system-ui,sans-serif;
-    text-align:left; white-space:normal; overflow-wrap:anywhere; text-decoration:none;
+    text-align:left; white-space:normal; overflow-wrap:break-word; word-break:normal; text-decoration:none;
 }
+body.prism-workspace .prism-action-panel .prism-action-item > :is(i,svg) { flex:0 0 16px; width:16px; }
 body.prism-workspace .prism-action-panel .prism-action-danger { color:var(--prism-danger-fg); background:var(--prism-danger-bg); }
 body.prism-workspace .prism-action-panel .prism-action-item:hover { background:var(--prism-surface-2); border-color:var(--prism-border); }
 body.prism-workspace .prism-action-panel[hidden],body.prism-workspace .prism-filter-panel[hidden] { display:none!important; }

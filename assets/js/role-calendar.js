@@ -316,14 +316,19 @@ document.addEventListener('DOMContentLoaded', () => {
             cell.className = cls;
             cell.setAttribute('aria-label', `${formatDate(key)}${tasksFor(key).length ? `, ${tasksFor(key).length} personal reminders` : ''}`);
             cell.setAttribute('aria-pressed', String(key === selectedDate));
+            if (cls.includes('active-day')) cell.setAttribute('aria-current', 'date');
+            cell.dataset.dateLabel = cell.getAttribute('aria-label');
             cell.textContent = d;
             const marker=document.createElement('i');marker.className='fa-solid fa-calendar-day prism-deadline-marker';marker.hidden=true;marker.setAttribute('aria-hidden','true');cell.append(marker);
             cell.addEventListener('click', () => {
+                const hasOfficialDeadline = cell.dataset.officialDeadline === 'true';
                 selectedDate = key;
                 visibleMonth = new Date(year, month, 1);
                 resetForm();
                 renderAll();
-                openTaskDialog(dashboardGrid.querySelector(`[data-deadline-date="${key}"]`));
+                const trigger = dashboardGrid.querySelector(`[data-deadline-date="${key}"]`);
+                if (hasOfficialDeadline) window.PrismDashboardDeadlines.openDay(key, trigger);
+                else openTaskDialog(trigger);
             });
             dashboardGrid.appendChild(cell);
         }

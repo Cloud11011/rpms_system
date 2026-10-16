@@ -5,7 +5,7 @@
     function decorate(grid) {
         grid.querySelectorAll('button').forEach(cell => {
             const today = cell.dataset.today === 'true' || cell.classList.contains('today') || cell.classList.contains('active-day');
-            const selected = cell.dataset.selectedDay === 'true' || cell.classList.contains('selected');
+            const selected = cell.dataset.selectedDay === 'true' || cell.classList.contains('selected') || cell.classList.contains('selected-day');
             if (today) cell.setAttribute('aria-current', 'date');
             else cell.removeAttribute('aria-current');
             cell.setAttribute('aria-pressed', String(selected));

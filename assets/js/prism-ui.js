@@ -833,6 +833,8 @@
         path.setAttribute('fill','none');path.setAttribute('stroke','currentColor');path.setAttribute('stroke-width','1.7');icon.append(path);item.prepend(icon);
       }
       item.classList.add('prism-action-item');
+      // Menu rows must shed compact icon-button sizing before gaining a label.
+      item.classList.remove('is-icon');
       item.querySelectorAll('i,svg').forEach(icon=>icon.setAttribute('aria-hidden','true'));
       if (/archive|delete|purge|deny|cancel|remove.*hold|override/i.test(name)) item.classList.add('prism-action-danger');
       item.addEventListener('click', () => {
@@ -843,7 +845,7 @@
     });
     wrap.append(trigger, panel); host.append(wrap);
     trigger.addEventListener('click', () => toggleFloating(trigger, panel, true));
-    wrap.addEventListener('keydown', event => {
+    const navigateActions = event => {
       if (!['ArrowDown','ArrowUp','Home','End'].includes(event.key)) return;
       event.preventDefault();
       if (panel.hidden) toggleFloating(trigger, panel, true);
@@ -853,7 +855,10 @@
       const next = event.key === 'Home' ? 0 : event.key === 'End' ? available.length - 1
         : (index + (event.key === 'ArrowUp' ? -1 : 1) + available.length) % available.length;
       available[next].focus();
-    });
+    };
+    wrap.addEventListener('keydown', navigateActions);
+    // The open panel is portalled to body, so its keys do not bubble to wrap.
+    panel.addEventListener('keydown', navigateActions);
   }
 
   /** Floating non-modal filters preserve controls, defaults, cascade and Tab order. */
@@ -905,7 +910,10 @@
     if (!control || control.disabled) return null;
     const original = labelElement.innerHTML;
     control.disabled = true;
-    if(control.classList.contains('prism-invitation-action')) labelElement.innerHTML='<i class="fa-solid fa-spinner fa-spin" aria-hidden="true"></i>';
+    if(control.classList.contains('prism-invitation-action')) {
+      labelElement.innerHTML='<i class="fa-solid fa-spinner fa-spin" aria-hidden="true"></i>';
+      if(control.classList.contains('prism-action-item')) labelElement.append(document.createTextNode(label));
+    }
     else labelElement.textContent = label;
     return () => { labelElement.innerHTML = original; control.disabled = false; };
   }
@@ -975,6 +983,18 @@
       error: () => { pager.replaceChildren(); count.textContent = 'Could not load records.'; },
       render: data => { page = Number(data.page) || 1; pagination(pager, count, data, next => { page = next; load(); }, 'records'); }
     };
+  }
+
+  // Shared progress identity uses the same avatar/name/label hierarchy as management cards.
+  function progressIdentityHtml(record) {
+    const name = record.name || 'Student name unavailable';
+    const initials = String(record.name || 'Student').trim().split(/\s+/).slice(0,2).map(part=>part.charAt(0)).join('').toUpperCase();
+    const field = (label, value) => '<div><dt>'+label+'</dt><dd>'+esc(value)+'</dd></div>';
+    return '<div class="ierb-card-identity"><span class="ierb-field-label">Student</span><div class="ierb-student-head"><span class="ierb-student-avatar" aria-hidden="true">'+esc(initials)+'</span><strong class="ierb-student-name">'+esc(name)+'</strong></div><dl class="ierb-identity-fields">'
+      + field('Student ID', record.studentId || 'Not recorded') + field('Program', record.course || 'Not recorded')
+      + field('Research Title', record.research || 'Research title not set')
+      + (record.protocolCode ? field('Protocol code', record.protocolCode) : '')
+      + (record.groupId ? field('Research group', record.groupId) : '') + '</dl></div>';
   }
 
   // Compact presentation reuses the original nodes and bound Actions handlers.
@@ -1048,7 +1068,7 @@
 
   const api = {
     badge: badge, badgeElement: badgeElement, docMini: docMini, emptyState: emptyState, tip: tip, toast: toast,
-    documentAction: documentAction, documentActionsHtml: documentActionsHtml,
+    documentAction: documentAction, documentActionsHtml: documentActionsHtml, progressIdentityHtml: progressIdentityHtml,
     documentTypes: DOCUMENT_TYPES, actionMenu: actionMenu, compactRecord: compactRecord, statusPills: statusPills,
     actionOrigin: control => control?.closest('.prism-action-menu')?.querySelector('.prism-action-trigger') || control,
     confirm: confirmDialog, request: request, handleSessionExpiry: handleSessionExpiry, debounce: debounce, recordFilters: recordFilters, filtersDisclosure: filtersDisclosure, postJson: postJson, esc: esc, pagination: pagination, busy: busy, runAction: runAction, dirtyForm: dirtyForm, recordPager: recordPager, clearFilters: clearFilters,
