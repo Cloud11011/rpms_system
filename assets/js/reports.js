@@ -53,7 +53,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    let reports = [], listSequence = 0;
+    let reports = [], listSequence = 0, reportLoadError = '';
     const pager = PrismUI.recordPager(document.getElementById('reportTableBody').closest('table').parentElement, document.getElementById('reportCount'), [], loadReports);
 
     async function loadReports() {
@@ -62,10 +62,11 @@ document.addEventListener('DOMContentLoaded', () => {
             const data = await PrismUI.request(`reports_api.php?action=list&page=${pager.page}&perPage=${pager.pageSize}`);
             if (sequence !== listSequence) return;
             reports = data.reports || [];
+            reportLoadError = '';
             pager.render({ ...data, total: data.total ?? reports.length });
         } catch (e) {
             if (sequence !== listSequence) return;
-            reports = []; pager.error();
+            reports = []; reportLoadError = e.message || 'Please try again.'; pager.error();
             PrismUI.toast(e.message, 'error');
         }
         renderReports();
@@ -77,7 +78,10 @@ document.addEventListener('DOMContentLoaded', () => {
         body.replaceChildren();
         if (!reports.length) {
             const tr = document.createElement('tr');
-            tr.innerHTML = '<td colspan="4" class="empty-state">No reports generated yet.</td>';
+            const cell=document.createElement('td');cell.colSpan=4;cell.className='empty-state';
+            if(reportLoadError){const message=document.createElement('p');message.setAttribute('role','alert');message.textContent='Could not load reports. '+reportLoadError;const retry=document.createElement('button');retry.type='button';retry.className='prism-btn';retry.textContent='Retry loading reports';retry.addEventListener('click',()=>PrismUI.runAction(retry,'Loading...',loadReports));cell.append(message,retry);}
+            else cell.textContent='No reports generated yet.';
+            tr.append(cell);
             body.appendChild(tr);
             return;
         }
@@ -124,6 +128,8 @@ document.addEventListener('DOMContentLoaded', () => {
             actions.append(del);
             PrismUI.actionMenu(actions,{label:'Report actions'});
             // View and Download already remain visible beside the contextual menu.
+            const host=document.createElement('td');host.colSpan=4;
+            host.append(PrismUI.reportCard(r,actions));tr.replaceChildren(host);
             body.appendChild(tr);
         });
     }

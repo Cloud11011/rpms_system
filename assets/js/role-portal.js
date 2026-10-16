@@ -548,15 +548,23 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
         list.innerHTML = shownDocs.length ? shownDocs.map(d => {
-            if (d.preview) {
-                const date = new Date(d.uploadedAt).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'});
-                return `<article class="student-document-card pending student-document-preview-card"><div class="student-document-card-main"><div class="student-document-identity"><strong>${esc(d.originalName)} <small class="student-document-preview-label">UI preview · sample only</small></strong><span>${esc(d.documentType)} · ${esc(d.stageLabel)}</span><button type="button" class="student-document-details-toggle" aria-expanded="false"><i class="fa-solid fa-chevron-right" aria-hidden="true"></i> Details &amp; remarks</button></div><div class="student-document-date"><span>Submitted</span><strong>${esc(date)}</strong></div><div class="student-document-state">${PrismUI.badge(d.workflowState,{small:true})}</div><div class="student-document-actions"><span class="action-btn" aria-disabled="true">Preview only</span></div></div><div class="student-document-details" hidden><div><span>Adviser remarks</span><strong>Sample feedback for layout preview.</strong></div><div><span>Version</span><strong>v1</strong></div><div><span>Document ID</span><strong>Sample only</strong></div></div></article>`;
-            }
             const state = d.workflowState || d.reviewStatus || 'Submitted';
             const stateClass = /needs revision/i.test(state) ? 'needs' : /returned/i.test(state) ? 'returned' : /pending|review/i.test(state) ? 'pending' : /submitted to rpms|approved/i.test(state) ? 'submitted' : 'neutral';
-            const remark = d.rpmsReturnReason ? `RPMS return reason: ${d.rpmsReturnReason}` : d.reviewRemarks || (state === 'Submitted to RPMS' ? 'Formally submitted to RPMS' : 'No reviewer remarks yet');
             const date = d.uploadedAt ? new Date(d.uploadedAt).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}) : 'Date unavailable';
-            return `<article class="student-document-card ${stateClass}"><div class="student-document-card-main"><div class="student-document-identity"><strong>${esc(d.originalName)}${Number(d.versionNo || 1) > 1 ? ` <small>v${Number(d.versionNo)}</small>` : ''}</strong><span>${esc(d.documentType)} · ${esc(d.stageLabel || d.stage)}</span><button type="button" class="student-document-details-toggle" aria-expanded="false"><i class="fa-solid fa-chevron-right" aria-hidden="true"></i> Details &amp; remarks</button></div><div class="student-document-date"><span>Submitted</span><strong>${esc(date)}</strong></div><div class="student-document-state">${PrismUI.badge(state,{small:true})}</div><div class="student-document-actions">${PrismUI.documentActionsHtml(d)}<div class="student-document-menu-wrap"><button type="button" class="action-btn student-document-menu-toggle" aria-label="More actions"><i class="fa-solid fa-ellipsis" aria-hidden="true"></i></button><div class="student-document-menu"><button type="button" data-version-history="${esc(d.id)}"><i class="fa-solid fa-clock-rotate-left" aria-hidden="true"></i> Version history</button>${d.actions?.uploadRevision ? `<button type="button" data-upload-revision="${esc(d.id)}"><i class="fa-solid fa-arrow-up-from-bracket" aria-hidden="true"></i> Upload revision</button>` : ''}</div></div></div></div><div class="student-document-details" hidden><div><span>Adviser remarks</span><strong>${esc(remark)}</strong></div><div><span>Version</span><strong>v${Number(d.versionNo || 1)}${Number(d.versionNo || 1)>1 ? ' · Earlier versions kept' : ''}</strong></div><div><span>Document ID</span><strong>${esc(d.id)}</strong></div>${d.rpmsSubmittedAt ? `<div><span>Submitted to RPMS</span><strong>${esc(fmt(d.rpmsSubmittedAt))}</strong></div>` : ''}</div></article>`;
+            const feedback=PrismUI.recordFeedback(d);
+            const detailsId='student-document-details-'+d.id;
+            const remarks=(!feedback||feedback.classList.contains('prism-feedback-indicator'))?`<div><span>Reviewer remarks</span><strong>${esc(d.reviewRemarks||'No reviewer remarks yet')}</strong></div>`:'';
+            return `<article class="student-document-card prism-record-shell ${stateClass}${d.preview?' student-document-preview-card':''}">
+                <div class="student-document-card-main">
+                    <div class="student-document-identity"><strong>${esc(d.originalName)} <small>v${Number(d.versionNo||1)}</small>${d.preview?' <small class="student-document-preview-label">UI preview · sample only</small>':''}</strong><span>${esc(d.documentType)} · ${esc(d.stageLabel||d.stage)}</span></div>
+                    <div class="student-document-date"><span>Submitted</span><strong>${esc(date)}</strong></div>
+                    <div class="student-document-state">${PrismUI.badge(state,{small:true})}</div>
+                    <div class="student-document-actions">${d.preview?'<span class="action-btn" aria-disabled="true">Preview only</span>':`${PrismUI.documentActionsHtml(d)}<div class="student-document-menu-wrap"><button type="button" class="action-btn student-document-menu-toggle" aria-label="More actions"><i class="fa-solid fa-ellipsis" aria-hidden="true"></i></button><div class="student-document-menu"><button type="button" data-version-history="${esc(d.id)}"><i class="fa-solid fa-clock-rotate-left" aria-hidden="true"></i> Version history</button>${d.actions?.uploadRevision?`<button type="button" data-upload-revision="${esc(d.id)}"><i class="fa-solid fa-arrow-up-from-bracket" aria-hidden="true"></i> Upload revision</button>`:''}</div></div>`}</div>
+                </div>
+                ${feedback?feedback.outerHTML:''}
+                <button type="button" class="student-document-details-toggle" aria-expanded="false" aria-controls="${esc(detailsId)}"><span>Show More Details</span><i class="fa-solid fa-chevron-down" aria-hidden="true"></i></button>
+                <div class="student-document-details prism-details-grid" id="${esc(detailsId)}" hidden>${remarks}<div><span>Document ID</span><strong>${esc(d.preview?'Sample only':d.id)}</strong></div>${d.rpmsSubmittedAt?`<div><span>Submitted to RPMS</span><strong>${esc(fmt(d.rpmsSubmittedAt))}</strong></div>`:''}</div>
+            </article>`;
         }).join('') : `<div class="student-documents-empty"><span><i class="fa-regular fa-file" aria-hidden="true"></i></span><strong>${filter ? 'No documents match this view' : "You haven't uploaded anything yet"}</strong><p>${filter ? 'Try a different status or clear your search.' : 'Upload your first requirement. Your adviser will review it, and the status will show here.'}</p></div>`;
     }
 
@@ -854,6 +862,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const details = card.querySelector('.student-document-details');
             details.hidden = !details.hidden;
             detailToggle.setAttribute('aria-expanded', String(!details.hidden));
+            detailToggle.querySelector('span').textContent=details.hidden?'Show More Details':'Hide Details';
             detailToggle.classList.toggle('is-open', !details.hidden);
             return;
         }

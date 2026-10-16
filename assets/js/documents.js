@@ -135,79 +135,27 @@ function renderTable(){
             PrismUI.actionMenu(actionHost,{primary:adviserViewAction,label:'Document actions'});
         }
         body.appendChild(tr);
-        PrismUI.compactRecord(tr,0,4,5,[['Adviser review decision',d.reviewStatus],['Version',d.versionNo],['Protocol',d.protocolCode],['Reviewer remarks',d.reviewRemarks],['RPMS return reason',d.rpmsReturnReason],['RPMS submission',d.rpmsSubmittedAt||'Not submitted']], [3]);
+        PrismUI.compactRecord(tr,0,4,5,[],[2,3]);
         const card=tr.querySelector('.prism-record-card');
-        if(card){
-            card.classList.add('document-result-card');
-            const category=document.createElement('div');category.className='document-result-category';
-            category.innerHTML=`<small class="document-result-label">Category</small><span>${esc(d.documentType)}</span><small>${esc(d.stageLabel||d.stage)}</small>`;
-            const statusTarget=card.querySelector('.prism-record-status');
-            if(statusTarget?.parentElement===card)card.insertBefore(category,statusTarget);else card.append(category);
-            card.querySelector('.doc-category > span:first-child')?.remove();
-            const label=document.createElement('small');label.className='document-result-label';label.textContent='Status';card.querySelector('.prism-record-status').prepend(label);
-            const metadata=document.createElement('small');metadata.className='document-upload-caption';metadata.textContent='Uploaded by '+d.uploadedBy+' · '+date(d.uploadedAt);card.querySelector('.prism-record-primary').append(metadata);
-            const view=card.querySelector('.prism-context-action');if(view)view.textContent='View file';
-            if(currentRole==='adviser'){
-                card.classList.add('adviser-document-result-card');
-                view?.remove();
-                if(adviserViewAction){adviserViewAction.classList.add('prism-btn','adviser-document-view-icon');adviserViewAction.setAttribute('aria-label','View '+(d.originalName||'document'));adviserViewAction.title='View document';}
-                if(adviserDownloadAction){adviserDownloadAction.classList.add('prism-btn','adviser-document-download-icon');adviserDownloadAction.setAttribute('aria-label','Download '+(d.originalName||'document'));adviserDownloadAction.title='Download document';}
-                const fileCell=card.querySelector('.file-cell');
-                const fileCopy=fileCell?.querySelector(':scope > div');
-                const filename=fileCopy?.querySelector('strong');
-                const uploadCaption=fileCopy?.querySelector('span');
-                const student=String(d.student||'Student not recorded');
-                if(fileCell){
-                    const fileMark=fileCell.querySelector(':scope > i');
-                    fileMark?.classList.add('document-file-avatar');
-                    fileMark?.setAttribute('aria-hidden','true');
-                }
-                if(filename)filename.textContent=d.originalName||'Untitled document';
-                if(uploadCaption)uploadCaption.textContent=`${student} · ${d.documentType||'Document'} · ${d.stageLabel||d.stage||'Stage not recorded'}`;
-                card.querySelector('.prism-record-primary > .document-upload-caption')?.remove();
-                const previewNote=tr.querySelector('.document-preview-label');
-                if(previewNote)uploadCaption?.insertAdjacentElement('afterend',previewNote);
-                card.querySelector('.prism-record-summary')?.remove();
-                card.querySelector('.document-result-category')?.remove();
-                card.querySelector('.prism-record-status > .document-result-label')?.remove();
-                const statusBox=card.querySelector('.prism-record-status');
-                const dateLine=document.createElement('time');dateLine.className='document-review-date';dateLine.textContent=date(d.uploadedAt);statusBox?.append(dateLine);
-                if(statusBox){
-                    statusBox.setAttribute('aria-label','Document status and submission date');
-                }
-                card.querySelector('.doc-category > small')?.remove();
-                const details=card.querySelector('.prism-record-details');
-                const detailsSummary=details?.querySelector('summary');
-                const detailList=details?.querySelector('dl');
-                if(detailsSummary){
-                    detailsSummary.replaceChildren();
-                    const label=document.createElement('span');label.textContent='Show details & remarks';
-                    const chevron=document.createElement('i');chevron.className='fa-solid fa-chevron-down';chevron.setAttribute('aria-hidden','true');
-                    detailsSummary.append(label,chevron);
-                    details.addEventListener('toggle',()=>{label.textContent=details.open?'Hide details & remarks':'Show details & remarks';});
-                }
-                if(detailList){
-                    detailList.replaceChildren();
-                    const addDetail=(label,value)=>{const item=document.createElement('div'),term=document.createElement('dt'),description=document.createElement('dd');term.textContent=label;description.textContent=value==null||value===''?'Not recorded':String(value);item.append(term,description);detailList.append(item);};
-                    addDetail('Student',student);addDetail('Submission date',date(d.uploadedAt));addDetail('Document type',d.documentType);addDetail('Stage',d.stageLabel||d.stage);addDetail('Version',d.versionNo);addDetail('Review status',d.workflowState||d.reviewStatus);addDetail('RPMS submission',d.rpmsSubmittedAt?`Submitted · ${date(d.rpmsSubmittedAt)}`:'Not submitted to RPMS');addDetail('Adviser review decision',d.reviewStatus||'Under Review');
-                    const remarks=document.createElement('p');remarks.className='document-review-remarks';
-                    const remarksLabel=document.createElement('strong');remarksLabel.textContent='Reviewer remarks · ';
-                    remarks.append(remarksLabel,document.createTextNode(d.reviewRemarks||'No reviewer remarks yet.'));details.append(remarks);
-                }
-                if(d.preview){
-                    const actions=card.querySelector('.prism-record-actions');
-                    const sample=actions?.querySelector('.document-preview-only');
-                    if(sample){const viewButton=document.createElement('button');viewButton.type='button';viewButton.disabled=true;viewButton.className='prism-btn prism-context-action adviser-document-view-icon';viewButton.setAttribute('aria-label','Preview unavailable for sample document');viewButton.title='Preview unavailable for sample document';const eye=document.createElement('i');eye.className='fa-regular fa-eye';eye.setAttribute('aria-hidden','true');viewButton.append(eye);sample.replaceWith(viewButton);}
-                    const menuButton=document.createElement('button');menuButton.type='button';menuButton.disabled=true;menuButton.className='document-preview-menu';menuButton.setAttribute('aria-label','Sample actions unavailable');menuButton.textContent='...';actions?.append(menuButton);
-                    const downloadButton=document.createElement('button');downloadButton.type='button';downloadButton.disabled=true;downloadButton.className='prism-btn adviser-document-download-icon';downloadButton.setAttribute('aria-label','Download unavailable for sample document');downloadButton.title='Download unavailable for sample document';const downloadIcon=document.createElement('i');downloadIcon.className='fa-solid fa-download';downloadIcon.setAttribute('aria-hidden','true');downloadButton.append(downloadIcon);if(actions){const previewMenu=actions.querySelector('.document-preview-menu');if(previewMenu?.parentElement===actions)actions.insertBefore(downloadButton,previewMenu);else actions.append(downloadButton);}
-                } else {
-                    const actions=card.querySelector('.prism-record-actions');
-                    const view=actions?.querySelector('.prism-context-action');
-                    if(view){view.classList.add('adviser-document-view-icon');view.replaceChildren();const eye=document.createElement('i');eye.className='fa-regular fa-eye';eye.setAttribute('aria-hidden','true');view.append(eye);view.setAttribute('aria-label','View '+(d.originalName||'document'));view.title='View document';}
-                    if(adviserDownloadAction){adviserDownloadAction.classList.add('adviser-document-download-icon');adviserDownloadAction.setAttribute('aria-label','Download '+(d.originalName||'document'));adviserDownloadAction.title='Download document';}
-                }
-            }
-        }
+        card.classList.add('document-result-card');
+        if(currentRole==='adviser')card.classList.add('adviser-document-result-card');
+        const fileCell=card.querySelector('.file-cell');
+        fileCell?.querySelector(':scope > i')?.classList.add('document-file-avatar');
+        fileCell?.querySelector(':scope > i')?.setAttribute('aria-hidden','true');
+        const caption=fileCell?.querySelector(':scope > div > span');
+        if(caption)caption.textContent=`${d.documentType||'Document'} · ${d.stageLabel||d.stage||'Stage not recorded'} · Version v${Number(d.versionNo||1)}`;
+        card.querySelector('.doc-category > span:first-child')?.remove();
+        card.querySelector('.doc-category > small')?.remove();
+        const summaryFields=card.querySelectorAll('.prism-record-summary > div');
+        summaryFields[0].querySelector('dt').textContent='Submitted';
+        summaryFields[1].querySelector('dt').textContent='Student';
+        summaryFields[1].querySelector('dd').textContent=d.student||'Not recorded';
+        const statusLabel=document.createElement('span');statusLabel.className='prism-record-label';statusLabel.textContent='Document status';card.querySelector('.prism-record-status').prepend(statusLabel);
+        const details=card.querySelector('.prism-record-details'),fields=details.querySelector('dl');
+        fields.replaceChildren(...[['Uploaded by',d.uploadedBy],['File size',size(d.size)],['Program',d.course],['Protocol code',d.protocolCode],['RPMS submission',d.rpmsSubmittedAt?date(d.rpmsSubmittedAt):'Not submitted to RPMS']].map(([label,value])=>PrismUI.recordField(label,value)));
+        if(d.reviewStatus&&d.reviewStatus!==d.workflowState)fields.append(PrismUI.recordField('Adviser review decision',d.reviewStatus));
+        const feedback=PrismUI.recordFeedback(d);
+        if(feedback){card.insertBefore(feedback,details);if(feedback.classList.contains('prism-feedback-indicator'))fields.append(PrismUI.recordField('Reviewer remarks',d.reviewRemarks));}
     });
     body.querySelectorAll('.prism-document-action').forEach(control=>PrismUI.documentAction(control,control.dataset.documentAction,control.getAttribute('aria-label')));
     bindSummaryButtons(body);

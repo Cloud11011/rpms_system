@@ -38,20 +38,11 @@ document.addEventListener('DOMContentLoaded', () => {
                 return;
             }
             items.forEach(item => {
-                const card = document.createElement('article');
-                card.className = 'history-item report-history-link';
-                const reportType = document.createElement('strong');
-                reportType.textContent = item.type;
-                const reportMeta = document.createElement('small');
-                const rawDate = String(item.generated_at || '');
-                const generatedAt = new Date(rawDate.replace(' ', 'T'));
-                const when = Number.isNaN(generatedAt.getTime()) ? (rawDate || 'Date unavailable') : generatedAt.toLocaleString('en-PH');
-                reportMeta.textContent = when + ' \u2022 by ' + (item.generated_by || 'Unknown author');
-                const identity=document.createElement('div');identity.append(reportType,reportMeta);
                 const actions=document.createElement('span');actions.className='prism-document-quick-actions';
                 if(item.requiresRegeneration){const regenerate=document.createElement('a');regenerate.href='reports.php';regenerate.textContent='Regenerate with Student IDs';actions.append(regenerate);}
                 else {const view=document.createElement('a');view.href='reports_api.php?action=file&id='+encodeURIComponent(item.id);view.target='_blank';view.rel='noopener noreferrer';const download=document.createElement('a');download.href='reports_api.php?action=file&download=1&id='+encodeURIComponent(item.id);PrismUI.documentAction(view,'view','View report');PrismUI.documentAction(download,'download','Download report');actions.append(view,download);}
-                card.append(identity,actions);
+                const card=PrismUI.reportCard(item,actions);
+                card.classList.add('history-item','report-history-link');
                 list.appendChild(card);
             });
         } catch (e) {

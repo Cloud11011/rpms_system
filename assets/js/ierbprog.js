@@ -207,7 +207,6 @@
                 <td>${PrismUI.badge(record.status)}</td>
                 <td class="row-actions"></td>`;
             tr.className = `ierb-progress-row ${statusClass}`;
-            PrismAcademicFields.appendSummary(tr.cells[0], record);
             const actions = tr.querySelector('.row-actions');
 
             const noteBtn = document.createElement('button');
@@ -246,32 +245,9 @@
                 PrismUI.actionMenu(actions);
             }
             tableBody.appendChild(tr);
-            PrismUI.compactRecord(tr,0,5,6,[],[1,2,3,4]);
-            const card = tr.querySelector('.prism-record-card');
+            const card = PrismUI.compactProgressRecord(tr,record,0,5,6,[1,2,3,4],STAGES);
             if (card) {
-                card.classList.add('ierb-progress-card', 'prism-progress-record', statusClass);
-                const statusLabel=document.createElement('span');statusLabel.className='ierb-field-label';statusLabel.textContent='Workflow status';
-                card.querySelector('.prism-record-status').prepend(statusLabel);
-                const fields=card.querySelectorAll('.ierb-progress-field, .prism-record-summary > div');
-                const detailsSummary=card.querySelector('.prism-record-details > summary');
-                if(detailsSummary) detailsSummary.textContent='Show academic details';
-                if(fields[0]) {
-                    const stageSteps=document.createElement('span');
-                    stageSteps.className='ierb-stage-steps';
-                    stageSteps.setAttribute('aria-hidden','true');
-                    const stageIndex=STAGES.indexOf(record.stage);
-                    STAGES.forEach((stage,index)=>{
-                        const step=document.createElement('i');
-                        if(stageIndex>=0 && index<=stageIndex) step.classList.add('is-complete');
-                        stageSteps.append(step);
-                    });
-                    fields[0].append(stageSteps);
-                    if (fields[1]) {
-                        const progress=fields[1].querySelector('.ierb-card-progress');
-                        if (progress) fields[0].querySelector('dd').append(progress);
-                        fields[1].remove();
-                    }
-                }
+                card.classList.add('ierb-progress-card', statusClass);
                 if(isAdmin) {
                     const docs=document.createElement('a');docs.href='documents.php';docs.className='prism-btn ierb-open-documents';PrismUI.documentAction(docs,'view','Open Documents');
                     card.querySelector('.prism-record-actions').prepend(docs);

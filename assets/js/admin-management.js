@@ -477,12 +477,11 @@
                 const summary=document.createElement('summary');summary.textContent='Show academic details';details.append(summary);
                 const academicGrid=document.createElement('div');academicGrid.className='student-academic-details-grid';
                 if(academic)academicGrid.append(academic);
-                academicGrid.append(block('Assigned adviser',escapeHtml(record.adviserName||'Unassigned')));
+                academicGrid.append(block('Research title',escapeHtml(record.research||'Not recorded')),block('Protocol code',escapeHtml(record.protocolCode||'Not recorded')),block('Principal Investigator',record.isPrincipalInvestigator?'Yes':'No'));
                 details.append(academicGrid);
-                details.addEventListener('toggle',()=>{summary.textContent=details.open?'Hide academic details':'Show academic details';});
         const toolbar=document.createElement('div');toolbar.className='student-result-actions';
                 actionItems.forEach(item=>{item.classList.add('student-profile-action');if(item.title?.startsWith('Edit ')){item.innerHTML='<i class="fa-solid fa-pen" aria-hidden="true"></i>';item.title='Edit student profile';item.setAttribute('aria-label','Edit student profile');item.classList.add('student-profile-edit');}toolbar.append(item);});
-                card.append(identity,block('Research / Group',`<strong>${escapeHtml(record.research||'Not set')}</strong><small>${escapeHtml(record.group||'No group')}</small>`),block('IERB status',cells[4].querySelector('.prism-pill-row')?.outerHTML||'Complete profile first'),block('Protocol / PI',cells[4].querySelector('.student-protocol-meta')?.innerHTML||'Not yet assigned'),toolbar,details);
+                card.append(identity,block('Research group',escapeHtml(record.group||'No group')),block('IERB status',cells[4].querySelector('.prism-pill-row')?.outerHTML||'Complete profile first'),block('Assigned adviser',escapeHtml(record.adviserName||'Unassigned')),toolbar,details);
                 const host=document.createElement('td');host.colSpan=tr.cells.length;
                 const selection=tr.querySelector('.retention-select');if(selection){const wrapper=document.createElement('span');wrapper.className='retention-select';wrapper.hidden=selection.hidden;while(selection.firstChild)wrapper.append(selection.firstChild);identity.prepend(wrapper);}
                 host.append(card);tr.replaceChildren(host);
@@ -491,7 +490,7 @@
                 const lc=record.lifecycle || {};
                 const card=document.createElement('article');card.className='student-result-card archive-result-card';
                 const identity=document.createElement('div');identity.className='student-name-layout';
-                const avatar=document.createElement('span');avatar.className='student-avatar';avatar.setAttribute('aria-hidden','true');avatar.textContent=String(record.name|| (isAdviser?'A':'S')).split(/\s+/).filter(Boolean).slice(0,2).map(part=>part[0]).join('').toUpperCase();
+                const avatar=document.createElement('span');avatar.className='student-avatar';avatar.setAttribute('aria-hidden','true');avatar.textContent=PrismUI.recordInitials(record.name,isAdviser?'Adviser':'Student');
                 const copy=document.createElement('div');copy.className='student-name-copy';
                 const name=document.createElement('strong');name.textContent=record.name || 'Profile incomplete';copy.append(name);
                 [record.studentId || record.employeeId || 'ID not recorded',record.email || 'Email not recorded'].forEach(value=>{const line=document.createElement('small');line.textContent=value;copy.append(line);});
@@ -499,23 +498,25 @@
                 identity.append(avatar,copy);
                 const block=(label,value)=>{const field=document.createElement('div');const heading=document.createElement('small');heading.className='student-result-label';heading.textContent=label;const content=document.createElement('div');content.textContent=value || 'Not recorded';field.append(heading,content);return field;};
                 const research=document.createElement('div');research.className='archive-record-fields';
-                research.append(block(isAdviser?'Assigned groups':'Research / Group',isAdviser?(record.groups||[]).join(', ') || 'No current assigned groups':[record.research,record.group].filter(Boolean).join(' / ') || 'No group'));
-                if(!isAdviser)research.append(block('Assigned adviser',record.adviserName || 'Unassigned'));
+                research.append(block('Account type',accountLabel));
+                const deletionReason=!deletionAvailability.available?deletionAvailability.message:lc.purgeBlockReason||'Eligible for permanent deletion';
+                research.append(block('Permanent deletion',deletionReason));
                 const metadata=document.createElement('div');metadata.className='archive-record-fields';
                 metadata.insertAdjacentHTML('beforeend',PrismUI.badge('Archived'));
-                metadata.append(block('Archived date',record.archivedAt),block('Retention date',lc.retentionAt));
+                metadata.append(block('Archived date',record.archivedAt));
                 if(lc.retentionHold)metadata.insertAdjacentHTML('beforeend',PrismUI.badge('Retention Hold'));
+                else metadata.append(block('Retention status',lc.unresolvedWorkflow?'Unresolved workflow':lc.cleanupEligible?'Eligible for retention cleanup':lc.approachingRetention?'Approaching retention cleanup':'Archived'));
+                if(lc.holdReason)metadata.append(block('Hold reason',lc.holdReason));
                 const details=document.createElement('details');details.className='student-result-details';
                 const summary=document.createElement('summary');summary.textContent='Show details & remarks';
                 const fields=document.createElement('div');fields.className='student-academic-details-grid';
-                fields.append(block(isAdviser?'Department':'Course',record.department || record.course));
-                const academic=tr.querySelector('.academic-record-summary');if(academic)fields.append(academic);
+                fields.append(block(isAdviser?'Assigned groups':'Research / Group',isAdviser?(record.groups||[]).join(', ')||'No current assigned groups':[record.research,record.group].filter(Boolean).join(' / ')||'No group'));
+                if(!isAdviser)fields.append(block('Previous adviser',record.adviserName||'Unassigned'));
+                const academic=tr.querySelector('.academic-record-summary');
+                if(academic)fields.append(academic);else fields.append(block(isAdviser?'Department':'Program',record.department || record.course));
                 if(!isAdviser)fields.append(block('Pending requirements',record.requirements || 'None'));
-                fields.append(block('Retention status',lc.retentionHold?'Retention Hold':lc.unresolvedWorkflow?'Unresolved workflow':lc.cleanupEligible?'Eligible for retention cleanup':lc.approachingRetention?'Approaching retention cleanup':'Archived'));
-                if(lc.holdReason)fields.append(block('Hold reason',lc.holdReason));
-                // The shared availability notice explains deployment restrictions once.
-                if(deletionAvailability.available)fields.append(block('Permanent deletion',lc.purgeBlockReason || 'Eligible for permanent deletion'));
-                details.append(summary,fields);details.addEventListener('toggle',()=>{summary.textContent=details.open?'Hide details & remarks':'Show details & remarks';});
+                fields.append(block('Retention date',lc.retentionAt));
+                details.append(summary,fields);
                 const toolbar=document.createElement('div');toolbar.className='student-result-actions';
                 const restore=actions.querySelector('[title="Restore '+accountLabel+'"]');if(restore){restore.classList.remove('prism-action-item');restore.innerHTML='<i class="fa-solid fa-rotate-left" aria-hidden="true"></i>';restore.dataset.prismTooltip='';toolbar.append(restore);}
                 while(actions.firstChild)toolbar.append(actions.firstChild);
@@ -526,19 +527,22 @@
                 const cells=[...tr.cells].filter(cell=>!cell.classList.contains('retention-select'));
                 const card=document.createElement('article');card.className='student-result-card adviser-result-card';
                 const identity=document.createElement('div');identity.className='student-name-layout';
-                const avatar=document.createElement('span');avatar.className='student-avatar';avatar.setAttribute('aria-hidden','true');avatar.textContent=String(record.name||'A').split(/\s+/).filter(Boolean).slice(0,2).map(part=>part[0]).join('').toUpperCase();
+                const avatar=document.createElement('span');avatar.className='student-avatar';avatar.setAttribute('aria-hidden','true');avatar.textContent=PrismUI.recordInitials(record.name,'Adviser');
                 const copy=document.createElement('div');copy.className='student-name-copy';while(cells[0].firstChild)copy.append(cells[0].firstChild);identity.append(avatar,copy);
                 const block=(label,cell)=>{const div=document.createElement('div');const heading=document.createElement('small');heading.className='student-result-label';heading.textContent=label;div.append(heading);while(cell.firstChild)div.append(cell.firstChild);return div;};
-                const details=document.createElement('details');details.className='student-result-details';const summary=document.createElement('summary');summary.textContent='Show details & remarks';details.append(summary,block('Department',cells[2]));
+                const details=document.createElement('details');details.className='student-result-details';const summary=document.createElement('summary');const detailGrid=document.createElement('div');detailGrid.className='student-academic-details-grid';detailGrid.append(block('Department',cells[2]),block('Assigned research groups',cells[3]));details.append(summary,detailGrid);
                 const toolbar=document.createElement('div');toolbar.className='student-result-actions';const menu=tr.querySelector('.prism-action-menu');if(menu)toolbar.append(menu);
                 const selection=tr.querySelector('.retention-select');if(selection){const wrapper=document.createElement('span');wrapper.className='retention-select';wrapper.hidden=selection.hidden;while(selection.firstChild)wrapper.append(selection.firstChild);identity.prepend(wrapper);}
-                card.append(identity,block('Employee ID',cells[1]),block('Assigned groups',cells[3]),block('Account status',cells[4]),toolbar,details);
+                const assignment=document.createElement('div');assignment.textContent=(record.groups||[]).length+' assigned group'+((record.groups||[]).length===1?'':'s');
+                card.append(identity,block('Employee ID',cells[1]),block('Assignments',assignment),block('Account status',cells[4]),toolbar,details);
                 const host=document.createElement('td');host.colSpan=tr.cells.length;host.append(card);tr.replaceChildren(host);
             } else {
                 PrismUI.compactRecord(tr,retentionUI?1:0,archiveWorkspace?(retentionUI?6:5):(retentionUI?5:4),tr.cells.length-1,
                     isAdviser ? [] : [['Group identifier',record.group],['Pending requirements',record.requirements],['Principal Investigator',record.isPrincipalInvestigator?'Yes':'No']],
                     (archiveWorkspace?[1,3,4]:isAdviser?[1,3]:[2,5]).map(index=>index+(retentionUI?1:0)));
             }
+            const recordCard=tr.querySelector('article');
+            if(recordCard){recordCard.classList.add('prism-record-shell');recordCard.querySelectorAll('details').forEach(PrismUI.recordDetails);recordCard.querySelectorAll('.student-academic-details-grid').forEach(grid=>grid.classList.add('prism-details-grid'));}
         });
     }
 

@@ -986,15 +986,75 @@
   }
 
   // Shared progress identity uses the same avatar/name/label hierarchy as management cards.
+  function recordInitials(name, fallback='Student') {
+    const parts=String(name||fallback).trim().split(/\s+/).filter(Boolean);
+    return (Array.from(parts[0]||fallback)[0]+(parts.length>1?Array.from(parts[parts.length-1])[0]:'')).toLocaleUpperCase();
+  }
+
   function progressIdentityHtml(record) {
     const name = record.name || 'Student name unavailable';
-    const initials = String(record.name || 'Student').trim().split(/\s+/).slice(0,2).map(part=>part.charAt(0)).join('').toUpperCase();
-    const field = (label, value) => '<div><dt>'+label+'</dt><dd>'+esc(value)+'</dd></div>';
-    return '<div class="ierb-card-identity"><span class="ierb-field-label">Student</span><div class="ierb-student-head"><span class="ierb-student-avatar" aria-hidden="true">'+esc(initials)+'</span><strong class="ierb-student-name">'+esc(name)+'</strong></div><dl class="ierb-identity-fields">'
-      + field('Student ID', record.studentId || 'Not recorded') + field('Program', record.course || 'Not recorded')
-      + field('Research Title', record.research || 'Research title not set')
-      + (record.protocolCode ? field('Protocol code', record.protocolCode) : '')
-      + (record.groupId ? field('Research group', record.groupId) : '') + '</dl></div>';
+    const initials = recordInitials(record.name);
+    return '<div class="ierb-card-identity"><span class="ierb-field-label">Student</span><div class="ierb-student-head"><span class="ierb-student-avatar" aria-hidden="true">'+esc(initials)+'</span><div><strong class="ierb-student-name">'+esc(name)+'</strong>'
+      + (record.protocolCode ? '<small class="ierb-protocol-code">Protocol code: '+esc(record.protocolCode)+'</small>' : '') + '</div></div></div>';
+  }
+
+  function recordField(label, value) {
+    const field=document.createElement('div'),term=document.createElement('dt'),content=document.createElement('dd');
+    term.textContent=label;content.textContent=value==null||String(value).trim()===''?'Not recorded':String(value);
+    field.append(term,content);return field;
+  }
+
+  // Keep native details/summary keyboard semantics and each renderer's record association.
+  function recordDetails(details) {
+    if(!details || details.dataset.prismDetails) return;
+    details.dataset.prismDetails='true';details.classList.add('prism-details');
+    const summary=details.querySelector(':scope > summary');
+    const label=document.createElement('span'),chevron=document.createElement('i');
+    chevron.className='fa-solid fa-chevron-down';chevron.setAttribute('aria-hidden','true');summary.replaceChildren(label,chevron);
+    const update=()=>{label.textContent=details.open?'Hide Details':'Show More Details';summary.setAttribute('aria-expanded',String(details.open));};
+    details.addEventListener('toggle',update);update();
+  }
+
+  function recordFeedback(record) {
+    const remarks=record.reviewRemarks||'', reason=record.rpmsReturnReason||'';
+    if(!remarks&&!reason)return null;
+    const actionable=!!reason||/revision|resubmission|returned|denied/i.test(record.workflowState||record.reviewStatus||'');
+    const note=document.createElement('p');note.className=actionable?'prism-record-feedback':'prism-feedback-indicator';
+    note.textContent=actionable?'Required revision / reviewer feedback: '+[...new Set([reason,remarks].filter(Boolean))].join(' · '):'Reviewer feedback available in details';
+    return note;
+  }
+
+  function compactProgressRecord(row, record, primaryIndex, statusIndex, actionsIndex, summaryIndices, stages=[]) {
+    compactRecord(row,primaryIndex,statusIndex,actionsIndex,[],summaryIndices);
+    const card=row.querySelector('.prism-record-card');card.classList.add('prism-progress-record');
+    const summary=card.querySelector('.prism-record-summary'),fields=[...summary.children],stage=fields[0];
+    stage.querySelector('dt').textContent='Current IERB Stage';
+    const progress=summary.querySelector('.ierb-card-progress'),progressField=progress.closest('.prism-record-summary > div');
+    stage.querySelector('dd').append(progress);progressField.remove();
+    const requirements=fields.find(field=>field!==stage&&field!==progressField);
+    requirements.querySelector('dt').textContent='Pending Requirements';
+    const date=fields.find(field=>field!==stage&&field!==progressField&&field!==requirements);
+    if(date){date.querySelector('dt').textContent='Last Submission';date.querySelector('dd').textContent=record.lastSubmissionDate||'Not recorded';}
+    else summary.append(recordField('Last Submission',record.lastSubmissionDate));
+    const statusLabel=document.createElement('span');statusLabel.className='ierb-field-label';statusLabel.textContent='Workflow Status';card.querySelector('.prism-record-status').prepend(statusLabel);
+    const details=card.querySelector('.prism-record-details'),list=details.querySelector('dl');list.classList.add('prism-details-grid');
+    const unit=root.PRISM_ACADEMIC_CATALOG?.units?.[record.academicUnitKey]?.label||record.academicUnitKey;
+    list.replaceChildren(...[['Student ID',record.studentId],['Program',record.course],['Research Title',record.research],['Research group',record.groupId||record.group],['Academic Unit',unit],['Year Level',record.yearLevel],['Academic Year',record.academicYear],['Principal Investigator',record.isPrincipalInvestigator==null?'Not recorded':record.isPrincipalInvestigator?'Yes':'No']].map(([label,value])=>recordField(label,value)));
+    // This is the distinct stage journey, not a second Overall Progress metric.
+    if(stages.length){const sequence=document.createElement('div'),label=document.createElement('span'),steps=document.createElement('ol');sequence.className='ierb-stage-sequence';label.className='ierb-field-label';label.textContent='IERB stage sequence';steps.setAttribute('aria-label','IERB stage sequence');const current=stages.indexOf(record.stage);stages.forEach((name,index)=>{const step=document.createElement('li');step.textContent=name;if(index===current)step.setAttribute('aria-current','step');if(current>=0&&index<=current)step.className='is-complete';steps.append(step);});sequence.append(label,steps);details.append(sequence);}
+    return card;
+  }
+
+  function reportCard(report, actions) {
+    const card=document.createElement('article');card.className='prism-record-shell report-result-card';
+    const identity=document.createElement('div');identity.className='prism-record-primary';
+    const title=document.createElement('strong'),type=document.createElement('small');title.textContent=report.title||report.type||'Untitled report';type.textContent=report.type||'Report';identity.append(title,type);
+    const raw=String(report.generated_at||''),parsed=new Date(raw.replace(' ','T'));
+    const summary=document.createElement('dl');summary.className='prism-record-summary';summary.append(recordField('Generated',Number.isNaN(parsed.getTime())?raw||'Not recorded':parsed.toLocaleString('en-PH')));
+    const status=document.createElement('div');status.className='prism-record-status';const label=document.createElement('span');label.className='prism-record-label';label.textContent='Report status';status.append(label,badgeElement(report.requiresRegeneration?'Regeneration required':'Generated'));
+    actions.classList.add('prism-record-actions');
+    const details=document.createElement('details');details.className='prism-record-details';details.append(document.createElement('summary'));const fields=document.createElement('dl');fields.className='prism-details-grid';fields.append(recordField('Generated by',report.generated_by),recordField('Report ID',report.id));details.append(fields);recordDetails(details);
+    card.append(identity,summary,status,actions,details);return card;
   }
 
   // Compact presentation reuses the original nodes and bound Actions handlers.
@@ -1005,7 +1065,7 @@
     const labels = [...table.querySelectorAll('thead th')].map(cell => cell.textContent.trim());
     table.classList.add('prism-compact-table');
     const host = document.createElement('td'); host.colSpan = cells.length;
-    const card = document.createElement('article'); card.className = 'prism-record-card';
+    const card = document.createElement('article'); card.className = 'prism-record-card prism-record-shell';
     const primary = document.createElement('div'); primary.className = 'prism-record-primary';
     const status = document.createElement('div'); status.className = 'prism-record-status';
     const actions = document.createElement('div'); actions.className = 'prism-record-actions';
@@ -1026,6 +1086,7 @@
     [...primary.querySelectorAll('.academic-record-summary,.adviser-document-meta,.adviser-document-remarks'),...metadata.querySelectorAll('.academic-record-summary')].forEach(content => {const field=document.createElement('div');field.append(content);fields.append(field);});
     extra.forEach(([label,value]) => { const field=document.createElement('div'),term=document.createElement('dt'),content=document.createElement('dd');term.textContent=label;content.textContent=value==null||value===''?'Not recorded':String(value);field.append(term,content);fields.append(field); });
     details.append(summary,fields);
+    fields.classList.add('prism-details-grid');recordDetails(details);
     const review=actions.querySelector('[data-review-id],[data-review]');
     const file=actions.querySelector('a[href*="documents_api.php?action=file"]:not([href*="download=1"])');
     if(review && !actions.querySelector('.prism-document-action')){const contextual=document.createElement(review?'button':'a');contextual.className='prism-btn prism-context-action';
@@ -1069,6 +1130,7 @@
   const api = {
     badge: badge, badgeElement: badgeElement, docMini: docMini, emptyState: emptyState, tip: tip, toast: toast,
     documentAction: documentAction, documentActionsHtml: documentActionsHtml, progressIdentityHtml: progressIdentityHtml,
+    recordField: recordField, recordDetails: recordDetails, recordFeedback: recordFeedback, recordInitials: recordInitials, compactProgressRecord: compactProgressRecord, reportCard: reportCard,
     documentTypes: DOCUMENT_TYPES, actionMenu: actionMenu, compactRecord: compactRecord, statusPills: statusPills,
     actionOrigin: control => control?.closest('.prism-action-menu')?.querySelector('.prism-action-trigger') || control,
     confirm: confirmDialog, request: request, handleSessionExpiry: handleSessionExpiry, debounce: debounce, recordFilters: recordFilters, filtersDisclosure: filtersDisclosure, postJson: postJson, esc: esc, pagination: pagination, busy: busy, runAction: runAction, dirtyForm: dirtyForm, recordPager: recordPager, clearFilters: clearFilters,

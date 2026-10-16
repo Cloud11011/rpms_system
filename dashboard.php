@@ -438,22 +438,9 @@ function renderIerbMonitor() {
         row.querySelector('[data-monitor-action="override"]').addEventListener('click', e => PrismUI.runAction(e.currentTarget,'Processing...',async () => { if (await PrismUI.overrideStudent(record)) { await loadMonitorStudents(); renderIerbMonitor(); } }));
         PrismUI.actionMenu(row.cells[7],{primary:row.querySelector('[data-monitor-action="documents"]')});
         progressTableBody.appendChild(row);
-        PrismUI.compactRecord(row,2,6,7,[],[3,4,5]);
-        const card = row.querySelector('.prism-record-card');
+        const card = PrismUI.compactProgressRecord(row,record,2,6,7,[3,4,5]);
         if (card) {
-            card.classList.add('ierb-monitor-card', 'prism-progress-record', statusClass);
-            const statusLabel=document.createElement('span');statusLabel.className='ierb-field-label';statusLabel.textContent='Workflow status';
-            card.querySelector('.prism-record-status').prepend(statusLabel);
-            const fields=card.querySelectorAll('.prism-record-summary > div');
-            if(fields[0]) fields[0].querySelector('dt').textContent='Current Stage';
-            const progressField=fields[2];
-            if(fields[0] && progressField){fields[0].querySelector('dd').append(progressField.querySelector('.ierb-card-progress'));progressField.remove();}
-            const lastSubmission=document.createElement('div');
-            const dateLabel=document.createElement('dt');dateLabel.textContent='Last Submission';
-            const dateValue=document.createElement('dd');dateValue.textContent=record.lastSubmissionDate || 'N/A';
-            lastSubmission.append(dateLabel,dateValue);card.querySelector('.prism-record-summary').append(lastSubmission);
-            // Identifiers and Program are already labelled in the shared identity block.
-            card.querySelector('.prism-record-details').remove();
+            card.classList.add('ierb-monitor-card', statusClass);
             const documents=card.querySelector('[data-monitor-action="documents"]');
             if(documents) PrismUI.documentAction(documents,'view','Open Documents');
         }
