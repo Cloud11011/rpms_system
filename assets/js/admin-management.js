@@ -124,6 +124,13 @@
             if(studentProfileSteps) studentProfileSteps.current=index;
         }
         studentProfileSteps={wizard,nav,steps,select:selectProfileStep,current:0};
+        // Native validation runs before submit; reveal its first invalid field's panel.
+        form.addEventListener('invalid', event => {
+            const firstInvalid = [...form.elements].find(field => field.willValidate && !field.validity.valid);
+            if (event.target !== firstInvalid) { event.preventDefault(); return; }
+            const index = steps.indexOf(firstInvalid.closest('.student-profile-step-panel'));
+            if (index >= 0) selectProfileStep(index);
+        }, true);
         editIntro=document.createElement('p');editIntro.className='student-edit-intro';editIntro.textContent="Changes are saved to this student's record.";
         modal.querySelector('.management-modal-head > div').append(editIntro);
         modal.querySelector('.management-modal-head > div > span').textContent='STUDENT PROFILE';

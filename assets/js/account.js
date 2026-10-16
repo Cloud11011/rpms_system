@@ -6,6 +6,7 @@ document.addEventListener('DOMContentLoaded', () => {
         return Number.isNaN(date.getTime()) ? String(value) : date.toLocaleString('en-PH');
     };
     let activityRequest = 0;
+    let activityPage = 1;
     const profileDirty = PrismUI.dirtyForm($('accountProfileForm'));
     const passwordDirty = PrismUI.dirtyForm($('accountPasswordForm'));
 
@@ -80,7 +81,7 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     PrismUI.clearFilters([$('activitySearch'),$('activityFrom'),$('activityTo'),$('activityOverride')],loadActivity);
-    async function loadActivity(page = 1) {
+    async function loadActivity(page = activityPage) {
         const requestId = ++activityRequest;
         const qs = new URLSearchParams({ action: 'list', page: String(page) });
         if ($('activitySearch').value.trim()) qs.set('q', $('activitySearch').value.trim());
@@ -96,6 +97,7 @@ document.addEventListener('DOMContentLoaded', () => {
         try {
             const data = await PrismUI.request('audit_api.php?' + qs.toString());
             if (requestId !== activityRequest) return;
+            activityPage = Math.max(1, Number(data.page) || 1);
             const entries = data.entries || [];
             PrismUI.pagination(pager, count, { ...data, total: data.total ?? entries.length }, loadActivity);
             host.replaceChildren();
@@ -185,11 +187,11 @@ document.addEventListener('DOMContentLoaded', () => {
         // Invalidate the previous page immediately, including during the search debounce.
         ++activityRequest;
         $('activityPagination').querySelectorAll('button').forEach(button => { button.disabled = true; });
-        filterTimer = setTimeout(() => loadActivity(1), 200);
+        filterTimer = setTimeout(() => loadActivity(), 200);
     }
     $('activitySearch').addEventListener('input', filtersChanged);
     ['activityFrom', 'activityTo', 'activityOverride'].forEach(id => $(id).addEventListener('change', filtersChanged));
-    $('activityFilterForm').addEventListener('submit', e => { e.preventDefault(); clearTimeout(filterTimer); loadActivity(1); });
+    $('activityFilterForm').addEventListener('submit', e => { e.preventDefault(); clearTimeout(filterTimer); loadActivity(); });
     loadProfile();
     loadActivity();
     if($('adminDeleteForm')) {

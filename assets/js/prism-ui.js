@@ -612,53 +612,95 @@
     });
   }
 
+  // Keep ranges bounded even for thousands of pages; null denotes an inert ellipsis.
+  function paginationWindow(pages, page, width = Infinity) {
+    pages = Number.isFinite(Number(pages)) ? Math.max(1, Math.min(Number.MAX_SAFE_INTEGER, Math.floor(Number(pages)))) : 1;
+    page = Number.isFinite(Number(page)) ? Math.max(1, Math.min(pages, Math.floor(Number(page)))) : 1;
+    if (width < 280) return [page];
+    const radius = width < 520 ? 0 : 2;
+    const edge = radius ? 4 : 1;
+    const visible = new Set([1, page, pages]);
+    const start = Math.max(1, Math.min(page - radius, pages - edge + 1));
+    const end = Math.min(pages, Math.max(page + radius, edge));
+    for (let n = start; n <= end; n++) visible.add(n);
+    const window = [];
+    [...visible].sort((a, b) => a - b).forEach(n => {
+      if (window.length) {
+        const previous = window[window.length - 1];
+        if (n - previous === 2) window.push(previous + 1);
+        else if (n - previous > 2) window.push(null);
+      }
+      window.push(n);
+    });
+    return window;
+  }
+
+  // Resize the visible window without refetching records or changing the selected page.
+  const paginationStates = new WeakMap();
+  const paginationObserver = typeof ResizeObserver === 'function' ? new ResizeObserver(entries => {
+    entries.forEach(entry => {
+      const state = paginationStates.get(entry.target);
+      const width = Math.floor(entry.contentRect.width);
+      if (state && width > 0 && width !== state.width) state.render(width);
+    });
+  }) : null;
+
   // Compact controls shared by server-paginated history views.
   function pagination(host, count, data, onPage, noun = 'entries') {
-    const total = Math.max(0, Number(data.total) || 0);
-    const limit = Math.max(1, Number(data.limit) || 10);
+    const integer = (value, fallback, minimum) => Number.isFinite(Number(value))
+      ? Math.max(minimum, Math.min(Number.MAX_SAFE_INTEGER, Math.floor(Number(value)))) : fallback;
+    const total = integer(data.total, 0, 0);
+    const limit = integer(data.limit, 10, 1);
     const pages = Math.max(1, Math.ceil(total / limit));
-    const page = Math.max(1, Math.min(pages, Number(data.page) || 1));
+    const page = Math.min(pages, integer(data.page, 1, 1));
     const first = total ? (page - 1) * limit + 1 : 0;
     count.textContent = `Showing ${first}\u2013${Math.min(page * limit, total)} of ${total} ${noun}`;
-    const restoreFocus = host.contains(document.activeElement);
-    host.replaceChildren();
-    const button = (label, target, disabled = false) => {
-      const el = document.createElement('button');
-      el.type = 'button';
-      el.textContent = label;
-      if (label === 'Previous' || label === 'Next') {
-        el.setAttribute('aria-label', label + ' page');
-        el.title = label + ' page';
-        el.innerHTML = label === 'Previous'
-          ? '<span aria-hidden="true">&#8249;</span>'
-          : '<span aria-hidden="true">&#8250;</span>';
-      }
-      el.disabled = disabled;
-      if (typeof label === 'number') {
-        el.setAttribute('aria-label', `Page ${target}`);
-        if (target === page) el.setAttribute('aria-current', 'page');
-      }
-      el.addEventListener('click', () => { if (target !== page) onPage(target); });
-      host.append(el);
+    const render = width => {
+      const restoreFocus = host.contains(document.activeElement)
+        || (paginationStates.get(host).focusPending && document.activeElement === document.body);
+      paginationStates.get(host).focusPending = false;
+      paginationStates.get(host).width = width;
+      host.replaceChildren();
+      const button = (label, target, disabled = false) => {
+        const el = document.createElement('button');
+        el.type = 'button';
+        el.textContent = label;
+        if (label === 'Previous' || label === 'Next') {
+          el.setAttribute('aria-label', label + ' page');
+          el.title = label + ' page';
+          el.innerHTML = label === 'Previous'
+            ? '<span aria-hidden="true">&#8249;</span>'
+            : '<span aria-hidden="true">&#8250;</span>';
+        }
+        el.disabled = disabled;
+        if (typeof label === 'number') {
+          el.setAttribute('aria-label', `Page ${target}`);
+          if (target === page) el.setAttribute('aria-current', 'page');
+        }
+        el.addEventListener('click', () => {
+          if (!el.disabled && target !== page && target >= 1 && target <= pages) {
+            paginationStates.get(host).focusPending = document.activeElement === el;
+            onPage(target);
+          }
+        });
+        host.append(el);
+      };
+      button('Previous', page - 1, page === 1);
+      paginationWindow(pages, page, width).forEach(n => {
+        if (n === null) {
+          const gap = document.createElement('span');
+          gap.textContent = '\u2026';
+          gap.setAttribute('aria-hidden', 'true');
+          host.append(gap);
+        } else button(n, n);
+      });
+      button('Next', page + 1, page === pages);
+      if (restoreFocus) host.querySelector('[aria-current="page"]')?.focus();
     };
-    button('Previous', page - 1, page === 1);
-    const visible = new Set([1, pages]);
-    const start = Math.max(1, Math.min(page - 1, pages - 3));
-    const end = Math.min(pages, Math.max(page + 1, 4));
-    for (let n = start; n <= end; n++) visible.add(n);
-    let previous = 0;
-    [...visible].sort((a, b) => a - b).forEach(n => {
-      if (n - previous > 1) {
-        const gap = document.createElement('span');
-        gap.textContent = '\u2026';
-        gap.setAttribute('aria-hidden', 'true');
-        host.append(gap);
-      }
-      button(n, n);
-      previous = n;
-    });
-    button('Next', page + 1, page === pages);
-    if (restoreFocus) host.querySelector('[aria-current="page"]')?.focus();
+    const observed = paginationStates.has(host);
+    paginationStates.set(host, { width: 0, render, focusPending: paginationStates.get(host)?.focusPending || false });
+    render(Math.floor(host.clientWidth || root.innerWidth || 520));
+    if (!observed) paginationObserver?.observe(host);
   }
 
   function debounce(action, delay = 250) {
@@ -1133,7 +1175,7 @@
     recordField: recordField, recordDetails: recordDetails, recordFeedback: recordFeedback, recordInitials: recordInitials, compactProgressRecord: compactProgressRecord, reportCard: reportCard,
     documentTypes: DOCUMENT_TYPES, actionMenu: actionMenu, compactRecord: compactRecord, statusPills: statusPills,
     actionOrigin: control => control?.closest('.prism-action-menu')?.querySelector('.prism-action-trigger') || control,
-    confirm: confirmDialog, request: request, handleSessionExpiry: handleSessionExpiry, debounce: debounce, recordFilters: recordFilters, filtersDisclosure: filtersDisclosure, postJson: postJson, esc: esc, pagination: pagination, busy: busy, runAction: runAction, dirtyForm: dirtyForm, recordPager: recordPager, clearFilters: clearFilters,
+    confirm: confirmDialog, request: request, handleSessionExpiry: handleSessionExpiry, debounce: debounce, recordFilters: recordFilters, filtersDisclosure: filtersDisclosure, postJson: postJson, esc: esc, pagination: pagination, paginationWindow: paginationWindow, busy: busy, runAction: runAction, dirtyForm: dirtyForm, recordPager: recordPager, clearFilters: clearFilters,
     submitToRpms: submitToRpms, uploadRevision: uploadRevision, overrideStudent: overrideStudent, overrideDocument: overrideDocument, showVersions: showVersions,
     enhanceTable: enhanceTable, tableFilter: tableFilter, hint: hint,
     mountStudentWorkflow: mountStudentWorkflow, mountNeedsAttention: mountNeedsAttention, init: init,

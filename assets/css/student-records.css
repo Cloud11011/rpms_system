@@ -1160,7 +1160,7 @@ body.student-records-page #recordForm .management-actions { display:flex; justif
 body.student-records-page #recordForm .management-actions button { width:auto; min-height:40px; margin:0; padding:10px 16px; border-radius:10px; font-size:13px; }
 body.student-records-page[data-management=student] #recordModal .management-dialog { width:min(820px,calc(100vw - 32px)); box-shadow:0 24px 70px rgba(26,18,54,.2); }
 body.student-records-page[data-management=student] #recordModal .management-modal-head { position:static; z-index:auto; margin:0; padding:18px 24px 14px; background:var(--prism-card); box-shadow:0 1px 0 var(--prism-border); }
-body.student-records-page[data-management=student] #recordModal .management-modal-head > div > span { color:#b5146e; font-size:11px; font-weight:700; letter-spacing:.08em; }
+body.student-records-page[data-management=student] #recordModal .management-modal-head > div > span { color:var(--prism-accent); font-size:11px; font-weight:700; letter-spacing:.08em; }
 body.student-records-page[data-management=student] #recordModal .student-edit-intro { margin:0; padding:14px 24px 0; color:var(--prism-muted); font-size:13px; line-height:1.55; }
 body.student-records-page[data-management=student] #recordForm { padding-top:16px; }
 body.student-records-page[data-management=student] #recordForm .management-form-grid { display:grid; grid-template-columns:minmax(0,1fr); gap:16px; }
@@ -1181,17 +1181,18 @@ body.student-records-page[data-management=student] #recordModal .management-dial
 body.student-records-page[data-management=student] #recordModal .management-modal-head { display:flex; justify-content:flex-start; align-items:center; gap:14px; padding:18px 22px 14px; }
 body.student-records-page[data-management=student] #recordModal .management-modal-head > div { flex:1; min-width:0; }
 body.student-records-page[data-management=student] #recordModal .management-modal-head > button { flex:0 0 36px; margin-left:auto; }
-body.student-records-page[data-management=student] #recordModal .student-profile-avatar { display:grid; flex:0 0 44px; width:44px; height:44px; place-items:center; border-radius:50%; background:#fde8f3; color:#ee1280; font-size:15px; font-weight:800; }
+body.student-records-page[data-management=student] #recordModal .student-profile-avatar { display:grid; flex:0 0 44px; width:44px; height:44px; place-items:center; border-radius:50%; background:var(--prism-pink-soft); color:var(--prism-accent); font-size:15px; font-weight:800; }
 body.student-records-page[data-management=student] #recordModal .management-modal-head h2 { margin-top:2px; font-size:19px; }
 body.student-records-page[data-management=student] #recordModal .student-edit-intro { position:static; margin:3px 0 0; padding:0; color:var(--prism-muted); font-size:12px; line-height:1.4; }
 body.student-records-page[data-management=student] #recordForm { display:flex; flex:1; min-height:0; flex-direction:column; overflow:hidden; padding:0; }
 body.student-records-page[data-management=student] #recordForm .student-profile-wizard { display:grid; flex:1; min-height:0; grid-template-columns:188px minmax(0,1fr); }
-body.student-records-page[data-management=student] #recordForm .student-profile-step-nav { display:flex; flex-direction:column; gap:5px; padding:14px 10px; border-right:1px solid var(--prism-border); background:#faf9fd; }
+body.student-records-page[data-management=student] #recordForm .student-profile-step-nav { display:flex; flex-direction:column; gap:5px; padding:14px 10px; border-right:1px solid var(--prism-border); background:var(--prism-bg); }
 body.student-records-page[data-management=student] #recordForm .student-profile-step { display:flex; width:100%; min-height:46px; align-items:center; gap:10px; padding:8px 10px; border:0; border-radius:12px; background:transparent; color:var(--prism-muted); text-align:left; font-family:inherit; font-size:12px; font-weight:700; line-height:1.25; cursor:pointer; }
-body.student-records-page[data-management=student] #recordForm .student-profile-step:hover { background:#f1eef8; color:var(--prism-text); }
-body.student-records-page[data-management=student] #recordForm .student-profile-step[aria-selected=true] { background:#fff; color:var(--prism-text); box-shadow:0 2px 8px rgba(12,14,63,.1); }
-body.student-records-page[data-management=student] #recordForm .student-profile-step-number { display:grid; flex:0 0 26px; width:26px; height:26px; place-items:center; border-radius:50%; background:#ebe8f4; color:var(--prism-muted); }
-body.student-records-page[data-management=student] #recordForm .student-profile-step[aria-selected=true] .student-profile-step-number { background:#ee1280; color:#fff; }
+body.student-records-page[data-management=student] #recordForm .student-profile-step:hover { background:var(--prism-row-hover); color:var(--prism-text); }
+body.student-records-page[data-management=student] #recordForm .student-profile-step[aria-selected=true] { background:var(--prism-card); color:var(--prism-text); box-shadow:var(--prism-control-shadow); }
+body.student-records-page[data-management=student] #recordForm .student-profile-step:focus-visible { outline:2px solid var(--prism-focus); outline-offset:-2px; }
+body.student-records-page[data-management=student] #recordForm .student-profile-step-number { display:grid; flex:0 0 26px; width:26px; height:26px; place-items:center; border-radius:50%; background:var(--prism-purple-soft); color:var(--prism-muted); }
+body.student-records-page[data-management=student] #recordForm .student-profile-step[aria-selected=true] .student-profile-step-number { background:var(--prism-primary); color:#fff; }
 body.student-records-page[data-management=student] #recordForm .student-profile-step-content { min-width:0; min-height:0; overflow-y:auto; }
 body.student-records-page[data-management=student] #recordForm .student-profile-step-panel { min-height:100%; padding:20px 22px; border:0; border-radius:0; }
 body.student-records-page[data-management=student] #recordForm .student-profile-step-panel[hidden] { display:none; }
@@ -1205,10 +1206,11 @@ body.student-records-page[data-management=student] #recordForm .student-profile-
 body.student-records-page[data-management=student] #recordForm .student-profile-dirty { margin-right:auto; color:var(--prism-muted); font-size:11px; }
 body.student-records-page[data-management=student] #recordForm .student-profile-footer button { min-height:38px; padding:8px 14px; border-radius:11px; }
 body.student-records-page[data-management=student] #recordForm .student-profile-footer .student-profile-cancel { border:1px solid var(--prism-border); background:var(--prism-card); color:var(--prism-text); cursor:pointer; }
-body.student-records-page[data-management=student] #recordForm .student-profile-footer .student-profile-save { border:1px solid #ee1280; background:#ee1280; color:#fff; font-family:inherit; font-size:12px; font-weight:700; cursor:pointer; }
-body.student-records-page[data-management=student] #recordForm .student-profile-footer .student-profile-save:disabled { border-color:#d9d5e6; background:#d9d5e6; color:#fff; cursor:not-allowed; }
+body.student-records-page[data-management=student] #recordForm .student-profile-footer .student-profile-save { border:1px solid var(--prism-primary); background:var(--prism-primary); color:#fff; font-family:inherit; font-size:12px; font-weight:700; cursor:pointer; }
+body.student-records-page[data-management=student] #recordForm .student-profile-footer .student-profile-save:hover:not(:disabled) { border-color:var(--prism-primary-hover); background:var(--prism-primary-hover); }
+body.student-records-page[data-management=student] #recordForm .student-profile-footer .student-profile-save:disabled { border-color:var(--prism-border); background:var(--prism-purple-soft); color:var(--prism-muted); cursor:not-allowed; }
 body.student-records-page[data-management=student] #recordForm .student-profile-save-content { display:inline-flex; align-items:center; gap:7px; }
-body.student-records-page[data-management=student] #recordForm :is(input,select,textarea):focus-visible { outline:3px solid rgba(238,18,128,.16); border-color:#ee1280; }
+body.student-records-page[data-management=student] #recordForm :is(input,select,textarea):focus-visible { outline:2px solid var(--prism-focus); outline-offset:2px; border-color:var(--prism-focus); }
 @media(max-width:600px) { body.student-records-page #recordForm .management-form-grid,body.student-records-page #recordForm .academic-fields-grid { grid-template-columns:minmax(0,1fr); } body.student-records-page #recordForm { padding:20px; } }body.student-records-page #recordForm label.check-label { flex-direction:row; align-items:center; } body.student-records-page #recordForm input[type=checkbox] { width:18px; min-height:18px; height:18px; padding:0; }
 @media(max-width:900px) {
     body.student-records-page[data-management=student] .student-result-details[open] > .student-academic-details-grid { grid-template-columns:repeat(3,minmax(0,1fr)); }
