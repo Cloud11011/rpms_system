@@ -373,19 +373,20 @@ function progress_report_tables(array $students, string $mode): array
     return $blocks;
 }
 
-/** Local identifiers do not cross the model boundary; no identity/free text is appended. */
+/** Server-side identifiers stay local; student names and requirements text are excluded. */
 function progress_case_detail_table(array $students): array
 {
     $rows = [];
     foreach (array_values($students) as $index => $s) {
         $rows[] = [report_case_ref($index), trim((string)($s['student_id'] ?? '')) ?: 'Not recorded',
+            trim((string)($s['protocol_code'] ?? '')) !== '' ? (string)$s['protocol_code'] : 'No Protocol Code Assigned Yet',
             in_array($s['stage'], STAGE_SEQUENCE, true) ? $s['stage'] : 'Not recorded',
             in_array($s['status'], ['Pending','On Track','Delayed','Approved','Completed'], true) ? $s['status'] : 'Not recorded',
             trim((string)($s['requirements'] ?? '')) !== '' ? 'Yes' : 'No'];
     }
-    return ['# Case details (Student ID only)',
-        ['headers'=>['Case','Student ID','Stage','Status','Requirements recorded'],
-         'widths'=>[80,130,78,100,124], 'rows'=>$rows]];
+    return ['# Case details (Student ID and Protocol Code)',
+        ['headers'=>['Case','Student ID','Protocol Code','Stage','Status','Requirements Recorded'],
+         'widths'=>[66,88,120,64,74,100], 'rows'=>$rows]];
 }
 
 /** Authoritative display labels, retrieved through the same helper used by PRISM screens. */
