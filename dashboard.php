@@ -440,7 +440,14 @@ function renderIerbMonitor() {
         progressTableBody.appendChild(row);
         PrismUI.compactRecord(row,2,6,7,[],[0,1,3,4,5]);
         const card = row.querySelector('.prism-record-card');
-        if (card) card.classList.add('ierb-monitor-card', statusClass);
+        if (card) {
+            card.classList.add('ierb-monitor-card', statusClass);
+            const fields=card.querySelectorAll('.prism-record-summary > div');
+            const progressField=fields[4];
+            if(fields[2] && progressField){fields[2].querySelector('dd').append(progressField.querySelector('.ierb-card-progress'));progressField.remove();}
+            const documents=card.querySelector('[data-monitor-action="documents"]');
+            if(documents) PrismUI.documentAction(documents,'view','Open Documents');
+        }
     });
 }
 
@@ -488,7 +495,7 @@ function setAIBannerActions(state, reportUrl = '') {
         download.href = reportUrl;
         download.target = '_blank';
         download.rel = 'noopener';
-        download.innerHTML = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4v11M7 11l5 5 5-5M5 20h14"/></svg>Download report';
+        PrismUI.documentAction(download,'download','Download report');
         actions.appendChild(download);
 
         const again = document.createElement('button');

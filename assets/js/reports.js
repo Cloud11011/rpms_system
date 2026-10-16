@@ -101,7 +101,7 @@ document.addEventListener('DOMContentLoaded', () => {
             download.innerHTML = '<i class="fa-solid fa-download"></i>';
             if (r.requiresRegeneration) {
                 const warning = document.createElement('span');warning.textContent='Regenerate with Student IDs';actions.append(warning);
-            } else actions.append(view, download);
+            } else {PrismUI.documentAction(view,'view','View report');PrismUI.documentAction(download,'download','Download report');actions.append(view, download);}
             const del = document.createElement('button');
             del.className = 'icon-btn delete';
             del.title = 'Delete report';
@@ -123,8 +123,7 @@ document.addEventListener('DOMContentLoaded', () => {
             });
             actions.append(del);
             PrismUI.actionMenu(actions,{label:'Report actions'});
-            const direct=document.createElement('a');direct.className='prism-btn report-view-file';direct.textContent='View report';direct.href=view.href;direct.target='_blank';direct.rel='noopener';
-            if(!r.requiresRegeneration)actions.prepend(direct);
+            // View and Download already remain visible beside the contextual menu.
             body.appendChild(tr);
         });
     }

@@ -144,6 +144,34 @@ body:is(.prism-workspace,.prism-public,.public-legal-page,.help-support-page,.un
 body.prism-workspace :is(.management-search,.search-documents,.document-search,.ierb-search) > input:focus-visible {
   outline: 0 !important; outline-offset: 0 !important;
 }
+/* Shared authenticated document quick actions, including modal and folder views. */
+body.prism-workspace :is(a,button).prism-document-action[data-document-action] {
+  box-sizing:border-box; display:inline-flex; align-items:center; justify-content:center;
+  flex:0 0 40px; width:40px; min-width:40px; max-width:40px; height:40px; min-height:40px;
+  margin:0; padding:0; border:1px solid var(--prism-border); border-radius:10px;
+  background:var(--prism-card); color:var(--prism-accent); text-decoration:none; cursor:pointer;
+}
+body.prism-workspace .prism-document-action svg { display:block; width:20px; height:20px; flex:none; }
+body.prism-workspace .prism-document-action:hover { background:var(--prism-pink-soft); border-color:var(--prism-accent); }
+body.prism-workspace .prism-document-action:active { background:var(--prism-surface-2); }
+body.prism-workspace :is(.prism-document-action,.prism-invitation-action,.prism-notification-bell):focus-visible { outline:3px solid var(--prism-accent); outline-offset:3px; }
+body.prism-workspace :is(.prism-document-action,.prism-invitation-action):disabled { opacity:.5; cursor:not-allowed; }
+body.prism-workspace .prism-document-quick-actions { display:inline-flex; flex-wrap:wrap; gap:8px; align-items:center; }
+body.prism-workspace #aiHistory .history-item.report-history-link { display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:12px; }
+body.prism-workspace #aiHistory .report-history-link > div { flex:1 1 180px; min-width:0; overflow-wrap:anywhere; }
+body.prism-workspace #aiHistory .report-history-link > div small { display:block; }
+body.prism-workspace .prism-notification-bell {
+  position:relative; display:inline-flex; align-items:center; justify-content:center; flex-shrink:0;
+  width:40px; min-width:40px; height:40px; min-height:40px; padding:0; border:1px solid var(--prism-border);
+  border-radius:50%; overflow:visible; background:var(--prism-card); color:var(--prism-text);
+}
+body.prism-workspace .prism-notification-bell svg { width:20px; height:20px; }
+body.prism-workspace .prism-notification-bell .nav-badge {
+  position:absolute; top:-5px; right:-5px; z-index:1; display:inline-flex; align-items:center; justify-content:center;
+  box-sizing:border-box; min-width:20px; height:20px; padding:0 4px; border:2px solid var(--prism-card);
+  border-radius:999px; background:#c92339; color:#fff; font-weight:700; line-height:1; white-space:nowrap;
+}
+body.prism-workspace .prism-topbar-group { overflow:visible; column-gap:10px; }
 /* Fixed-height UI never defeats the native hidden attribute. */
 body:is(.prism-workspace,.prism-public,.public-legal-page,.help-support-page,.unified-login) [hidden] { display: none !important; }
 @media(max-width:600px) {

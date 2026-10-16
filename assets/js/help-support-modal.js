@@ -26,7 +26,11 @@
 
   modal.addEventListener('close', () => {
     document.documentElement.classList.remove('sp-lock');
-    if (lastTrigger) lastTrigger.focus();
+    if (lastTrigger) {
+      const menu = lastTrigger.closest('.prism-account-links,.portal-profile-dropdown');
+      const controller = menu && [...document.querySelectorAll('[aria-controls]')].find(button => button.getAttribute('aria-controls') === menu.id);
+      (lastTrigger.getClientRects().length ? lastTrigger : controller)?.focus();
+    }
   });
   document.addEventListener('click', event => {
     const trigger = event.target.closest('[data-open-support]');

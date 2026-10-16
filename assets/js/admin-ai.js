@@ -38,12 +38,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 return;
             }
             items.forEach(item => {
-                const card = document.createElement('a');
+                const card = document.createElement('article');
                 card.className = 'history-item report-history-link';
-                card.href = item.requiresRegeneration ? 'reports.php' : 'reports_api.php?action=file&id=' + encodeURIComponent(item.id);
-                card.target = '_blank';
-                card.rel = 'noopener noreferrer';
-                card.title = 'Open PDF report in a new tab';
                 const reportType = document.createElement('strong');
                 reportType.textContent = item.type;
                 const reportMeta = document.createElement('small');
@@ -51,10 +47,11 @@ document.addEventListener('DOMContentLoaded', () => {
                 const generatedAt = new Date(rawDate.replace(' ', 'T'));
                 const when = Number.isNaN(generatedAt.getTime()) ? (rawDate || 'Date unavailable') : generatedAt.toLocaleString('en-PH');
                 reportMeta.textContent = when + ' \u2022 by ' + (item.generated_by || 'Unknown author');
-                const openLabel = document.createElement('span');
-                openLabel.className = 'report-history-action';
-                openLabel.textContent = item.requiresRegeneration ? 'Regenerate with Student IDs' : 'Open PDF in a new tab';
-                card.append(reportType, reportMeta, openLabel);
+                const identity=document.createElement('div');identity.append(reportType,reportMeta);
+                const actions=document.createElement('span');actions.className='prism-document-quick-actions';
+                if(item.requiresRegeneration){const regenerate=document.createElement('a');regenerate.href='reports.php';regenerate.textContent='Regenerate with Student IDs';actions.append(regenerate);}
+                else {const view=document.createElement('a');view.href='reports_api.php?action=file&id='+encodeURIComponent(item.id);view.target='_blank';view.rel='noopener noreferrer';const download=document.createElement('a');download.href='reports_api.php?action=file&download=1&id='+encodeURIComponent(item.id);PrismUI.documentAction(view,'view','View report');PrismUI.documentAction(download,'download','Download report');actions.append(view,download);}
+                card.append(identity,actions);
                 list.appendChild(card);
             });
         } catch (e) {

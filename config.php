@@ -1278,9 +1278,15 @@ function sync_student_login_identity(PDO $pdo, string $oldEmail, string $student
         ]);
 }
 
-function log_activity(?string $email, string $action, string $details = ''): void
+function log_activity(?string $email, string $action, string $details = '', ?int $accountId = null): void
 {
     try {
+        // Authenticated account events retain immutable ownership when emails are reused.
+        if ($accountId !== null) {
+            $stmt = db()->prepare("INSERT INTO activity_logs (user_email, action, details, entity_type, entity_id) VALUES (:e,:a,:d,'user',:id)");
+            $stmt->execute([':e' => $email, ':a' => $action, ':d' => $details, ':id' => $accountId]);
+            return;
+        }
         $stmt = db()->prepare('INSERT INTO activity_logs (user_email, action, details) VALUES (:e,:a,:d)');
         $stmt->execute([':e' => $email, ':a' => $action, ':d' => $details]);
     } catch (Throwable $e) {

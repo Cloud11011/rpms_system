@@ -98,10 +98,10 @@ body.adviser-dashboard-page .adviser-queue-search input:focus-visible { outline:
 .adviser-document-actions .adviser-button { min-height:42px; flex:0 0 auto; padding:9px 16px; border-color:#d8cde5; border-radius:10px; white-space:nowrap; }
 .adviser-document-actions .adviser-button.is-primary { color:#fff; background:#b30e70; border-color:#b30e70; }
 .adviser-document-actions .prism-action-menu { flex:0 0 auto; }
-.adviser-document-actions .adviser-document-view,
-.adviser-document-actions .adviser-document-download { display:inline-grid; flex:0 0 34px; width:34px; min-width:34px; min-height:34px; height:34px; padding:0!important; place-items:center; border:0!important; border-radius:8px!important; color:var(--text-secondary); background:transparent!important; box-shadow:none!important; }
-.adviser-document-actions :is(.adviser-document-view,.adviser-document-download):hover:not(:disabled) { color:var(--accent-pink); background:var(--bg-color)!important; }
-.adviser-document-actions :is(.adviser-document-view,.adviser-document-download) i { font-size:15px; }
+.adviser-document-actions .adviser-document-view:not(.prism-document-action),
+.adviser-document-actions .adviser-document-download:not(.prism-document-action) { display:inline-grid; flex:0 0 34px; width:34px; min-width:34px; min-height:34px; height:34px; padding:0!important; place-items:center; border:0!important; border-radius:8px!important; color:var(--text-secondary); background:transparent!important; box-shadow:none!important; }
+.adviser-document-actions :is(.adviser-document-view:not(.prism-document-action),.adviser-document-download):hover:not(:disabled) { color:var(--accent-pink); background:var(--bg-color)!important; }
+.adviser-document-actions :is(.adviser-document-view:not(.prism-document-action),.adviser-document-download) i { font-size:15px; }
 .adviser-document-actions .adviser-document-download:disabled { opacity:.45; cursor:not-allowed; }
 .adviser-document-details { border-top:1px solid #eee8f3; }
 .adviser-document-details summary { display:flex; align-items:center; justify-content:flex-start; gap:8px; min-height:40px; padding:8px 16px; color:#bd0067; font-size:13px; font-weight:500; cursor:pointer; list-style:none; }

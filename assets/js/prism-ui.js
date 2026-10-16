@@ -382,7 +382,7 @@
         (v.rpmsReturnedAt ? '<small>RPMS returned for revision: ' + esc(fmtDate(v.rpmsReturnedAt)) + ' by ' + esc(v.rpmsReturnedBy) + '. Reason: ' + esc(v.rpmsReturnReason) + '</small>' : '') +
         (v.reviewRemarks ? '<small>Remarks: ' + esc(v.reviewRemarks) + '</small>' : '') +
         '</div><div class="prism-badges">' + badge(v.workflowState) + (v.adminOverride ? badge('Admin Override') : '') +
-        '<a class="prism-btn is-secondary is-sm" target="_blank" rel="noopener" href="document_preview.php?id=' + encodeURIComponent(v.id) + '">Open</a></div></li>';
+        documentActionsHtml(v) + '</div></li>';
     }).join('');
     const m = modal('<h3><i class="fa-solid fa-clock-rotate-left" aria-hidden="true"></i>Version history</h3>' +
       '<ul class="prism-version-list">' + items + '</ul>' +
@@ -784,9 +784,34 @@
     if (floating && !floating.panel.contains(event.target)) positionFloating();
   }, true);
 
+  // Shared document controls keep the existing authenticated URL and handlers.
+  function documentAction(control, kind, label) {
+    control.classList.add('prism-document-action');
+    control.dataset.documentAction = kind;
+    control.title = label;
+    control.setAttribute('aria-label', label);
+    control.innerHTML = documentActionIcon(kind);
+    return control;
+  }
+  function documentActionIcon(kind) {
+    const path = kind === 'download' ? 'M12 3v12m-5-5 5 5 5-5M4 17v4h16v-4'
+      : 'M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12Z M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0';
+    return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="'+path+'"/></svg>';
+  }
+  function documentActionsHtml(doc) {
+    const id = encodeURIComponent(doc.id);
+    const preview = ['application/pdf','image/png','image/jpeg'].includes(doc.mime)
+      ? 'document_preview.php?id='+id : 'documents_api.php?action=file&download=1&id='+id;
+    return '<a class="prism-document-action" data-document-action="view" title="View document" aria-label="View '+esc(doc.originalName||'document')+'" target="_blank" rel="noopener" href="'+preview+'">'+documentActionIcon('view')+'</a>'
+      + '<a class="prism-document-action" data-document-action="download" title="Download document" aria-label="Download '+esc(doc.originalName||'document')+'" href="documents_api.php?action=file&download=1&id='+id+'">'+documentActionIcon('download')+'</a>';
+  }
+
   /** Consolidate existing authorized controls without recreating their handlers. */
   function actionMenu(host, { primary = null, label = 'Actions' } = {}) {
-    const items = [...host.children].filter(e => e.matches('button,a') && e !== primary);
+    const quick = [...host.children].filter(e => e.matches('a[href*="document_preview.php"],a[href*="documents_api.php?action=file"],.prism-document-action'));
+    quick.forEach((control,index) => documentAction(control, control.dataset.documentAction || (/download/i.test(control.title || '') ? 'download' : 'view'), control.getAttribute('aria-label') || control.title || 'View document'));
+    quick.sort((a,b)=>(a.dataset.documentAction==='download')-(b.dataset.documentAction==='download')).forEach(control=>host.append(control));
+    const items = [...host.children].filter(e => e.matches('button,a') && e !== primary && !quick.includes(e));
     if (!items.length || host.querySelector('.prism-action-menu')) return;
     const wrap = document.createElement('div'); wrap.className = 'prism-action-menu';
     const trigger = document.createElement('button'); trigger.type = 'button'; trigger.className = 'prism-btn prism-btn-neutral prism-action-trigger';
@@ -880,7 +905,8 @@
     if (!control || control.disabled) return null;
     const original = labelElement.innerHTML;
     control.disabled = true;
-    labelElement.textContent = label;
+    if(control.classList.contains('prism-invitation-action')) labelElement.innerHTML='<i class="fa-solid fa-spinner fa-spin" aria-hidden="true"></i>';
+    else labelElement.textContent = label;
     return () => { labelElement.innerHTML = original; control.disabled = false; };
   }
 
@@ -982,7 +1008,7 @@
     details.append(summary,fields);
     const review=actions.querySelector('[data-review-id],[data-review]');
     const file=actions.querySelector('a[href*="documents_api.php?action=file"]:not([href*="download=1"])');
-    if(review||file){const contextual=document.createElement(review?'button':'a');contextual.className='prism-btn prism-context-action';
+    if(review && !actions.querySelector('.prism-document-action')){const contextual=document.createElement(review?'button':'a');contextual.className='prism-btn prism-context-action';
       if(review){contextual.type='button';contextual.textContent='Review';contextual.addEventListener('click',()=>review.click());}
       else {contextual.textContent='View';contextual.href=file.href;contextual.target=file.target;contextual.rel='noopener';}
       actions.prepend(contextual);
@@ -1022,6 +1048,7 @@
 
   const api = {
     badge: badge, badgeElement: badgeElement, docMini: docMini, emptyState: emptyState, tip: tip, toast: toast,
+    documentAction: documentAction, documentActionsHtml: documentActionsHtml,
     documentTypes: DOCUMENT_TYPES, actionMenu: actionMenu, compactRecord: compactRecord, statusPills: statusPills,
     actionOrigin: control => control?.closest('.prism-action-menu')?.querySelector('.prism-action-trigger') || control,
     confirm: confirmDialog, request: request, handleSessionExpiry: handleSessionExpiry, debounce: debounce, recordFilters: recordFilters, filtersDisclosure: filtersDisclosure, postJson: postJson, esc: esc, pagination: pagination, busy: busy, runAction: runAction, dirtyForm: dirtyForm, recordPager: recordPager, clearFilters: clearFilters,

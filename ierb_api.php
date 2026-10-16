@@ -137,7 +137,16 @@ if ($action === 'history') {
         )';
         $order = 'h.created_at DESC, h.id DESC';
     }
-    $page = prism_page_query($pdo, $select, $scope, [':id' => $studentId], $order, $_GET);
+    $params = [':id' => $studentId];
+    $search = prism_record_search($_GET);
+    if ($search !== '') {
+        // Search the same public projection before counting or slicing Student history.
+        $columns = $user['role'] === 'student'
+            ? ['h.stage', 'h.status', 'h.submission_date', 'h.created_at']
+            : ['stage', 'status', 'submission_date', 'created_at', 'note', 'actor', 'requirements'];
+        $scope .= ' AND ' . prism_search_clause($columns, $search, $params);
+    }
+    $page = prism_page_query($pdo, $select, $scope, $params, $order, $_GET);
     $rows = $page['rows']; unset($page['rows']);
     if ($user['role'] === 'student') $rows = array_map(static fn($row) => [
         'stage' => $row['stage'], 'status' => $row['status'],

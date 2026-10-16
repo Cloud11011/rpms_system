@@ -34,8 +34,12 @@ function student_activity_read(PDO $pdo, array $user, array $query): array
     // Current profile linkage wins; legacy fallback cannot claim a profile linked to another user.
     $own = 'SELECT s.id FROM students s WHERE s.archived_at IS NULL
         AND (s.user_id = :uid OR (s.user_id IS NULL AND s.email = :email AND s.student_id = :ref))';
-    $where = ['(l.student_id IN (' . $own . ') OR (l.student_id IS NULL AND l.user_email = :actor_email))', 'l.is_override = 0'];
+    // Email addresses can be reused. Account events need their immutable account ID;
+    // an unbound historical email alone cannot establish ownership of an event.
+    $where = ['(l.student_id IN (' . $own . ') OR (l.student_id IS NULL AND l.user_email = :actor_email
+        AND l.entity_type = \'user\' AND l.entity_id = :account_id))', 'l.is_override = 0'];
     $params[':actor_email'] = (string)$user['email'];
+    $params[':account_id'] = (string)$user['id'];
     $keys = []; $safeText = 'CASE l.action';
     foreach ($actions as $code => [$label, $description]) {
         $index = count($keys); $key = ':action_' . $index; $keys[] = $key; $params[$key] = $code;

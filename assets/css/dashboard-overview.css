@@ -252,7 +252,7 @@ body.admin-shell.dashboard-page .dashboard-monitor .ierb-monitor-card .title-cel
 }
 body.admin-shell.dashboard-page .dashboard-monitor .ierb-monitor-card .prism-record-summary {
     display:grid;
-    grid-template-columns:minmax(110px,1fr) minmax(120px,1.15fr) minmax(150px,1.2fr) minmax(135px,1.2fr) minmax(120px,1fr);
+    grid-template-columns:minmax(0,1fr) minmax(0,1fr) minmax(0,1.4fr) minmax(0,1fr);
     align-items:center;
     gap:10px;
     min-width:0;
@@ -290,7 +290,7 @@ body.admin-shell.dashboard-page .dashboard-monitor .ierb-monitor-card .doc-mini-
     margin-top:4px;
 }
 body.admin-shell.dashboard-page .dashboard-monitor .ierb-monitor-card .doc-mini { font-size:9px; }
-body.admin-shell.dashboard-page .dashboard-monitor .ierb-card-progress { display:grid; gap:5px; }
+body.admin-shell.dashboard-page .dashboard-monitor .ierb-card-progress { display:grid; gap:5px; margin-top:10px; max-width:180px; }
 body.admin-shell.dashboard-page .dashboard-monitor .ierb-card-progress>div { display:flex; align-items:center; justify-content:space-between; gap:6px; }
 body.admin-shell.dashboard-page .dashboard-monitor .ierb-card-progress>div>span { color:var(--prism-muted); font-size:9px; }
 body.admin-shell.dashboard-page .dashboard-monitor .ierb-card-progress>div>strong { color:var(--prism-text); font-size:11px; }
@@ -324,11 +324,11 @@ html.dark-theme body.admin-shell.dashboard-page .dashboard-monitor .ierb-progres
         padding:11px;
     }
     body.admin-shell.dashboard-page .dashboard-monitor .ierb-monitor-card .prism-record-summary {
-        grid-template-columns:repeat(5,minmax(0,1fr));
+        grid-template-columns:repeat(4,minmax(0,1fr));
         gap:6px;
     }
 }
-@media(max-width:760px) {
+@media(max-width:1000px) {
     body.admin-shell.dashboard-page .dashboard-monitor .dashboard-table-scroll { overflow-x:auto; }
     body.admin-shell.dashboard-page .dashboard-monitor .data-table.is-empty { display:table; }
     body.admin-shell.dashboard-page .dashboard-monitor .data-table.is-empty>tbody { display:table-row-group; }

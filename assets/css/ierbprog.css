@@ -711,3 +711,12 @@ html.dark-theme body[data-role="adviser"] .ierb-page #ierbStatusPills.ierb-advis
 
 /* U1: scoped accessibility correction. */
 html.dark-theme body[data-role=adviser] .ierb-page .ierb-progress-card .prism-record-details>summary { color:#ffadd5; }
+
+/* Stage includes progress; status and file actions reflow as independent rows. */
+.ierb-page .ierb-progress-card .prism-record-summary { grid-template-columns:repeat(3,minmax(0,1fr)); }
+.ierb-page .ierb-progress-card .ierb-card-progress { margin-top:10px; }
+@media(max-width:600px) {
+ body.prism-workspace .ierb-page .ierb-progress-card { grid-template-columns:minmax(0,1fr); }
+ body.prism-workspace .ierb-page .ierb-progress-card .prism-record-summary { grid-template-columns:minmax(0,1fr); grid-column:auto; }
+ body.prism-workspace .ierb-page .ierb-progress-card :is(.prism-record-status,.prism-record-actions) { grid-column:1; grid-row:auto; justify-content:flex-start; }
+}

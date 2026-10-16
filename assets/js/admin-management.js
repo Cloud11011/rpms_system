@@ -486,6 +486,42 @@
                 const host=document.createElement('td');host.colSpan=tr.cells.length;
                 const selection=tr.querySelector('.retention-select');if(selection){const wrapper=document.createElement('span');wrapper.className='retention-select';wrapper.hidden=selection.hidden;while(selection.firstChild)wrapper.append(selection.firstChild);identity.prepend(wrapper);}
                 host.append(card);tr.replaceChildren(host);
+            } else if(archiveWorkspace) {
+                const cells=[...tr.cells].filter(cell=>!cell.classList.contains('retention-select'));
+                const lc=record.lifecycle || {};
+                const card=document.createElement('article');card.className='student-result-card archive-result-card';
+                const identity=document.createElement('div');identity.className='student-name-layout';
+                const avatar=document.createElement('span');avatar.className='student-avatar';avatar.setAttribute('aria-hidden','true');avatar.textContent=String(record.name|| (isAdviser?'A':'S')).split(/\s+/).filter(Boolean).slice(0,2).map(part=>part[0]).join('').toUpperCase();
+                const copy=document.createElement('div');copy.className='student-name-copy';
+                const name=document.createElement('strong');name.textContent=record.name || 'Profile incomplete';copy.append(name);
+                [record.studentId || record.employeeId || 'ID not recorded',record.email || 'Email not recorded'].forEach(value=>{const line=document.createElement('small');line.textContent=value;copy.append(line);});
+                if(record.profileStatus==='Pending')copy.insertAdjacentHTML('beforeend',PrismUI.badge('Pending Profile'));
+                identity.append(avatar,copy);
+                const block=(label,value)=>{const field=document.createElement('div');const heading=document.createElement('small');heading.className='student-result-label';heading.textContent=label;const content=document.createElement('div');content.textContent=value || 'Not recorded';field.append(heading,content);return field;};
+                const research=document.createElement('div');research.className='archive-record-fields';
+                research.append(block(isAdviser?'Assigned groups':'Research / Group',isAdviser?(record.groups||[]).join(', ') || 'No current assigned groups':[record.research,record.group].filter(Boolean).join(' / ') || 'No group'));
+                if(!isAdviser)research.append(block('Assigned adviser',record.adviserName || 'Unassigned'));
+                const metadata=document.createElement('div');metadata.className='archive-record-fields';
+                metadata.insertAdjacentHTML('beforeend',PrismUI.badge('Archived'));
+                metadata.append(block('Archived date',record.archivedAt),block('Retention date',lc.retentionAt));
+                if(lc.retentionHold)metadata.insertAdjacentHTML('beforeend',PrismUI.badge('Retention Hold'));
+                const details=document.createElement('details');details.className='student-result-details';
+                const summary=document.createElement('summary');summary.textContent='Show details & remarks';
+                const fields=document.createElement('div');fields.className='student-academic-details-grid';
+                fields.append(block(isAdviser?'Department':'Course',record.department || record.course));
+                const academic=tr.querySelector('.academic-record-summary');if(academic)fields.append(academic);
+                if(!isAdviser)fields.append(block('Pending requirements',record.requirements || 'None'));
+                fields.append(block('Retention status',lc.retentionHold?'Retention Hold':lc.unresolvedWorkflow?'Unresolved workflow':lc.cleanupEligible?'Eligible for retention cleanup':lc.approachingRetention?'Approaching retention cleanup':'Archived'));
+                if(lc.holdReason)fields.append(block('Hold reason',lc.holdReason));
+                // The shared availability notice explains deployment restrictions once.
+                if(deletionAvailability.available)fields.append(block('Permanent deletion',lc.purgeBlockReason || 'Eligible for permanent deletion'));
+                details.append(summary,fields);details.addEventListener('toggle',()=>{summary.textContent=details.open?'Hide details & remarks':'Show details & remarks';});
+                const toolbar=document.createElement('div');toolbar.className='student-result-actions';
+                const restore=actions.querySelector('[title="Restore '+accountLabel+'"]');if(restore){restore.classList.remove('prism-action-item');restore.innerHTML='<i class="fa-solid fa-rotate-left" aria-hidden="true"></i>';restore.dataset.prismTooltip='';toolbar.append(restore);}
+                while(actions.firstChild)toolbar.append(actions.firstChild);
+                const selection=tr.querySelector('.retention-select');if(selection){const wrapper=document.createElement('span');wrapper.className='retention-select';wrapper.hidden=selection.hidden;while(selection.firstChild)wrapper.append(selection.firstChild);identity.prepend(wrapper);}
+                card.append(identity,research,metadata,toolbar,details);
+                const host=document.createElement('td');host.colSpan=tr.cells.length;host.append(card);tr.replaceChildren(host);
             } else if(isAdviser && !archiveWorkspace) {
                 const cells=[...tr.cells].filter(cell=>!cell.classList.contains('retention-select'));
                 const card=document.createElement('article');card.className='student-result-card adviser-result-card';

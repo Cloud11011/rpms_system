@@ -41,11 +41,11 @@ body.prism-workspace.portal-shell[data-role=adviser] .adviser-document-result-ca
 body.prism-workspace.portal-shell[data-role=adviser] .adviser-document-result-card .prism-record-status .doc-category { margin:0; }
 body.prism-workspace.portal-shell[data-role=adviser] .adviser-document-result-card .document-review-date { color:var(--prism-muted); font-size:12px; line-height:1.4; }
 body.prism-workspace.portal-shell[data-role=adviser] .adviser-document-result-card .prism-record-actions { display:flex; align-items:center; justify-content:flex-end; gap:7px; }
-body.prism-workspace.portal-shell[data-role=adviser] .adviser-document-result-card .prism-record-actions .adviser-document-view-icon,
-body.prism-workspace.portal-shell[data-role=adviser] .adviser-document-result-card .prism-record-actions .adviser-document-download-icon { display:grid; flex:0 0 34px; width:34px; min-width:34px; height:34px; min-height:34px; padding:0; place-items:center; border:0; border-radius:8px; color:var(--prism-text); background:transparent; box-shadow:none; }
-body.prism-workspace.portal-shell[data-role=adviser] .adviser-document-result-card .prism-record-actions :is(.adviser-document-view-icon,.adviser-document-download-icon):hover:not(:disabled) { color:var(--prism-accent); background:var(--prism-bg); }
-body.prism-workspace.portal-shell[data-role=adviser] .adviser-document-result-card .prism-record-actions :is(.adviser-document-view-icon,.adviser-document-download-icon) i { font-size:15px; }
-body.prism-workspace.portal-shell[data-role=adviser] .adviser-document-result-card .prism-record-actions :is(.adviser-document-view-icon,.adviser-document-download-icon):disabled { opacity:.45; cursor:not-allowed; }
+body.prism-workspace.portal-shell[data-role=adviser] .adviser-document-result-card .prism-record-actions .adviser-document-view-icon:not(.prism-document-action),
+body.prism-workspace.portal-shell[data-role=adviser] .adviser-document-result-card .prism-record-actions .adviser-document-download-icon:not(.prism-document-action) { display:grid; flex:0 0 34px; width:34px; min-width:34px; height:34px; min-height:34px; padding:0; place-items:center; border:0; border-radius:8px; color:var(--prism-text); background:transparent; box-shadow:none; }
+body.prism-workspace.portal-shell[data-role=adviser] .adviser-document-result-card .prism-record-actions :is(.adviser-document-view-icon:not(.prism-document-action),.adviser-document-download-icon):hover:not(:disabled) { color:var(--prism-accent); background:var(--prism-bg); }
+body.prism-workspace.portal-shell[data-role=adviser] .adviser-document-result-card .prism-record-actions :is(.adviser-document-view-icon:not(.prism-document-action),.adviser-document-download-icon) i { font-size:15px; }
+body.prism-workspace.portal-shell[data-role=adviser] .adviser-document-result-card .prism-record-actions :is(.adviser-document-view-icon:not(.prism-document-action),.adviser-document-download-icon):disabled { opacity:.45; cursor:not-allowed; }
 body.prism-workspace.portal-shell[data-role=adviser] .adviser-document-result-card .prism-record-actions .prism-action-menu { flex:0 0 auto; }
 body.prism-workspace.portal-shell[data-role=adviser] .adviser-document-result-card .prism-record-details { grid-column:1/-1; min-width:0; margin-top:0; padding-top:7px; border-top:1px solid var(--prism-border); }
 body.prism-workspace.portal-shell[data-role=adviser] .adviser-document-result-card .prism-record-details > summary { display:flex; align-items:center; justify-content:flex-start; gap:8px; min-height:40px; padding:8px 16px; color:#b5146e; font-size:13px; cursor:pointer; list-style:none; }
@@ -71,3 +71,7 @@ body.prism-workspace.portal-shell[data-role=adviser] .document-preview-menu { mi
 
 /* U1: scoped accessibility correction. */
 html.dark-theme body.prism-workspace.portal-shell[data-role=adviser] .adviser-document-result-card .prism-record-details > summary { color:#ffadd5; }
+
+/* Folder tracks must also fit the narrow Admin content column. */
+body.prism-workspace .documents-page .folder-view { grid-template-columns:repeat(auto-fill,minmax(min(230px,100%),1fr)); }
+body.prism-workspace .documents-page :is(.document-folder,.folder-files,.folder-file) { min-width:0; overflow-wrap:anywhere; }

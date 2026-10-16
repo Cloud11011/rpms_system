@@ -115,14 +115,14 @@ html.dark-theme body.prism-workspace .calendar-page #monthGrid>.calendar-day.out
 @media(prefers-reduced-motion:reduce){body.prism-workspace .calendar-page *{transition:none!important}}
 
 /* =====================================================================
-   FIT-TO-SCREEN (desktop): everything visible without page scrolling.
-   Calendar fills the height; right column = Selected date (top) +
-   Official deadlines (bottom, scrolls inside its own card if long).
+   COMPACT DESKTOP: content determines the grid height.
+   Selected date and Official deadlines remain in normal flow so
+   the footer follows long lists, expanded forms and pagination.
    ===================================================================== */
 body.prism-workspace .calendar-page .calendar-instructions{max-width:none;margin:0 0 12px}
 body.prism-workspace .calendar-page .calendar-side>.reminder-panel{width:100%;box-sizing:border-box}
 @media(min-width:1101px) and (min-height:640px){
-  body.prism-workspace .calendar-page .calendar-layout{height:calc(100vh - 175px);min-height:540px;grid-template-columns:minmax(0,1fr) 400px}
+  body.prism-workspace .calendar-page .calendar-layout{min-height:540px;grid-template-columns:minmax(0,1fr) 400px}
   body.prism-workspace .calendar-page .full-calendar-card{display:flex;flex-direction:column;height:100%;box-sizing:border-box;padding:18px 20px}
   body.prism-workspace .calendar-page .calendar-toolbar{margin-bottom:10px}
   body.prism-workspace .calendar-page .weekday-row{margin-bottom:4px}
@@ -133,8 +133,8 @@ body.prism-workspace .calendar-page .calendar-side>.reminder-panel{width:100%;bo
   body.prism-workspace .calendar-page .day-tasks{margin-top:3px}
   body.prism-workspace .calendar-page .prism-calendar-legend{margin-top:10px;padding-top:10px}
 
-  body.prism-workspace .calendar-page .calendar-side{height:100%;min-height:0;grid-template-rows:minmax(0,max-content) minmax(150px,1fr);gap:14px}
-  body.prism-workspace .calendar-page .calendar-side>.reminder-panel{min-height:0;overflow-y:auto;padding:16px 18px;scrollbar-width:thin}
+  body.prism-workspace .calendar-page .calendar-side{grid-template-rows:auto auto;gap:14px}
+  body.prism-workspace .calendar-page .calendar-side>.reminder-panel{padding:16px 18px}
   /* selected date: compact form */
   body.prism-workspace .calendar-page .reminder-panel .panel-title{padding-bottom:10px}
   body.prism-workspace .calendar-page .reminder-panel .panel-title h2{font-size:16px}

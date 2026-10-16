@@ -54,12 +54,12 @@
         });
         return {addActions(actions,record) {
             if(record.profileStatus!=='Pending'||record.archivedAt)return;
-            const resend=document.createElement('button');resend.type='button';resend.className='prism-btn';resend.textContent='Resend Invitation';
+            const resend=document.createElement('button');resend.type='button';resend.className='prism-btn is-icon prism-invitation-action';resend.title='Resend Invitation';resend.setAttribute('aria-label',resend.title);resend.dataset.prismTooltip='';resend.innerHTML='<i class="fa-regular fa-envelope" aria-hidden="true"></i>';
             resend.addEventListener('click',()=>PrismUI.runAction(resend,'Sending…',async()=>{
                 try{const data=await PrismUI.postJson('account_invitation_api.php?action=resend',{accountType:type,targetId:record.id});PrismUI.toast(data.message,data.emailSent?'success':'error');}
                 catch(error){PrismUI.toast(error.message,'error');}
             }));actions.append(resend);
-            if(role==='admin'&&type==='student'){const assign=document.createElement('button');assign.type='button';assign.className='prism-btn';assign.textContent='Assign Adviser';assign.addEventListener('click',()=>open(assign,record));actions.append(assign);}
+            if(role==='admin'&&type==='student'){const assign=document.createElement('button');assign.type='button';assign.className='prism-btn is-icon prism-invitation-action';assign.title='Assign Adviser';assign.setAttribute('aria-label',assign.title);assign.dataset.prismTooltip='';assign.innerHTML='<i class="fa-solid fa-user-plus" aria-hidden="true"></i>';assign.addEventListener('click',()=>open(assign,record));actions.append(assign);}
         }};
     }};
 })();

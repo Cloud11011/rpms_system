@@ -9,7 +9,7 @@ require_session_generation(true);
 
 $user = current_user();
 if ($user) {
-    log_activity($user['email'], 'logout', '');
+    log_activity($user['email'], 'logout', '', (int)$user['id']);
 }
 
 $_SESSION = [];

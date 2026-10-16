@@ -271,14 +271,14 @@
                         stageSteps.append(step);
                     });
                     fields[0].append(stageSteps);
-                    if (!isAdmin && fields[1]) {
+                    if (fields[1]) {
                         const progress=fields[1].querySelector('.ierb-card-progress');
-                        if (progress) fields[0].append(progress);
+                        if (progress) fields[0].querySelector('dd').append(progress);
                         fields[1].remove();
                     }
                 }
                 if(isAdmin) {
-                    const docs=document.createElement('a');docs.href='documents.php';docs.className='prism-btn ierb-open-documents';docs.textContent='Open documents';
+                    const docs=document.createElement('a');docs.href='documents.php';docs.className='prism-btn ierb-open-documents';PrismUI.documentAction(docs,'view','Open Documents');
                     card.querySelector('.prism-record-actions').prepend(docs);
                 }
             }

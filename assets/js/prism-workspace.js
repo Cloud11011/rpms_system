@@ -62,6 +62,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if(!notification){notification=document.createElement('a');notification.href='admin_notifications.php';notification.className='portal-notification';notification.setAttribute('aria-label','Notifications');notification.title='Notifications';notification.innerHTML=icon('<path d="M5 17h14l-2-3V9a5 5 0 0 0-10 0v5Z"/><path d="M10 20h4"/>');}
         group.append(notification);
         const bellControl=notification.matches('a,button')?notification:notification.querySelector('button');
+        bellControl?.classList.add('prism-notification-bell');
         if(bellControl && !notification.classList.contains('notification-menu-wrap')) {
             const panel=document.createElement('section');panel.className='prism-bell-preview';panel.hidden=true;panel.id='prismBellPreview';panel.setAttribute('aria-label','Recent notifications');
             const heading=document.createElement('div');heading.className='prism-bell-preview-heading';
@@ -103,10 +104,14 @@ document.addEventListener('DOMContentLoaded', () => {
         group.querySelectorAll('button,a').forEach(control=>{
             control.dataset.prismTooltip='';
         });
-        document.querySelectorAll('[data-prism-tooltip]').forEach(control=>{
-            const show=()=>{const label=control.getAttribute('aria-label')||control.title;if(!label)return;tooltip.textContent=label;tooltip.hidden=false;control.setAttribute('aria-describedby',tooltip.id);const anchor=control.getBoundingClientRect(),box=tooltip.getBoundingClientRect(),left=anchor.left+(anchor.width-box.width)/2;tooltip.style.left=Math.max(12,Math.min(left,innerWidth-box.width-12))+'px';tooltip.style.top=Math.max(12,Math.min(anchor.bottom+8,innerHeight-box.height-12))+'px';};
-            control.addEventListener('pointerenter',show);control.addEventListener('pointerleave',hideTip);control.addEventListener('focus',show);control.addEventListener('blur',hideTip);control.addEventListener('click',hideTip);
-        });
+        // Record controls arrive asynchronously; delegation also covers refreshed rows.
+        const tipControl=event=>event.target.closest?.('[data-prism-tooltip],.prism-document-action');
+        const showTip=event=>{const control=tipControl(event);if(!control||control.disabled)return;hideTip();const label=control.getAttribute('aria-label')||control.title;if(!label)return;tooltip.textContent=label;tooltip.hidden=false;control.setAttribute('aria-describedby',tooltip.id);const anchor=control.getBoundingClientRect(),box=tooltip.getBoundingClientRect(),left=anchor.left+(anchor.width-box.width)/2;tooltip.style.left=Math.max(12,Math.min(left,innerWidth-box.width-12))+'px';tooltip.style.top=Math.max(12,Math.min(anchor.bottom+8,innerHeight-box.height-12))+'px';};
+        document.addEventListener('pointerover',showTip);document.addEventListener('focusin',showTip);
+        document.addEventListener('pointerout',event=>{const control=tipControl(event);if(control&&!control.contains(event.relatedTarget))hideTip();});
+        document.addEventListener('focusout',event=>{if(tipControl(event))hideTip();});
+        document.addEventListener('click',event=>{if(tipControl(event))hideTip();});
+        window.addEventListener('scroll',hideTip,{passive:true});
         document.addEventListener('keydown',event=>{if(event.key==='Escape')hideTip();});
         document.querySelectorAll('.portal-profile-btn').forEach(profile=>{
             const image=profile.querySelector('img');
@@ -117,7 +122,7 @@ document.addEventListener('DOMContentLoaded', () => {
         });
         const updateUnread=value=>{
             if(!bellControl||!Number.isInteger(value)||value<0)return;
-            let badge=bellControl.querySelector('.nav-badge');if(!badge){badge=document.createElement('b');badge.className='nav-badge';bellControl.append(badge);}badge.textContent=value;badge.hidden=!value;bellControl.setAttribute('aria-label',`Notifications: ${value} unread`);
+            let badge=bellControl.querySelector('.nav-badge');if(!badge){badge=document.createElement('b');badge.className='nav-badge';bellControl.append(badge);}badge.textContent=value>99?'99+':String(value);badge.hidden=!value;badge.setAttribute('aria-hidden','true');bellControl.setAttribute('aria-label',`Notifications, ${value} unread`);
         };
         document.addEventListener('prism:notification-count',event=>updateUnread(event.detail?.unread));
         if(!body.classList.contains('student-page')){

@@ -101,6 +101,6 @@ $_SESSION['username'] = $user['username'];
 $_SESSION['ref_id'] = $user['ref_id'];
 $_SESSION['must_change_password'] = (int)$user['must_change_password'];
 
-log_activity($user['email'], 'login_success', "account_type=$accountType");
+log_activity($user['email'], 'login_success', "account_type=$accountType", (int)$user['id']);
 header('Location: index.php');
 exit;

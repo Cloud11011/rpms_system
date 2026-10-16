@@ -489,3 +489,11 @@ body.prism-workspace.student-dashboard-page .student-document-tools .student-doc
 @media (max-width:900px) { .student-dashboard-page .submission-layout { grid-template-columns:minmax(0,1fr); } .student-dashboard-page .submission-side { position:static; grid-template-columns:repeat(2,minmax(0,1fr)); order:1; } }
 @media (max-width:560px) { .student-dashboard-page .submission-tip { padding:11px 12px; } .student-dashboard-page .submission-layout { gap:12px; } .student-dashboard-page .submission-side { grid-template-columns:minmax(0,1fr); } .student-dashboard-page .submission-card,.student-dashboard-page .submission-research-card,.student-dashboard-page .submission-ready-card { padding:18px 16px; border-radius:16px; } .student-dashboard-page .submission-step { gap:10px; } }
 @media (prefers-reduced-motion:reduce) { .student-dashboard-page .submission-step-number,.student-dashboard-page .submission-dropzone,.student-dashboard-page .submission-submit { transition:none; } }
+
+/* Recent submissions retain readable metadata beside the shared file actions. */
+body.student-dashboard-page .student-recent-item { grid-template-columns:40px minmax(0,1fr) auto; }
+body.student-dashboard-page .student-recent-item .prism-document-quick-actions { grid-column:2/-1; justify-self:end; }
+@media(max-width:600px) {
+ body.student-dashboard-page .student-recent-item { grid-template-columns:40px minmax(0,1fr); }
+ body.student-dashboard-page .student-recent-item .prism-document-quick-actions { justify-self:start; grid-column:2; }
+}

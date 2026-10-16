@@ -177,9 +177,6 @@ body.admin-shell .sidebar.prism-sidebar,
 body.admin-shell .prism-sidebar ~ .main-content {
     transition:width .5s cubic-bezier(.2,.75,.25,1),margin-left .5s cubic-bezier(.2,.75,.25,1);
 }
-body.admin-shell {
-    overflow-x:clip;
-}
 body.admin-shell .prism-sidebar #prismPrimaryNavigation,
 body.admin-shell .prism-sidebar .prism-nav-submenu {
     min-width:0;

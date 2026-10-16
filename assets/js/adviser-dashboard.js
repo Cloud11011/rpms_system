@@ -215,7 +215,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 actions.insertBefore(downloadLink,actions.querySelector('.document-preview-menu'));
             }
             if(!doc.preview) PrismUI.actionMenu(actions,{primary:fileLink,label:'Document actions'});
-            if(downloadLink && !doc.preview) actions.insertBefore(downloadLink,actions.querySelector('.prism-action-menu'));
+            if(downloadLink && !doc.preview) {PrismUI.documentAction(downloadLink,'download','Download '+(doc.originalName||'document'));actions.insertBefore(downloadLink,actions.querySelector('.prism-action-menu'));}
             queue.append(card);
         });
     }

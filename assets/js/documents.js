@@ -128,13 +128,11 @@ function renderTable(){
         let adviserViewAction=null,adviserDownloadAction=null;
         if(!d.preview){
             const actionHost=tr.querySelector('.document-row-actions');
-            if(currentRole==='adviser'){
-                adviserViewAction=actionHost.querySelector('a[href*="document_preview.php"]');
-                adviserDownloadAction=actionHost.querySelector('a[href*="download=1"]');
-                adviserDownloadAction?.remove();
-                PrismUI.actionMenu(actionHost,{primary:adviserViewAction,label:'Document actions'});
-                if(adviserDownloadAction){const menu=actionHost.querySelector('.prism-action-menu');if(menu?.parentElement===actionHost)actionHost.insertBefore(adviserDownloadAction,menu);else actionHost.append(adviserDownloadAction);}
-            }else PrismUI.actionMenu(actionHost);
+            const fileActions=actionHost.querySelectorAll('a');
+            adviserViewAction=fileActions[0];adviserDownloadAction=fileActions[1];
+            if(adviserViewAction)PrismUI.documentAction(adviserViewAction,'view','View '+(d.originalName||'document'));
+            if(adviserDownloadAction)PrismUI.documentAction(adviserDownloadAction,'download','Download '+(d.originalName||'document'));
+            PrismUI.actionMenu(actionHost,{primary:adviserViewAction,label:'Document actions'});
         }
         body.appendChild(tr);
         PrismUI.compactRecord(tr,0,4,5,[['Adviser review decision',d.reviewStatus],['Version',d.versionNo],['Protocol',d.protocolCode],['Reviewer remarks',d.reviewRemarks],['RPMS return reason',d.rpmsReturnReason],['RPMS submission',d.rpmsSubmittedAt||'Not submitted']], [3]);
@@ -211,11 +209,12 @@ function renderTable(){
             }
         }
     });
+    body.querySelectorAll('.prism-document-action').forEach(control=>PrismUI.documentAction(control,control.dataset.documentAction,control.getAttribute('aria-label')));
     bindSummaryButtons(body);
 }
 function renderPreviewFolder(host,title,icon){const folder=document.createElement('div');folder.className='document-folder';const heading=document.createElement('div');heading.className='folder-heading';const mark=document.createElement('i');mark.className='fa-solid '+icon;const label=document.createElement('strong');label.textContent=title;const total=document.createElement('span');total.textContent='1';heading.append(mark,label,total);const files=document.createElement('div');files.className='folder-files';const sample=document.createElement('span');sample.className='folder-file document-preview-folder-item';sample.textContent='Screenshot 2025-05-24 104329.png · UI preview sample only';files.append(sample);folder.append(heading,files);host.replaceChildren(folder)}
-function renderFolders(){folderView.replaceChildren();if(previewOnly){renderPreviewFolder(folderView,'Cyrus Salvador','fa-folder');return}const groups=new Map();filtered().forEach(d=>{if(!groups.has(d.student))groups.set(d.student,[]);groups.get(d.student).push(d)});groups.forEach((files,name)=>{const folder=document.createElement('div');folder.className='document-folder';folder.innerHTML=`<div class="folder-heading"><i class="fa-solid fa-folder"></i><strong>${esc(name)}</strong><span>${files.length}</span></div><div class="folder-files">${files.map(f=>`<a class="folder-file" href="${documentFileHref(f)}" target="_blank"><i class="fa-regular ${fileIcon(f.originalName)}"></i>${esc(f.originalName)}</a>${summaryButton(f)}`).join('')}</div>`;folderView.appendChild(folder)});bindSummaryButtons(folderView)}
-function renderCourseView(){courseView.replaceChildren();if(previewOnly){renderPreviewFolder(courseView,'BSIT','fa-layer-group');return}const groups=new Map();filtered().forEach(d=>{const key=d.course||'Unassigned / No Course';if(!groups.has(key))groups.set(key,[]);groups.get(key).push(d)});[...groups.keys()].sort().forEach(course=>{const files=groups.get(course);const folder=document.createElement('div');folder.className='document-folder';folder.innerHTML=`<div class="folder-heading"><i class="fa-solid fa-layer-group"></i><strong>${esc(course)}</strong><span>${files.length}</span></div><div class="folder-files">${files.map(f=>`<a class="folder-file" href="${documentFileHref(f)}" target="_blank"><i class="fa-regular ${fileIcon(f.originalName)}"></i>${esc(f.originalName)} <small>(${esc(f.student)}, ${esc(f.year||'')})</small></a>${summaryButton(f)}`).join('')}</div>`;courseView.appendChild(folder)});bindSummaryButtons(courseView)}
+function renderFolders(){folderView.replaceChildren();if(previewOnly){renderPreviewFolder(folderView,'Cyrus Salvador','fa-folder');return}const groups=new Map();filtered().forEach(d=>{if(!groups.has(d.student))groups.set(d.student,[]);groups.get(d.student).push(d)});groups.forEach((files,name)=>{const folder=document.createElement('div');folder.className='document-folder';folder.innerHTML=`<div class="folder-heading"><i class="fa-solid fa-folder"></i><strong>${esc(name)}</strong><span>${files.length}</span></div><div class="folder-files">${files.map(f=>`<a class="folder-file" href="${documentFileHref(f)}" target="_blank"><i class="fa-regular ${fileIcon(f.originalName)}"></i>${esc(f.originalName)}</a><span class="prism-document-quick-actions">${PrismUI.documentActionsHtml(f)}</span>${summaryButton(f)}`).join('')}</div>`;folderView.appendChild(folder)});bindSummaryButtons(folderView)}
+function renderCourseView(){courseView.replaceChildren();if(previewOnly){renderPreviewFolder(courseView,'BSIT','fa-layer-group');return}const groups=new Map();filtered().forEach(d=>{const key=d.course||'Unassigned / No Course';if(!groups.has(key))groups.set(key,[]);groups.get(key).push(d)});[...groups.keys()].sort().forEach(course=>{const files=groups.get(course);const folder=document.createElement('div');folder.className='document-folder';folder.innerHTML=`<div class="folder-heading"><i class="fa-solid fa-layer-group"></i><strong>${esc(course)}</strong><span>${files.length}</span></div><div class="folder-files">${files.map(f=>`<a class="folder-file" href="${documentFileHref(f)}" target="_blank"><i class="fa-regular ${fileIcon(f.originalName)}"></i>${esc(f.originalName)} <small>(${esc(f.student)}, ${esc(f.year||'')})</small></a><span class="prism-document-quick-actions">${PrismUI.documentActionsHtml(f)}</span>${summaryButton(f)}`).join('')}</div>`;courseView.appendChild(folder)});bindSummaryButtons(courseView)}
 function render(){renderFilters();renderTypeManager();renderTable();renderFolders();renderCourseView()}
 function openModal(m){m.classList.add('show');m.setAttribute('aria-hidden','false')}function closeModal(m){
     m.classList.remove('show');m.setAttribute('aria-hidden','true');
