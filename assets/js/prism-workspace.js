@@ -41,9 +41,12 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
     }
-    const account = document.querySelector('[data-prism-admin-account]');
+    const account = document.querySelector('template[data-prism-admin-account-template]');
     const controls = document.querySelector('.top-controls');
-    if (account && controls) controls.append(account);
+    if (account && controls) {
+        controls.append(account.content);
+        account.remove();
+    }
     const utilities = document.querySelector('.portal-nav-right');
     const theme = document.getElementById('themeToggle');
     if (body.classList.contains('portal-shell') && utilities && theme) {

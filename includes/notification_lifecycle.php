@@ -82,25 +82,39 @@ function notification_create_campaign(PDO $pdo, ?array $sender, string $kind, st
     return (int)$pdo->lastInsertId();
 }
 
-/** Legacy email visibility remains, but personal mutation needs an unambiguous profile/login link. */
+/** One predicate for personal reads, counts and mutations. Email is never identity.
+ * Legacy profile binding must predate the copy: a later login/profile cannot
+ * inherit retained private content merely by acquiring an old address/profile.
+ */
+function notification_owner_scope(array $user): array
+{
+    return ['n.recipient_type=:owner_role AND (n.recipient_user_id=:owner_id OR
+        (n.recipient_user_id IS NULL AND n.recipient_id IS NOT NULL AND EXISTS (
+            SELECT 1 FROM users owner_user WHERE owner_user.id=:legacy_owner_id
+            AND owner_user.created_at <= n.created_at AND (
+                (n.recipient_type="admin" AND n.recipient_id=owner_user.id) OR
+                (n.recipient_type="student" AND EXISTS (SELECT 1 FROM students owner_profile
+                    WHERE owner_profile.id=n.recipient_id AND owner_profile.user_id=owner_user.id
+                    AND owner_profile.created_at <= n.created_at)) OR
+                (n.recipient_type="adviser" AND EXISTS (SELECT 1 FROM advisers owner_profile
+                    WHERE owner_profile.id=n.recipient_id AND owner_profile.user_id=owner_user.id
+                    AND owner_profile.created_at <= n.created_at))
+            )
+        )))', [':owner_role'=>$user['role'], ':owner_id'=>$user['id'], ':legacy_owner_id'=>$user['id']]];
+}
+
+/** Missing profile IDs, login bindings or creation provenance fail closed. */
 function notification_legacy_owner(PDO $pdo, array $user, array $row): bool
 {
-    if (($row['recipient_email']??'')!==$user['email'] || $row['recipient_type']!==$user['role']) return false;
-    if ($user['role']==='admin') return (int)($row['recipient_id']??0)===(int)$user['id'];
-    if (!in_array($user['role'],['student','adviser'],true)) return false;
-    $table=$user['role']==='student'?'students':'advisers'; $field=$user['role']==='student'?'student_id':'employee_id';
-    $profiles=notification_rows($pdo,"SELECT * FROM $table WHERE email=? ORDER BY id",[$user['email']]);
-    if (count($profiles)!==1) return false;
-    $p=$profiles[0];
-    if (!empty($row['recipient_id']) && (int)$row['recipient_id']!==(int)$p['id']) return false;
-    if (empty($row['recipient_id']) && !empty($row['recipient_name']) && $row['recipient_name']!==$p['full_name']) return false;
-    if (!empty($p['user_id'])) return (int)$p['user_id']===(int)$user['id'];
-    $identity=(string)($p[$field]??'');
-    return $identity!=='' && (($user['username']??'')===$identity || (string)($user['ref_id']??'')===$identity);
+    [$scope,$params]=notification_owner_scope($user);
+    $rows=notification_rows($pdo,'SELECT n.id FROM notifications n WHERE n.id=:copy_id AND '.$scope,
+        $params+[':copy_id'=>$row['id']??0]);
+    return (bool)$rows;
 }
 
 function notification_owns_copy(PDO $pdo, array $user, array $row): bool
 {
+    if (($row['recipient_type']??'')!==$user['role']) return false;
     return $row['recipient_user_id']!==null
         ? (int)$row['recipient_user_id']===(int)$user['id'] : notification_legacy_owner($pdo,$user,$row);
 }
@@ -188,11 +202,31 @@ function notification_finish_campaign(PDO $pdo, int $campaignId): void
         ->execute([$failed?'Failed':'Sent',$failed?null:date('Y-m-d H:i:s'),$campaignId]);
 }
 
+/** Typed official events (and a narrow historical producer format), never staff descriptions. */
+function notification_deadline_event(array $row): ?array
+{
+    if (($row['kind']??'system')!=='system') return null;
+    $event=null;
+    if (($row['type']??'')==='Official Deadline') $event=json_decode((string)($row['message']??''),true);
+    elseif (($row['type']??'')==='Reminder' && in_array($row['subject']??'',['New official deadline','Official deadline cancelled'],true)
+        && preg_match('/\A(New official deadline|Official deadline cancelled) \(Deadline #([1-9][0-9]*)\)\.\r?\nTitle: ([^\r\n]+)\r?\nDeadline date: ([0-9]{4}-[0-9]{2}-[0-9]{2})(?:\r?\n|$)/',(string)($row['message']??''),$m)) {
+        $event=['event'=>$m[1]==='New official deadline'?'official_deadline_created':'official_deadline_cancelled',
+            'deadline_id'=>(int)$m[2],'title'=>$m[3],'due_date'=>$m[4]];
+    }
+    if (!is_array($event) || !in_array($event['event']??null,['official_deadline_created','official_deadline_cancelled'],true)
+        || !is_int($event['deadline_id']??null) || $event['deadline_id']<=0
+        || !is_string($event['title']??null) || trim($event['title'])==='' || mb_strlen($event['title'])>190
+        || !is_string($event['due_date']??null) || !preg_match('/\A([0-9]{4})-([0-9]{2})-([0-9]{2})\z/',$event['due_date'],$d)
+        || !checkdate((int)$d[2],(int)$d[3],(int)$d[1])) return null;
+    return array_intersect_key($event,array_flip(['event','deadline_id','title','due_date']));
+}
+
 /** Student reads expose explicit notification fields, never operational actor metadata. */
 function notification_student_projection(array $row): array
 {
     $subject=(string)($row['subject']??''); $message=(string)($row['message']??'');
     $support=($row['kind']??'')==='support';
+    $deadline=notification_deadline_event($row);
     $override=stripos((string)($row['created_by']??''),'Admin Override')!==false
         || stripos((string)($row['type']??''),'Admin Override')!==false || stripos($subject,'Admin Override')!==false
         || preg_match('/\AAn RPMS administrator changed\b/i',$message)===1;
@@ -214,7 +248,13 @@ function notification_student_projection(array $row): array
         $row['subject']='PRISM Status Update';
         $row['message']='Your PRISM record was updated. Open PRISM to view the current details.';
     }
-    if (!$support && !$review && !$returned && in_array($row['kind']??'system',['system','workflow'],true)) {
+    if ($deadline!==null) {
+        $cancelled=$deadline['event']==='official_deadline_cancelled';
+        $row['subject']=$cancelled?'Official deadline cancelled':'New official deadline';
+        $row['message']=($cancelled?'Cancelled: ':'Deadline: ').$deadline['title']."\nDue date: ".$deadline['due_date']
+            ."\nOpen your PRISM Calendar for the current official record.";
+        $row['type']='Reminder'; $row['destination']='student.php#calendar';
+    } elseif (!$support && !$review && !$returned && in_array($row['kind']??'system',['system','workflow'],true)) {
         // Unknown legacy system free text is not proof of a public message.
         $row['subject']='PRISM Status Update';
         $row['message']='Your PRISM record was updated. Open PRISM to view your documents and official progress.';
@@ -222,7 +262,7 @@ function notification_student_projection(array $row): array
     }
     return array_intersect_key($row,array_flip(['id','campaign_id','subject','message','type','status','kind',
         'scheduled_at','sent_at','read_at','archived_at','created_at','support_category','reply_to_campaign_id',
-        'recipient_count','legacy','can_manage']));
+        'recipient_count','legacy','can_manage','destination']));
 }
 
 /** Authorized queries never recover erased content from a campaign/other copy. */
@@ -249,14 +289,14 @@ function notification_list(PDO $pdo, array $user, array $query, string $mode='li
         if ($legacy) {
             $scope.=' AND n.campaign_id IS NULL AND n.recipient_user_id IS NULL';
             if ($user['role']==='adviser') {
-                $scope.=' AND ((n.recipient_email=:email AND n.recipient_type<>"historical_adviser")
-                    OR (n.recipient_type="student" AND a.email=:assigned AND s.archived_at IS NULL AND s.profile_completed_at IS NOT NULL))';
-                $params=[':email'=>$user['email'],':assigned'=>$user['email']];
+                [$owner,$params]=notification_owner_scope($user);
+                $scope.=' AND (('.$owner.') OR (n.recipient_type="student" AND a.user_id=:assigned
+                    AND a.archived_at IS NULL AND s.archived_at IS NULL AND s.profile_completed_at IS NOT NULL))';
+                $params[':assigned']=$user['id'];
             }
         } else {
-            $scope.=' AND (n.recipient_user_id=:uid OR (n.recipient_user_id IS NULL AND n.recipient_email=:email AND n.recipient_type<>"historical_adviser"))
-                AND n.status NOT IN ("Scheduled","Sending","Cancelled")';
-            $params=[':uid'=>$user['id'],':email'=>$user['email']];
+            [$owner,$params]=notification_owner_scope($user);
+            $scope.=' AND ('.$owner.') AND n.status NOT IN ("Scheduled","Sending","Cancelled")';
         }
         $kindSql='COALESCE(c.kind,"system")'; $select='n.*, '.$kindSql.' AS kind,c.support_category,c.reply_to_campaign_id';
     }
@@ -280,21 +320,21 @@ function notification_list(PDO $pdo, array $user, array $query, string $mode='li
         if (($user['role']??'')==='student') $row=notification_student_projection($row);
     }
     unset($row);
+    [$owner,$unreadParams]=notification_owner_scope($user);
     $unread=notification_rows($pdo,'SELECT COUNT(*) AS total FROM notifications n WHERE n.deleted_at IS NULL AND n.archived_at IS NULL
         AND n.read_at IS NULL AND n.status NOT IN ("Scheduled","Sending","Cancelled") AND
-        (n.recipient_user_id=? OR (n.recipient_user_id IS NULL AND n.recipient_email=? AND n.recipient_type<>"historical_adviser"))'
-        .($support ? ' AND n.recipient_user_id=? AND EXISTS (SELECT 1 FROM notification_campaigns sc WHERE sc.id=n.campaign_id AND sc.kind="support" AND sc.reply_to_campaign_id IS NOT NULL)' : ''),
-        $support ? [$user['id'],$user['email'],$user['id']] : [$user['id'],$user['email']]);
+        ('.$owner.')'
+        .($support ? ' AND n.recipient_user_id=:support_owner AND EXISTS (SELECT 1 FROM notification_campaigns sc WHERE sc.id=n.campaign_id AND sc.kind="support" AND sc.reply_to_campaign_id IS NOT NULL)' : ''),
+        $support ? $unreadParams+[':support_owner'=>$user['id']] : $unreadParams);
     return ['ok'=>true,'notifications'=>$rows,'total'=>$total,'page'=>$page,'pages'=>$pages,'limit'=>$limit,'offset'=>$offset,'unread_count'=>(int)$unread[0]['total']];
 }
 
 function notification_mark_all_read(PDO $pdo, array $user): array
 {
-    $rows=notification_rows($pdo,'SELECT * FROM notifications WHERE read_at IS NULL AND archived_at IS NULL AND deleted_at IS NULL
-        AND status NOT IN ("Scheduled","Sending","Cancelled") AND (recipient_user_id=? OR (recipient_user_id IS NULL AND recipient_email=?))',[$user['id'],$user['email']]);
-    foreach ($rows as $row) if (notification_owns_copy($pdo,$user,$row)) {
-        $pdo->prepare('UPDATE notifications SET read_at=NOW() WHERE id=? AND read_at IS NULL AND deleted_at IS NULL AND archived_at IS NULL')->execute([$row['id']]);
-    }
+    [$owner,$params]=notification_owner_scope($user);
+    $rows=notification_rows($pdo,'SELECT n.* FROM notifications n WHERE n.read_at IS NULL AND n.archived_at IS NULL AND n.deleted_at IS NULL
+        AND n.status NOT IN ("Scheduled","Sending","Cancelled") AND ('.$owner.')',$params);
+    foreach ($rows as $row) notification_transition($pdo,$user,'mark_read',(int)$row['id']);
     return ['ok'=>true];
 }
 

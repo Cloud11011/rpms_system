@@ -28,6 +28,8 @@ Options -Indexes
     # Private documents/reports must only be served through authenticated PHP endpoints.
     RewriteRule ^storage(?:/|$) - [F,L]
     RewriteRule ^tests(?:/|$) - [F,L]
+    RewriteRule ^maintenance(?:/|$) - [F,L]
+    RewriteRule ^PRISM_V13_POST_AUDIT_REMEDIATION(?:/|$) - [F,L]
     RewriteRule ^vendor(?:/|$) - [F,L]
     # The one-time Gmail OAuth helper is browser-based but also enforces loopback-only access itself.
     RewriteRule ^tools/gmail_get_refresh_token\.php$ - [L]

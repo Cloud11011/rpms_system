@@ -154,9 +154,12 @@ function extract_document_text_for_summary(string $path): array
             $dom = new DOMDocument();
             if (!$dom->loadXML($xml, LIBXML_NONET)) throw new DocumentSummaryError('invalid_docx_xml', 'This DOCX text could not be read.');
             $xpath = new DOMXPath($dom);
-            $xpath->registerNamespace('w', 'http://schemas.openxmlformats.org/wordprocessingml/2006/main');
+            $namespace=$dom->documentElement->namespaceURI;
+            if (!in_array($namespace,['http://schemas.openxmlformats.org/wordprocessingml/2006/main',
+                'http://purl.oclc.org/ooxml/wordprocessingml/main'],true)) throw new DocumentSummaryError('invalid_docx_xml','Unsupported Word namespace.');
+            $xpath->registerNamespace('prismWord', $namespace);
             $text = '';
-            foreach ($xpath->query('//w:body//w:t | //w:body//w:tab | //w:body//w:br | //w:body//w:p') as $node) {
+            foreach ($xpath->query('//prismWord:body//prismWord:t | //prismWord:body//prismWord:tab | //prismWord:body//prismWord:br | //prismWord:body//prismWord:p',null,false) as $node) {
                 if ($node->localName === 't') $text .= $node->textContent;
                 elseif ($node->localName === 'p') $text .= "\n";
                 else $text .= ' ';

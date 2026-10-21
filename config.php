@@ -1187,27 +1187,21 @@ function api_require_login($roles = null): array
 {
     $user = current_user();
     if (!$user) {
-        http_response_code(401);
-        echo json_encode(!empty($GLOBALS['prism_session_expired'])
+        json_out(!empty($GLOBALS['prism_session_expired'])
             ? ['ok' => false, 'code' => 'session_expired', 'message' => 'Your session expired due to inactivity. Please sign in again.']
-            : ['ok' => false, 'message' => 'You must be logged in.']);
-        exit;
+            : ['ok' => false, 'message' => 'You must be logged in.'],401);
     }
     // Same rule as require_login(): an account still on its temporary password can do nothing except change it.
     if (!empty($_SESSION['must_change_password'])) {
         $script = basename($_SERVER['SCRIPT_NAME'] ?? '');
         $exempt = $script === 'profile_api.php' && in_array($_GET['action'] ?? '', ['change_password', 'me'], true);
         if (!$exempt) {
-            http_response_code(403);
-            echo json_encode(['ok' => false, 'code' => 'password_change_required',
-                'message' => 'Please change your temporary password before continuing.']);
-            exit;
+            json_out(['ok' => false, 'code' => 'password_change_required',
+                'message' => 'Please change your temporary password before continuing.'],403);
         }
     }
     if ($roles !== null && !in_array($user['role'], (array)$roles, true)) {
-        http_response_code(403);
-        echo json_encode(['ok' => false, 'message' => 'You are not authorized to perform this action.']);
-        exit;
+        json_out(['ok' => false, 'message' => 'You are not authorized to perform this action.'],403);
     }
     $script=basename($_SERVER['SCRIPT_NAME']??'');
     $passwordGateAllowed=!empty($_SESSION['must_change_password']) && $script==='profile_api.php'

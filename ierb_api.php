@@ -279,6 +279,9 @@ if ($action === 'override') {
             'entity_type' => 'student', 'entity_id' => $id, 'student_id' => $id, 'override' => true, 'reason' => $reason,
             'before' => $cur['stage'] . ' / ' . $cur['status'], 'after' => $newStage . ' / ' . $newStatus, 'details' => $change,
         ]);
+        $notificationIds=workflow_queue_notices($pdo,$user,$id,
+            ['subject'=>'PRISM IERB Progress Updated','message'=>"RPMS updated your IERB record. Current stage: " . stage_label($newStage) . " ($newStage). Status: $newStatus."],
+            ['subject'=>'Admin Override on a student record','message'=>"{$user['full_name']} updated {$cur['full_name']}'s IERB record. $change. Reason: $reason",'type'=>'Admin Override']);
         $pdo->commit();
         research_group_release($pdo);
     } catch (Throwable $e) {
@@ -290,11 +293,7 @@ if ($action === 'override') {
         json_out(['ok' => false, 'message' => 'The override could not be saved. Refresh to check the current state before retrying.'], 500);
     }
 
-    notify_student($pdo, $id, 'PRISM IERB Progress Updated',
-        "Hello {$cur['full_name']},\n\nRPMS updated your IERB record.\nCurrent stage: " . stage_label($newStage) . " ($newStage)\nStatus: $newStatus\n\n- CEU Malolos RPMS / PRISM",
-        "RPMS updated your IERB record. Current stage: " . stage_label($newStage) . " ($newStage). Status: $newStatus.", 'Status Update', 'RPMS');
-    notify_adviser_of_student($pdo, $id, 'Admin Override on a student record',
-        "{$user['full_name']} updated {$cur['full_name']}'s IERB record. $change. Reason: $reason", 'Admin Override', $user['full_name']);
+    document_workflow_deliver($pdo,$notificationIds);
 
     json_out(['ok' => true, 'message' => "Admin Override saved for {$cur['full_name']}. Your name, the time and your reason were added to the audit log."]);
 }
@@ -472,6 +471,8 @@ if ($action === 'save') {
                 'after' => "$stage / $status",
             ]);
         }
+        $notificationIds=$override ? workflow_queue_notices($pdo,$user,$id,
+            ['subject'=>'PRISM IERB Progress Updated','message'=>"RPMS updated your IERB record. Current stage: " . stage_label($stage) . " ($stage). Status: $status."]) : [];
         $pdo->commit();
         research_group_release($pdo);
     } catch (Throwable $e) {
@@ -500,12 +501,7 @@ if ($action === 'save') {
         'details' => $override ? $change : "student_id=$studentIdCode stage=$stage status=$status",
         'after' => "$stage / $status",
     ]);
-    if ($override) {
-        notify_student($pdo, $id, 'PRISM IERB Progress Updated',
-            "Hello $name,\n\nRPMS updated your IERB record.\nCurrent stage: " . stage_label($stage) . " ($stage)\nStatus: $status\n\n- CEU Malolos RPMS / PRISM",
-            "RPMS updated your IERB record. Current stage: " . stage_label($stage) . " ($stage). Status: $status.",
-            'Status Update', 'RPMS');
-    }
+    document_workflow_deliver($pdo,$notificationIds);
 
     $response = ['ok' => true, 'id' => $id, 'override' => $override,
         'message' => "IERB record for $name saved." . ($override ? ' The stage/status change was logged as an Admin Override.' : '')];

@@ -4,9 +4,21 @@
     "type": "project",
     "require": {
         "php": ">=8.1",
+        "ext-ctype": "*",
+        "ext-dom": "*",
+        "ext-fileinfo": "*",
         "ext-iconv": "*",
+        "ext-libxml": "*",
+        "ext-mbstring": "*",
+        "ext-pdo": "*",
+        "ext-pdo_mysql": "*",
+        "ext-session": "*",
+        "ext-zip": "*",
         "ext-zlib": "*",
         "smalot/pdfparser": "2.12.5"
+    },
+    "suggest": {
+        "ext-curl": "Required when Gmail API or OpenRouter integrations are enabled."
     },
     "config": {
         "allow-plugins": false,

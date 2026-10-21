@@ -28,14 +28,6 @@ if ($action === 'list') {
     if ($user['role'] === 'adviser') {
         $where[] = 'l.student_id IN (SELECT s.id FROM students s JOIN advisers a ON a.id = s.adviser_id WHERE a.email = :adv AND s.archived_at IS NULL)';
         $params[':adv'] = $user['email'];
-    } elseif ($user['role'] === 'student') {
-        $where[] = '(l.user_email = :student_email OR l.student_id IN (
-            SELECT s.id FROM students s WHERE s.archived_at IS NULL
-            AND (s.user_id = :student_uid OR (s.email = :profile_email AND s.student_id = :student_ref))))';
-        $params[':student_email'] = $user['email'];
-        $params[':student_uid'] = (int)$user['id'];
-        $params[':profile_email'] = $user['email'];
-        $params[':student_ref'] = $user['ref_id'];
     }
     if ((int)($_GET['studentId'] ?? 0) > 0) {
         $where[] = 'l.student_id = :sid';

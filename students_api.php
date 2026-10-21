@@ -337,6 +337,8 @@ if ($action === 'save') {
         $identityRow=$pdo->prepare('SELECT * FROM students WHERE id=:id FOR UPDATE');
         $identityRow->execute([':id'=>$id]);
         lifecycle_identity_persist($pdo,$user,'student',$identityBefore??null,lifecycle_identity_capture($pdo,$identityRow->fetch(),'student'));
+        $notificationIds=$progressChanged ? workflow_queue_notices($pdo,$user,$id,
+            ['subject'=>'PRISM IERB Progress Updated','message'=>"Your IERB progress was updated. Current stage: " . stage_label($stage) . " ($stage). Status: $status."]) : [];
         $pdo->commit();
         research_group_release($pdo);
     } catch (Throwable $e) {
@@ -358,12 +360,7 @@ if ($action === 'save') {
     if ($newLoginUserId) {
         $setupDelivery = send_account_setup_email($pdo, $newLoginUserId, $email, $name);
     }
-    if ($progressChanged) {
-        notify_student($pdo, $id, 'PRISM IERB Progress Updated',
-            "Hello $name,\n\nYour IERB progress was updated.\nCurrent stage: " . stage_label($stage) . " ($stage)\nStatus: $status\n\n- CEU Malolos RPMS / PRISM",
-            "Your IERB progress was updated. Current stage: " . stage_label($stage) . " ($stage). Status: $status.",
-            'Status Update', 'RPMS');
-    }
+    document_workflow_deliver($pdo,$notificationIds);
     log_activity($user['email'], 'student_saved', "student_id=$studentId");
     $response = ['ok' => true, 'id' => $id, 'message' => 'Student record saved.'];
     if ($newLoginUserId) {

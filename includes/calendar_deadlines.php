@@ -120,7 +120,7 @@ function deadline_targets(PDO $pdo, array $user, array $data): array
     return ['groups', $groups];
 }
 
-/** Ordinary per-student notifications, after canonical commit; no per-student deadline records. */
+/** Required intent shares the canonical deadline transaction; dispatch runs separately. */
 function deadline_notify(PDO $pdo, array $user, array $deadline, array $groups): array
 {
     $result = ['recipients' => 0, 'notificationFailures' => 0, 'emailFailures' => 0, 'queued' => 0];
@@ -131,19 +131,22 @@ function deadline_notify(PDO $pdo, array $user, array $deadline, array $groups):
             WHERE r.deadline_id=? AND s.archived_at IS NULL AND s.profile_completed_at IS NOT NULL ORDER BY s.id');
         $stmt->execute([$deadline['id']]); $recipients=$stmt->fetchAll(); $result['recipients']=count($recipients);
         $subject=$deadline['status']==='Cancelled'?'Official deadline cancelled':'New official deadline';
-        $message=$subject.' (Deadline #'.$deadline['id'].").\nTitle: ".$deadline['title']."\nDeadline date: ".$deadline['deadline_date']
-            .($deadline['description']!==''?"\nDetails: ".$deadline['description']:'')."\nView your PRISM Calendar for the current official record.";
+        // Explicit public fields only: descriptions and targeted group identifiers stay out.
+        $message=json_encode(['event'=>$deadline['status']==='Cancelled'?'official_deadline_cancelled':'official_deadline_created',
+            'deadline_id'=>(int)$deadline['id'],'title'=>$deadline['title'],'due_date'=>$deadline['deadline_date']],JSON_THROW_ON_ERROR|JSON_UNESCAPED_UNICODE);
         if ($recipients) {
             $campaign=notification_create_campaign($pdo,$user,'system',$subject,$message,date('Y-m-d H:i:s'));
             foreach ($recipients as $student) {
                 $delivery=create_notification($pdo,'student',(int)$student['id'],(string)$student['email'],(string)$student['full_name'],
-                    $subject,$message,'Reminder',(string)$user['full_name'],null,date('Y-m-d H:i:s'),null,'system',$campaign);
-                if (isset($delivery['id'])) { $result['queued']++; }
+                    $subject,$message,'Official Deadline',(string)$user['full_name'],null,date('Y-m-d H:i:s'),null,'system',$campaign);
+                if (!isset($delivery['id'])) throw new RuntimeException('Deadline recipient changed before notification intent was recorded.');
+                $result['queued']++;
             }
         }
         if ($owned) $pdo->commit();
     } catch (Throwable $e) {
         if ($owned && $pdo->inTransaction()) $pdo->rollBack();
+        if (!$owned) throw $e;
         $result['notificationFailures']+=max(1,count($recipients??[])); $result['queued']=0;
         log_api_error('deadline_notification','Deadline notification records could not be saved.');
     }

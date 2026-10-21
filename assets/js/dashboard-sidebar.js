@@ -3,8 +3,12 @@ document.addEventListener('DOMContentLoaded', () => {
     const toggle = document.getElementById('prismSidebarToggle');
     if (!sidebar || !toggle) return;
     const groups = [...sidebar.querySelectorAll('.prism-nav-group-toggle')];
-    const media = window.matchMedia('(max-width: 900px)');
     const submenu = button => document.getElementById(button.getAttribute('aria-controls'));
+    sidebar.querySelectorAll('.prism-sidebar-toggle,.prism-nav-home,.prism-nav-group-toggle').forEach(item => {
+        item.title = item.getAttribute('aria-label') || item.textContent.trim();
+    });
+    groups.forEach(button => button.classList.toggle('has-current-page', !!submenu(button)?.querySelector('[aria-current="page"]')));
+    const media = window.matchMedia('(max-width: 900px)');
     const rememberedGroups = new Map();
     const groupAnimations = new WeakMap();
     const reducedMotion = matchMedia('(prefers-reduced-motion: reduce)');

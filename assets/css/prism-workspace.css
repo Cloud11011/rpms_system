@@ -114,7 +114,7 @@ body.admin-shell .prism-sidebar.is-initializing ~ .main-content { transition:non
 body.admin-shell .prism-sidebar .sidebar-brand-logo { width:176px; height:80px; object-fit:cover; object-position:center 45%; }
 body.admin-shell .prism-navigation-caption { font-size:var(--prism-font-micro); letter-spacing:.12em; text-transform:uppercase; }
 body.admin-shell .prism-sidebar-toggle { min-height:38px; margin:10px 0; }
-body.admin-shell #prismPrimaryNavigation { flex:1; }
+body.admin-shell #prismPrimaryNavigation { flex:0 0 auto; }
 body.admin-shell .prism-nav-section-label { margin:18px 12px 6px; font-size:var(--prism-font-micro); font-weight:600; letter-spacing:.14em; text-transform:uppercase; color:#ffffffb8; }
 body.admin-shell .prism-sidebar .prism-nav-group-toggle { font-size:var(--prism-font-nav-main); font-weight:650; }
 body.admin-shell .prism-nav-submenu { padding-left:12px; }
@@ -227,7 +227,6 @@ body.prism-workspace :is(.prism-account-links,.portal-profile-dropdown) .prism-a
 body.prism-workspace :is(.prism-account-links,.portal-profile-dropdown) .prism-account-logout,
 body.prism-workspace :is(.prism-account-links,.portal-profile-dropdown) .prism-account-logout i { color:var(--prism-danger-fg); }
 body.prism-workspace :is(.prism-account-links,.portal-profile-dropdown,.portal-nav-links)[hidden] { display:none; }
-body.prism-workspace .prism-sidebar > .prism-account-menu { margin-top:12px; }
 
 /* Research Resources Dropdown Styling */
 .portal-nav-dropdown,

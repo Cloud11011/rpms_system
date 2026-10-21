@@ -94,9 +94,6 @@ function can_review_doc(array $user, ?int $viewerAdviserId, array $d): bool
     if ($user['role'] !== 'adviser') {
         return false;
     }
-    if (!ADVISERS_REVIEW_ONLY_OWN_STUDENTS) {
-        return true;
-    }
     return $viewerAdviserId !== null && !empty($d['adviser_id']) && (int)$d['adviser_id'] === $viewerAdviserId && empty($d['archived_at']);
 }
 
@@ -402,6 +399,15 @@ function upload_document_file(PDO $pdo, array $user, ?int $viewerAdviserId, arra
             'after' => "v$versionNo", 'details' => '"' . basename($file['name']) . '" v' . $versionNo . " ($documentType, $stage)"
                 . ($prev ? ' replaces v' . $prev['version_no'] : ''),
         ]);
+        $origName = basename($file['name']);
+        $versionText = $versionNo > 1 ? " (version $versionNo)" : '';
+        $notificationIds = $studentDbId ? workflow_queue_notices($pdo,$user,$studentDbId,
+            $user['role']==='student' ? ['subject'=>'PRISM Submission Confirmation',
+                'message'=>"Your document \"$origName\"$versionText was received and is pending adviser review.",
+                'type'=>'Submission Confirmation'] : null,
+            ['subject'=>'New document to review',
+                'message'=>"$studentName uploaded \"$origName\"$versionText ($documentType, " . stage_label($stage) . ').',
+                'type'=>'Review Needed']) : [];
         $commitAttempted = true;
         if (!$pdo->commit()) throw new RuntimeException('Upload commit could not be confirmed.');
     } catch (DocumentWriteConflict $e) {
@@ -423,30 +429,7 @@ function upload_document_file(PDO $pdo, array $user, ?int $viewerAdviserId, arra
         throw new DocumentUploadError('The upload outcome could not be confirmed. Refresh your documents before retrying.', 500);
     }
 
-    $origName = basename($file['name']);
-    $versionText = $versionNo > 1 ? " (version $versionNo)" : '';
-
-    try {
-    // Confirm receipt to the submitting student.
-    if ($user['role'] === 'student' && $studentDbId) {
-        $body = "Hello {$user['full_name']},\n\nYour document \"$origName\"$versionText has been received by the RPMS office."
-            . "\nStatus: Pending Adviser Review. You will be notified when your adviser has reviewed it."
-            . ($prev ? "\nYour earlier version was kept in the version history." : '')
-            . "\n\n- PRISM";
-        notify_student($pdo, $studentDbId, 'PRISM Submission Confirmation', $body,
-            "Your document \"$origName\"$versionText was received and is pending adviser review.",
-            'Submission Confirmation', 'System');
-    }
-    // Tell the assigned adviser there is something to review.
-    if ($studentDbId) {
-        notify_adviser_of_student($pdo, $studentDbId, 'New document to review',
-            "$studentName uploaded \"$origName\"$versionText ($documentType, " . stage_label($stage) . ').',
-            'Review Needed', $user['full_name']);
-    }
-
-    } catch (Throwable $e) {
-        log_api_error('document_upload_side_effect', 'Committed document ' . $id . ' needs delivery/audit follow-up.');
-    }
+    document_workflow_deliver($pdo,$notificationIds);
     // A read-back failure after commit must not report the durable upload as failed.
     $uploadedDocument = null;
     try { $uploadedDocument = doc_row(fetch_doc($pdo, $id), $user, $viewerAdviserId); }
@@ -457,6 +440,7 @@ function upload_document_file(PDO $pdo, array $user, ?int $viewerAdviserId, arra
             . ' It is now pending adviser review.',
         'versionNo' => $versionNo,
         'replacedPrevious' => (bool)$prev,
+        'notificationIntent' => $notificationIds ? 'recorded' : 'not_required',
         'document' => $uploadedDocument,
     ];
 }

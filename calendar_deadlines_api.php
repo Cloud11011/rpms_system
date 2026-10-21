@@ -61,7 +61,7 @@ try {
         }
         $page = prism_page_query($pdo, 'SELECT d.id, d.creator_user_id, d.title, d.description, d.deadline_date,
             d.target_scope, d.status, d.created_at, d.updated_at', $scope, $params, 'd.deadline_date ASC, d.id DESC',
-            ['page' => $_GET['page'] ?? 1]);
+            $_GET);
         foreach ($page['rows'] as &$row) {
             $row['canCancel'] = $row['status'] === 'Active' && ($user['role'] === 'admin'
                 || ($user['role'] === 'adviser' && (int)$row['creator_user_id'] === (int)$user['id']));
@@ -75,7 +75,7 @@ try {
         }
         unset($row);
         json_out(['ok' => true, 'deadlines' => $page['rows'], 'total' => $page['total'], 'page' => $page['page'],
-            'limit' => 10, 'pages' => max(1, (int)ceil($page['total'] / 10))]);
+            'limit' => $page['limit'], 'pages' => max(1, (int)ceil($page['total'] / $page['limit']))]);
     }
     if ($action === 'create') {
         $data = json_body();
@@ -117,11 +117,11 @@ try {
         $stmt = $pdo->prepare('INSERT INTO calendar_deadline_groups (deadline_id, research_group) VALUES (:id, :group)');
         foreach ($groups as $group) $stmt->execute([':id' => $id, ':group' => $group]);
         deadline_snapshot_recipients($pdo, $user, $id, $target, $groups);
-        $pdo->commit();
-        audit_log($user, 'deadline_created', ['entity_type'=>'deadline', 'entity_id'=>$id, 'after'=>'Active', 'details'=>trim($title).' / '.$date]);
         $deadline = ['id' => $id, 'title' => trim($title), 'description' => trim($description), 'deadline_date' => $date,
             'target_scope' => $target, 'status' => 'Active'];
         $delivery = deadline_notify($pdo, $user, $deadline, $groups);
+        $pdo->commit();
+        audit_log($user, 'deadline_created', ['entity_type'=>'deadline', 'entity_id'=>$id, 'after'=>'Active', 'details'=>trim($title).' / '.$date]);
         json_out(['ok' => true, 'id' => $id, 'message' => 'Official deadline created.', 'delivery' => $delivery]);
     }
     if ($action === 'cancel') {
@@ -136,10 +136,10 @@ try {
         if ($changed) $pdo->prepare("UPDATE calendar_deadlines SET status = 'Cancelled' WHERE id = :id")->execute([':id' => $id]);
         $stmt = $pdo->prepare('SELECT research_group FROM calendar_deadline_groups WHERE deadline_id = :id');
         $stmt->execute([':id' => $id]); $groups = $stmt->fetchAll(PDO::FETCH_COLUMN);
-        $pdo->commit();
-        if ($changed) audit_log($user, 'deadline_cancelled', ['entity_type'=>'deadline', 'entity_id'=>$id, 'before'=>'Active', 'after'=>'Cancelled', 'details'=>'Original recipients notified after cancellation.']);
         $deadline['status'] = 'Cancelled';
         $delivery = $changed ? deadline_notify($pdo, $user, $deadline, $groups) : null;
+        $pdo->commit();
+        if ($changed) audit_log($user, 'deadline_cancelled', ['entity_type'=>'deadline', 'entity_id'=>$id, 'before'=>'Active', 'after'=>'Cancelled', 'details'=>'Original recipients queued for cancellation notice.']);
         json_out(['ok' => true, 'message' => 'Official deadline cancelled.', 'delivery' => $delivery]);
     }
     json_out(['ok' => false, 'message' => 'Unsupported deadline action.'], 400);

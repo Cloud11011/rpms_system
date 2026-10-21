@@ -43,7 +43,7 @@ if (!defined('ATTENTION_UNSUBMITTED_DAYS')) define('ATTENTION_UNSUBMITTED_DAYS',
 if (!defined('ATTENTION_OVERDUE_DAYS'))     define('ATTENTION_OVERDUE_DAYS', 30);    // no activity at all
 
 // Advisers may only review documents of students assigned to them (admins can review anything).
-if (!defined('ADVISERS_REVIEW_ONLY_OWN_STUDENTS')) define('ADVISERS_REVIEW_ONLY_OWN_STUDENTS', true);
+// Adviser reviews always require the current assignment; no legacy opt-out is supported.
 
 // Minimum length of the reason required for an Admin Override.
 if (!defined('OVERRIDE_MIN_REASON_LENGTH')) define('OVERRIDE_MIN_REASON_LENGTH', 5);
@@ -239,15 +239,38 @@ function archive_student(PDO $pdo, array $actor, int $id): array
 // Notifications (in-app rows plus best-effort email for every recipient)
 // ---------------------------------------------------------------------
 
-/** Legacy entry point: every in-app notification also attempts email delivery. */
+/** Persist required intent on the caller's business transaction; never deliver here. */
+function workflow_queue_notices(PDO $pdo, array $actor, int $studentId, ?array $studentNotice, ?array $adviserNotice=null): array
+{
+    if (!$pdo->inTransaction()) throw new LogicException('Workflow notice intent requires the business transaction.');
+    $student=student_with_adviser($pdo,$studentId);
+    if (!$student) throw new RuntimeException('Workflow notice recipient is missing.');
+    $recipients=[];
+    if ($studentNotice!==null) $recipients[]=['student',$studentId,$student['email'],$student['full_name'],$studentNotice];
+    if ($adviserNotice!==null && !empty($student['adviser_pk'])) {
+        $recipients[]=['adviser',(int)$student['adviser_pk'],$student['adviser_email'],$student['adviser_name'],$adviserNotice];
+    }
+    $ids=[];
+    foreach ($recipients as [$role,$id,$email,$name,$notice]) {
+        $copy=create_notification($pdo,$role,$id,(string)$email,(string)$name,$notice['subject'],$notice['message'],
+            $notice['type']??'Status Update',$actor['full_name'],null,date('Y-m-d H:i:s'));
+        if (!isset($copy['id'])) throw new RuntimeException('Workflow notification intent could not be recorded. Refresh the recipient state.');
+        $ids[]=(int)$copy['id'];
+    }
+    return $ids;
+}
+
+/** Legacy entry point: caller-owned transactions must propagate queue failures. */
 function notify_in_app(PDO $pdo, string $recipientType, ?int $recipientId, string $email, string $name,
                        string $subject, string $message, string $type, string $createdBy,
                        ?string $emailBody = null, ?string $emailSubject = null): void
 {
     try {
-        create_notification($pdo, $recipientType, $recipientId, $email, $name,
+        $copy=create_notification($pdo, $recipientType, $recipientId, $email, $name,
             $subject, $message, $type, $createdBy, $emailBody, null, $emailSubject);
+        if ($pdo->inTransaction() && !isset($copy['id'])) throw new RuntimeException('Required notification recipient changed.');
     } catch (Throwable $e) {
+        if ($pdo->inTransaction()) throw $e;
         log_api_error('notify_in_app', 'Workflow notification records could not be saved.');
     }
 }
@@ -287,12 +310,14 @@ function notify_rpms_admins(PDO $pdo, string $subject, string $message, string $
             foreach ($admins as $a) {
                 $copy=create_notification($pdo,'admin',(int)$a['id'],(string)($a['email']??''),(string)$a['full_name'],
                     $subject,$message,$type,$createdBy,$emailBody,date('Y-m-d H:i:s'),$emailSubject,'workflow',$campaign);
-                if (isset($copy['id'])) $ids[]=$copy['id'];
+                if (!isset($copy['id'])) throw new RuntimeException('Required Administrator notification recipient changed.');
+                $ids[]=$copy['id'];
             }
         }
         if ($owned) $pdo->commit();
     } catch (Throwable $e) {
         if ($owned && $pdo->inTransaction()) $pdo->rollBack();
+        if (!$owned) throw $e;
         log_api_error('notify_rpms_admins','Workflow notification records could not be saved.'); return;
     }
     if ($owned) foreach ($ids as $id) notification_dispatch($pdo,$id,null,[$emailSubject??$subject,$emailBody??$message]);

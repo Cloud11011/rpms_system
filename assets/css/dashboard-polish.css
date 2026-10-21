@@ -370,14 +370,6 @@ body.admin-shell .prism-sidebar .prism-nav-submenu a:hover {
     color:#fff;
 }
 body.admin-shell .prism-sidebar .prism-nav-submenu a[aria-current=page] { color:#14173a; }
-body.admin-shell .prism-sidebar .prism-account-menu {
-    margin-top:auto;
-    padding:10px;
-    border-radius:16px;
-    background:rgba(255,255,255,.12);
-    backdrop-filter:blur(6px);
-}
-body.admin-shell .prism-sidebar .portal-profile-btn { color:#fff; }
 body.admin-shell .prism-sidebar :is(a,button):focus-visible {
     outline:2px solid #fff;
     outline-offset:2px;

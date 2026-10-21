@@ -125,6 +125,10 @@
                         else action('Archive', 'archive');
                     }
                 }
+                if (row.destination === 'student.php#calendar') {
+                    const link = element('a', 'Open calendar', 'prism-btn');
+                    link.href = 'student.php#calendar'; actions.prepend(link);
+                }
                 card.append(actions); list.append(card);
             }
             if (!list.children.length) {

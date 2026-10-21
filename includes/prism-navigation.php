@@ -99,10 +99,13 @@ $prismNavGroups = [
 </ul></section>
 <?php endforeach; ?>
 </nav>
-<div class="prism-account-menu" data-prism-admin-account>
+<?php // Render only in the top-right toolbar; never reserve sidebar space. ?>
+<template data-prism-admin-account-template>
+<div class="prism-account-menu">
 <button class="portal-profile-btn" data-prism-account-toggle type="button" aria-expanded="false" aria-controls="prismAccountLinks" aria-label="Admin account menu"><img src="assets/images/default-avatar.svg" alt=""><span><strong><?= $prismNavEscape($authUser['full_name'] ?? '') ?></strong><small>RPMS Admin</small></span><i class="fa-solid fa-chevron-down" aria-hidden="true"></i></button>
 <div class="prism-account-links" id="prismAccountLinks" hidden><a href="account.php"><i class="fa-regular fa-user" aria-hidden="true"></i>My account</a><a href="account.php#activity"><i class="fa-solid fa-list" aria-hidden="true"></i>Activity logs</a><div class="prism-account-divider" role="separator"></div><form method="post" action="logout.php" class="prism-logout-form"><input type="hidden" name="prism_generation" value="<?= htmlspecialchars(prism_session_generation(), ENT_QUOTES, 'UTF-8') ?>"><button type="submit"  class="prism-account-logout" ><i class="fa-solid fa-arrow-right-from-bracket" aria-hidden="true"></i>Log out</button></form></div>
 </div>
+</template>
 <?php endif; ?>
 <noscript><form method="post" action="logout.php" class="prism-logout-form"><input type="hidden" name="prism_generation" value="<?= htmlspecialchars(prism_session_generation(), ENT_QUOTES, 'UTF-8') ?>"><button type="submit">Log out</button></form></noscript>
 <template data-prism-guide-role="<?= $prismNavEscape($authUser['role']) ?>" data-prism-guide-user="<?= $prismNavEscape(hash('sha256', ($authUser['role'] ?? '') . '|' . ($authUser['id'] ?? ''))) ?>"></template>

@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "4fc66d8b3d8f29b4c90c35c2d25e1192",
+    "content-hash": "35c570e621edbfd98bd9b9d4c703e16f",
     "packages": [
         {
             "name": "smalot/pdfparser",
@@ -146,14 +146,23 @@
     "packages-dev": [],
     "aliases": [],
     "minimum-stability": "stable",
-    "stability-flags": {},
+    "stability-flags": [],
     "prefer-stable": false,
     "prefer-lowest": false,
     "platform": {
         "php": ">=8.1",
+        "ext-ctype": "*",
+        "ext-dom": "*",
+        "ext-fileinfo": "*",
         "ext-iconv": "*",
+        "ext-libxml": "*",
+        "ext-mbstring": "*",
+        "ext-pdo": "*",
+        "ext-pdo_mysql": "*",
+        "ext-session": "*",
+        "ext-zip": "*",
         "ext-zlib": "*"
     },
-    "platform-dev": {},
+    "platform-dev": [],
     "plugin-api-version": "2.9.0"
 }

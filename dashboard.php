@@ -53,13 +53,13 @@ try {
 <link rel="stylesheet" href="<?php echo htmlspecialchars(asset_url('assets/css/dashboard-polish.css'), ENT_QUOTES, 'UTF-8'); ?>">
 <link rel="stylesheet" href="<?php echo htmlspecialchars(asset_url('assets/css/dashboard-ai-banner.css'), ENT_QUOTES, 'UTF-8'); ?>">
 </head>
-<body class="prism-workspace <?= $authUser['role'] === 'admin' ? 'admin-shell' : 'portal-shell adviser-page' ?> dashboard-page" data-reminder-user="<?php echo htmlspecialchars(hash('sha256', $user_email), ENT_QUOTES, 'UTF-8'); ?>">
+<body class="prism-workspace admin-shell dashboard-page" data-reminder-user="<?php echo htmlspecialchars(hash('sha256', $user_email), ENT_QUOTES, 'UTF-8'); ?>">
 
 <div class="container">
 <!-- SIDEBAR WITH EASY-TO-UNDERSTAND LABELS -->
-<?php if ($authUser['role'] === 'admin'): ?><aside class="sidebar prism-sidebar"><?php else: ?><header class="portal-navbar"><?php endif; ?>
+<aside class="sidebar prism-sidebar">
 <?php $prismCurrentPage = 'dashboard.php'; require __DIR__ . '/includes/prism-navigation.php'; ?>
-<?php if ($authUser['role'] === 'admin'): ?></aside><?php else: ?></header><?php endif; ?>
+</aside>
 
 <!-- MAIN CONTENT -->
 <main class="main-content">
