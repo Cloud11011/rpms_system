@@ -245,11 +245,6 @@ body.prism-workspace .prism-sidebar > .prism-account-menu { margin-top:12px; }
     font-size:10px !important;
     transition:transform 0.2s ease !important;
 }
-@media (hover: hover) {
-    [data-prism-dropdown]:hover .prism-dropdown-arrow {
-        transform:rotate(180deg);
-    }
-}
 [data-prism-dropdown] button[aria-expanded="true"] .prism-dropdown-arrow {
     transform:rotate(180deg);
 }
@@ -281,12 +276,6 @@ html.dark-theme .portal-resources-dropdown {
     from { opacity:0; transform:translate(-50%, -4px); }
     to { opacity:1; transform:translate(-50%, 0); }
 }
-@media (hover: hover) {
-    [data-prism-dropdown]:hover .portal-resources-dropdown {
-        display:flex !important;
-    }
-}
-[data-prism-dropdown]:focus-within .portal-resources-dropdown,
 .portal-resources-dropdown:not([hidden]) {
     display:flex !important;
 }
@@ -1042,3 +1031,46 @@ body.prism-workspace .prism-bell-preview { width:min(320px,calc(100vw - 24px)); 
 }
 body.portal-shell.adviser-dashboard-page .adviser-summary-card::after { display:none; }
 body.portal-shell.adviser-dashboard-page .adviser-summary-card p { padding-right:0; }
+
+/* Record browsers share the same bounded size selector in every role. */
+body.prism-workspace .prism-record-footer { display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:12px; margin-top:16px; min-width:0; }
+body.prism-workspace .prism-row-size { display:flex; align-items:center; gap:8px; flex:0 1 auto; margin:0; color:var(--prism-text); font-size:var(--prism-font-meta); }
+body.prism-workspace .prism-row-size select { width:auto; min-height:44px; padding:8px; border:1px solid var(--prism-border); border-radius:8px; color:var(--prism-text); background:var(--prism-card); font:inherit; }
+body.prism-workspace .prism-record-footer .prism-pagination { min-width:0; max-width:100%; margin:0; flex:1 1 180px; }
+body.prism-workspace .prism-row-size select:focus-visible { outline:3px solid var(--accent-pink); outline-offset:2px; }
+/* Portalled menus use viewport coordinates; hidden is the single source of truth. */
+body.prism-workspace .portal-resources-dropdown { position:fixed!important; inset:auto!important; transform:none!important; min-width:min(240px,calc(100vw - 24px))!important; max-width:calc(100vw - 24px)!important; overflow:auto; overscroll-behavior:contain; animation:none; }
+body.prism-workspace .portal-resources-dropdown[hidden] { display:none!important; }
+body.prism-workspace .portal-resources-dropdown .portal-dropdown-item { flex:0 0 auto; height:auto!important; min-height:44px!important; padding:10px 14px!important; white-space:normal!important; overflow-wrap:anywhere; }
+body.prism-workspace .portal-resources-dropdown :focus-visible { outline:2px solid var(--accent-pink); outline-offset:-2px; }
+/* Navigation remains an overlay, so expanding it never displaces the page. */
+body.admin-shell .sidebar.prism-sidebar,
+body.admin-shell .sidebar.prism-sidebar.is-collapsed { padding:16px 8px; transition:width 380ms cubic-bezier(.22,.61,.36,1); }
+body.admin-shell .prism-sidebar :is(.prism-sidebar-toggle,.prism-nav-group-toggle,.prism-nav-home),
+body.admin-shell .prism-sidebar.is-collapsed :is(.prism-sidebar-toggle,.prism-nav-group-toggle,.prism-nav-home) { position:relative; justify-content:flex-start; padding:11px 8px; gap:11px; transition:background-color 280ms ease,color 280ms ease; }
+body.admin-shell .prism-sidebar :is(.prism-sidebar-toggle,.prism-nav-group-toggle,.prism-nav-home) > span { flex:0 0 172px; min-width:0; white-space:normal; transition:opacity 300ms ease; }
+body.admin-shell .prism-sidebar.is-collapsed :is(.prism-sidebar-toggle,.prism-nav-group-toggle,.prism-nav-home) > span { display:block; opacity:0; pointer-events:none; }
+body.admin-shell .prism-sidebar .prism-nav-chevron { position:absolute; right:8px; display:block; flex:0 0 auto; transition:transform 300ms cubic-bezier(.22,.61,.36,1),opacity 300ms ease; }
+body.admin-shell .prism-sidebar.is-collapsed .prism-nav-chevron { opacity:0; }
+body.admin-shell .prism-sidebar .prism-nav-submenu { overflow:hidden; box-sizing:border-box; }
+body.admin-shell .prism-sidebar .prism-sidebar-brand,
+body.admin-shell .prism-sidebar.is-collapsed .prism-sidebar-brand { position:relative; height:112px; min-height:112px; padding:0; margin-bottom:10px; }
+body.admin-shell .prism-sidebar .sidebar-brand-logo,
+body.admin-shell .prism-sidebar.is-collapsed .sidebar-brand-logo { position:absolute; top:0; left:0; display:block; width:176px; height:80px; opacity:1; transition:opacity 300ms ease; }
+body.admin-shell .prism-sidebar .sidebar-brand-icon,
+body.admin-shell .prism-sidebar.is-collapsed .sidebar-brand-icon { position:absolute; top:0; left:4px; display:block; width:44px; height:80px; margin:0; opacity:0; transition:opacity 300ms ease; }
+body.admin-shell .prism-sidebar.is-collapsed .sidebar-brand-logo { opacity:0; }
+body.admin-shell .prism-sidebar.is-collapsed .sidebar-brand-icon { opacity:1; }
+body.admin-shell .prism-sidebar .prism-navigation-caption { position:absolute; top:80px; left:4px; width:220px; display:block; opacity:.85; transition:opacity 300ms ease; }
+body.admin-shell .prism-sidebar.is-collapsed .prism-navigation-caption { opacity:0; }
+body.admin-shell .prism-sidebar .prism-nav-section-label,
+body.admin-shell .prism-sidebar.is-collapsed .prism-nav-section-label { display:block; white-space:nowrap; transition:opacity 300ms ease; }
+body.admin-shell .prism-sidebar.is-collapsed .prism-nav-section-label { opacity:0; }
+body.admin-shell .prism-sidebar-backdrop { transition:opacity 300ms ease,display 300ms allow-discrete; }
+body.admin-shell .prism-sidebar-backdrop[hidden] { opacity:0; }
+@starting-style { body.admin-shell .prism-sidebar-backdrop { opacity:0; } }
+body.admin-shell .prism-sidebar.is-initializing,
+body.admin-shell .prism-sidebar.is-initializing * { transition:none; }
+@media(prefers-reduced-motion:reduce) {
+ body.admin-shell .sidebar.prism-sidebar,body.admin-shell .prism-sidebar *,body.admin-shell .prism-sidebar-backdrop { transition:none!important; animation:none!important; }
+}

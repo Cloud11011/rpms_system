@@ -17,8 +17,19 @@ if (($_SERVER['REQUEST_METHOD']??'')==='POST') {
     } catch (LegalPolicyError $e) { http_response_code($e->status); $error=$e->getMessage(); }
 }
 $current=legal_current(db());
-$history=legal_rows(db(),'SELECT v.*,a.decision,a.approval_mode,a.reason AS review_reason,a.reviewed_at FROM legal_policy_versions v LEFT JOIN legal_policy_approvals a ON a.version_id=v.id ORDER BY v.policy_id,v.version_number DESC');
-$selected=null; foreach ($history as $version) if ((string)$version['id']===($_GET['version']??'')) { legal_verify_content($version); $selected=$version; }
+require_once __DIR__.'/includes/pagination.php';
+$history=[]; $historyPages=[]; $candidates=[];
+foreach (['privacy','terms'] as $policy) {
+    $historyPages[$policy]=prism_page_query(db(), 'SELECT v.*', 'FROM legal_policy_versions v WHERE v.policy_id=:policy',
+        [':policy'=>$policy], 'v.version_number DESC,v.id DESC', ['page'=>$_GET[$policy.'Page']??1,'perPage'=>$_GET[$policy.'PerPage']??10]);
+    $history=array_merge($history,$historyPages[$policy]['rows']);
+    $candidates[$policy]=legal_rows(db(), "SELECT id FROM legal_policy_versions WHERE policy_id=? AND state IN ('draft','pending') ORDER BY id DESC LIMIT 1",[$policy]);
+}
+$selected=null;
+if (ctype_digit((string)($_GET['version']??''))) {
+    $selected=legal_rows(db(),'SELECT v.*,a.decision,a.approval_mode,a.reason AS review_reason,a.reviewed_at FROM legal_policy_versions v LEFT JOIN legal_policy_approvals a ON a.version_id=v.id WHERE v.id=?',[(int)$_GET['version']])[0]??null;
+    if ($selected) legal_verify_content($selected);
+}
 $activeAdmins=count(array_filter(legal_rows(db(),"SELECT * FROM users WHERE role='admin'"),'legal_admin_eligible'));
 $notice=$_SESSION['legal_notice']??''; unset($_SESSION['legal_notice']);
 function legal_form_fields(string $policy, string $action, ?int $version=null): void {
@@ -38,7 +49,7 @@ function legal_form_fields(string $policy, string $action, ?int $version=null): 
 <div class="legal-policy-tabs" role="tablist" aria-label="Legal policy"><button type="button" id="policy-tab-privacy" role="tab" data-policy-tab="privacy" aria-controls="policy-panel-privacy" aria-selected="true">Privacy Policy</button><button type="button" id="policy-tab-terms" role="tab" data-policy-tab="terms" aria-controls="policy-panel-terms" aria-selected="false" tabindex="-1">Terms of Service</button></div>
 <?php if ($error): ?><p class="legal-notice" role="alert"><?= legal_escape($error) ?></p><?php endif; ?>
 <?php if ($notice): ?><p class="legal-notice" role="status"><?= legal_escape($notice) ?></p><?php endif; ?>
-<?php foreach ($current as $policy=>$version): $open=array_values(array_filter($history,static fn($v)=>$v['policy_id']===$policy && in_array($v['state'],['draft','pending'],true))); ?>
+<?php foreach ($current as $policy=>$version): $open=$candidates[$policy]; ?>
 <section class="management-card legal-card" id="policy-panel-<?= $policy ?>" data-policy-panel="<?= $policy ?>" role="tabpanel" aria-labelledby="policy-tab-<?= $policy ?>"><span class="prism-badge">Current published · Immutable</span><h2><?= legal_escape($version['title']) ?></h2><p>Current published version <?= (int)$version['version_number'] ?> · <?= legal_escape($version['published_at']) ?></p><p><?= legal_escape($version['change_summary']) ?></p><div class="legal-policy-actions"><a class="prism-btn prism-btn-primary" href="<?= $policy ?>.php" target="_blank" rel="noopener"><i class="fa-solid fa-eye" aria-hidden="true"></i> View current</a> · <a class="prism-btn prism-btn-secondary" href="#history-<?= $policy ?>"><i class="fa-solid fa-clock-rotate-left" aria-hidden="true"></i> Version history</a>
 <?php if ($open): ?><a class="prism-btn prism-btn-secondary legal-open-candidate" href="?version=<?= (int)$open[0]['id'] ?>#versionDetails"><i class="fa-solid fa-file-pen" aria-hidden="true"></i> View Draft / Pending Review</a><?php else: ?><form method="post"><?php legal_form_fields($policy,'create'); ?><button class="prism-btn prism-btn-primary" type="submit">Create Draft</button></form><?php endif; ?></div></section>
 <?php endforeach; ?>
@@ -58,5 +69,5 @@ function legal_form_fields(string $policy, string $action, ?int $version=null): 
 <?php if ($selected['decision']): ?><p>Review decision: <?= legal_escape($selected['decision']) ?> · <?= legal_escape($selected['approval_mode']) ?> · <?= legal_escape($selected['reviewed_at']) ?></p><?php if ($selected['review_reason']): ?><p><?= legal_escape($selected['review_reason']) ?></p><?php endif; ?><?php endif; ?>
 <h2><?= $selected['state']==='draft'?'Saved draft preview':'Version text' ?></h2><article class="legal-policy-text"><?= legal_render($selected['content']) ?></article></section>
 <?php endif; ?>
-<?php foreach (['privacy'=>'Privacy Policy','terms'=>'Terms of Service'] as $policy=>$label): ?><section id="history-<?= $policy ?>" data-policy-panel="<?= $policy ?>" aria-label="<?= $label ?> version history"><h2><?= $label ?> history</h2><ul class="legal-history"><?php foreach ($history as $v): if ($v['policy_id']!==$policy) continue; ?><li><a href="?version=<?= (int)$v['id'] ?>">Version <?= (int)$v['version_number'] ?></a> — <?= (int)$current[$policy]['id']===(int)$v['id']?'current published':legal_escape($v['state']) ?><?= $v['published_at']?' · '.legal_escape($v['published_at']):'' ?><p><?= legal_escape($v['change_summary']) ?></p></li><?php endforeach; ?></ul></section><?php endforeach; ?>
+<?php foreach (['privacy'=>'Privacy Policy','terms'=>'Terms of Service'] as $policy=>$label): ?><section id="history-<?= $policy ?>" data-policy-panel="<?= $policy ?>" aria-label="<?= $label ?> version history"><h2><?= $label ?> history</h2><ul class="legal-history"><?php foreach ($history as $v): if ($v['policy_id']!==$policy) continue; ?><li><a href="?version=<?= (int)$v['id'] ?>">Version <?= (int)$v['version_number'] ?></a> — <?= (int)$current[$policy]['id']===(int)$v['id']?'current published':legal_escape($v['state']) ?><?= $v['published_at']?' · '.legal_escape($v['published_at']):'' ?><p><?= legal_escape($v['change_summary']) ?></p></li><?php endforeach; ?></ul><?php prism_page_controls($historyPages[$policy],$_GET,$policy.'Page',$policy.'PerPage'); ?></section><?php endforeach; ?>
 <dialog id="legalDiscardDialog" class="prism-readonly-dialog" aria-labelledby="legalDiscardTitle"><h2 id="legalDiscardTitle">Discard unsaved changes?</h2><p>Only your unsaved edits will be discarded. The saved draft remains available and will not be deleted or published.</p><div class="prism-dialog-actions"><button type="button" id="legalContinueEditing" class="prism-btn">Continue Editing</button><button type="button" id="legalDiscardChanges" class="prism-btn is-primary">Discard Changes</button></div></dialog><?php require __DIR__.'/includes/ceu_footer.php'; ?></main></div><?php require __DIR__.'/includes/session_browser.php'; ?><script>document.getElementById('themeToggle').addEventListener('click',()=>{const dark=document.documentElement.classList.toggle('dark-theme');try{localStorage.setItem('prismTheme',dark?'dark':'light')}catch(_){}});</script></body></html>

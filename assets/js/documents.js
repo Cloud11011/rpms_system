@@ -190,7 +190,7 @@ stateFilter.addEventListener('change',()=>{pager.reset();load();});
 document.addEventListener('click',event=>{if(event.target.closest('.prism-clear-filters')){stateFilter.value='';}});
 async function load(){
     const sequence=++loadSequence;pager.loading();body.setAttribute('aria-busy','true');
-    const qs=new URLSearchParams({action:'list',page:pager.page,q:search.value.trim(),type:typeFilter.value,course:courseFilter.value,year:yearFilter.value,sort:sortSelect?.value||'newest',state:stateFilter.value});
+    const qs=new URLSearchParams({action:'list',page:pager.page,perPage:pager.pageSize,q:search.value.trim(),type:typeFilter.value,course:courseFilter.value,year:yearFilter.value,sort:sortSelect?.value||'newest',state:stateFilter.value});
     try{const data=await PrismUI.request('documents_api.php?'+qs);if(sequence!==loadSequence)return;listData=data;documents=data.documents;previewOnly=uiPreview&&!documents.length&&!search.value.trim()&&!typeFilter.value&&!courseFilter.value&&!yearFilter.value&&!stateFilter.value;if(previewOnly)documents=[adviserPreviewRecord()];loadError=false;render();pager.render({...data,total:previewOnly?1:data.total??documents.length});if(previewOnly)document.getElementById('documentCount').textContent='UI preview · 1 sample record (not stored)';PrismUI.statusPills(statePills,stateDefinitions,stateFilter,previewOnly?{'Pending Adviser Review':1}:data.counts||{})}
     catch(e){if(sequence!==loadSequence)return;loadError=true;documents=[];previewOnly=false;render();pager.error();toast(e.message,'error')}
     finally{if(sequence===loadSequence)body.setAttribute('aria-busy','false')}

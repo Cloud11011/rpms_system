@@ -13,6 +13,7 @@ window.PrismDeadlines = (() => {
         const count = host.querySelector('#officialDeadlineCount');
         const form = host.querySelector('#deadlineForm');
         const manage = host.querySelector('#deadlineManage');
+        const pageSize = PrismUI.pageSizeControl(pager, () => { page = 1; loadList(); });
         let date, rangeKey = '', page = 1, sequence = 0, datesSequence = 0, dates = new Map();
         let dirty, initialDateSet = false;
         const endpoint = (action, params) => 'calendar_deadlines_api.php?' + new URLSearchParams({ action, ...params });
@@ -25,7 +26,7 @@ window.PrismDeadlines = (() => {
             state.textContent = 'Loading official deadlines...';
             host.querySelector('#officialDateLabel').textContent = displayDate(date);
             try {
-                const data = await PrismUI.request(endpoint('list', { from: date, to: date, page, manage: manage?.checked ? '1' : '0' }));
+                const data = await PrismUI.request(endpoint('list', { from: date, to: date, page, perPage: pageSize.value, manage: manage?.checked ? '1' : '0' }));
                 if (current !== sequence) return;
                 if (!data.ok) throw new Error(data.message || 'Could not load official deadlines.');
                 page = data.page;

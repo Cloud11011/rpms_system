@@ -371,24 +371,34 @@
 
   /** Version history of one document (older versions are kept, and can still be opened). */
   async function showVersions(docId) {
-    let data;
-    try { data = await request('documents_api.php?action=versions&id=' + encodeURIComponent(docId)); }
-    catch (e) { toast(e.message, 'error'); return; }
-    const items = data.versions.map(function (v) {
-      return '<li><div><strong>Version ' + esc(v.versionNo) + (v.isCurrent ? ' (current)' : '') + '</strong>' +
-        '<small>' + esc(v.originalName) + ' \u00b7 uploaded ' + esc(fmtDate(v.uploadedAt)) + ' by ' + esc(v.uploadedBy) + '</small>' +
-        (v.reviewedAt ? '<small>Reviewed: ' + esc(v.reviewStatus) + ' by ' + esc(v.reviewedBy) + ' · ' + esc(fmtDate(v.reviewedAt)) + '</small>' : '') +
-        (v.rpmsSubmittedAt ? '<small>Formally submitted: ' + esc(fmtDate(v.rpmsSubmittedAt)) + ' by ' + esc(v.rpmsSubmittedBy) + '</small>' : '') +
-        (v.rpmsReturnedAt ? '<small>RPMS returned for revision: ' + esc(fmtDate(v.rpmsReturnedAt)) + ' by ' + esc(v.rpmsReturnedBy) + '. Reason: ' + esc(v.rpmsReturnReason) + '</small>' : '') +
-        (v.reviewRemarks ? '<small>Remarks: ' + esc(v.reviewRemarks) + '</small>' : '') +
-        '</div><div class="prism-badges">' + badge(v.workflowState) + (v.adminOverride ? badge('Admin Override') : '') +
-        documentActionsHtml(v) + '</div></li>';
-    }).join('');
-    const m = modal('<h3><i class="fa-solid fa-clock-rotate-left" aria-hidden="true"></i>Version history</h3>' +
-      '<ul class="prism-version-list">' + items + '</ul>' +
-      '<div class="prism-dialog-actions"><button type="button" class="prism-btn is-secondary" data-act="close">Close</button></div>');
+    const m = modal('<h3>Version history</h3><p class="prism-version-count" aria-live="polite"></p><ul class="prism-version-list"></ul><div class="prism-dialog-actions"><button type="button" class="prism-btn is-secondary" data-act="close">Close</button></div>');
+    const list = m.dialog.querySelector('.prism-version-list');
+    const count = m.dialog.querySelector('.prism-version-count');
+    let sequence = 0;
+    const pager = recordPager(list, count, [], load);
     m.dialog.querySelector('[data-act="close"]').addEventListener('click', m.close);
     m.dialog.querySelector('[data-act="close"]').focus();
+    async function load() {
+      const current = ++sequence; pager.loading(); list.setAttribute('aria-busy', 'true');
+      try {
+        const data = await request('documents_api.php?' + new URLSearchParams({action:'versions',id:docId,page:pager.page,perPage:pager.pageSize}));
+        if (current !== sequence || !list.isConnected) return;
+        const items = data.versions.map(function (v) {
+          return '<li><div><strong>Version ' + esc(v.versionNo) + (v.isCurrent ? ' (current)' : '') + '</strong>' +
+            '<small>' + esc(v.originalName) + ' \u00b7 uploaded ' + esc(fmtDate(v.uploadedAt)) + ' by ' + esc(v.uploadedBy) + '</small>' +
+            (v.reviewedAt ? '<small>Reviewed: ' + esc(v.reviewStatus) + ' by ' + esc(v.reviewedBy) + ' · ' + esc(fmtDate(v.reviewedAt)) + '</small>' : '') +
+            (v.rpmsSubmittedAt ? '<small>Formally submitted: ' + esc(fmtDate(v.rpmsSubmittedAt)) + ' by ' + esc(v.rpmsSubmittedBy) + '</small>' : '') +
+            (v.rpmsReturnedAt ? '<small>RPMS returned for revision: ' + esc(fmtDate(v.rpmsReturnedAt)) + ' by ' + esc(v.rpmsReturnedBy) + '. Reason: ' + esc(v.rpmsReturnReason) + '</small>' : '') +
+            (v.reviewRemarks ? '<small>Remarks: ' + esc(v.reviewRemarks) + '</small>' : '') +
+            '</div><div class="prism-badges">' + badge(v.workflowState) + (v.adminOverride ? badge('Admin Override') : '') +
+            documentActionsHtml(v) + '</div></li>';
+        }).join('');
+        list.innerHTML = items;
+        pager.render(data);
+      } catch (error) { if (current === sequence) { pager.error(); list.textContent = error.message; } }
+      finally { if (current === sequence) list.setAttribute('aria-busy', 'false'); }
+    }
+    await load();
   }
 
   // ------------------------------------------------------------------ widgets
@@ -791,12 +801,12 @@
     const above = anchor.top - box.height - 8;
     const top = below + box.height <= innerHeight - margin ? below
       : above >= margin ? above : Math.max(margin, innerHeight - box.height - margin);
-    panel.style.left = left + 'px'; panel.style.top = top + 'px';
+    panel.style.setProperty('left', left + 'px', 'important'); panel.style.setProperty('top', top + 'px', 'important');
   }
   function closeFloating(returnFocus = true) {
     if (!floating) return;
-    const { trigger, panel, observer, portal, originParent, originNext } = floating;
-    floating = null; observer.disconnect(); panel.hidden = true;
+    const { trigger, panel, observer, removalObserver, portal, originParent, originNext } = floating;
+    floating = null; observer.disconnect(); removalObserver.disconnect(); panel.hidden = true;
     if (portal && originParent?.isConnected) {
       originParent.insertBefore(panel, originNext?.parentNode === originParent ? originNext : null);
     }
@@ -807,19 +817,56 @@
     if (floating?.trigger === trigger) { closeFloating(); return; }
     closeFloating(false);
     const originParent = panel.parentNode, originNext = panel.nextSibling;
-    if (portal) document.body.append(panel);
+    if (portal) (trigger.closest('dialog[open],.prism-dialog') || document.body).append(panel);
     panel.hidden = false; trigger.setAttribute('aria-expanded', 'true');
     const observer = new ResizeObserver(positionFloating);
-    floating = { trigger, panel, observer, portal, originParent, originNext }; observer.observe(panel); positionFloating();
+    const removalObserver = new MutationObserver(() => { if (!trigger.isConnected && floating?.trigger === trigger) closeFloating(false); });
+    removalObserver.observe(document.body, { childList: true, subtree: true });
+    floating = { trigger, panel, observer, removalObserver, portal, originParent, originNext }; observer.observe(panel); positionFloating();
+  }
+  function menuDisclosure(trigger, panel) {
+    if (!panel.id) panel.id = 'prismMenu' + (++floatingSequence);
+    trigger.setAttribute('aria-controls', panel.id);
+    trigger.addEventListener('click', event => {
+      event.preventDefault(); toggleFloating(trigger, panel, true);
+    });
+    const navigate = event => {
+      if (!['ArrowDown','ArrowUp','Home','End'].includes(event.key)) return;
+      event.preventDefault();
+      if (panel.hidden) toggleFloating(trigger, panel, true);
+      const items = [...panel.querySelectorAll('a[href],button:not(:disabled)')];
+      if (!items.length) return;
+      const current = items.indexOf(document.activeElement);
+      const next = event.key === 'Home' ? 0 : event.key === 'End' ? items.length - 1
+        : current < 0 ? (event.key === 'ArrowUp' ? items.length - 1 : 0)
+        : (current + (event.key === 'ArrowUp' ? -1 : 1) + items.length) % items.length;
+      items[next].focus();
+    };
+    trigger.addEventListener('keydown', navigate); panel.addEventListener('keydown', navigate);
+    return { close(focus = false) { if (floating?.panel === panel) closeFloating(focus); } };
   }
   document.addEventListener('click', event => {
     if (floating && !floating.panel.contains(event.target) && !floating.trigger.contains(event.target))
       closeFloating(floating.panel.contains(document.activeElement));
   });
   document.addEventListener('keydown', event => {
+    if (event.key === 'Tab' && floating) {
+      const { trigger, panel } = floating;
+      const items = [...panel.querySelectorAll('button:not(:disabled),a[href],input:not(:disabled),select:not(:disabled),textarea:not(:disabled)')].filter(item => !item.closest('[hidden]'));
+      if (document.activeElement === trigger && !event.shiftKey && items.length) { event.preventDefault(); items[0].focus(); }
+      else if (document.activeElement === items[0] && event.shiftKey) { event.preventDefault(); trigger.focus(); }
+      else if (document.activeElement === items.at(-1) && !event.shiftKey) {
+        event.preventDefault(); closeFloating();
+        const all = [...document.querySelectorAll('button:not(:disabled),a[href],input:not(:disabled),select:not(:disabled),textarea:not(:disabled)')].filter(item => item.getClientRects().length);
+        all[all.indexOf(trigger) + 1]?.focus();
+      }
+    }
     if (event.key === 'Escape' && floating && !document.querySelector('dialog[open], .prism-modal')) {
       event.preventDefault(); event.stopPropagation(); closeFloating();
     }
+  });
+  document.addEventListener('focusin', event => {
+    if (floating && !floating.panel.contains(event.target) && !floating.trigger.contains(event.target)) closeFloating(false);
   });
   window.addEventListener('resize', positionFloating);
   document.addEventListener('scroll', event => {
@@ -933,8 +980,9 @@
       clear.disabled = !controls.some(control => control.value !== defaults.get(control));
     }
     function close() { if (floating?.panel === host) closeFloating(); else { host.hidden = true; trigger.setAttribute('aria-expanded', 'false'); } }
-    trigger.addEventListener('click', () => toggleFloating(trigger, host));
+    trigger.addEventListener('click', () => toggleFloating(trigger, host, true));
     wrap.addEventListener('keydown', event => { if (event.key === 'Escape' && !host.hidden) { event.preventDefault(); event.stopPropagation(); close(); trigger.focus(); } });
+    host.addEventListener('keydown', event => { if (event.key === 'Escape' && !host.hidden) { event.preventDefault(); event.stopPropagation(); close(); } });
     clear.addEventListener('click', () => {
       controls.forEach(control => { control.value = defaults.get(control); });
       host.querySelectorAll('.prism-filter-notice').forEach(notice => { notice.hidden = true; });
@@ -994,6 +1042,31 @@
     }
   }
 
+  function pageSizeControl(pager, onChange) {
+    const label = document.createElement('label'); label.className = 'prism-row-size'; label.append('Rows per page: ');
+    const size = document.createElement('select'); size.setAttribute('aria-label', 'Rows per page');
+    [10,25,50,100].forEach(value => size.add(new Option(String(value), String(value))));
+    label.append(size);
+    const footer = document.createElement('div'); footer.className = 'prism-record-footer';
+    pager.before(footer); footer.append(label, pager);
+    size.addEventListener('change', () => onChange(Number(size.value)));
+    return { get value() { return Number(size.value); } };
+  }
+
+  // Personal reminders already live in browser storage; paginate that existing array.
+  function clientPager(anchor, reload) {
+    const count = document.createElement('p'); count.setAttribute('aria-live', 'polite');
+    anchor.after(count);
+    const pager = recordPager(count, count, [], reload);
+    let previousScope;
+    return { slice(rows, scope) {
+      if (scope !== previousScope) { pager.reset(); previousScope = scope; }
+      const page = Math.min(pager.page, Math.max(1, Math.ceil(rows.length / pager.pageSize)));
+      pager.render({total: rows.length, page, limit: pager.pageSize});
+      return rows.slice((page - 1) * pager.pageSize, page * pager.pageSize);
+    } };
+  }
+
   function recordPager(anchor, count, controls, load, disclosure) {
     const pager = document.createElement('nav');
     pager.className = 'prism-pagination';
@@ -1001,15 +1074,7 @@
     anchor.insertAdjacentElement('afterend', pager);
     let page = 1;
     let pageSize = 10;
-    if (anchor.id === 'aiHistory' || anchor.querySelector('#ierbTableBody,#reportTableBody')) {
-      const label = document.createElement('label'); label.className = 'prism-row-size'; label.append('Rows per page');
-      const size = document.createElement('select');size.setAttribute('aria-label','Rows per page');
-      [5,10,25].forEach(value => size.add(new Option(String(value),String(value),false,value===10)));
-      label.append(size);pager.before(label);
-      const footer=document.createElement('div');footer.className='prism-record-footer';
-      label.before(footer);footer.append(label,pager);
-      size.addEventListener('change',()=>{pageSize=Number(size.value);page=1;load();});
-    }
+    pageSizeControl(pager, value => { pageSize = value; page = 1; load(); });
     if (disclosure) {
       filtersDisclosure(disclosure.host, controls, () => { page = 1; load(); }, disclosure.toolbar);
       // Search remains primary and has its own clear affordance, including keyboard support.
@@ -1175,7 +1240,7 @@
     recordField: recordField, recordDetails: recordDetails, recordFeedback: recordFeedback, recordInitials: recordInitials, compactProgressRecord: compactProgressRecord, reportCard: reportCard,
     documentTypes: DOCUMENT_TYPES, actionMenu: actionMenu, compactRecord: compactRecord, statusPills: statusPills,
     actionOrigin: control => control?.closest('.prism-action-menu')?.querySelector('.prism-action-trigger') || control,
-    confirm: confirmDialog, request: request, handleSessionExpiry: handleSessionExpiry, debounce: debounce, recordFilters: recordFilters, filtersDisclosure: filtersDisclosure, postJson: postJson, esc: esc, pagination: pagination, paginationWindow: paginationWindow, busy: busy, runAction: runAction, dirtyForm: dirtyForm, recordPager: recordPager, clearFilters: clearFilters,
+    confirm: confirmDialog, request: request, handleSessionExpiry: handleSessionExpiry, debounce: debounce, recordFilters: recordFilters, filtersDisclosure: filtersDisclosure, postJson: postJson, esc: esc, pagination: pagination, pageSizeControl: pageSizeControl, clientPager: clientPager, menuDisclosure: menuDisclosure, paginationWindow: paginationWindow, busy: busy, runAction: runAction, dirtyForm: dirtyForm, recordPager: recordPager, clearFilters: clearFilters,
     submitToRpms: submitToRpms, uploadRevision: uploadRevision, overrideStudent: overrideStudent, overrideDocument: overrideDocument, showVersions: showVersions,
     enhanceTable: enhanceTable, tableFilter: tableFilter, hint: hint,
     mountStudentWorkflow: mountStudentWorkflow, mountNeedsAttention: mountNeedsAttention, init: init,

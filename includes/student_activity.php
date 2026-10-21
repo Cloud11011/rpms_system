@@ -1,4 +1,5 @@
 <?php
+require_once __DIR__ . '/pagination.php';
 /** Student-visible actions are classified explicitly; stored free text is never returned. */
 function student_activity_actions(): array
 {
@@ -70,7 +71,7 @@ function student_activity_read(PDO $pdo, array $user, array $query): array
     }
     $scope = ' FROM activity_logs l WHERE ' . implode(' AND ', $where);
     $count = $pdo->prepare('SELECT COUNT(*)' . $scope); $count->execute($params);
-    $total = (int)$count->fetchColumn(); $limit = 10; $pages = max(1, (int)ceil($total / $limit));
+    $total = (int)$count->fetchColumn(); $limit = prism_page_size($query); $pages = max(1, (int)ceil($total / $limit));
     $page = max(1, min($pages, (int)($query['page'] ?? 1))); $offset = ($page - 1) * $limit;
     $statement = $pdo->prepare('SELECT l.created_at, l.action' . $scope . ' ORDER BY l.created_at DESC, l.id DESC LIMIT ' . $limit . ' OFFSET ' . $offset);
     $statement->execute($params);

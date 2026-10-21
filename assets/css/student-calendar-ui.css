@@ -31,7 +31,7 @@
 .student-dashboard-page .student-notification-history .notification-reference-filters select { width:100%; min-width:0; min-height:39px; padding:8px 11px; border:1px solid var(--border-color); border-radius:9px; color:var(--text-primary); background:var(--card-bg,#fff); font:400 12px Montserrat,sans-serif; }
 .student-dashboard-page .student-notification-history .notification-result:empty { display:none; }
 .student-dashboard-page .student-notification-history .notification-result:not(:empty) { margin:0 0 10px; color:var(--text-secondary); font-size:11px; }
-.student-dashboard-page .student-notification-history #notificationList { display:grid; min-height:162px; gap:10px; margin:0; padding:0; border:0; overflow:visible; }
+.student-dashboard-page .student-notification-history #notificationList { display:grid; min-height:162px; max-height:none; min-width:0; gap:10px; margin:0; padding:0; border:0; overflow:visible; }
 .student-dashboard-page .student-notification-history #notificationList .workspace-empty-state { display:grid; min-height:162px; box-sizing:border-box; place-items:center; margin:0; padding:18px; border:1px dashed #dce0eb; border-radius:9px; color:var(--text-secondary); background:#f5f7fb; font-size:12px; text-align:center; }
 .student-dashboard-page .student-notification-history .prism-pagination { display:flex; justify-content:flex-end; margin:16px 0 0; }
 .student-dashboard-page .student-notification-history .history-item.notice { margin:0; padding:14px; border:1px solid var(--border-color); border-radius:12px; background:var(--card-bg,#fff); }

@@ -25,7 +25,7 @@ try {
         $scope .= ' AND d.deadline_date = :date';
         $params[':date'] = $date;
         $page = prism_page_query($pdo, 'SELECT d.id, d.title, d.deadline_date, d.target_scope, d.status',
-            $scope, $params, 'd.id DESC', ['page' => $_GET['page'] ?? 1]);
+            $scope, $params, 'd.id DESC', $_GET);
         $allowed = deadline_viewer_groups($pdo, $user);
         foreach ($page['rows'] as &$row) {
             $row['groups'] = [];
@@ -38,7 +38,7 @@ try {
         }
         unset($row);
         json_out(['ok' => true, 'deadlines' => $page['rows'], 'total' => $page['total'], 'page' => $page['page'],
-            'pages' => max(1, (int)ceil($page['total'] / 10))]);
+            'limit' => $page['limit'], 'pages' => max(1, (int)ceil($page['total'] / $page['limit']))]);
     }
     if ($action === 'group_options') {
         api_require_login(['admin', 'adviser']);

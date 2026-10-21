@@ -77,6 +77,10 @@ document.addEventListener('DOMContentLoaded', () => {
             if(body.classList.contains('student-page'))all.dataset.go='notifications';
             panel.append(heading,list,all);body.append(panel);
             bellControl.setAttribute('aria-expanded','false');bellControl.setAttribute('aria-controls',panel.id);
+            if (bellControl.tagName === 'A') {
+                bellControl.setAttribute('role','button');
+                bellControl.addEventListener('keydown',event=>{if(event.key===' '){event.preventDefault();bellControl.click();}});
+            }
             const close=()=>{panel.hidden=true;bellControl.setAttribute('aria-expanded','false');};
             const position=()=>{const r=bellControl.getBoundingClientRect();panel.style.left=Math.max(12,Math.min(r.right-panel.offsetWidth,innerWidth-panel.offsetWidth-12))+'px';panel.style.top=Math.max(12,Math.min(r.bottom+10,innerHeight-panel.offsetHeight-12))+'px';};
             bellControl.addEventListener('click',async event=>{
@@ -93,7 +97,9 @@ document.addEventListener('DOMContentLoaded', () => {
             },true);
             document.addEventListener('click',event=>{if(!panel.contains(event.target)&&!bellControl.contains(event.target))close();});
             document.addEventListener('keydown',event=>{if(event.key==='Escape'&&!panel.hidden){close();bellControl.focus();}});
-            window.addEventListener('resize',close);document.addEventListener('scroll',close,true);
+            // Internal wheel/touch/focus scrolling must not dismiss the preview.
+            window.addEventListener('resize',()=>{if(!panel.hidden)position();});
+            document.addEventListener('scroll',()=>{if(!panel.hidden)position();},true);
         }
         bellControl?.querySelector('i')?.replaceWith((()=>{const span=document.createElement('span');span.innerHTML=icon('<path d="M5 17h14l-2-3V9a5 5 0 0 0-10 0v5Z"/><path d="M10 20h4"/>');return span;})());
         const profileMenu=topHost.querySelector('.prism-account-menu,.portal-profile-menu');
@@ -145,10 +151,11 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!button || !links || links.hidden) return;
         const margin=12, gap=8, anchor=button.getBoundingClientRect();
         links.style.position='fixed';links.style.right='auto';
-        links.style.maxHeight=Math.max(0,innerHeight-anchor.bottom-gap-margin)+'px';links.style.overflowY='auto';
+        const below = innerHeight-anchor.bottom-gap-margin, above = anchor.top-gap-margin;
+        links.style.maxHeight=Math.max(0,Math.max(below,above))+'px';links.style.overflowY='auto';
         const box=links.getBoundingClientRect();
         links.style.left=Math.max(margin,Math.min(anchor.right-box.width,innerWidth-box.width-margin))+'px';
-        links.style.top=Math.max(margin,anchor.bottom+gap)+'px';
+        links.style.top=Math.max(margin,box.height>below && above>below ? anchor.top-gap-box.height : anchor.bottom+gap)+'px';
     }
     function setAccount(open, focus = false) {
         if (!button || !links) return;
@@ -179,39 +186,24 @@ document.addEventListener('DOMContentLoaded', () => {
         setNavigation(false);
     }
     // Research resources dropdown management for Adviser and Student
+    const dropdowns = [];
     function closeAllPrismDropdowns(focusToggle = false) {
-        document.querySelectorAll('[data-prism-dropdown]').forEach(wrap => {
-            const toggle = wrap.querySelector('.portal-dropdown-toggle, .prism-dropdown-toggle');
-            const menu = wrap.querySelector('.portal-resources-dropdown, .portal-dropdown-menu');
-            if (menu && !menu.hidden) {
-                menu.hidden = true;
-                toggle?.setAttribute('aria-expanded', 'false');
-                if (focusToggle && toggle) toggle.focus();
-            }
-        });
+        dropdowns.forEach(dropdown => dropdown.close(focusToggle));
     }
     document.querySelectorAll('[data-prism-dropdown]').forEach(wrap => {
         const toggle = wrap.querySelector('.portal-dropdown-toggle, .prism-dropdown-toggle');
         const menu = wrap.querySelector('.portal-resources-dropdown, .portal-dropdown-menu');
         if (!toggle || !menu) return;
-        toggle.addEventListener('click', event => {
-            event.preventDefault();
-            event.stopPropagation();
-            const isOpen = toggle.getAttribute('aria-expanded') === 'true';
-            closeAllPrismDropdowns();
-            if (!isOpen) {
-                menu.hidden = false;
-                toggle.setAttribute('aria-expanded', 'true');
-            }
-        });
+        const dropdown = PrismUI.menuDisclosure(toggle, menu);
+        dropdowns.push(dropdown);
         menu.addEventListener('click', event => {
-            if (event.target.closest('a')) closeAllPrismDropdowns();
+            if (event.target.closest('a[href]')) dropdown.close();
         });
     });
     document.addEventListener('click', event => {
         if (!button?.contains(event.target) && !links?.contains(event.target)) setAccount(false);
-        if (!event.target.closest('.portal-navbar')) setNavigation(false);
-        if (!event.target.closest('[data-prism-dropdown]')) closeAllPrismDropdowns();
+        if (!event.target.closest('.portal-navbar,.portal-dropdown-menu')) setNavigation(false);
+        if (!event.target.closest('[data-prism-dropdown],.portal-dropdown-menu')) closeAllPrismDropdowns();
     });
     document.addEventListener('keydown', event => {
         if (event.key !== 'Escape' || event.defaultPrevented) return;

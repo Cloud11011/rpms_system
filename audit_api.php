@@ -10,6 +10,7 @@
 
 require __DIR__ . '/config.php';
 require_once __DIR__ . '/workflow.php';
+require_once __DIR__ . '/includes/pagination.php';
 
 $user = api_require_login(['admin', 'adviser', 'student']);
 $pdo = db();
@@ -64,7 +65,7 @@ if ($action === 'list') {
         $params[':q'] = '%' . $q . '%';
     }
 
-    $limit = 10;
+    $limit = prism_page_size($_GET);
     $scope = ' FROM activity_logs l LEFT JOIN students s ON s.id = l.student_id'
         . ($where ? ' WHERE ' . implode(' AND ', $where) : '');
     $count = $pdo->prepare('SELECT COUNT(*)' . $scope);

@@ -27,19 +27,22 @@
         if(document.body.classList.contains('student-page'))calendar.addEventListener('click',()=>view.close(false));
         view.actions.append(calendar, close);
         close.focus();
-        try {
-            const rows = [];
-            let page = 1, pages = 1;
-            do {
-                const data = await PrismUI.request(endpoint({ action: 'dashboard_day', date: key, page }));
-                if (!view.element.isConnected) return;
-                rows.push(...data.deadlines);
-                pages = data.pages;
-                page++;
-            } while (page <= pages);
-            view.content.replaceChildren();
+        const list = node('div');
+        const count = node('p'); count.setAttribute('aria-live', 'polite');
+        view.content.append(list, count);
+        let sequence = 0;
+        const pager = PrismUI.recordPager(count, count, [], load);
+        async function load() {
+          const current = ++sequence; pager.loading();
+          try {
+            const data = await PrismUI.request(endpoint({action:'dashboard_day',date:key,page:pager.page,perPage:pager.pageSize}));
+            if (current !== sequence || !view.element.isConnected) return;
+            const rows = data.deadlines;
+            state.textContent = '';
+            list.replaceChildren();
+            pager.render(data);
             const unique = [...new Map(rows.map(row => [row.id, row])).values()];
-            if (!unique.length) view.content.append(node('p', 'No active official deadlines for this date.'));
+            if (!unique.length) list.append(node('p', 'No active official deadlines for this date.'));
             for (const row of unique) {
                 const article = node('article', null, 'prism-deadline-detail');
                 article.append(node('h3', row.title));
@@ -51,13 +54,15 @@
                     details.append(node('dt', label), node('dd', value));
                 }
                 article.append(details);
-                view.content.append(article);
+                list.append(article);
             }
-        } catch (_) {
-            if (!view.element.isConnected) return;
-            state.textContent = 'Could not load official deadlines. Close and select this date to try again.';
+          } catch (_) {
+            if (current !== sequence || !view.element.isConnected) return;
+            pager.error(); state.textContent = 'Could not load official deadlines. Close and select this date to try again.';
             state.setAttribute('role', 'alert');
+          }
         }
+        await load();
     }
     async function refresh(date, mode = 'month') {
         const state = document.getElementById('dashboardDeadlineState');

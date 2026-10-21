@@ -41,15 +41,17 @@ document.addEventListener('DOMContentLoaded', () => {
         return element;
     };
 
+    const taskPager = PrismUI.clientPager(list, renderDialogTasks);
     function renderDialogTasks() {
         const tasks = tasksFor(selectedDate).slice().sort((a,b) => (a.time || '99:99').localeCompare(b.time || '99:99'));
         list.replaceChildren();
+        const visibleTasks = taskPager.slice(tasks, selectedDate);
         if (!tasks.length) {
             const empty = make('p', 'No tasks or notes for this date yet.', 'adviser-reminder-empty');
             list.append(empty);
             return;
         }
-        tasks.forEach(task => {
+        visibleTasks.forEach(task => {
             const item = make('article', null, 'adviser-reminder-item');
             const textBlock = make('div', null, 'adviser-reminder-item-text');
             textBlock.append(make('strong', task.title));

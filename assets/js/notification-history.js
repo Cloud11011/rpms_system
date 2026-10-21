@@ -14,6 +14,7 @@
         const sentView = options.support ? 'requests' : 'sent_history';
         const inboxView = options.support ? 'responses' : 'list';
         let sequence = 0, page = 1, busy = false;
+        const pageSize = PrismUI.pageSizeControl(pager, () => load(1));
         const controls = element('div', null, 'notification-filters');
         function select(label, choices, key) {
             const wrapper = element('label', label);
@@ -59,16 +60,16 @@
         }
         async function mutate(row, operation, button) {
             if (busy) return;
-            const sender = view.value === sentView;
-            if (operation === 'delete' || operation === 'cancel') {
-                const message = operation === 'cancel' ? 'Cancel this scheduled notification before it is sent?'
-                    : sender ? 'This permanently removes this item from your Sent History. Recipient copies are not deleted.'
-                        : 'This permanently removes your copy of this notification.';
-                if (!await PrismUI.confirm({ title: operation === 'cancel' ? 'Cancel Scheduled Notification' : 'Delete Permanently', message,
-                    confirmText: operation === 'cancel' ? 'Cancel Scheduled Notification' : 'Delete Permanently', tone: 'danger', focusCancel: true })) return;
-            }
             busy = true; button.disabled = true;
+            const sender = view.value === sentView;
             try {
+                if (operation === 'delete' || operation === 'cancel') {
+                    const message = operation === 'cancel' ? 'Cancel this scheduled notification before it is sent?'
+                        : sender ? 'This permanently removes this item from your Sent History. Recipient copies are not deleted.'
+                            : 'This permanently removes your copy of this notification.';
+                    if (!await PrismUI.confirm({ title: operation === 'cancel' ? 'Cancel Scheduled Notification' : 'Delete Permanently', message,
+                        confirmText: operation === 'cancel' ? 'Cancel Scheduled Notification' : 'Delete Permanently', tone: 'danger', focusCancel: true })) return;
+                }
                 await PrismUI.postJson(`${endpoint}?action=${sender ? 'campaign_' : ''}${operation}`, { id: Number(row.id), confirmed: operation === 'delete' });
                 feedback.textContent = operation === 'delete' ? 'Your copy was permanently deleted.' : operation === 'cancel' ? 'Scheduled notification cancelled.' : operation === 'mark_read' ? 'Notification marked read.' : operation === 'restore' ? 'Notification restored.' : 'Notification archived.';
                 await load(page);
@@ -145,7 +146,7 @@
         async function load(nextPage = 1) {
             page = nextPage; const current = ++sequence;
             list.setAttribute('aria-busy', 'true');
-            const query = new URLSearchParams({ action: view.value, status: status.value, kind: kind?.value || (options.support ? 'support' : 'All'), sort: sort.value, page: String(page) });
+            const query = new URLSearchParams({ action: view.value, status: status.value, kind: kind?.value || (options.support ? 'support' : 'All'), sort: sort.value, page: String(page), perPage: String(pageSize.value) });
             try {
                 const data = await PrismUI.request(`${endpoint}?${query}`, options.support
                     ? { headers: { 'X-PRISM-Generation': window.PRISM_SESSION_GENERATION || '' } } : undefined);

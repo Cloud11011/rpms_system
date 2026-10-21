@@ -6,6 +6,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const media = window.matchMedia('(max-width: 900px)');
     const submenu = button => document.getElementById(button.getAttribute('aria-controls'));
     const rememberedGroups = new Map();
+    const groupAnimations = new WeakMap();
+    const reducedMotion = matchMedia('(prefers-reduced-motion: reduce)');
     let wasCollapsed = false;
     let hoverExpanded = false;
     let hoverTimer;
@@ -15,12 +17,35 @@ document.addEventListener('DOMContentLoaded', () => {
         const list = submenu(button);
         if (!list) return;
         if (!open && list.contains(document.activeElement)) button.focus();
+        const height = list.getBoundingClientRect().height;
+        const currentStyle = getComputedStyle(list);
+        const startOpacity = height ? currentStyle.opacity : '0';
+        const startTop = height ? currentStyle.paddingTop : '0px';
+        const startBottom = height ? currentStyle.paddingBottom : '0px';
+        groupAnimations.get(list)?.cancel();
         button.setAttribute('aria-expanded', String(open));
-        list.hidden = !open;
+        list.inert = !open;
+        list.setAttribute('aria-hidden', String(!open));
+        if (reducedMotion.matches || sidebar.classList.contains('is-initializing')) { list.hidden = !open; return; }
+        list.hidden = false;
+        const naturalStyle = getComputedStyle(list);
+        const animation = list.animate([
+            { height: height + 'px', opacity: startOpacity, paddingTop: startTop, paddingBottom: startBottom },
+            { height: (open ? list.scrollHeight : 0) + 'px', opacity: open ? 1 : 0,
+                paddingTop: open ? naturalStyle.paddingTop : '0px', paddingBottom: open ? naturalStyle.paddingBottom : '0px' }
+        ], { duration: 300, easing: 'cubic-bezier(.22,.61,.36,1)' });
+        groupAnimations.set(list, animation);
+        animation.onfinish = () => {
+            if (groupAnimations.get(list) !== animation) return;
+            list.hidden = !open; groupAnimations.delete(list);
+        };
     }
     function setCollapsed(collapsed, remember = false) {
         if (collapsed && sidebar.contains(document.activeElement) && document.activeElement !== toggle) toggle.focus();
         sidebar.classList.toggle('is-collapsed', collapsed);
+        sidebar.querySelector('.sidebar-brand-logo')?.setAttribute('aria-hidden', String(collapsed));
+        sidebar.querySelector('.sidebar-brand-icon')?.setAttribute('aria-hidden', String(!collapsed));
+        sidebar.querySelector('.prism-navigation-caption')?.setAttribute('aria-hidden', String(collapsed));
         backdrop.hidden=collapsed;
         toggle.setAttribute('aria-expanded', String(!collapsed));
         toggle.setAttribute('aria-label', collapsed ? 'Expand navigation' : 'Collapse navigation');

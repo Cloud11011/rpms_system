@@ -651,15 +651,17 @@ if ($action === 'file') {
 if ($action === 'versions') {
     if (!$doc['student_id']) {
         $rows = [$doc];
+        $page = ['total' => 1, 'page' => 1, 'limit' => prism_page_size($_GET)];
     } else {
-        $stmt = $pdo->prepare('SELECT d.*, s.course, s.protocol_code, s.adviser_id, s.archived_at
-            FROM documents d LEFT JOIN students s ON s.id = d.student_id
-            WHERE d.student_id = :sid AND d.stage = :stage AND d.document_type = :type
-            ORDER BY d.version_no DESC, d.uploaded_at DESC');
-        $stmt->execute([':sid' => $doc['student_id'], ':stage' => $doc['stage'], ':type' => $doc['document_type']]);
-        $rows = $stmt->fetchAll();
+        $page = prism_page_query($pdo, 'SELECT d.*, s.course, s.protocol_code, s.adviser_id, s.archived_at',
+            'FROM documents d LEFT JOIN students s ON s.id = d.student_id
+            WHERE d.student_id = :sid AND d.stage = :stage AND d.document_type = :type',
+            [':sid' => $doc['student_id'], ':stage' => $doc['stage'], ':type' => $doc['document_type']],
+            'd.version_no DESC, d.uploaded_at DESC, d.id DESC', $_GET);
+        $rows = $page['rows'];
     }
-    json_out(['ok' => true, 'versions' => array_map(fn($d) => doc_row($d, $user, $viewerAdviserId), $rows)]);
+    json_out(['ok' => true, 'versions' => array_map(fn($d) => doc_row($d, $user, $viewerAdviserId), $rows),
+        'total' => $page['total'], 'page' => $page['page'], 'limit' => $page['limit']]);
 }
 
 // ---------------------------------------------------------------------

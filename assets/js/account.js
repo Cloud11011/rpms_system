@@ -80,10 +80,11 @@ document.addEventListener('DOMContentLoaded', () => {
         } finally { release(); }
     });
 
+    const activitySize = PrismUI.pageSizeControl($('activityPagination'), () => loadActivity(1));
     PrismUI.clearFilters([$('activitySearch'),$('activityFrom'),$('activityTo'),$('activityOverride')],loadActivity);
     async function loadActivity(page = activityPage) {
         const requestId = ++activityRequest;
-        const qs = new URLSearchParams({ action: 'list', page: String(page) });
+        const qs = new URLSearchParams({ action: 'list', page: String(page), perPage: String(activitySize.value) });
         if ($('activitySearch').value.trim()) qs.set('q', $('activitySearch').value.trim());
         if ($('activityFrom').value) qs.set('from', $('activityFrom').value);
         if ($('activityTo').value) qs.set('to', $('activityTo').value);

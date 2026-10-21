@@ -1,4 +1,5 @@
 <?php
+require_once __DIR__ . '/pagination.php';
 /** Frozen-v10 notification ownership, campaigns and copy lifecycle. No bootstrap or DDL. */
 final class NotificationLifecycleError extends RuntimeException
 {
@@ -268,7 +269,7 @@ function notification_list(PDO $pdo, array $user, array $query, string $mode='li
     if (!$sender && in_array($status,['Read','Unread'],true)) $scope.=$status==='Read'?' AND n.read_at IS NOT NULL':' AND n.read_at IS NULL';
     if ($kind!=='All') { $scope.=' AND '.$kindSql.'=:kind'; $params[':kind']=$kind; }
     $q=$pdo->prepare('SELECT COUNT(*) '.$scope); $q->execute($params); $total=(int)$q->fetchColumn();
-    $limit=isset($query['preview'])?max(1,min(5,(int)$query['preview'])):10;
+    $limit=isset($query['preview'])?max(1,min(5,(int)$query['preview'])):prism_page_size($query);
     $pages=max(1,(int)ceil($total/$limit)); $page=isset($query['preview'])?1:max(1,min($pages,(int)($query['page']??1))); $offset=($page-1)*$limit;
     $order=$sort==='Oldest'?'ASC':'DESC';
     $rows=notification_rows($pdo,'SELECT '.$select.' '.$scope." ORDER BY n.created_at $order,n.id $order LIMIT $limit OFFSET $offset",$params);

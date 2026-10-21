@@ -275,7 +275,7 @@
         pager.loading();
         loadError = false;
         try {
-            const data = await PrismUI.request(apiUrl + '?' + new URLSearchParams({action:'list',page:pager.page,q:searchInput.value.trim(),...filters.query(),...sort.query(),lifecycle:lifecyclePopulation}));
+            const data = await PrismUI.request(apiUrl + '?' + new URLSearchParams({action:'list',page:pager.page,perPage:pager.pageSize,q:searchInput.value.trim(),...filters.query(),...sort.query(),lifecycle:lifecyclePopulation}));
             const items = isAdviser ? data.advisers : data.students;
             if (!Array.isArray(items)) throw new Error('Could not load records.');
             if (request !== requestSequence) return;

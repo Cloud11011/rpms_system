@@ -671,6 +671,7 @@ const dashboardTaskTitle = document.getElementById('dashboardTaskTitle');
 const dashboardTaskTime = document.getElementById('dashboardTaskTime');
 const dashboardTaskNotes = document.getElementById('dashboardTaskNotes');
 const dashboardDayTasks = document.getElementById('dashboardDayTasks');
+const dashboardTaskPager = PrismUI.clientPager(dashboardDayTasks, renderDashboardDayTasks);
 
 function openDashboardDay(key) {
     dashboardSelectedDate = key;
@@ -701,6 +702,7 @@ function renderDashboardDayTasks() {
     const tasks = Array.isArray(dashboardReminders[dashboardSelectedDate])
         ? [...dashboardReminders[dashboardSelectedDate]].sort((a, b) => (a.time || '99:99').localeCompare(b.time || '99:99'))
         : [];
+    const visibleTasks = dashboardTaskPager.slice(tasks, dashboardSelectedDate);
     if (!tasks.length) {
         const empty = document.createElement('p');
         empty.className = 'dashboard-day-empty';
@@ -708,7 +710,7 @@ function renderDashboardDayTasks() {
         dashboardDayTasks.appendChild(empty);
         return;
     }
-    tasks.forEach(task => {
+    visibleTasks.forEach(task => {
         const item = document.createElement('article');
         const content = document.createElement('div');
         const title = document.createElement('strong');

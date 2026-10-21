@@ -245,7 +245,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         const results = await Promise.allSettled([
             PrismUI.request('students_api.php?action=list&preview=1'),
-            PrismUI.request('documents_api.php?' + new URLSearchParams({action:'list',page:pager.page,q:search.value.trim(),state:filter.value==='approved'?'':filter.value,stateGroup:filter.value==='approved'?'approved':'',sort:sort.value})),
+            PrismUI.request('documents_api.php?' + new URLSearchParams({action:'list',page:pager.page,perPage:pager.pageSize,q:search.value.trim(),state:filter.value==='approved'?'':filter.value,stateGroup:filter.value==='approved'?'approved':'',sort:sort.value})),
             PrismUI.request('profile_api.php?action=me'),
             PrismUI.request('notifications_api.php?action=list&preview=5&personal=1')
         ]);

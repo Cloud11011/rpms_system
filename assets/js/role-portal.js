@@ -301,8 +301,8 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         if (!record) return { record, history: [], error: false, historyError: false };
         try {
-            const data = await PrismUI.request(`ierb_api.php?action=history&studentId=${encodeURIComponent(record.id)}`);
-            return { record, history:data.history,total:data.total??data.history.length,page:data.page??1,error:false,historyError:false };
+            const data = await PrismUI.request(`ierb_api.php?action=history&studentId=${encodeURIComponent(record.id)}&perPage=${historyPager.pageSize}`);
+            return { record, history:data.history,total:data.total??data.history.length,page:data.page??1,limit:data.limit,error:false,historyError:false };
         } catch (_) {
             return { record, history: [], error: false, historyError: true };
         }
@@ -310,8 +310,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
     async function loadDocuments() {
         try {
-            const data = await PrismUI.request('documents_api.php?action=list');
-            return {records:data.documents,error:false,total:data.total??data.documents.length,page:data.page??1,counts:data.counts};
+            const data = await PrismUI.request(`documents_api.php?action=list&perPage=${docPager.pageSize}`);
+            return {records:data.documents,error:false,total:data.total??data.documents.length,page:data.page??1,limit:data.limit,counts:data.counts};
         } catch (_) {
             return { records: [], error: true };
         }
@@ -336,6 +336,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
+    const activitySize = PrismUI.pageSizeControl($('studentActivityPagination'), () => loadStudentActivity(1));
     let activityRequest = 0;
     async function loadStudentActivity(page = 1) {
         const requestId = ++activityRequest;
@@ -345,7 +346,7 @@ document.addEventListener('DOMContentLoaded', () => {
         host.setAttribute('aria-busy', 'true');
         host.replaceChildren(Object.assign(document.createElement('p'), { className: 'student-activity-empty', textContent: 'Loading activity…' }));
         try {
-            const data = await PrismUI.request(`audit_api.php?action=list&page=${page}`);
+            const data = await PrismUI.request(`audit_api.php?action=list&page=${page}&perPage=${activitySize.value}`);
             if (requestId !== activityRequest) return;
             const entries = Array.isArray(data.entries) ? data.entries : [];
             PrismUI.pagination(pager, count, { ...data, total: data.total ?? entries.length }, loadStudentActivity, 'entries');
@@ -424,16 +425,7 @@ document.addEventListener('DOMContentLoaded', () => {
         reviewTag.textContent = latestDoc && /pending adviser review|under review/i.test(reviewState) ? 'Waiting on adviser' : '';
         reviewTag.hidden = !reviewTag.textContent;
 
-        const unread = unreadNotifications;
-        $('studentNotificationValue').textContent = loadErrors.notifications ? 'Unavailable' : unread ? `${unread} new` : 'All caught up';
-        $('studentNotificationSummary').textContent = loadErrors.notifications ? 'Notifications could not be loaded.' : unread
-            ? (myNotifications[0]?.message || 'You have unread notifications.') : 'You have no new notifications.';
-        $('studentNotificationTag').textContent = unread ? `${unread} unread` : '';
-        $('studentNotificationTag').hidden = loadErrors.notifications || !unread;
-        $('navBadge').textContent = loadErrors.notifications ? '!' : unread > 99 ? '99+' : unread;
-        $('navBadge').hidden = !loadErrors.notifications && !unread;
-        $('navBadge').title = loadErrors.notifications ? 'Notifications unavailable' : `${unread} unread notifications`;
-        if(!loadErrors.notifications) document.dispatchEvent(new CustomEvent('prism:notification-count',{detail:{unread}}));
+        renderNotificationOverview();
 
         $('currentStage').textContent = loadErrors.progress ? 'Unavailable' : myRecord ? labelForStage(myRecord.stage) : 'No record yet';
         $('progressStageNumber').textContent = loadErrors.progress ? 'Stage unavailable' : myRecord
@@ -575,11 +567,24 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const notificationCenter = PrismNotifications.mount({ list: $('notificationList'), count: $('studentNotificationCount'),
         pager: $('studentNotificationPagination'), markAll: $('markAllRead'), studentCenter: true, onChange: refreshNotificationOverview });
+    function renderNotificationOverview() {
+        const unread = unreadNotifications;
+        $('studentNotificationValue').textContent = loadErrors.notifications ? 'Unavailable' : unread ? `${unread} new` : 'All caught up';
+        $('studentNotificationSummary').textContent = loadErrors.notifications ? 'Notifications could not be loaded.' : unread
+            ? (myNotifications[0]?.message || 'You have unread notifications.') : 'You have no new notifications.';
+        $('studentNotificationTag').textContent = unread ? `${unread} unread` : '';
+        $('studentNotificationTag').hidden = loadErrors.notifications || !unread;
+        $('navBadge').textContent = loadErrors.notifications ? '!' : unread > 99 ? '99+' : unread;
+        $('navBadge').hidden = !loadErrors.notifications && !unread;
+        $('navBadge').title = loadErrors.notifications ? 'Notifications unavailable' : `${unread} unread notifications`;
+        if(!loadErrors.notifications) document.dispatchEvent(new CustomEvent('prism:notification-count',{detail:{unread}}));
+
+    }
     async function refreshNotificationOverview() {
         const data = await loadNotifications();
         myNotifications = data.records; unreadNotifications = data.unread ?? 0;
         loadErrors.notifications = data.error;
-        render();
+        renderNotificationOverview();
     }
     function renderNotifications() { notificationCenter.load(); }
 
@@ -613,7 +618,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (sequence !== refreshSequence) return;
         myRecord = progress.record;
         myHistory = progress.history;
-        historyState = {total:progress.total??myHistory.length,page:progress.page??1};
+        historyState = {total:progress.total??myHistory.length,page:progress.page??1,limit:progress.limit};
         historyPager.reset();
         myDocuments = documents.records;
         documentHistory = documents;
@@ -799,22 +804,22 @@ document.addEventListener('DOMContentLoaded', () => {
         if(!myRecord)return;
         const sequence = ++historySequence; historyPager.loading();
         try {
-            const data = await PrismUI.request(`ierb_api.php?action=history&studentId=${encodeURIComponent(myRecord.id)}&page=${historyPager.page}`);
+            const data = await PrismUI.request(`ierb_api.php?action=history&studentId=${encodeURIComponent(myRecord.id)}&page=${historyPager.page}&perPage=${historyPager.pageSize}`);
             if(sequence!==historySequence)return;
-            myHistory=data.history;historyState={total:data.total??myHistory.length,page:data.page??1};loadErrors.history=false;renderHistory();
+            myHistory=data.history;historyState={total:data.total??myHistory.length,page:data.page??1,limit:data.limit};loadErrors.history=false;renderHistory();
         } catch(e){if(sequence!==historySequence)return;loadErrors.history=true;renderHistory();}
     }
     let documentSequence = 0;
     async function refreshDocuments() {
         const sequence = ++documentSequence; docPager.loading();
         const filter = $('documentFilter').value;
-        const qs = new URLSearchParams({action:'list',page:docPager.page,q:documentSearch.value.trim(),sort:documentSort.value});
+        const qs = new URLSearchParams({action:'list',page:docPager.page,perPage:docPager.pageSize,q:documentSearch.value.trim(),sort:documentSort.value});
         if (['Submitted','Under Review','Received','Verified','Approved','Denied','Resubmission Requested'].includes(filter)) qs.set('review',filter);
         else if(filter) qs.set('state',filter);
         try {
             const data = await PrismUI.request('documents_api.php?'+qs);
             if(sequence!==documentSequence)return;
-            documentHistory = {records:data.documents,total:data.total??data.documents.length,page:data.page??1,counts:data.counts};
+            documentHistory = {records:data.documents,total:data.total??data.documents.length,page:data.page??1,limit:data.limit,counts:data.counts};
             loadErrors.documents = false; renderDocs();
         } catch(e) { if(sequence!==documentSequence)return; loadErrors.documents = true; renderDocs(); docPager.error(); }
     }

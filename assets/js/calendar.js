@@ -136,12 +136,14 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
+    const taskPager = PrismUI.clientPager(taskList, renderTasks);
     function renderTasks() {
         const tasks = tasksFor(selectedDate).sort((a, b) => (a.time || '99:99').localeCompare(b.time || '99:99'));
         selectedDateLabel.textContent = formatDate(selectedDate);
         taskCount.textContent = `${tasks.length} ${tasks.length === 1 ? 'task' : 'tasks'}`;
         taskList.replaceChildren();
 
+        const visibleTasks = taskPager.slice(tasks, selectedDate);
         if (!tasks.length) {
             const empty = document.createElement('div');
             empty.className = 'empty-tasks';
@@ -150,7 +152,7 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
 
-        tasks.forEach(task => {
+        visibleTasks.forEach(task => {
             const item = document.createElement('article');
             item.className = 'task-item';
             const head = document.createElement('div');
