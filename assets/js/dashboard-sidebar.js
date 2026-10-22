@@ -17,34 +17,59 @@ document.addEventListener('DOMContentLoaded', () => {
     let hoverTimer;
     const hoverMedia = matchMedia('(hover:hover) and (pointer:fine) and (min-width:901px)');
     const backdrop=document.createElement('div');backdrop.className='prism-sidebar-backdrop';backdrop.hidden=true;backdrop.setAttribute('aria-hidden','true');sidebar.before(backdrop);
+    const sidebarStyle = getComputedStyle(sidebar);
+    const groupTiming = {
+        duration: parseFloat(sidebarStyle.getPropertyValue('--prism-sidebar-duration')) || 300,
+        easing: sidebarStyle.getPropertyValue('--prism-sidebar-easing').trim() || 'cubic-bezier(.22,.61,.36,1)'
+    };
+    function cancelHover() {
+        clearTimeout(hoverTimer);
+        hoverExpanded = false;
+    }
     function setGroup(button, open) {
         const list = submenu(button);
         if (!list) return;
+        // A repeated state request must not restart an in-flight group animation.
+        if (button.getAttribute('aria-expanded') === String(open) &&
+            (groupAnimations.has(list) || list.hidden === !open)) {
+            list.inert = !open;
+            list.setAttribute('aria-hidden', String(!open));
+            return;
+        }
         if (!open && list.contains(document.activeElement)) button.focus();
         const height = list.getBoundingClientRect().height;
         const currentStyle = getComputedStyle(list);
         const startOpacity = height ? currentStyle.opacity : '0';
         const startTop = height ? currentStyle.paddingTop : '0px';
         const startBottom = height ? currentStyle.paddingBottom : '0px';
+        const startMarginTop = height ? currentStyle.marginTop : '0px';
+        const startMarginBottom = height ? currentStyle.marginBottom : '0px';
         groupAnimations.get(list)?.cancel();
+        groupAnimations.delete(list);
         button.setAttribute('aria-expanded', String(open));
         list.inert = !open;
         list.setAttribute('aria-hidden', String(!open));
         if (reducedMotion.matches || sidebar.classList.contains('is-initializing')) { list.hidden = !open; return; }
         list.hidden = false;
         const naturalStyle = getComputedStyle(list);
+        // Read the natural border-box after cancelling the previous effect. With
+        // fixed text wrapping this stays correct even while the rail is moving.
+        const naturalHeight = list.getBoundingClientRect().height;
         const animation = list.animate([
-            { height: height + 'px', opacity: startOpacity, paddingTop: startTop, paddingBottom: startBottom },
-            { height: (open ? list.scrollHeight : 0) + 'px', opacity: open ? 1 : 0,
-                paddingTop: open ? naturalStyle.paddingTop : '0px', paddingBottom: open ? naturalStyle.paddingBottom : '0px' }
-        ], { duration: 300, easing: 'cubic-bezier(.22,.61,.36,1)' });
+            { height: height + 'px', opacity: startOpacity, paddingTop: startTop, paddingBottom: startBottom,
+                marginTop: startMarginTop, marginBottom: startMarginBottom },
+            { height: (open ? naturalHeight : 0) + 'px', opacity: open ? 1 : 0,
+                paddingTop: open ? naturalStyle.paddingTop : '0px', paddingBottom: open ? naturalStyle.paddingBottom : '0px',
+                marginTop: open ? naturalStyle.marginTop : '0px', marginBottom: open ? naturalStyle.marginBottom : '0px' }
+        ], groupTiming);
         groupAnimations.set(list, animation);
         animation.onfinish = () => {
             if (groupAnimations.get(list) !== animation) return;
             list.hidden = !open; groupAnimations.delete(list);
         };
     }
-    function setCollapsed(collapsed, remember = false) {
+    function setCollapsed(collapsed, remember = false, fromHover = false) {
+        if (!fromHover) cancelHover();
         if (collapsed && sidebar.contains(document.activeElement) && document.activeElement !== toggle) toggle.focus();
         sidebar.classList.toggle('is-collapsed', collapsed);
         sidebar.querySelector('.sidebar-brand-logo')?.setAttribute('aria-hidden', String(collapsed));
@@ -68,17 +93,15 @@ document.addEventListener('DOMContentLoaded', () => {
     setCollapsed(collapsed);
     requestAnimationFrame(() => requestAnimationFrame(() => sidebar.classList.remove('is-initializing')));
     toggle.addEventListener('click', () => {
-        clearTimeout(hoverTimer);
-        hoverExpanded = false;
         setCollapsed(toggle.getAttribute('aria-expanded') === 'true', true);
     });
     sidebar.addEventListener('pointerenter', event => {
-        if (!hoverMedia.matches || event.pointerType === 'touch' || !sidebar.classList.contains('is-collapsed')) return;
         clearTimeout(hoverTimer);
+        if (!hoverMedia.matches || event.pointerType === 'touch' || !sidebar.classList.contains('is-collapsed')) return;
         hoverTimer = setTimeout(() => {
             if (!hoverMedia.matches || !sidebar.matches(':hover')) return;
             hoverExpanded = true;
-            setCollapsed(false);
+            setCollapsed(false, false, true);
         }, 240);
     });
     const endHover = () => {
@@ -86,18 +109,22 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!hoverExpanded || sidebar.contains(document.activeElement)) return;
         hoverTimer = setTimeout(() => {
             if (!sidebar.matches(':hover') && !sidebar.contains(document.activeElement)) {
-                hoverExpanded = false;
                 setCollapsed(true);
             }
         }, 320);
     };
     sidebar.addEventListener('pointerleave', endHover);
-    sidebar.addEventListener('focusout', () => {
-        if (!sidebar.matches(':hover')) endHover();
+    sidebar.addEventListener('focusout', event => {
+        // Focus has not reached relatedTarget yet during focusout. Use that
+        // destination so moving focus outside can actually schedule collapse.
+        if (!sidebar.contains(event.relatedTarget) && !sidebar.matches(':hover')) {
+            clearTimeout(hoverTimer);
+            if (hoverExpanded) hoverTimer = setTimeout(() => {
+                if (!sidebar.matches(':hover') && !sidebar.contains(document.activeElement)) setCollapsed(true);
+            }, 320);
+        }
     });
     groups.forEach(button => button.addEventListener('click', () => {
-        clearTimeout(hoverTimer);
-        hoverExpanded = false;
         const open = button.getAttribute('aria-expanded') !== 'true';
         setCollapsed(false, true);
         setGroup(button, open);
@@ -113,4 +140,14 @@ document.addEventListener('DOMContentLoaded', () => {
         if(!sidebar.classList.contains('is-collapsed') && !sidebar.contains(event.target) && !event.target.closest('dialog,.prism-filter-panel,.prism-action-panel'))setCollapsed(true,true);
     });
     media.addEventListener('change', () => setCollapsed(media.matches));
+    reducedMotion.addEventListener('change', () => {
+        if (!reducedMotion.matches) return;
+        groups.forEach(button => {
+            const list = submenu(button);
+            if (!list) return;
+            groupAnimations.get(list)?.cancel();
+            groupAnimations.delete(list);
+            list.hidden = button.getAttribute('aria-expanded') !== 'true';
+        });
+    });
 });

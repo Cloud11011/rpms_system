@@ -48,19 +48,21 @@
 /* Admin rail geometry. Specificity deliberately exceeds the later legacy polish
    sheets: invisible labels and section captions must not size collapsed rows. */
 body.prism-workspace.admin-shell .sidebar.prism-sidebar {
+ --prism-sidebar-duration:380ms;
+ --prism-sidebar-easing:cubic-bezier(.22,.61,.36,1);
  padding:16px 8px;
- transition:width 380ms cubic-bezier(.22,.61,.36,1);
+ transition:width var(--prism-sidebar-duration) var(--prism-sidebar-easing);
 }
 body.prism-workspace.admin-shell .sidebar.prism-sidebar :is(.prism-sidebar-toggle,.prism-nav-home,.prism-nav-group-toggle) {
  position:relative; flex-shrink:0; min-height:44px; padding:11px 15px; gap:11px;
- transform:none; transition:min-height 300ms ease,padding 300ms ease,margin 300ms ease,background-color 280ms ease,color 280ms ease;
+ transform:none; transition:padding var(--prism-sidebar-duration) var(--prism-sidebar-easing),margin var(--prism-sidebar-duration) var(--prism-sidebar-easing),background-color 280ms ease,color 280ms ease;
 }
 body.prism-workspace.admin-shell .sidebar.prism-sidebar :is(.prism-sidebar-toggle,.prism-nav-home,.prism-nav-group-toggle) > i:first-child {
  width:22px; flex:0 0 22px; text-align:center;
 }
 body.prism-workspace.admin-shell .sidebar.prism-sidebar :is(.prism-sidebar-toggle,.prism-nav-home,.prism-nav-group-toggle) > span {
  flex:0 0 162px; width:162px; min-width:0;
- transition:opacity 300ms ease;
+ transition:opacity var(--prism-sidebar-duration) var(--prism-sidebar-easing);
 }
 body.prism-workspace.admin-shell .sidebar.prism-sidebar.is-collapsed :is(.prism-sidebar-toggle,.prism-nav-home,.prism-nav-group-toggle) {
  min-height:44px; padding:0 15px; transform:none;
@@ -69,12 +71,12 @@ body.prism-workspace.admin-shell .sidebar.prism-sidebar.is-collapsed :is(.prism-
  opacity:0; pointer-events:none;
 }
 body.prism-workspace.admin-shell .sidebar.prism-sidebar .prism-nav-group {
- margin:8px 0; transition:margin 300ms ease;
+ margin:8px 0; transition:margin var(--prism-sidebar-duration) var(--prism-sidebar-easing);
 }
 body.prism-workspace.admin-shell .sidebar.prism-sidebar.is-collapsed .prism-nav-group { margin:2px 0; }
 body.prism-workspace.admin-shell .sidebar.prism-sidebar .prism-nav-section-label {
- height:17px; margin:18px 6px 6px; overflow:hidden;
- transition:height 300ms ease,margin 300ms ease,opacity 300ms ease;
+ display:flex; height:17px; margin:18px 6px 6px; overflow:hidden;
+ transition:height var(--prism-sidebar-duration) var(--prism-sidebar-easing),margin var(--prism-sidebar-duration) var(--prism-sidebar-easing),opacity var(--prism-sidebar-duration) var(--prism-sidebar-easing);
 }
 body.prism-workspace.admin-shell .sidebar.prism-sidebar.is-collapsed .prism-nav-section-label {
  height:0; margin:0 6px; opacity:0;
@@ -82,20 +84,38 @@ body.prism-workspace.admin-shell .sidebar.prism-sidebar.is-collapsed .prism-nav-
 body.prism-workspace.admin-shell .sidebar.prism-sidebar.is-collapsed .prism-sidebar-toggle { margin:4px 0; }
 body.prism-workspace.admin-shell .sidebar.prism-sidebar .prism-sidebar-brand {
  height:112px; min-height:112px; padding:0; margin-bottom:10px;
- transition:height 300ms ease,min-height 300ms ease,margin 300ms ease;
+ transition:height var(--prism-sidebar-duration) var(--prism-sidebar-easing),min-height var(--prism-sidebar-duration) var(--prism-sidebar-easing),margin var(--prism-sidebar-duration) var(--prism-sidebar-easing);
 }
 body.prism-workspace.admin-shell .sidebar.prism-sidebar.is-collapsed .prism-sidebar-brand { height:64px; min-height:64px; margin-bottom:4px; }
+/* Keep the existing expanded artwork and submenu wrapping independent of the
+   animated rail width. Otherwise scrollHeight is measured at icon-only width. */
+body.prism-workspace.admin-shell .sidebar.prism-sidebar .sidebar-brand-logo {
+ width:204px; max-width:none; height:104px;
+}
+body.prism-workspace.admin-shell .sidebar.prism-sidebar :is(.sidebar-brand-logo,.sidebar-brand-icon,.prism-navigation-caption) {
+ transition:opacity var(--prism-sidebar-duration) var(--prism-sidebar-easing);
+}
+body.prism-workspace.admin-shell .sidebar.prism-sidebar .prism-navigation-caption { max-width:none; }
 body.prism-workspace.admin-shell .sidebar.prism-sidebar .sidebar-brand-icon {
  left:4px; top:0; width:44px; height:64px;
 }
+body.prism-workspace.admin-shell .sidebar.prism-sidebar .prism-nav-submenu {
+ width:210px; max-width:none; /* 248px card - 16px padding - 22px indent. */
+}
+body.prism-workspace.admin-shell .sidebar.prism-sidebar .prism-nav-submenu > li { flex-shrink:0; }
 body.prism-workspace.admin-shell .sidebar.prism-sidebar .prism-nav-chevron {
- position:absolute; right:8px; transition:transform 300ms cubic-bezier(.22,.61,.36,1),opacity 300ms ease;
+ position:absolute; right:8px; transition:transform var(--prism-sidebar-duration) var(--prism-sidebar-easing),opacity var(--prism-sidebar-duration) var(--prism-sidebar-easing);
 }
 body.prism-workspace.admin-shell .sidebar.prism-sidebar.is-collapsed .prism-nav-chevron { opacity:0; pointer-events:none; }
 body.prism-workspace.admin-shell .sidebar.prism-sidebar.is-collapsed .prism-nav-group-toggle.has-current-page {
  color:#14173a; background:#fff; box-shadow:0 4px 12px #100f4020;
 }
 body.prism-workspace.admin-shell .sidebar.prism-sidebar.is-collapsed .prism-nav-group-toggle.has-current-page > i:first-child { color:#b5146e; }
+body.prism-workspace.admin-shell .sidebar.prism-sidebar.is-initializing,
+body.prism-workspace.admin-shell .sidebar.prism-sidebar.is-initializing * { transition:none; }
+body.prism-workspace.admin-shell .prism-sidebar-backdrop {
+ transition:opacity 380ms cubic-bezier(.22,.61,.36,1),display 380ms allow-discrete;
+}
 @media(prefers-reduced-motion:reduce) {
  body.prism-workspace.admin-shell .sidebar.prism-sidebar,
  body.prism-workspace.admin-shell .sidebar.prism-sidebar * { transition:none!important; animation:none!important; }
