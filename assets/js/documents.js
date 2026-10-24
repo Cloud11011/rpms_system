@@ -105,7 +105,8 @@ function renderTable(){
                 ${a.review?'<button class="document-action-button" data-review title="Full review / set status"><i class="fa-solid fa-file-pen" aria-hidden="true"></i> Review Document</button>':''}
                 <button class="document-action-button" data-versions title="Version history"><i class="fa-solid fa-clock-rotate-left"></i></button>
                 ${summaryButton(d)}
-                ${a.review?'<button class="document-action-button approve" data-approve title="Approve"><i class="fa-solid fa-check"></i></button><button class="document-action-button" data-comment title="Add comment"><i class="fa-regular fa-comment"></i></button><button class="document-action-button deny" data-deny title="Deny"><i class="fa-solid fa-xmark"></i></button>':''}
+                ${a.review?'<button class="document-action-button approve" data-approve title="Approve"><i class="fa-solid fa-check"></i></button><button class="document-action-button deny" data-deny title="Deny"><i class="fa-solid fa-xmark"></i></button>':''}
+                ${a.comment?'<button class="document-action-button" data-comment title="Add public comment"><i class="fa-regular fa-comment"></i> Add comment</button>':''}
                 ${a.override?'<button class="document-action-button" data-override title="Admin Override"><i class="fa-solid fa-user-shield"></i></button>':''}
                 ${a.returnForRevision?'<button class="document-action-button" data-return title="Return to Student for Revision"><i class="fa-solid fa-rotate-left"></i> Return to Student for Revision</button>':''}
                 ${a.submitToRpms?'<button type="button" class="document-action-button" data-formal-submit title="Submit to RPMS"><i class="fa-solid fa-paper-plane" aria-hidden="true"></i> Submit to RPMS</button>':''}
@@ -117,9 +118,9 @@ function renderTable(){
         if(a.review){
             tr.querySelector('[data-approve]').addEventListener('click',e=>PrismUI.runAction(e.currentTarget,'Processing...',()=>reviewStatus(d,'Approved')));
             tr.querySelector('[data-deny]').addEventListener('click',e=>PrismUI.runAction(e.currentTarget,'Processing...',()=>reviewStatus(d,'Denied')));
-            tr.querySelector('[data-comment]').addEventListener('click',e=>PrismUI.runAction(e.currentTarget,'Processing...',()=>comment(d)));
             tr.querySelector('[data-review]').addEventListener('click',e=>PrismUI.runAction(e.currentTarget,'Processing...',()=>review(d)));
         }
+        if(a.comment) tr.querySelector('[data-comment]').addEventListener('click',e=>PrismUI.runAction(e.currentTarget,'Processing...',()=>comment(d)));
         if(a.override) tr.querySelector('[data-override]').addEventListener('click',e=>PrismUI.runAction(e.currentTarget,'Processing...',async()=>{if(await PrismUI.overrideDocument(d)) await load()}));
         if(a.returnForRevision) tr.querySelector('[data-return]').addEventListener('click',e=>PrismUI.runAction(e.currentTarget,'Processing...',()=>returnForRevision(d)));
         if(a.submitToRpms) tr.querySelector('[data-formal-submit]').addEventListener('click',e=>PrismUI.runAction(e.currentTarget,'Submitting...',async()=>{if(await PrismUI.submitToRpms(d))await load();}));
@@ -153,7 +154,7 @@ function renderTable(){
         const statusLabel=document.createElement('span');statusLabel.className='prism-record-label';statusLabel.textContent='Document status';card.querySelector('.prism-record-status').prepend(statusLabel);
         const details=card.querySelector('.prism-record-details'),fields=details.querySelector('dl');
         fields.replaceChildren(...[['Uploaded by',d.uploadedBy],['File size',size(d.size)],['Program',d.course],['Protocol code',d.protocolCode],['RPMS submission',d.rpmsSubmittedAt?date(d.rpmsSubmittedAt):'Not submitted to RPMS']].map(([label,value])=>PrismUI.recordField(label,value)));
-        if(d.reviewStatus&&d.reviewStatus!==d.workflowState)fields.append(PrismUI.recordField('Adviser review decision',d.reviewStatus));
+        if(d.reviewStatus&&d.reviewStatus!==d.workflowState)fields.append(PrismUI.recordField(d.adminOverride?'RPMS override status':'Adviser review decision',d.reviewStatus));
         const feedback=PrismUI.recordFeedback(d);
         if(feedback){card.insertBefore(feedback,details);if(feedback.classList.contains('prism-feedback-indicator'))fields.append(PrismUI.recordField('Reviewer remarks',d.reviewRemarks));}
     });
@@ -243,7 +244,7 @@ async function comment(d){
         message:'The review status will stay the same. The student will receive this comment.',
         reasonLabel:'Comment',reasonRequired:true,minReason:1});
     if(!answer)return;
-    try{const data=await api('review',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({id:d.id,status:d.reviewStatus||'Under Review',remarks:answer.reason})});await load();toast(data.message||'Comment saved and sent to the student.')}
+    try{const data=await api('comment',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({id:d.id,remarks:answer.reason})});await load();toast(data.message||'Comment saved and sent to the student.')}
     catch(e){toast(e.message,'error')}
 }
 async function review(d){

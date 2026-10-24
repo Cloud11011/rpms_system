@@ -16,7 +16,7 @@ if ($action === 'summarize' && $user['role'] !== 'admin') {
     audit_log($user, 'document_summary_failed', ['entity_type' => 'document', 'details' => 'reason=forbidden_role']);
     json_out(['ok' => false, 'message' => 'Only RPMS Administrators may generate document summaries.'], 403);
 }
-if (in_array($action, ['upload', 'review', 'return_for_revision', 'submit_to_rpms', 'override_review', 'delete', 'summarize'], true)) {
+if (in_array($action, ['upload', 'review', 'comment', 'return_for_revision', 'submit_to_rpms', 'override_review', 'delete', 'summarize'], true)) {
     require_post_same_origin();
 }
 
@@ -149,8 +149,9 @@ function doc_row(array $d, array $user, ?int $viewerAdviserId): array
         // What the signed-in user may do with this row (the UI just reads these flags).
         'actions' => [
             'summarize' => empty($d['archived_at']) && $role === 'admin',
-            'review' => empty($d['archived_at']) && $isCurrent && !$locked && can_review_doc($user, $viewerAdviserId, $d)
-                && ($role === 'admin' || !in_array($d['review_status'], ['Denied','Resubmission Requested'], true)),
+            'review' => empty($d['archived_at']) && $isCurrent && !$locked && $role === 'adviser' && (empty($d['admin_override']) || $d['review_status'] !== 'Approved')
+                && can_review_doc($user, $viewerAdviserId, $d) && !in_array($d['review_status'], ['Denied','Resubmission Requested'], true),
+            'comment' => empty($d['archived_at']) && $isCurrent && can_review_doc($user, $viewerAdviserId, $d),
             'submitToRpms' => empty($d['archived_at']) && $isCurrent && !$locked && $state === WF_READY_FOR_RPMS && $role === 'admin',
             'returnForRevision' => empty($d['archived_at']) && $isCurrent && $state === WF_SUBMITTED_RPMS && $role === 'admin',
             'uploadRevision' => empty($d['archived_at']) && $isCurrent && $role === 'student' && in_array($state, [WF_NEEDS_REVISION,WF_RETURNED_REVISION], true),
@@ -552,14 +553,21 @@ if ($action === 'summarize') {
             $error instanceof DocumentSummaryError ? $error->httpStatus : ($error instanceof DocumentWriteConflict ? 409 : 503));
     }
 }
-$payload = json_body();
-if (in_array($action, ['review','return_for_revision'], true)) {
-    foreach (['id','status','remarks','reason'] as $field) {
+$workflowAction=in_array($action,['review','comment','return_for_revision','submit_to_rpms','override_review'],true);
+try { $payload = json_body($workflowAction); }
+catch (AccountLifecycleBadRequest $e) { json_out(['ok'=>false,'message'=>$e->getMessage()],400); }
+if (in_array($action, ['review','comment','return_for_revision','submit_to_rpms','override_review'], true)) {
+    foreach (['id','status','remarks','reason','expectedStatus'] as $field) {
         if (isset($payload[$field]) && !is_string($payload[$field])) json_out(['ok'=>false,'message'=>'Malformed workflow request.'],422);
+    }
+    if (isset($payload['versionNo']) && (!is_int($payload['versionNo']) || $payload['versionNo'] < 1)) json_out(['ok'=>false,'message'=>'Invalid document version.'],422);
+    // Approval identity, timestamps, ownership and override flags are always server derived.
+    foreach (['review_status','reviewed_by','reviewed_at','rpms_submitted_at','rpms_submitted_by','student_id','admin_override','override_by','override_at'] as $field) {
+        if (array_key_exists($field,$payload)) json_out(['ok'=>false,'message'=>'Authoritative workflow fields cannot be supplied.'],422);
     }
 }
 if ($action === 'submit_to_rpms' && $user['role'] !== 'admin') {
-    json_out(['ok'=>false,'message'=>'Student formal submission is no longer permitted. Adviser approval automatically submits the eligible current version to RPMS.'],403);
+    json_out(['ok'=>false,'message'=>'Adviser approval automatically submits the eligible current version to RPMS. A separate Student formal submission is not permitted.'],403);
 }
 $id = $_GET['id'] ?? $payload['id'] ?? '';
 if (!is_string($id) || $id==='' || strlen($id)>128) json_out(['ok'=>false,'message'=>'Provide a valid record reference.'],422);
@@ -586,17 +594,15 @@ $docName = $doc['original_name'];
 $isCurrent = (int)($doc['is_current'] ?? 1) === 1;
 $locked = document_is_locked($doc);
 
-if ($action === 'review' && $user['role'] === 'adviser' && (!$isCurrent || $locked)) {
-    json_out(['ok'=>false,'message'=>'This version is older or already resolved. Refresh and review the current version.'],409);
-}
-if ($action === 'return_for_revision' || ($action === 'review' && $user['role'] === 'adviser')) {
+if (in_array($action,['review','comment','return_for_revision','submit_to_rpms','override_review'],true)) {
     require_session_generation(true);
     if (isset($_GET['id'], $payload['id']) && $_GET['id'] !== $payload['id']) json_out(['ok'=>false,'message'=>'Conflicting document identity.'],422);
+    $operation=match($action) { 'return_for_revision'=>'return', 'submit_to_rpms'=>'submit', 'override_review'=>'override', default=>$action };
     try {
-        $result = document_workflow_change($pdo,$user,(string)$id,
-            $action === 'return_for_revision' ? 'return' : 'review', $payload['status'] ?? '',
-            $action === 'return_for_revision' ? ($payload['reason'] ?? '') : ($payload['remarks'] ?? ''));
-        $ids = $result['notificationIds']; unset($result['notificationIds']);
+        $result=document_workflow_change($pdo,$user,(string)$id,$operation,$payload['status']??'',
+            in_array($operation,['return','submit','override'],true)?($payload['reason']??''):($payload['remarks']??''),
+            $payload['versionNo']??null, $payload['expectedStatus']??null);
+        $ids=$result['notificationIds']; unset($result['notificationIds']);
         document_workflow_deliver($pdo,$ids);
         json_out($result);
     } catch (DocumentWorkflowError $e) {
@@ -646,295 +652,6 @@ if ($action === 'versions') {
     }
     json_out(['ok' => true, 'versions' => array_map(fn($d) => doc_row($d, $user, $viewerAdviserId), $rows),
         'total' => $page['total'], 'page' => $page['page'], 'limit' => $page['limit']]);
-}
-
-// ---------------------------------------------------------------------
-// review (adviser or admin): approve / deny / request resubmission / comment
-// ---------------------------------------------------------------------
-if ($action === 'review') {
-    api_require_login(['admin', 'adviser']);
-    $allowedStatuses = ['Under Review', 'Received', 'Verified', 'Resubmission Requested', 'Approved', 'Denied'];
-    $status = trim((string)($payload['status'] ?? ''));
-    // "Submitted" is the initial status. It isn't something a reviewer can choose, but the comment
-    // box sends the current status back with the remark, so accept it when it isn't a change.
-    if (!in_array($status, $allowedStatuses, true) && $status !== ($doc['review_status'] ?? null)) {
-        json_out(['ok' => false, 'message' => 'Invalid review status.'], 422);
-    }
-    $remarks = trim((string)($payload['remarks'] ?? ''));
-    if (mb_strlen($remarks) > 5000) {
-        json_out(['ok' => false, 'message' => 'Reviewer remarks must be 5,000 characters or fewer.'], 422);
-    }
-    if (in_array($status, ['Denied', 'Resubmission Requested'], true) && $remarks === '') {
-        json_out(['ok' => false, 'message' => 'Please add reviewer remarks explaining what the student needs to correct or resubmit.'], 422);
-    }
-
-    if (!$isCurrent) {
-        json_out(['ok' => false, 'message' => 'This is an older version. Review the latest version instead.'], 409);
-    }
-    if (!can_review_doc($user, $viewerAdviserId, $doc)) {
-        json_out(['ok' => false, 'message' => 'This student is assigned to another adviser. Only the assigned adviser or an RPMS administrator can review this document.'], 403);
-    }
-    $before = $doc['review_status'];
-    $changed = $status !== $before;
-    if ($changed && $locked) {
-        json_out(['ok' => false, 'message' => 'This document was formally submitted to RPMS on '
-            . date('M j, Y', strtotime($doc['rpms_submitted_at']))
-            . ' and is locked. If the record must change, an RPMS administrator can use Admin Override.'], 409);
-    }
-    if (!$changed && $remarks === '') {
-        try { begin_document_write($pdo,$doc); $pdo->commit(); }
-        catch (Throwable $e) { if ($pdo->inTransaction()) $pdo->rollBack(); json_out(['ok'=>false,'message'=>'This record is unavailable or changed. Refresh before continuing.'],409); }
-        json_out(['ok' => true, 'noChange' => true, 'message' => 'Nothing to save: the status is already ' . $status . '.']);
-    }
-
-    $advancedTo = null;
-    try {
-        begin_document_write($pdo, $doc);
-        // Comments on submitted versions append evidence; preserve the original approval actor/time.
-        if (!$locked) $pdo->prepare('UPDATE documents SET review_status = :s, review_remarks = :r, reviewed_by = :by, reviewed_at = NOW(),
-                admin_override = IF(:changed = 1, 0, admin_override)
-            WHERE id = :id')
-            ->execute([':s' => $status, ':r' => $remarks, ':by' => $user['full_name'], ':changed' => $changed ? 1 : 0, ':id' => $id]);
-
-        // Legacy behaviour (STAGE_ADVANCE_TRIGGER = 'approval'): advance as soon as the adviser approves.
-        if ($changed && $status === 'Approved' && STAGE_ADVANCE_TRIGGER === 'approval' && $doc['student_id']) {
-            $advancedTo = advance_stage_for_document($pdo, $doc, $user,
-                $doc['detected_approval_date'] ?: date('Y-m-d'), "after \"$docName\" was approved",true);
-        }
-    $auditAction = !$changed ? 'document_commented' : match ($status) {
-        'Approved' => 'document_approved',
-        'Denied' => 'document_denied',
-        'Resubmission Requested' => 'document_resubmission_requested',
-        default => 'document_reviewed',
-    };
-    document_workflow_audit($pdo, $user, $auditAction, [
-        'entity_type' => 'document', 'entity_id' => $id, 'student_id' => $doc['student_id'],
-        'before' => $before, 'after' => $status, 'reason' => $remarks,
-        'details' => "\"$docName\" " . ($changed ? "$before -> $status" : 'remark added'),
-    ]);
-
-        $publicMessage='Document "'.$docName.'" is now '.$status.'.'.($remarks!==''?' Remarks: '.$remarks:'');
-        if (in_array($status,['Denied','Resubmission Requested'],true)) $publicMessage.=' Upload a NEW PDF/DOCX revision for Adviser review.';
-        $notificationIds=document_notice_atomic($pdo,$user,(int)$doc['student_id'],'PRISM Document Status Update',$publicMessage);
-        $pdo->commit();
-    } catch (DocumentWriteConflict $e) {
-        if ($pdo->inTransaction()) {
-            $pdo->rollBack();
-        }
-        json_out(['ok' => false, 'message' => $e->getMessage()], $e->status);
-    } catch (Throwable $e) {
-        if ($pdo->inTransaction()) {
-            $pdo->rollBack();
-        }
-        log_api_error('document_review', $e->getMessage());
-        json_out(['ok' => false, 'message' => 'The review could not be saved. Refresh to check the current state before retrying.'], 500);
-    }
-
-    document_workflow_deliver($pdo,$notificationIds);
-
-    $who = $doc['student_name'] ?: 'The student';
-    $message = !$changed ? 'Remark saved and sent to ' . $who . '.'
-        : ($status === 'Approved'
-            ? "Approved \"$docName\". $who has been notified" . ($advancedTo ? ' and moved to ' . stage_label($advancedTo) . '.' : '. RPMS can complete formal submission.')
-            : ($status === 'Denied' || $status === 'Resubmission Requested'
-                ? "Marked \"$docName\" as $status. $who has been notified and can upload a corrected version."
-                : "Marked \"$docName\" as $status. $who has been notified."));
-
-    $fresh = fetch_doc($pdo, (string)$id);
-    json_out(['ok' => true, 'message' => $message, 'stageAdvanced' => $advancedTo !== null,
-        'workflowState' => $fresh ? document_workflow_state($fresh) : null]);
-}
-
-// ---------------------------------------------------------------------
-// submit_to_rpms (legacy Admin submission / separate reasoned Admin Override)
-// ---------------------------------------------------------------------
-if ($action === 'submit_to_rpms') {
-    api_require_login(['admin']);
-    if (isset($payload['reason']) && !is_string($payload['reason'])) json_out(['ok'=>false,'message'=>'Invalid override reason.'],422);
-    $reason = trim((string)($payload['reason'] ?? ''));
-
-    if (!empty($doc['archived_at'])) {
-        json_out(['ok'=>false, 'message'=>'Current submission is unavailable for an archived student.'], 409);
-    }
-    if (!$isCurrent) {
-        json_out(['ok' => false, 'message' => 'This is an older version. Submit the latest version instead.'], 409);
-    }
-    if ($locked) {
-        json_out(['ok' => false, 'message' => 'This document was already submitted to RPMS on '
-            . date('M j, Y g:i A', strtotime($doc['rpms_submitted_at'])) . '.'], 409);
-    }
-    $state = document_workflow_state($doc);
-    $isOverride = false;
-    if ($state !== WF_READY_FOR_RPMS) {
-        if ($user['role'] !== 'admin') {
-            $why = $state === WF_NEEDS_REVISION
-                ? 'Your adviser asked for changes. Upload a corrected version first.'
-                : 'Your adviser has not approved this document yet. You can submit it to RPMS once it is approved.';
-            json_out(['ok' => false, 'message' => $why], 409);
-        }
-        if (!override_reason_valid($reason)) {
-            json_out(['ok' => false, 'requiresReason' => true,
-                'message' => 'This document is not approved by the adviser yet. ' . override_reason_message()], 422);
-        }
-        $isOverride = true;
-    }
-
-    $submittedBy = document_attribution($user['full_name'], ($user['role'] === 'admin' ? ' (RPMS Admin' . ($isOverride ? ', Admin Override' : '') . ')' : ''));
-    $advancedTo = null;
-    try {
-        begin_document_write($pdo, $doc);
-
-        $sql = 'UPDATE documents SET rpms_submitted_at = NOW(), rpms_submitted_by = :by';
-        $params = [':by' => $submittedBy, ':id' => $id];
-        if ($isOverride) {
-            $sql .= ', review_status = "Approved", reviewed_by = :rb, reviewed_at = NOW(),
-                admin_override = 1, override_reason = :orsn, override_by = :ob, override_at = NOW()';
-            $params[':rb'] = document_attribution($user['full_name'], ' (Admin Override)');
-            $params[':orsn'] = $reason;
-            $params[':ob'] = $user['full_name'];
-        }
-        $upd = $pdo->prepare($sql . ' WHERE id = :id AND rpms_submitted_at IS NULL AND is_current = 1');
-        $upd->execute($params);
-        if ($upd->rowCount() === 0) {
-            $pdo->rollBack();
-            json_out(['ok' => false, 'message' => 'This document was just submitted by someone else. Refresh to see its latest status.'], 409);
-        }
-
-        if ($doc['student_id']) {
-            $pdo->prepare('UPDATE students SET last_submission_date = CURDATE(), updated_at = NOW() WHERE id = :id')
-                ->execute([':id' => $doc['student_id']]);
-            $cur = $pdo->prepare('SELECT stage, status FROM students WHERE id = :id');
-            $cur->execute([':id' => $doc['student_id']]);
-            $curRow = $cur->fetch();
-            record_history($pdo, (int)$doc['student_id'], $curRow['stage'] ?? $doc['stage'], $curRow['status'] ?? 'On Track',
-                'Formally submitted to RPMS: "' . $docName . '" (' . $doc['document_type'] . ', ' . $doc['stage'] . ')'
-                    . ($isOverride ? '. ADMIN OVERRIDE - reason: ' . $reason : '') . '.',
-                date('Y-m-d'), $submittedBy);
-
-            if (STAGE_ADVANCE_TRIGGER === 'submission'
-                || ($isOverride && STAGE_ADVANCE_TRIGGER === 'approval')) {
-                $advancedTo = advance_stage_for_document($pdo, $doc, $user, date('Y-m-d'),
-                    "after \"$docName\" was formally submitted to RPMS",true);
-            }
-        }
-        if ($isOverride) {
-            audit_override_atomic($pdo, $user, 'admin_override_submit_to_rpms', [
-                'entity_type' => 'document', 'entity_id' => $id, 'student_id' => $doc['student_id'],
-                'before' => $state, 'after' => WF_SUBMITTED_RPMS, 'reason' => $reason, 'override' => true,
-                'details' => "\"$docName\" (" . $doc['document_type'] . ', ' . $doc['stage'] . ') submitted on behalf of the student',
-            ]);
-        }
-    if (!$isOverride) document_workflow_audit($pdo, $user, 'document_submitted_to_rpms', [
-        'entity_type' => 'document', 'entity_id' => $id, 'student_id' => $doc['student_id'],
-        'before' => $state, 'after' => WF_SUBMITTED_RPMS, 'reason' => $isOverride ? $reason : null, 'override' => $isOverride,
-        'details' => "\"$docName\" (" . $doc['document_type'] . ', ' . $doc['stage'] . ')'
-            . ($user['role'] === 'admin' ? ' submitted on behalf of the student' : ''),
-    ]);
-
-        $notificationIds=document_notice_atomic($pdo,$user,(int)$doc['student_id'],
-            'PRISM Formal RPMS Submission Confirmation','Your document was formally submitted to RPMS. Open your document record for its official state.',
-            'Document submitted to RPMS',$docName.' was formally submitted to RPMS.');
-        $pdo->commit();
-    } catch (DocumentWriteConflict $e) {
-        if ($pdo->inTransaction()) {
-            $pdo->rollBack();
-        }
-        json_out(['ok' => false, 'message' => $e->getMessage()], $e->status);
-    } catch (Throwable $e) {
-        if ($pdo->inTransaction()) {
-            $pdo->rollBack();
-        }
-        log_api_error('submit_to_rpms', $e->getMessage());
-        json_out(['ok' => false, 'message' => 'The submission could not be saved. Refresh to check the current state before retrying.'], 500);
-    }
-
-
-    document_workflow_deliver($pdo,$notificationIds);
-    $ref = strtoupper(substr((string)$id, 0, 8));
-
-    json_out([
-        'ok' => true,
-        'message' => "\"$docName\" was submitted to RPMS. Reference $ref."
-            . ($advancedTo ? ' Your stage is now ' . stage_label($advancedTo) . '.' : ''),
-        'reference' => $ref,
-        'stageAdvanced' => $advancedTo !== null,
-        'newStage' => $advancedTo,
-        'adminOverride' => $isOverride,
-    ]);
-}
-
-// ---------------------------------------------------------------------
-// override_review (admin only): set any review status, with a mandatory, logged reason
-// ---------------------------------------------------------------------
-if ($action === 'override_review') {
-    api_require_login(['admin']);
-    foreach (['reason','status'] as $field) {
-        if (isset($payload[$field]) && !is_string($payload[$field])) json_out(['ok'=>false,'message'=>'Invalid override input.'],422);
-    }
-    if (isset($payload['expectedStatus']) && $payload['expectedStatus'] !== $doc['review_status']) {
-        json_out(['ok'=>false,'message'=>'This document changed. Refresh and review its current status before retrying.'],409);
-    }
-    $allowedStatuses = ['Submitted', 'Under Review', 'Received', 'Verified', 'Resubmission Requested', 'Approved', 'Denied'];
-    $status = trim((string)($payload['status'] ?? ''));
-    $reason = trim((string)($payload['reason'] ?? ''));
-    if (!in_array($status, $allowedStatuses, true)) {
-        json_out(['ok' => false, 'message' => 'Invalid review status.'], 422);
-    }
-    if (!override_reason_valid($reason)) {
-        json_out(['ok' => false, 'requiresReason' => true, 'message' => override_reason_message()], 422);
-    }
-    if (!$isCurrent) {
-        json_out(['ok' => false, 'message' => 'This is an older version. Override the latest version instead.'], 409);
-    }
-    if ($locked) {
-        json_out(['ok' => false, 'message' => 'This document was formally submitted to RPMS and is locked. '
-            . 'To correct the student\'s progress, use Admin Override on their IERB record.'], 409);
-    }
-    $before = $doc['review_status'];
-    if ($before === $status) {
-        json_out(['ok' => false, 'message' => 'The status is already ' . $status . '. Nothing to override.'], 422);
-    }
-
-    $advancedTo = null;
-    try {
-        begin_document_write($pdo, $doc);
-        $pdo->prepare('UPDATE documents SET review_status = :s, review_remarks = :r, reviewed_by = :by, reviewed_at = NOW(),
-                admin_override = 1, override_reason = :reason, override_by = :ob, override_at = NOW() WHERE id = :id')
-            ->execute([':s' => $status, ':r' => 'Admin override: ' . $reason, ':by' => document_attribution($user['full_name'], ' (Admin Override)'),
-                ':reason' => $reason, ':ob' => $user['full_name'], ':id' => $id]);
-        if ($status === 'Approved' && STAGE_ADVANCE_TRIGGER === 'approval' && $doc['student_id']) {
-            $advancedTo = advance_stage_for_document($pdo, $doc, $user,
-                $doc['detected_approval_date'] ?: date('Y-m-d'),
-                "after \"$docName\" was approved by Admin Override (reason: $reason)",true);
-        }
-        audit_override_atomic($pdo, $user, 'admin_override_document', [
-            'entity_type' => 'document', 'entity_id' => $id, 'student_id' => $doc['student_id'],
-            'before' => $before, 'after' => $status, 'reason' => $reason, 'override' => true,
-            'details' => "\"$docName\" $before -> $status",
-        ]);
-        $notificationIds=document_notice_atomic($pdo,$user,(int)$doc['student_id'],
-            'PRISM Document Status Update','RPMS updated your document status. Open your document record for its official state.'.($advancedTo?' Your stage is now '.stage_label($advancedTo).'.':''),
-            'Admin Override on a document',$user['full_name'].' changed "'.$docName.'" from '.$before.' to '.$status.'. Reason: '.$reason);
-        $pdo->commit();
-    } catch (DocumentWriteConflict $e) {
-        if ($pdo->inTransaction()) {
-            $pdo->rollBack();
-        }
-        json_out(['ok' => false, 'message' => $e->getMessage()], $e->status);
-    } catch (Throwable $e) {
-        if ($pdo->inTransaction()) {
-            $pdo->rollBack();
-        }
-        log_api_error('document_override_review', $e->getMessage());
-        json_out(['ok' => false, 'message' => 'The override could not be saved. Refresh to check the current state before retrying.'], 500);
-    }
-
-    document_workflow_deliver($pdo,$notificationIds);
-
-    json_out(['ok' => true, 'workflowState' => document_workflow_state(array_merge($doc, ['review_status' => $status])),
-        'stageAdvanced' => $advancedTo !== null, 'newStage' => $advancedTo,
-        'message' => "Admin Override saved: \"$docName\" is now $status. Your name, the time and your reason were added to the audit log."
-            . ($advancedTo ? ' The student advanced to ' . stage_label($advancedTo) . '.' : '')]);
 }
 
 // ---------------------------------------------------------------------

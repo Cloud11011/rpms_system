@@ -42,7 +42,7 @@ if (!defined('ATTENTION_REVIEW_DAYS'))      define('ATTENTION_REVIEW_DAYS', 3); 
 if (!defined('ATTENTION_UNSUBMITTED_DAYS')) define('ATTENTION_UNSUBMITTED_DAYS', 3); // approved, student has not submitted
 if (!defined('ATTENTION_OVERDUE_DAYS'))     define('ATTENTION_OVERDUE_DAYS', 30);    // no activity at all
 
-// Advisers may only review documents of students assigned to them (admins can review anything).
+// Advisers may only review documents of students assigned to them (RPMS interventions require reasoned Admin Override).
 // Adviser reviews always require the current assignment; no legacy opt-out is supported.
 
 // Minimum length of the reason required for an Admin Override.

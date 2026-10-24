@@ -299,7 +299,6 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
         const payload = { id: reviewDocument.id, status: reviewStatus.value, remarks: text };
-        if(payload.status==='Approved' && !commentOnlyReview && !await PrismUI.confirm({title:'Approve and submit to RPMS',confirmText:'Approve & Submit',message:`Approve “${reviewDocument.originalName}” version ${reviewDocument.versionNo} and formally submit it to RPMS?`}))return;
         setSaving(true);
         try {
             const result=await PrismUI.postJson('documents_api.php?action=review', payload);

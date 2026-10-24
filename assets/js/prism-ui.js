@@ -302,11 +302,12 @@
   async function submitToRpms(doc) {
     const res = await confirmDialog({
       title: 'Submit to RPMS', icon: 'fa-paper-plane', confirmText: 'Submit to RPMS',
-      message: 'Submit \u201c' + doc.originalName + '\u201d to RPMS? This is the official submission. Once submitted, the file is locked and you can\u2019t change it yourself.'
+      message: 'Submit \u201c' + doc.originalName + '\u201d to RPMS on behalf of the student? This administrative intervention is recorded as Admin Override. The submitted version is locked.',
+      reasonLabel:'Administrative submission reason',reasonRequired:true,maxReason:5000
     });
     if (!res) return false;
     try {
-      const data = await postJson('documents_api.php?action=submit_to_rpms&id=' + encodeURIComponent(doc.id), {});
+      const data = await postJson('documents_api.php?action=submit_to_rpms&id=' + encodeURIComponent(doc.id), {reason:res.reason});
       toast(data.message, 'success');
       changed();
       return true;
@@ -389,6 +390,7 @@
             (v.reviewedAt ? '<small>Reviewed: ' + esc(v.reviewStatus) + ' by ' + esc(v.reviewedBy) + ' · ' + esc(fmtDate(v.reviewedAt)) + '</small>' : '') +
             (v.rpmsSubmittedAt ? '<small>Formally submitted: ' + esc(fmtDate(v.rpmsSubmittedAt)) + ' by ' + esc(v.rpmsSubmittedBy) + '</small>' : '') +
             (v.rpmsReturnedAt ? '<small>RPMS returned for revision: ' + esc(fmtDate(v.rpmsReturnedAt)) + ' by ' + esc(v.rpmsReturnedBy) + '. Reason: ' + esc(v.rpmsReturnReason) + '</small>' : '') +
+            (v.adminOverride ? '<small>Admin Override by '+esc(v.overrideBy)+' at '+esc(fmtDate(v.overrideAt))+'. Reason: '+esc(v.overrideReason)+'</small>' : '') +
             (v.reviewRemarks ? '<small>Remarks: ' + esc(v.reviewRemarks) + '</small>' : '') +
             '</div><div class="prism-badges">' + badge(v.workflowState) + (v.adminOverride ? badge('Admin Override') : '') +
             documentActionsHtml(v) + '</div></li>';

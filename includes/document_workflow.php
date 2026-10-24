@@ -46,11 +46,11 @@ function document_workflow_audit(PDO $pdo, array $actor, string $action, array $
     if (!$pdo->inTransaction()) throw new LogicException('Document evidence requires a transaction.');
     $q=$pdo->prepare('INSERT INTO activity_logs
         (user_email,action,details,actor_name,actor_role,entity_type,entity_id,student_id,reason,before_value,after_value,is_override)
-        VALUES (?,?,?,?,?,?,?,?,?,?,?,0)');
+        VALUES (?,?,?,?,?,?,?,?,?,?,?,?)');
     $q->execute([
-        $actor['email'], $action, mb_substr($ctx['details'] ?? '',0,255), $actor['full_name'], $actor['role'],
+        $actor['email'], $action, mb_substr('Actor user ID '.($actor['id']??'legacy').'; '.($ctx['details'] ?? ''),0,255), $actor['full_name'], $actor['role'],
         $ctx['entity_type'] ?? 'document', (string)$ctx['entity_id'], $ctx['student_id'], $ctx['reason'] ?? null,
-        $ctx['before'] ?? null, $ctx['after'] ?? null,
+        $ctx['before'] ?? null, $ctx['after'] ?? null, !empty($ctx['override']) ? 1 : 0,
     ]);
     if ($q->rowCount()!==1) throw new RuntimeException('Document evidence was not persisted.');
 }
@@ -81,19 +81,24 @@ function document_workflow_notifications(PDO $pdo, array $actor, array $student,
 
 /** Serialize on the Student, then revalidate live identities, assignment and exact version. */
 function document_workflow_change(PDO $pdo, array $actor, string $id, string $operation,
-                                   string $status = '', string $reason = ''): array
+                                   string $status = '', string $reason = '', ?int $expectedVersion = null, ?string $expectedStatus = null): array
 {
     if (!preg_match('/\A[a-f0-9]{24}\z/',$id)) throw new DocumentWorkflowError('Provide a valid document ID.',422);
-    if (!in_array($operation,['review','return'],true)) throw new DocumentWorkflowError('Invalid document action.',422);
-    $role=$operation==='return'?'admin':'adviser';
-    if (($actor['role']??'')!==$role) throw new DocumentWorkflowError('You are not authorized to perform this action.',403);
+    if (!in_array($operation,['review','return','submit','override','comment'],true)) throw new DocumentWorkflowError('Invalid document action.',422);
+    $role=$actor['role']??'';
+    $roles=match($operation) { 'review'=>['adviser'], 'return','override'=>['admin'], 'submit'=>['admin'], 'comment'=>['adviser','admin'] };
+    if (!in_array($role,$roles,true)) throw new DocumentWorkflowError('Only the assigned Adviser may record an ordinary review. RPMS interventions require Admin Override.',403);
     $reason=trim($reason);
     if (mb_strlen($reason)>5000 || ($operation==='return' && $reason==='')
-        || (in_array($status,['Denied','Resubmission Requested'],true) && $reason==='')) {
+        || ($operation==='comment' && $reason==='')
+        || ($operation==='review' && in_array($status,['Denied','Resubmission Requested'],true) && $reason==='')) {
         throw new DocumentWorkflowError('Add a reason or reviewer remarks using no more than 5,000 characters.',422);
     }
-    if ($operation==='review' && !in_array($status,['Submitted','Under Review','Received','Verified','Approved','Denied','Resubmission Requested'],true)) {
+    if (in_array($operation,['review','override'],true) && !in_array($status,['Submitted','Under Review','Received','Verified','Approved','Denied','Resubmission Requested'],true)) {
         throw new DocumentWorkflowError('Invalid review status.',422);
+    }
+    if (($operation==='override' || ($operation==='submit' && $role==='admin')) && !override_reason_valid($reason)) {
+        throw new DocumentWorkflowError(override_reason_message(),422);
     }
     if ($pdo->inTransaction()) throw new LogicException('Document transition owns its transaction.');
     // Discovery outside the transaction avoids a stale repeatable-read snapshot after waiting.
@@ -104,22 +109,22 @@ function document_workflow_change(PDO $pdo, array $actor, string $id, string $op
         $q=$pdo->prepare('SELECT * FROM students WHERE id=? FOR UPDATE'); $q->execute([$sid]); $student=$q->fetch(PDO::FETCH_ASSOC);
         try { $student=current_workflow_student($pdo,(int)$sid,$actor); }
         catch (AccountLifecycleForbidden $e) { throw new DocumentWorkflowError($e->getMessage(),403); }
-        catch (AccountLifecycleConflict $e) { throw new DocumentWorkflowError($e->getMessage(),409); }
+        catch (AccountLifecycleConflict $e) { throw new DocumentWorkflowError($e->getMessage(),$e->getMessage()==='The Student account is inactive.'?403:409); }
         if (!$student || !empty($student['archived_at']) || empty($student['profile_completed_at'])) {
             throw new DocumentWorkflowError('The Student record is unavailable for current workflow.',409);
         }
         purge_require_no_pending($pdo,'student',(int)$sid);
         $login=lifecycle_resolve_login($pdo,$student,'student');
-        if (!$login || $login['status']!=='Active') throw new DocumentWorkflowError('The Student account is inactive.',409);
+        if (!$login || $login['status']!=='Active') throw new DocumentWorkflowError('The Student account is inactive.',403);
         $q=$pdo->prepare('SELECT * FROM users WHERE id=? FOR UPDATE'); $q->execute([$actor['id']]); $live=$q->fetch(PDO::FETCH_ASSOC);
         if (!$live || $live['role']!==$role || $live['status']!=='Active' || $live['email']!==$actor['email']
             || !hash_equals((string)$live['password_hash'],(string)$actor['password_hash']) || !empty($live['must_change_password'])) {
             throw new DocumentWorkflowError('Your account changed. Sign in again before continuing.',403);
         }
         if (legal_outstanding($pdo,(int)$live['id'])) throw new DocumentWorkflowError('Review the current legal policies before continuing.',403);
-        if ($operation==='return' && !legal_admin_eligible($live)) throw new DocumentWorkflowError('An eligible active RPMS Admin is required.',403);
+        if ($role==='admin' && !legal_admin_eligible($live)) throw new DocumentWorkflowError('An eligible active RPMS Admin is required.',403);
         $q=$pdo->prepare('SELECT * FROM advisers WHERE id=? FOR UPDATE'); $q->execute([$student['adviser_id']]); $adviser=$q->fetch(PDO::FETCH_ASSOC) ?: [];
-        if ($operation==='review') {
+        if ($role==='adviser') {
             if (!$adviser || !empty($adviser['archived_at']) || strcasecmp((string)$adviser['status'],'Active')!==0 || empty($adviser['profile_completed_at'])) {
                 throw new DocumentWorkflowError('An active assigned Adviser is required.',403);
             }
@@ -140,6 +145,10 @@ function document_workflow_change(PDO $pdo, array $actor, string $id, string $op
         if (!$doc || (int)$doc['student_id']!==(int)$sid || (int)$doc['is_current']!==1) {
             throw new DocumentWorkflowError('This is an older or changed version. Refresh and use the current version.',409);
         }
+        if (($expectedVersion!==null && $expectedVersion!==(int)$doc['version_no'])
+            || ($expectedStatus!==null && $expectedStatus!==$doc['review_status'])) {
+            throw new DocumentWorkflowError('This document changed. Refresh before continuing.',409);
+        }
         $currentVersion=document_current_version($pdo,(int)$sid,$doc['stage'],$doc['document_type']);
         if (!$currentVersion || $currentVersion['id']!==$id) throw new DocumentWorkflowError('Review the authoritative latest version instead.',409);
         $doc=document_with_return($pdo,$doc,true);
@@ -154,6 +163,36 @@ function document_workflow_change(PDO $pdo, array $actor, string $id, string $op
             $message='RPMS returned "'.$doc['original_name'].'" ('.$doc['document_type'].', version '.$doc['version_no'].') for revision. Reason: '.$reason.'. Next action: upload a NEW PDF/DOCX revision; your Adviser must review it.';
             $ids=document_workflow_notifications($pdo,$live,$student,$adviser,'PRISM RPMS Return for Revision',$message,false);
             $after=WF_RETURNED_REVISION;
+        } elseif ($operation==='comment') {
+            // Append public feedback without touching the authoritative review or its attribution.
+            document_workflow_audit($pdo,$live,'document_commented',$audit+['before'=>$before,'after'=>$before]);
+            $message='Comment on "'.$doc['original_name'].'" (version '.$doc['version_no'].'): '.$reason;
+            $ids=document_workflow_notifications($pdo,$live,$student,[],'PRISM Document Comment',$message,false);
+            $after=$before;
+        } elseif ($operation==='override') {
+            if (document_is_locked($doc) || !empty($doc['rpms_returned_at'])) throw new DocumentWorkflowError('A submitted or returned version is immutable. Use Return for Revision or the IERB controls.',409);
+            if ($status===$doc['review_status']) throw new DocumentWorkflowError('Choose a different status to override.',422);
+            // The original Adviser review fields remain evidence even when RPMS overrides the decision.
+            $pdo->prepare('UPDATE documents SET review_status=?,admin_override=1,override_reason=?,override_by=?,override_at=NOW() WHERE id=?')
+                ->execute([$status,$reason,$live['full_name'],$id]);
+            $after=document_workflow_state(array_replace($doc,['review_status'=>$status]));
+            $audit['details'].='; review='.$doc['review_status'].' -> '.$status;
+            document_workflow_audit($pdo,$live,'admin_override_document',$audit+['before'=>$before,'after'=>$after,'override'=>true]);
+            if ($status==='Approved' && STAGE_ADVANCE_TRIGGER==='approval') {
+                $advanced=advance_stage_for_document($pdo,$doc,$live,$doc['detected_approval_date']?:date('Y-m-d'),
+                    'after an authorized administrative document override (no institutional IERB approval implied)',true);
+            }
+            $message='RPMS updated the status of "'.$doc['original_name'].'" (version '.$doc['version_no'].'). Open Documents for its official state. This does not grant IERB approval.';
+            $ids=document_notice_atomic($pdo,$live,(int)$sid,'PRISM Document Status Update',$message,
+                'Admin Override on a document',$audit['details'].'; '.$before.' -> '.$after.'. Reason: '.$reason);
+        } elseif ($operation==='submit') {
+            if (document_is_locked($doc) || !empty($doc['rpms_returned_at'])) throw new DocumentWorkflowError('This version was already submitted or returned. Refresh and use the current revision.',409);
+            if ($role==='admin') {
+                $pdo->prepare("UPDATE documents SET review_status='Approved',admin_override=1,override_reason=?,override_by=?,override_at=NOW() WHERE id=?")
+                    ->execute([$reason,$live['full_name'],$id]);
+            }
+            [$advanced,$ids,$message]=document_formal_submission($pdo,$live,$student,$doc,$audit);
+            $after=WF_SUBMITTED_RPMS;
         } else {
             if (!empty($doc['rpms_submitted_at']) || !empty($doc['rpms_returned_at'])) {
                 throw new DocumentWorkflowError('This version is already resolved. Refresh to see its current status.',409);
@@ -165,47 +204,69 @@ function document_workflow_change(PDO $pdo, array $actor, string $id, string $op
             if ($status===$doc['review_status'] && $reason===($doc['review_remarks']??'') && $status!=='Approved') {
                 $pdo->commit(); return ['ok'=>true,'noChange'=>true,'message'=>'This review is already saved.','notificationIds'=>[]];
             }
-            // A prospective confirmation of legacy approval must retain its original reviewer/time.
+            if (!empty($doc['admin_override']) && $doc['review_status']==='Approved') throw new DocumentWorkflowError('RPMS has authorized this approval by override. RPMS must complete the reasoned administrative submission.',409);
             if ($doc['review_status']!=='Approved') {
                 $q=$pdo->prepare('UPDATE documents SET review_status=?,review_remarks=?,reviewed_by=?,reviewed_at=NOW(),admin_override=0 WHERE id=? AND is_current=1 AND rpms_submitted_at IS NULL');
                 $q->execute([$status,$reason,$live['full_name'],$id]);
-            } elseif ($status!=='Approved') {
-                throw new DocumentWorkflowError('This legacy version is already approved. Confirm approval and formal submission or contact RPMS.',409);
-            }
+            } elseif ($status!=='Approved') throw new DocumentWorkflowError('This legacy version is already approved. Confirm automatic submission or contact RPMS.',409);
             $action=$status===$doc['review_status']?'document_commented':match($status) {
                 'Approved'=>'document_approved','Denied'=>'document_denied','Resubmission Requested'=>'document_resubmission_requested',default=>'document_reviewed'};
-            // Approval of an eligible legacy Approved-but-unsubmitted row is prospective evidence.
             if ($status==='Approved') $action='document_approved';
             document_workflow_audit($pdo,$live,$action,$audit+['before'=>$doc['review_status'],'after'=>$status]);
-            $after=$status==='Approved'?WF_SUBMITTED_RPMS:(in_array($status,['Denied','Resubmission Requested'],true)?WF_NEEDS_REVISION:WF_PENDING_REVIEW);
+            $after=$status==='Approved'?WF_READY_FOR_RPMS:(in_array($status,['Denied','Resubmission Requested'],true)?WF_NEEDS_REVISION:WF_PENDING_REVIEW);
             $message='Document "'.$doc['original_name'].'" ('.$doc['document_type'].', version '.$doc['version_no'].') is now '.$status.'.';
             if ($status==='Approved') {
-                $q=$pdo->prepare('UPDATE documents SET rpms_submitted_at=NOW(),rpms_submitted_by=? WHERE id=? AND is_current=1 AND rpms_submitted_at IS NULL');
-                $submitter=document_attribution($live['full_name'],' (Adviser approval)');
-                $q->execute([$submitter,$id]);
-                if ($q->rowCount()!==1) throw new DocumentWorkflowError('This document was already submitted.',409);
-                $q=$pdo->prepare('SELECT COUNT(*) FROM documents WHERE student_id=? AND stage=? AND document_type=? AND id<>? AND rpms_submitted_at IS NOT NULL');
-                $q->execute([$sid,$doc['stage'],$doc['document_type'],$id]); $resubmitted=(int)$q->fetchColumn()>0;
-                document_workflow_audit($pdo,$live,$resubmitted?'document_resubmitted_to_rpms':'document_submitted_to_rpms',
-                    $audit+['before'=>WF_READY_FOR_RPMS,'after'=>WF_SUBMITTED_RPMS]);
-                $pdo->prepare('UPDATE students SET last_submission_date=CURDATE(),updated_at=NOW() WHERE id=?')->execute([$sid]);
-                record_history($pdo,(int)$sid,$student['stage'],$student['status'],
-                    ($resubmitted?'Formally resubmitted':'Formally submitted').' to RPMS: "'.$doc['original_name'].'" v'.$doc['version_no'].' ('.$doc['document_type'].', '.$doc['stage'].') after Adviser approval.',date('Y-m-d'),$submitter);
-                $advanced=advance_stage_for_document($pdo,$doc,$live,
-                    STAGE_ADVANCE_TRIGGER==='approval'?($doc['detected_approval_date']?:date('Y-m-d')):date('Y-m-d'),
-                    'after Adviser approval and formal RPMS submission',true);
-                $message.=' Adviser approval automatically '.($resubmitted?'formally resubmitted':'formally submitted').' this version to RPMS. No Student submission action is needed.';
-                if ($advanced) $message.=' Your stage is now '.stage_label($advanced).'.';
+                [$advanced,$ids,$message]=document_formal_submission($pdo,$live,$student,$doc,$audit);
+                $after=WF_SUBMITTED_RPMS;
             } elseif (in_array($status,['Denied','Resubmission Requested'],true)) $message.=' Upload a NEW PDF/DOCX revision for Adviser review.';
-            if ($reason!=='') $message.=' Remarks: '.$reason;
-            $ids=document_workflow_notifications($pdo,$live,$student,[],'PRISM Document Status Update',$message,$status==='Approved');
+            if ($status!=='Approved' && $reason!=='') $message.=' Remarks: '.$reason;
+            if (!$ids) $ids=document_workflow_notifications($pdo,$live,$student,[],'PRISM Document Status Update',$message,false);
         }
         $pdo->commit();
-        return ['ok'=>true,'message'=>$message,'workflowState'=>$after,'stageAdvanced'=>$advanced!==null,'notificationIds'=>$ids];
+        return ['ok'=>true,'message'=>$message,'workflowState'=>$after,'stageAdvanced'=>$advanced!==null,'newStage'=>$advanced,'notificationIds'=>$ids];
     } catch (Throwable $e) {
         if ($pdo->inTransaction()) $pdo->rollBack();
         throw $e;
     }
+}
+
+/** Caller owns Student/version locks. Approval and its automatic submission are atomic. */
+function document_formal_submission(PDO $pdo, array $actor, array $student, array $doc, array $audit): array
+{
+    if (!$pdo->inTransaction()) throw new LogicException('Formal submission requires a transaction.');
+    $override=$actor['role']==='admin';
+    if ($override) $audit['details'].='; review='.$doc['review_status'].' -> Approved';
+    $submitter=document_attribution($actor['full_name'],$override?' (RPMS Admin, Admin Override)':' (Adviser approval)');
+    $q=$pdo->prepare('UPDATE documents SET rpms_submitted_at=NOW(),rpms_submitted_by=? WHERE id=? AND is_current=1 AND rpms_submitted_at IS NULL');
+    $q->execute([$submitter,$doc['id']]);
+    if ($q->rowCount()!==1) throw new DocumentWorkflowError('This version was already submitted. Refresh to see its current state.',409);
+    $q=$pdo->prepare('SELECT COUNT(*) FROM documents WHERE student_id=? AND stage=? AND document_type=? AND id<>? AND rpms_submitted_at IS NOT NULL');
+    $q->execute([$student['id'],$doc['stage'],$doc['document_type'],$doc['id']]); $resubmitted=(int)$q->fetchColumn()>0;
+    document_workflow_audit($pdo,$actor,$override?'admin_override_submit_to_rpms':($resubmitted?'document_resubmitted_to_rpms':'document_submitted_to_rpms'),
+        $audit+['before'=>$override?document_workflow_state($doc):WF_READY_FOR_RPMS,'after'=>WF_SUBMITTED_RPMS,'override'=>$override]);
+    $pdo->prepare('UPDATE students SET last_submission_date=CURDATE(),updated_at=NOW() WHERE id=?')->execute([$student['id']]);
+    record_history($pdo,(int)$student['id'],$student['stage'],$student['status'],
+        ($resubmitted?'Formally resubmitted':'Formally submitted').' to RPMS: "'.$doc['original_name'].'" v'.$doc['version_no'].' ('.$doc['document_type'].', '.$doc['stage'].')'.($override?'; authorized Admin Override.':' after Adviser approval.'),date('Y-m-d'),$submitter);
+    $advanced=advance_stage_for_document($pdo,$doc,$actor,
+        STAGE_ADVANCE_TRIGGER==='approval'?($doc['detected_approval_date']?:date('Y-m-d')):date('Y-m-d'),
+        'after formal RPMS submission (workflow progress; no institutional IERB approval implied)',true);
+    $message=$override?'RPMS formally submitted your document on your behalf.':'Your adviser approved and automatically formally submitted your document to RPMS. No additional submission action is required.';
+    $message.=' "'.$doc['original_name'].'" (version '.$doc['version_no'].').';
+    if (!$override && $audit['reason']!=='') $message.=' Remarks: '.$audit['reason'];
+    $ids=document_workflow_notifications($pdo,$actor,$student,[],'PRISM Formal RPMS Submission Confirmation',$message,false);
+    // Staff receive an accurate queue notice, separate from Student wording and private override evidence.
+    $q=$pdo->query("SELECT id,email,full_name FROM users WHERE role='admin' AND status='Active' ORDER BY id FOR UPDATE");
+    $staffMessage='A new formally submitted document is available for RPMS review: "'.$doc['original_name'].'" v'.$doc['version_no'].($override?'; authorized Admin Override.':' after Adviser approval.');
+    if ($override) $staffMessage.=' Reason: '.$audit['reason'];
+    $schedule=date('Y-m-d H:i:s');
+    $campaign=notification_create_campaign($pdo,$actor,'workflow','Document submitted to RPMS',$staffMessage,$schedule);
+    foreach ($q->fetchAll(PDO::FETCH_ASSOC) as $admin) {
+        $copy=create_notification($pdo,'admin',(int)$admin['id'],$admin['email'],$admin['full_name'],'Document submitted to RPMS',$staffMessage,
+            'Status Update',$actor['full_name'],null,$schedule,null,'workflow',$campaign);
+        if (!isset($copy['id'])) throw new DocumentWorkflowError('An RPMS recipient changed. Refresh before continuing.',409);
+        $ids[]=(int)$copy['id'];
+    }
+    return [$advanced,$ids,$message];
 }
 
 /** Strict queue writes for ordinary Admin actions; callers deliver only after commit. */
