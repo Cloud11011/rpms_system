@@ -16,9 +16,13 @@ function document_summary_request(string $excerpt, array $policy): array
 
 function document_summary_decode_response(int $status, string $body): array
 {
-    if ($status === 401 || $status === 403) return ['reason' => 'service_auth'];
+    if ($status === 401) return ['reason' => 'service_auth'];
+    if ($status === 402) return ['reason' => 'service_credits'];
+    if ($status === 403) return ['reason' => 'service_forbidden'];
+    if ($status === 408 || $status === 504) return ['reason' => 'timeout'];
     if ($status === 429) return ['reason' => 'rate_limited'];
-    if (in_array($status, [404, 502, 503], true)) return ['reason' => 'provider_unavailable'];
+    if ($status === 404) return ['reason' => 'routing_unavailable'];
+    if (in_array($status, [502, 503], true)) return ['reason' => 'provider_unavailable'];
     if ($status !== 200) return ['reason' => 'service_unavailable'];
     if (strlen($body) > 32768 || !mb_check_encoding($body, 'UTF-8')) return ['reason' => 'invalid_response'];
     try { $value = json_decode($body, true, 32, JSON_THROW_ON_ERROR); }

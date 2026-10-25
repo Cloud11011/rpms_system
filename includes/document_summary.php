@@ -172,7 +172,7 @@ function extract_document_text_for_summary(string $path): array
             ini_set('memory_limit', $memory);
             if (PHP_SAPI !== 'cli') set_time_limit($oldTime > 0 ? $oldTime : 60);
         }
-        if (trim($text) === '') throw new DocumentSummaryError('pdf_no_text', 'No extractable text was found. This appears to be a scanned/image-only PDF and cannot currently be summarized automatically.');
+        if (trim($text) === '') throw new DocumentSummaryError('pdf_no_text', 'No extractable text was found in this scanned/image-only PDF. Safe local OCR is not configured. Please provide a text-searchable PDF or DOCX.');
     } elseif ($extension === 'docx') {
         require_once __DIR__ . '/office_container.php';
         if (!class_exists('ZipArchive')) throw new DocumentSummaryError('zip_unavailable', 'DOCX extraction requires ZIP support on the server.', 503);
@@ -243,14 +243,17 @@ function document_summary_identifiers(PDO $pdo, array $document, array $actor): 
 
 function deidentify_document_summary_text(string $text, array $identifiers): string
 {
-    $terms = [];
+    $terms = []; $nameParts = [];
     foreach ($identifiers as $value) {
-        $value = trim($value); $terms[] = $value;
-        // Match separated name parts, as the aggregate report output guard does.
+        $value = trim((string)$value);
+        if ($value === '') continue;
         if (preg_match('/\p{L}/u', $value) && !preg_match('/[\d@]/u', $value)) {
-            foreach (preg_split('/[^\p{L}\p{N}]+/u', $value, -1, PREG_SPLIT_NO_EMPTY) as $part) {
-                if (mb_strlen($part) > 2 && mb_strtolower($part) !== 'may') $terms[] = $part;
-            }
+            $parts = preg_split('/[^\p{L}\p{M}\x{2019}\x27-]+/u', $value, -1, PREG_SPLIT_NO_EMPTY);
+            // Full names are unambiguous; isolated name parts are replaced only in personal context.
+            if (count($parts) > 1) $terms[] = $value;
+            foreach ($parts as $part) if (mb_strlen($part) > 2) $nameParts[] = $part;
+        } elseif (!preg_match('/\A\d{1,4}\z/', $value)) {
+            $terms[] = $value;
         }
     }
     usort($terms, fn($a,$b) => strlen($b) <=> strlen($a));
@@ -258,18 +261,24 @@ function deidentify_document_summary_text(string $text, array $identifiers): str
         $pattern = preg_quote($term, '~'); $pattern = preg_replace('/\s+/', '\\s+', $pattern);
         $text = preg_replace('~(?<![\p{L}\p{N}])' . $pattern . '(?![\p{L}\p{N}])~iu', '[identifier removed]', $text);
     }
+    $text = summary_redact_person_names($text);
+    foreach (array_unique($nameParts) as $part) {
+        $text = preg_replace('~\b((?i:Dr\.?|Prof\.?|Mr\.?|Mrs\.?|Ms\.?|researcher|advis[eo]r|participant|respondent|patient|name)[ \t]*[:=]?[ \t]+)' . preg_quote($part, '~') . '\b~u', '$1[identifier removed]', $text);
+    }
     $text = preg_replace('/[A-Z0-9.!#$%&\x27*+\/=?^_`{|}~-]+@[A-Z0-9.-]+\.[A-Z]{2,}/i', '[email removed]', $text);
-    $text = preg_replace('/\b(?:student\s*(?:id|number|no\.?)|protocol\s*(?:code|id|number|no\.?))\s*[:#=-]?\s*[A-Z0-9][A-Z0-9._\/-]*/i', '[record identifier removed]', $text);
-    $text = preg_replace('/^(\s*(?:student name|researcher(?:s)?|principal investigator|participant name|prepared by|submitted by|contact person|address|phone|telephone|mobile)\s*[:=])[^\n]+/im', '$1 [identifier removed]', $text);
-    return $text;
+    $recordLabel = '(?:student[ \t]*(?:id|number|no\.?)|protocol[ \t]*(?:code|id|number|no\.?))(?!\p{L})';
+    $text = preg_replace('~\b(' . $recordLabel . '[ \t]*[:#=-][ \t]*)[A-Z0-9][A-Z0-9._/-]*~iu', '$1[record identifier removed]', $text);
+    $text = preg_replace('~\b(' . $recordLabel . '[ \t]+)(?=[A-Z0-9._/-]*\d)[A-Z0-9][A-Z0-9._/-]*~iu', '$1[record identifier removed]', $text);
+    return summary_redact_person_names($text);
 }
 
 function generate_document_summary(array $extraction, array $identifiers, bool $externalConfirmed = false, bool $localRequested = false): array
 {
     $prepared = prepare_document_summary($extraction, $identifiers);
     if ($prepared['reason'] === 'no_useful_text') throw new DocumentSummaryError('no_useful_text', document_summary_notice('no_useful_text'));
-    $reason = $localRequested ? 'local_requested' : ($prepared['eligible'] ? 'external_not_confirmed' : $prepared['reason']);
-    if ($externalConfirmed && $prepared['eligible'] && !$localRequested) {
+    $reason = 'local_requested';
+    if ($externalConfirmed && !$localRequested) {
+        if (!$prepared['eligible']) throw new DocumentSummaryError($prepared['reason'], document_summary_notice($prepared['reason']), 422);
         $response = openrouter_document_summary($prepared['excerpt'], $prepared['policy']);
         $reason = $response['reason'];
         if (isset($response['summary'])) {
@@ -279,6 +288,8 @@ function generate_document_summary(array $extraction, array $identifiers, bool $
                 'notice' => document_summary_notice('ai_success')];
             $reason = 'invalid_response';
         }
+        // AI mode never substitutes or persists local output. The administrator may explicitly choose it next.
+        throw new DocumentSummaryError($reason, document_summary_notice($reason), $reason === 'rate_limited' ? 429 : 503);
     }
     // Keep the existing extractive engine, excluding unsafe individual details and embedded instructions.
     $parts = preg_split('/(?<=[.!?])\s+|\n+/u', $prepared['excerpt'], -1, PREG_SPLIT_NO_EMPTY);

@@ -7,7 +7,7 @@
 .summary-result.document-error{color:#c62828}html.dark-theme .summary-result.document-error{color:#ff9b9b}
 .summary-action:focus-visible,.summary-dialog button:focus-visible{outline:2px solid var(--accent-purple);outline-offset:3px}
 .summary-dialog button:disabled{opacity:.65;cursor:wait}
-.summary-preview-panel[hidden],.summary-actions button[hidden]{display:none}
+.summary-preview-panel[hidden],.summary-actions button[hidden],.summary-dialog [hidden]{display:none}
 .summary-preview-panel{margin-top:16px;border-top:1px solid var(--border-color);padding-top:14px;color:var(--text-primary)}
 .summary-preview-panel h3{font-size:var(--prism-font-body)}
 .summary-excerpt{max-height:240px;overflow:auto;font-family:inherit;text-align:left}
@@ -15,4 +15,13 @@
 .summary-confirmation input{flex:none;margin-top:5px;accent-color:var(--accent-purple)}
 .summary-confirmation input:focus-visible,.summary-excerpt:focus-visible{outline:2px solid var(--accent-purple);outline-offset:3px}
 .summary-actions{flex-wrap:wrap}
+.summary-modes{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin:16px 0;padding:0;border:0;min-width:0;color:var(--text-primary)}
+.summary-modes legend{margin-bottom:8px;font-size:var(--prism-font-body);font-weight:600}
+.summary-mode{display:flex;align-items:flex-start;gap:10px;padding:12px;border:1px solid var(--border-color);border-radius:8px;background:var(--bg-color);cursor:pointer;line-height:1.5;font-size:var(--prism-font-body)}
+.summary-mode:has(input:checked){border-color:var(--accent-purple);box-shadow:inset 0 0 0 1px var(--accent-purple)}
+.summary-mode>span,.summary-mode>span>span{display:block}.summary-mode strong{display:block;margin-bottom:5px}.summary-mode input{flex:none;margin-top:5px;accent-color:var(--accent-purple)}
+.summary-mode:focus-within{outline:2px solid var(--accent-purple);outline-offset:2px}
+.summary-status{margin:12px 0;color:var(--text-secondary);font-size:var(--prism-font-body);line-height:1.5;overflow-wrap:anywhere}
+.summary-status.document-error{color:#c62828}html.dark-theme .summary-status.document-error{color:#ff9b9b}
+@media(max-width:600px){.summary-modes{grid-template-columns:1fr}}
 @media(max-width:600px){.summary-actions button{flex:1 1 100%}.summary-excerpt{max-height:180px}}

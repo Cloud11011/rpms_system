@@ -46,18 +46,25 @@ if ($authUser['role'] === 'student') {
 <script src="<?php echo htmlspecialchars(asset_url('assets/js/document-upload.js'), ENT_QUOTES, 'UTF-8'); ?>"></script>
 <?php if ($authUser['role'] === 'admin'): ?>
 <div class="document-modal" id="summaryModal" aria-hidden="true"><div class="document-modal-dialog summary-dialog" role="dialog" aria-modal="true" aria-labelledby="summaryHeading">
-<div class="document-modal-heading"><div><span>RPMS review aid</span><h2 id="summaryHeading">Document Summary</h2></div><button type="button" data-close="summaryModal" aria-label="Close summary"><i class="fa-solid fa-xmark" aria-hidden="true"></i></button></div>
+<div class="document-modal-heading"><div><span>RPMS review aid</span><h2 id="summaryHeading">Generate Document Summary</h2></div><button type="button" data-close="summaryModal" aria-label="Close summary"><i class="fa-solid fa-xmark" aria-hidden="true"></i></button></div>
 <p id="summaryFilename" class="summary-filename"></p><p id="summarySource" class="summary-source"></p>
-<div id="summaryResult" class="summary-result" role="status" aria-live="polite"></div>
+<fieldset class="summary-modes" id="summaryModeOptions"><legend>Choose summary engine</legend>
+<label class="summary-mode"><input type="radio" name="summaryMode" id="summaryModeAI" value="external" checked><span><strong>AI-Powered Summary</strong><span>Generate a structured summary using OpenRouter AI. Sensitive identifying information will be minimized or redacted before processing.</span></span></label>
+<label class="summary-mode"><input type="radio" name="summaryMode" id="summaryModeLocal" value="local"><span><strong>Local Summary</strong><span>Generate a summary using PRISM's local text-processing engine. No document content is sent to external AI services.</span></span></label>
+</fieldset>
+<p id="summaryStatus" class="summary-status" role="status" aria-live="polite"></p>
+<div id="summaryResult" class="summary-result" hidden></div>
 <section id="summaryPreviewPanel" class="summary-preview-panel" hidden aria-labelledby="summaryPreviewHeading">
 <h3 id="summaryPreviewHeading">Review excerpt for external processing</h3>
 <p id="summaryPolicy" class="summary-review-note"></p>
-<p class="summary-review-note">Only the exact text below will be sent to OpenRouter and a permitted AI provider. The original file stays in PRISM. Automated screening can miss identities and sensitive details. ZDR routing restricts provider retention; text still leaves PRISM and operational metadata may remain.</p>
+<p id="summaryClassification" class="summary-review-note" hidden></p>
+<p class="summary-review-note">Only this excerpt will be sent to OpenRouter and a permitted AI provider. The original file stays in PRISM. Screening can miss sensitive details. ZDR restricts provider retention; text leaves PRISM and operational metadata may remain.</p>
 <pre id="summaryExcerpt" class="summary-result summary-excerpt" tabindex="0" aria-label="Exact minimized text intended for OpenRouter"></pre>
-<label class="summary-confirmation"><input type="checkbox" id="summaryAuthorization"> <span>I have verified that institutional policy and this document's applicable consent and confidentiality terms permit third-party AI processing. I reviewed this excerpt and found no identifying or confidential details requiring local-only handling.</span></label>
+<label class="summary-confirmation" id="summaryConfirmation"><input type="checkbox" id="summaryAuthorization"> <span>I verified that this document's applicable consent and confidentiality terms permit external processing under institutional policy. I reviewed the redacted excerpt and found no identifying or confidential details requiring local-only handling.</span></label>
+<p id="summaryAttestation" class="summary-review-note">By confirming, you verify that this document's applicable consent and confidentiality terms permit external processing under institutional policy.</p>
 </section>
 <p class="summary-review-note">This summary is provided as an RPMS review aid. Verify important information against the original document. It does not replace RPMS/IERB professional judgment.</p>
-<div class="document-modal-actions summary-actions"><button type="button" class="doc-secondary" data-close="summaryModal">Close</button><button type="button" class="doc-secondary" id="localSummary" hidden>Generate locally</button><button type="button" class="doc-primary" id="regenerateSummary">Prepare new summary</button><button type="button" class="doc-primary" id="sendSummary" hidden disabled>Confirm and send to OpenRouter</button></div>
+<div class="document-modal-actions summary-actions"><button type="button" class="doc-secondary" data-close="summaryModal">Close</button><button type="button" class="doc-secondary" id="cancelSummaryPreview" hidden>Cancel excerpt review</button><button type="button" class="doc-secondary" id="localSummary" hidden>Generate Local Summary Instead</button><button type="button" class="doc-primary" id="regenerateSummary">Review AI Excerpt</button><button type="button" class="doc-primary" id="sendSummary" hidden disabled>Confirm and Generate AI Summary</button></div>
 </div></div>
 <?php endif; ?>
 <script src="<?php echo htmlspecialchars(asset_url('assets/js/documents.js'), ENT_QUOTES, 'UTF-8'); ?>"></script></body></html>
