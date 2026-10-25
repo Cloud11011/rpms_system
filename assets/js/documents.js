@@ -46,7 +46,10 @@ async function prepareSummary(){
         if(sequence!==summarySequence||!summaryModal.classList.contains('show')){cancelPreviewReference(d,data.previewToken);return}
         if(data.eligible){
             summaryPreviewToken=data.previewToken;summaryRequiresIdentifierReview=data.requiresIdentifierReview===true;summaryPreview.hidden=false;summaryExcerpt.textContent=data.excerpt;
-            document.getElementById('summaryPolicy').textContent='Institutional policy: '+data.policyReference+'. This preview expires in five minutes.';
+            const synthetic=data.authorizationMode==='synthetic_demo';
+            document.getElementById('summaryPolicy').textContent=(synthetic?'Synthetic demonstration: this exact test document is registered on the server.':'Institutional policy: '+data.policyReference+'.')+' This preview expires in five minutes.';
+            document.querySelector('#summaryConfirmation span').textContent=synthetic?'I reviewed the excerpt from this registered synthetic test document and found no real identifying or confidential details.':'I verified that this document\'s applicable consent and confidentiality terms permit external processing under institutional policy. I reviewed the redacted excerpt and found no identifying or confidential details requiring local-only handling.';
+            document.getElementById('summaryAttestation').textContent=synthetic?'By confirming, you verify that the reviewed excerpt contains only authorized synthetic research information.':'By confirming, you verify that this document\'s applicable consent and confidentiality terms permit external processing under institutional policy.';
             const classification=document.getElementById('summaryClassification');classification.hidden=!summaryRequiresIdentifierReview;
             classification.textContent='PRISM detected information that may identify individuals and minimized it below. Review the redacted excerpt before confirming AI processing.';
             document.getElementById('summaryConfirmation').hidden=!summaryRequiresIdentifierReview;document.getElementById('summaryAttestation').hidden=summaryRequiresIdentifierReview;
@@ -56,7 +59,7 @@ async function prepareSummary(){
         }else{
             summaryMessage(data.notice,true);localSummary.hidden=false;
         }
-    }catch(error){if(sequence===summarySequence)summaryMessage(error.message,true)}
+    }catch(error){if(sequence===summarySequence){summaryMessage(error.message,true);localSummary.hidden=error.data?.canGenerateLocal===false}}
     finally{setSummaryBusy(false)}
 }
 async function generateSummary(mode){

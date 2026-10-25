@@ -50,7 +50,7 @@ if ($authUser['role'] === 'student') {
 <p id="summaryFilename" class="summary-filename"></p><p id="summarySource" class="summary-source"></p>
 <fieldset class="summary-modes" id="summaryModeOptions"><legend>Choose summary engine</legend>
 <label class="summary-mode"><input type="radio" name="summaryMode" id="summaryModeAI" value="external" checked><span><strong>AI-Powered Summary</strong><span>Generate a structured summary using OpenRouter AI. Sensitive identifying information will be minimized or redacted before processing.</span></span></label>
-<label class="summary-mode"><input type="radio" name="summaryMode" id="summaryModeLocal" value="local"><span><strong>Local Summary</strong><span>Generate a summary using PRISM's local text-processing engine. No document content is sent to external AI services.</span></span></label>
+<label class="summary-mode"><input type="radio" name="summaryMode" id="summaryModeLocal" value="local"><span><strong>Local Summary</strong><span>Select research passages locally, including methods and findings when available. Works offline; no document content is sent to external AI services.</span></span></label>
 </fieldset>
 <p id="summaryStatus" class="summary-status" role="status" aria-live="polite"></p>
 <div id="summaryResult" class="summary-result" hidden></div>

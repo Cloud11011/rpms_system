@@ -6,11 +6,15 @@ function document_summary_request(string $excerpt, array $policy): array
         || !mb_check_encoding($excerpt, 'UTF-8') || trim($excerpt) === '') {
         throw new DocumentSummaryError('request_invalid', 'The external summary request is not permitted.');
     }
+    $provider = [];
+    // Omit 'only' for registered synthetic files: OpenRouter chooses an eligible endpoint.
+    // Both routes retain the same mandatory privacy filters; failures never relax them.
+    if (($policy['authorizationMode'] ?? 'institutional') !== 'synthetic_demo') $provider['only'] = $policy['providers'];
+    $provider += ['allow_fallbacks' => false, 'zdr' => true, 'data_collection' => 'deny', 'require_parameters' => true];
     return ['model' => $policy['model'], 'messages' => [
         ['role' => 'system', 'content' => DOCUMENT_SUMMARY_PROMPT],
         ['role' => 'user', 'content' => $excerpt],
-    ], 'provider' => ['only' => $policy['providers'], 'allow_fallbacks' => false,
-        'zdr' => true, 'data_collection' => 'deny', 'require_parameters' => true],
+    ], 'provider' => $provider,
         'temperature' => 0.2, 'max_completion_tokens' => 800, 'stream' => false];
 }
 

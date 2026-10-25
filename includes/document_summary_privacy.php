@@ -1,7 +1,15 @@
 <?php
 /** Local-only policy, screening and single-use preview bindings. No network operations. */
-function document_summary_policy(): array
+function document_summary_policy(array $documentContext = []): array
 {
+    if (defined('PRISM_DOCUMENT_AI_SYNTHETIC_DEMO') && PRISM_DOCUMENT_AI_SYNTHETIC_DEMO === true
+        && document_summary_registered_synthetic($documentContext)) {
+        $model = defined('OPENROUTER_MODEL') ? OPENROUTER_MODEL : '';
+        $valid = is_string($model) && preg_match('~\A[a-z0-9._-]+/[a-z0-9._-]+(?::[a-z0-9._-]+)?\z~i', $model);
+        return ['enabled' => (bool)$valid, 'reference' => 'Server-registered synthetic demonstration document',
+            'authorizationMode' => 'synthetic_demo', 'model' => is_string($model) ? $model : '', 'providers' => [],
+            'reason' => $valid ? 'eligible' : 'demo_model_invalid'];
+    }
     $enabled = defined('PRISM_DOCUMENT_AI_ENABLED') && PRISM_DOCUMENT_AI_ENABLED === true;
     $reference = defined('PRISM_DOCUMENT_AI_POLICY_REFERENCE') ? PRISM_DOCUMENT_AI_POLICY_REFERENCE : '';
     $model = defined('PRISM_DOCUMENT_AI_MODEL') ? PRISM_DOCUMENT_AI_MODEL : '';
@@ -13,9 +21,25 @@ function document_summary_policy(): array
     foreach ((array)$providers as $provider) {
         if (!is_string($provider) || !preg_match('~\A[a-z0-9][a-z0-9._/-]{0,79}\z~i', $provider)) $routeValid = false;
     }
-    return ['enabled' => $enabled && $policyValid && $routeValid, 'reference' => is_string($reference) ? $reference : '',
+    return ['enabled' => $enabled && $policyValid && $routeValid, 'reference' => is_string($reference) ? $reference : '', 'authorizationMode' => 'institutional',
         'model' => is_string($model) ? $model : '', 'providers' => is_array($providers) ? array_values($providers) : [],
         'reason' => !$enabled ? 'policy_disabled' : (!$policyValid ? 'policy_incomplete' : (!$routeValid ? 'routing_invalid' : 'eligible'))];
+}
+
+/** Only operator-managed private registrations authorize the demo route; text and filenames never do. */
+function document_summary_registered_synthetic(array $context): bool
+{
+    if (!defined('STORAGE_DIR') || !preg_match('/\A[a-f0-9]{24}\z/', (string)($context['id'] ?? ''))
+        || !preg_match('/\A[a-f0-9]{64}\z/', (string)($context['sha256'] ?? ''))) return false;
+    $path = STORAGE_DIR . '/document-summary-synthetic.json';
+    if (!is_file($path) || !is_readable($path) || filesize($path) > 1048576) return false;
+    $json = @file_get_contents($path);
+    if ($json === false) return false;
+    $registry = json_decode($json, true);
+    $entry = is_array($registry) ? ($registry[$context['id']] ?? null) : null;
+    return is_array($entry) && is_string($entry['sha256'] ?? null)
+        && hash_equals($entry['sha256'], $context['sha256'])
+        && (int)($entry['version'] ?? 0) > 0 && (int)$entry['version'] === (int)($context['version'] ?? 0);
 }
 
 function document_summary_notice(string $reason): string
@@ -25,6 +49,7 @@ function document_summary_notice(string $reason): string
         'policy_disabled' => 'Institutional authorization for external document processing is not enabled.',
         'policy_incomplete' => 'A valid institutional policy reference authorizing document processing must be configured.',
         'routing_invalid' => 'Configure an approved fixed document model and provider allowlist. Automatic or unrestricted routing is not permitted.',
+        'demo_model_invalid' => 'Configure a valid OPENROUTER_MODEL for the synthetic demonstration.',
         'missing_api_key' => 'The server-side OpenRouter API key is not configured.',
         'transport_unavailable' => 'The server does not have the required OpenRouter HTTPS transport available.',
         'not_configured' => 'The document AI service is not configured or its transport is unavailable.',
@@ -107,11 +132,11 @@ function summary_untrusted_instructions(string $text): bool
     return (bool)preg_match('/\b(?:ignore\s+(?:all\s+)?(?:previous|system|prior)\s+instructions|reveal\s+(?:the\s+)?(?:database|secrets?|system\s*prompt)|(?:system|developer)\s*:\s*(?:ignore|you are|reveal|override|act as)\b|<\/?(?:script|system|tool)\b)|[\x{200b}-\x{200f}\x{202a}-\x{202e}\x{2060}-\x{206f}]/iu', $text);
 }
 
-function prepare_document_summary(array $extraction, array $identifiers): array
+function prepare_document_summary(array $extraction, array $identifiers, array $documentContext = []): array
 {
     $text = summary_minimized_text($extraction['text'], $identifiers);
     $excerpt = summary_model_excerpt($text);
-    $policy = document_summary_policy();
+    $policy = document_summary_policy($documentContext);
     $configurationReason = $policy['reason'];
     if ($configurationReason === 'eligible' && (!defined('OPENROUTER_API_KEY') || OPENROUTER_API_KEY === '')) $configurationReason = 'missing_api_key';
     if ($configurationReason === 'eligible' && !function_exists('curl_init')) $configurationReason = 'transport_unavailable';

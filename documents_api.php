@@ -556,8 +556,9 @@ if (in_array($action, ['summarize', 'summarize_preview', 'summarize_cancel'], tr
         $fileHash = document_summary_file_hash($path);
         $extraction = extract_document_text_for_summary($path);
         $identifiers = document_summary_identifiers($pdo, $doc, $user);
-        $prepared = prepare_document_summary($extraction, $identifiers);
-        $summaryPartial = $prepared['partial'];
+        $summaryContext = ['id' => $id, 'version' => (int)$doc['version_no'], 'sha256' => $fileHash];
+        $prepared = prepare_document_summary($extraction, $identifiers, $summaryContext);
+        $summaryPartial = $mode === 'local' ? !empty($extraction['partial']) : $prepared['partial'];
         // Revalidate before issuing a preview or disclosing any text externally.
         begin_document_write($pdo, $doc);
         if (fetch_doc($pdo, $id, true) !== $doc || summary_stored_document_path($doc) !== $path
@@ -574,7 +575,8 @@ if (in_array($action, ['summarize', 'summarize_preview', 'summarize_cancel'], tr
                 'privacyCategory' => $prepared['privacyCategory'], 'privacyReason' => $prepared['privacyReason'],
                 'configurationReason' => $prepared['configurationReason'], 'requiresIdentifierReview' => $prepared['requiresIdentifierReview'],
                 'excerpt' => $prepared['eligible'] ? $prepared['excerpt'] : null, 'previewToken' => $token,
-                'policyReference' => $prepared['policy']['reference'], 'expiresIn' => $token ? 300 : 0]);
+                'policyReference' => $prepared['policy']['reference'], 'authorizationMode' => $prepared['policy']['authorizationMode'],
+                'expiresIn' => $token ? 300 : 0]);
         }
         $externalConfirmed = false;
         if ($mode === 'external') {
@@ -591,7 +593,7 @@ if (in_array($action, ['summarize', 'summarize_preview', 'summarize_cancel'], tr
                 throw new DocumentWriteConflict('This document changed. Review a fresh preview.');
             }
             document_workflow_audit($pdo, $user, 'document_summary_authorized', ['entity_type' => 'document', 'entity_id' => $id,
-                'student_id' => $doc['student_id'], 'details' => 'category=admin_attested; policy_sha256='
+                'student_id' => $doc['student_id'], 'details' => 'category=admin_attested; authorization=' . $prepared['policy']['authorizationMode'] . '; policy_sha256='
                     . hash('sha256', $prepared['policy']['reference']) . '; privacy_class=' . $prepared['privacyCategory'] . '; partial=' . (int)$prepared['partial']]);
             $pdo->commit();
         }
@@ -600,7 +602,7 @@ if (in_array($action, ['summarize', 'summarize_preview', 'summarize_cancel'], tr
             throw new DocumentSummaryError('session_storage', 'Authorization state could not be saved. Sign in again before retrying.', 503);
         }
         $result = generate_document_summary($extraction, $identifiers, $externalConfirmed,
-            $mode === 'local');
+            $mode === 'local', $summaryContext);
         $summarySourceUsed = $result['source'];
         // No external service runs under a database lock. Recheck every row field and the file before saving.
         begin_document_write($pdo, $doc);
