@@ -8,15 +8,16 @@ require_once __DIR__ . '/includes/account_lifecycle.php';
 require_once __DIR__ . '/includes/office_container.php';
 require_once __DIR__ . '/includes/document_catalog.php';
 require_once __DIR__ . '/includes/document_upload.php';
+require_once __DIR__ . '/includes/document_summary.php';
 
 $user = api_require_login(['admin', 'adviser', 'student']);
 $pdo = db();
 $action = $_GET['action'] ?? $_POST['action'] ?? 'list';
-if ($action === 'summarize' && $user['role'] !== 'admin') {
-    audit_log($user, 'document_summary_failed', ['entity_type' => 'document', 'details' => 'reason=forbidden_role']);
+if (in_array($action, ['summarize', 'summarize_preview'], true) && $user['role'] !== 'admin') {
+    audit_log($user, 'document_summary_failed', ['entity_type' => 'document', 'details' => 'source=none; category=forbidden_role; partial=unknown']);
     json_out(['ok' => false, 'message' => 'Only RPMS Administrators may generate document summaries.'], 403);
 }
-if (in_array($action, ['upload', 'review', 'comment', 'return_for_revision', 'submit_to_rpms', 'override_review', 'delete', 'summarize'], true)) {
+if (in_array($action, ['upload', 'review', 'comment', 'return_for_revision', 'submit_to_rpms', 'override_review', 'delete', 'summarize', 'summarize_preview'], true)) {
     require_post_same_origin();
 }
 
@@ -104,6 +105,7 @@ function doc_row(array $d, array $user, ?int $viewerAdviserId): array
     $locked = document_is_locked($d);
     $isCurrent = !isset($d['is_current']) || (int)$d['is_current'] === 1;
     $role = $user['role'];
+    $savedSummary = $role === 'admin' ? document_summary_unpack($d['ai_summary']) : null;
 
     $row = [
         'id' => $d['id'],
@@ -128,7 +130,11 @@ function doc_row(array $d, array $user, ?int $viewerAdviserId): array
         // The AI/regex-detected approval date printed on the document itself.
         'detectedApprovalDate' => $d['detected_approval_date'] ?? null,
         'approvalDateSource' => $d['approval_date_source'] ?? null,
-        'aiSummary' => $role === 'admin' ? $d['ai_summary'] : null,
+        'aiSummary' => $savedSummary['summary'] ?? null,
+        'summarySource' => $savedSummary['source'] ?? null,
+        'summaryPartial' => $savedSummary['partial'] ?? false,
+        'summaryNotice' => $savedSummary['notice'] ?? '',
+        'summaryReason' => $savedSummary['reason'] ?? null,
 
         // Workflow + record integrity
         'workflowState' => $state,
@@ -506,12 +512,13 @@ if ($action === 'upload') {
 // ---------------------------------------------------------------------
 // Everything below works on one existing document
 // ---------------------------------------------------------------------
-if ($action === 'summarize') {
-    require_once __DIR__ . '/includes/document_summary.php';
+if (in_array($action, ['summarize', 'summarize_preview'], true)) {
+    header('Cache-Control: no-store');
+    if ((int)($_SERVER['CONTENT_LENGTH'] ?? 0) > 2048) json_out(['ok' => false, 'message' => 'Summary request is too large.'], 413);
     $payload = json_body();
     $id = $payload['id'] ?? null;
     if (!is_string($id) || !preg_match('/\A[a-f0-9]{24}\z/', $id)) {
-        audit_log($user, 'document_summary_failed', ['entity_type' => 'document', 'details' => 'reason=invalid_document_id']);
+        audit_log($user, 'document_summary_failed', ['entity_type' => 'document', 'details' => 'source=none; category=invalid_document_id; partial=unknown']);
         json_out(['ok' => false, 'message' => 'Provide a valid document ID.'], 422);
     }
     // Reserve enough memory to return a safe response if a hostile PDF exhausts PHP's budget.
@@ -523,34 +530,92 @@ if ($action === 'summarize') {
         if (!headers_sent()) { http_response_code(422); header('Content-Type: application/json'); }
         echo json_encode(['ok' => false, 'message' => 'The document exceeded safe processing limits. Try a smaller text-based copy.']);
     });
+    $summaryLock = null; $summaryPartial = null; $summarySourceUsed = 'none';
     try {
+        foreach (array_keys($payload) as $field) {
+            if (!in_array($field, ['id', 'mode', 'previewToken', 'confirmed'], true)) {
+                throw new DocumentSummaryError('invalid_request', 'Only server-prepared document excerpts may be summarized.');
+            }
+        }
+        $mode = $payload['mode'] ?? 'local';
+        if (!is_string($mode) || !in_array($mode, ['local', 'external'], true)) throw new DocumentSummaryError('invalid_request', 'Choose a valid summary mode.');
+        if ($action === 'summarize') $summaryLock = document_summary_lock($id);
         $doc = fetch_doc($pdo, $id);
         if (!$doc) throw new DocumentSummaryError('document_missing', 'Document not found. It may have been deleted.', 404);
+        if (!empty($doc['archived_at'])) throw new DocumentSummaryError('document_inactive', 'This document is unavailable for current processing.', 409);
         begin_document_write($pdo,$doc);
         $pdo->commit();
         $path = summary_stored_document_path($doc);
+        $fileHash = document_summary_file_hash($path);
         $extraction = extract_document_text_for_summary($path);
-        $result = generate_document_summary($extraction, document_summary_identifiers($pdo, $doc, $user));
-        // No external service runs under a database lock. Recheck the document before saving.
+        $identifiers = document_summary_identifiers($pdo, $doc, $user);
+        $prepared = prepare_document_summary($extraction, $identifiers);
+        $summaryPartial = $prepared['partial'];
+        // Revalidate before issuing a preview or disclosing any text externally.
+        begin_document_write($pdo, $doc);
+        if (fetch_doc($pdo, $id, true) !== $doc || summary_stored_document_path($doc) !== $path
+            || !hash_equals($fileHash, document_summary_file_hash($path))) {
+            throw new DocumentWriteConflict('This document changed. Refresh and review a fresh preview.');
+        }
+        $pdo->commit();
+        $binding = document_summary_binding($doc, $fileHash, $prepared, $user);
+        if ($action === 'summarize_preview') {
+            $token = $prepared['eligible'] ? issue_document_summary_preview($binding, $id, $user) : null;
+            $summaryActive = false;
+            json_out(['ok' => true, 'eligible' => $prepared['eligible'], 'reason' => $prepared['reason'],
+                'notice' => document_summary_notice($prepared['reason']), 'partial' => $prepared['partial'],
+                'excerpt' => $prepared['eligible'] ? $prepared['excerpt'] : null, 'previewToken' => $token,
+                'policyReference' => $prepared['policy']['reference'], 'expiresIn' => $token ? 300 : 0]);
+        }
+        $externalConfirmed = false;
+        if ($mode === 'external') {
+            if (($payload['confirmed'] ?? false) !== true || !is_string($payload['previewToken'] ?? null)
+                || !preg_match('/\A[a-f0-9]{64}\z/', $payload['previewToken'])) {
+                throw new DocumentSummaryError('confirmation_required', 'Review a fresh excerpt and confirm document authorization before sending.', 409);
+            }
+            consume_document_summary_preview($payload['previewToken'], $binding, $id, $user);
+            if (!$prepared['eligible']) throw new DocumentSummaryError('privacy_changed', 'The document is no longer eligible. Review a fresh preview.', 409);
+            $externalConfirmed = true;
+            begin_document_write($pdo, $doc);
+            if (fetch_doc($pdo, $id, true) !== $doc || !hash_equals($fileHash, document_summary_file_hash($path))) {
+                throw new DocumentWriteConflict('This document changed. Review a fresh preview.');
+            }
+            document_workflow_audit($pdo, $user, 'document_summary_authorized', ['entity_type' => 'document', 'entity_id' => $id,
+                'student_id' => $doc['student_id'], 'details' => 'category=admin_attested; policy_sha256='
+                    . hash('sha256', $prepared['policy']['reference']) . '; partial=' . (int)$prepared['partial']]);
+            $pdo->commit();
+        }
+        // Commit consumed preview state before releasing the session lock. Replays cannot retry disclosure.
+        if (session_status() === PHP_SESSION_ACTIVE && !session_write_close()) {
+            throw new DocumentSummaryError('session_storage', 'Authorization state could not be saved. Sign in again before retrying.', 503);
+        }
+        $result = generate_document_summary($extraction, $identifiers, $externalConfirmed,
+            $mode === 'local' && $prepared['eligible']);
+        $summarySourceUsed = $result['source'];
+        // No external service runs under a database lock. Recheck every row field and the file before saving.
         begin_document_write($pdo, $doc);
         $current = fetch_doc($pdo, $id, true);
-        if ($current['stored_name'] !== $doc['stored_name'] || $current['version_no'] !== $doc['version_no']) {
+        if ($current !== $doc || summary_stored_document_path($doc) !== $path
+            || !hash_equals($fileHash, document_summary_file_hash($path))) {
             throw new DocumentWriteConflict('This document changed. Refresh and try again.');
         }
-        $pdo->prepare('UPDATE documents SET ai_summary = :summary WHERE id = :id')->execute([':summary' => $result['summary'], ':id' => $id]);
+        $pdo->prepare('UPDATE documents SET ai_summary = :summary WHERE id = :id')->execute([':summary' => document_summary_pack($result), ':id' => $id]);
+        document_workflow_audit($pdo, $user, 'document_summarized', ['entity_type' => 'document', 'entity_id' => $id,
+            'student_id' => $doc['student_id'], 'details' => 'source=' . $result['source'] . '; category=' . $result['reason'] . '; partial=' . (int)$result['partial']]);
         $pdo->commit();
-        audit_log($user, 'document_summarized', ['entity_type' => 'document', 'entity_id' => $id,
-            'student_id' => $doc['student_id'], 'details' => 'source=' . $result['source'] . '; partial=' . (int)$result['partial']]);
         $summaryActive = false;
+        if (is_resource($summaryLock)) { flock($summaryLock, LOCK_UN); fclose($summaryLock); $summaryLock = null; }
         json_out(['ok' => true] + $result);
     } catch (Throwable $error) {
         if ($pdo->inTransaction()) $pdo->rollBack();
         $reason = $error instanceof DocumentSummaryError ? $error->reasonCode : ($error instanceof DocumentWriteConflict ? 'document_changed' : 'summary_failed');
-        audit_log($user, 'document_summary_failed', ['entity_type' => 'document', 'entity_id' => $id, 'details' => 'reason=' . $reason]);
+        audit_log($user, 'document_summary_failed', ['entity_type' => 'document', 'entity_id' => $id,
+            'details' => 'source=' . $summarySourceUsed . '; category=' . $reason . '; partial=' . ($summaryPartial === null ? 'unknown' : (int)$summaryPartial)]);
         $summaryActive = false;
+        if (is_resource($summaryLock)) { flock($summaryLock, LOCK_UN); fclose($summaryLock); }
         json_out(['ok' => false, 'message' => $error instanceof DocumentSummaryError || $error instanceof DocumentWriteConflict
             ? $error->getMessage() : 'The summary could not be saved. Please try again.'],
-            $error instanceof DocumentSummaryError ? $error->httpStatus : ($error instanceof DocumentWriteConflict ? 409 : 503));
+            $error instanceof DocumentSummaryError ? $error->httpStatus : ($error instanceof DocumentWriteConflict ? $error->status : 503));
     }
 }
 $workflowAction=in_array($action,['review','comment','return_for_revision','submit_to_rpms','override_review'],true);

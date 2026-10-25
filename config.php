@@ -127,6 +127,13 @@ if (!defined('OPENROUTER_MODEL')) {
     define('OPENROUTER_MODEL', getenv('OPENROUTER_MODEL') ?: 'openrouter/auto');
 }
 
+// Document text has a separate, opt-in institutional processing boundary.
+// A policy reference must authorize RPMS per-document attestation; an API key is insufficient.
+if (!defined('PRISM_DOCUMENT_AI_ENABLED')) define('PRISM_DOCUMENT_AI_ENABLED', getenv('PRISM_DOCUMENT_AI_ENABLED') === '1');
+if (!defined('PRISM_DOCUMENT_AI_POLICY_REFERENCE')) define('PRISM_DOCUMENT_AI_POLICY_REFERENCE', getenv('PRISM_DOCUMENT_AI_POLICY_REFERENCE') ?: '');
+if (!defined('PRISM_DOCUMENT_AI_MODEL')) define('PRISM_DOCUMENT_AI_MODEL', getenv('PRISM_DOCUMENT_AI_MODEL') ?: '');
+if (!defined('PRISM_DOCUMENT_AI_PROVIDERS')) define('PRISM_DOCUMENT_AI_PROVIDERS', array_values(array_filter(array_map('trim', explode(',', getenv('PRISM_DOCUMENT_AI_PROVIDERS') ?: '')))));
+
 // Google Email API (Gmail). Requires a Google Cloud project with the Gmail
 // API enabled, an OAuth 2.0 client, and a refresh token authorized with the
 // https://www.googleapis.com/auth/gmail.send scope for the sending mailbox.
