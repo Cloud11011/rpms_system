@@ -49,19 +49,19 @@ if ($authUser['role'] === 'student') {
 <div class="document-modal-heading"><div><span>RPMS review aid</span><h2 id="summaryHeading">Generate Document Summary</h2></div><button type="button" data-close="summaryModal" aria-label="Close summary"><i class="fa-solid fa-xmark" aria-hidden="true"></i></button></div>
 <p id="summaryFilename" class="summary-filename"></p><p id="summarySource" class="summary-source"></p>
 <fieldset class="summary-modes" id="summaryModeOptions"><legend>Choose summary engine</legend>
-<label class="summary-mode"><input type="radio" name="summaryMode" id="summaryModeAI" value="external" checked><span><strong>AI-Powered Summary</strong><span>Generate a structured summary using OpenRouter AI. Sensitive identifying information will be minimized or redacted before processing.</span></span></label>
+<label class="summary-mode"><input type="radio" name="summaryMode" id="summaryModeAI" value="external" checked><span><strong>AI-Powered Summary</strong><span>Review selected research text, then confirm external processing with OpenRouter AI.</span></span></label>
 <label class="summary-mode"><input type="radio" name="summaryMode" id="summaryModeLocal" value="local"><span><strong>Local Summary</strong><span>Select research passages locally, including methods and findings when available. Works offline; no document content is sent to external AI services.</span></span></label>
 </fieldset>
+<div id="summaryRedactionOption" class="summary-redaction-option"><label for="summaryRedaction">Excerpt identifiers</label><select id="summaryRedaction"><option value="minimize">Minimize personal identifiers</option><option value="keep">Keep identifiers in the reviewed excerpt</option></select></div>
 <p id="summaryStatus" class="summary-status" role="status" aria-live="polite"></p>
 <div id="summaryResult" class="summary-result" hidden></div>
 <section id="summaryPreviewPanel" class="summary-preview-panel" hidden aria-labelledby="summaryPreviewHeading">
 <h3 id="summaryPreviewHeading">Review excerpt for external processing</h3>
-<p id="summaryPolicy" class="summary-review-note"></p>
-<p id="summaryClassification" class="summary-review-note" hidden></p>
-<p class="summary-review-note">Only this excerpt will be sent to OpenRouter and a permitted AI provider. The original file stays in PRISM. Screening can miss sensitive details. ZDR restricts provider retention; text leaves PRISM and operational metadata may remain.</p>
-<pre id="summaryExcerpt" class="summary-result summary-excerpt" tabindex="0" aria-label="Exact minimized text intended for OpenRouter"></pre>
-<label class="summary-confirmation" id="summaryConfirmation"><input type="checkbox" id="summaryAuthorization"> <span>I verified that this document's applicable consent and confidentiality terms permit external processing under institutional policy. I reviewed the redacted excerpt and found no identifying or confidential details requiring local-only handling.</span></label>
-<p id="summaryAttestation" class="summary-review-note">By confirming, you verify that this document's applicable consent and confidentiality terms permit external processing under institutional policy.</p>
+<p class="summary-review-note">Research sections are selected; preliminary pages, signatures and references are omitted where recognized. Only the excerpt below will be sent. The original file stays in PRISM. OpenRouter and its selected provider process the text under the account and provider policies; PRISM does not guarantee zero retention.</p>
+<p id="summaryWarnings" class="summary-review-note summary-warnings" hidden></p>
+<pre id="summaryExcerpt" class="summary-result summary-excerpt" tabindex="0" aria-label="Exact text intended for OpenRouter"></pre>
+<label class="summary-confirmation" id="summaryConfirmation"><input type="checkbox" id="summaryAuthorization"> <span>I understand that the reviewed document text will be sent to OpenRouter for AI summarization, and I confirm that I am permitted to submit this content.</span></label>
+<p class="summary-review-note">This confirmation records your choice to send the excerpt. It does not establish institutional or legal authorization. The preview expires in five minutes.</p>
 </section>
 <p class="summary-review-note">This summary is provided as an RPMS review aid. Verify important information against the original document. It does not replace RPMS/IERB professional judgment.</p>
 <div class="document-modal-actions summary-actions"><button type="button" class="doc-secondary" data-close="summaryModal">Close</button><button type="button" class="doc-secondary" id="cancelSummaryPreview" hidden>Cancel excerpt review</button><button type="button" class="doc-secondary" id="localSummary" hidden>Generate Local Summary Instead</button><button type="button" class="doc-primary" id="regenerateSummary">Review AI Excerpt</button><button type="button" class="doc-primary" id="sendSummary" hidden disabled>Confirm and Generate AI Summary</button></div>

@@ -539,12 +539,14 @@ if (in_array($action, ['summarize', 'summarize_preview', 'summarize_cancel'], tr
     $summaryLock = null; $summaryPartial = null; $summarySourceUsed = 'none';
     try {
         foreach (array_keys($payload) as $field) {
-            if (!in_array($field, ['id', 'mode', 'previewToken', 'confirmed'], true)) {
+            if (!in_array($field, ['id', 'mode', 'previewToken', 'confirmed', 'redactIdentifiers'], true)) {
                 throw new DocumentSummaryError('invalid_request', 'Only server-prepared document excerpts may be summarized.');
             }
         }
         $mode = $payload['mode'] ?? ($action === 'summarize_preview' ? 'external' : 'local');
         if (!is_string($mode) || !in_array($mode, ['local', 'external'], true)) throw new DocumentSummaryError('invalid_request', 'Choose a valid summary mode.');
+        $redactIdentifiers = $payload['redactIdentifiers'] ?? true;
+        if (!is_bool($redactIdentifiers)) throw new DocumentSummaryError('invalid_request', 'Choose a valid identifier preparation option.');
         if ($action === 'summarize' && $mode === 'local') revoke_document_summary_previews($id, $user);
         if ($action === 'summarize') $summaryLock = document_summary_lock($id);
         $doc = fetch_doc($pdo, $id);
@@ -556,8 +558,7 @@ if (in_array($action, ['summarize', 'summarize_preview', 'summarize_cancel'], tr
         $fileHash = document_summary_file_hash($path);
         $extraction = extract_document_text_for_summary($path);
         $identifiers = document_summary_identifiers($pdo, $doc, $user);
-        $summaryContext = ['id' => $id, 'version' => (int)$doc['version_no'], 'sha256' => $fileHash];
-        $prepared = prepare_document_summary($extraction, $identifiers, $summaryContext);
+        $prepared = prepare_document_summary($extraction, $identifiers, $redactIdentifiers);
         $summaryPartial = $mode === 'local' ? !empty($extraction['partial']) : $prepared['partial'];
         // Revalidate before issuing a preview or disclosing any text externally.
         begin_document_write($pdo, $doc);
@@ -572,10 +573,8 @@ if (in_array($action, ['summarize', 'summarize_preview', 'summarize_cancel'], tr
             $summaryActive = false;
             json_out(['ok' => true, 'eligible' => $prepared['eligible'], 'reason' => $prepared['reason'],
                 'notice' => document_summary_notice($prepared['reason']), 'partial' => $prepared['partial'],
-                'privacyCategory' => $prepared['privacyCategory'], 'privacyReason' => $prepared['privacyReason'],
-                'configurationReason' => $prepared['configurationReason'], 'requiresIdentifierReview' => $prepared['requiresIdentifierReview'],
+                'warnings' => $prepared['warnings'], 'redactIdentifiers' => $prepared['redactIdentifiers'],
                 'excerpt' => $prepared['eligible'] ? $prepared['excerpt'] : null, 'previewToken' => $token,
-                'policyReference' => $prepared['policy']['reference'], 'authorizationMode' => $prepared['policy']['authorizationMode'],
                 'expiresIn' => $token ? 300 : 0]);
         }
         $externalConfirmed = false;
@@ -583,18 +582,18 @@ if (in_array($action, ['summarize', 'summarize_preview', 'summarize_cancel'], tr
             if (!$prepared['eligible']) throw new DocumentSummaryError($prepared['reason'], document_summary_notice($prepared['reason']), 422);
             if (($payload['confirmed'] ?? false) !== true || !is_string($payload['previewToken'] ?? null)
                 || !preg_match('/\A[a-f0-9]{64}\z/', $payload['previewToken'])) {
-                throw new DocumentSummaryError('confirmation_required', 'Review a fresh excerpt and confirm document authorization before sending.', 409);
+                throw new DocumentSummaryError('confirmation_required', 'Review a fresh excerpt and confirm before sending it to OpenRouter.', 409);
             }
             consume_document_summary_preview($payload['previewToken'], $binding, $id, $user);
-            if (!$prepared['eligible']) throw new DocumentSummaryError('privacy_changed', 'The document is no longer eligible. Review a fresh preview.', 409);
             $externalConfirmed = true;
             begin_document_write($pdo, $doc);
             if (fetch_doc($pdo, $id, true) !== $doc || !hash_equals($fileHash, document_summary_file_hash($path))) {
                 throw new DocumentWriteConflict('This document changed. Review a fresh preview.');
             }
             document_workflow_audit($pdo, $user, 'document_summary_authorized', ['entity_type' => 'document', 'entity_id' => $id,
-                'student_id' => $doc['student_id'], 'details' => 'category=admin_attested; authorization=' . $prepared['policy']['authorizationMode'] . '; policy_sha256='
-                    . hash('sha256', $prepared['policy']['reference']) . '; privacy_class=' . $prepared['privacyCategory'] . '; partial=' . (int)$prepared['partial']]);
+                'student_id' => $doc['student_id'], 'details' => 'category=admin_confirmed_external_excerpt; excerpt_sha256='
+                    . hash('sha256', $prepared['excerpt']) . '; minimized=' . (int)$redactIdentifiers
+                    . '; warnings=' . count($prepared['warnings']) . '; partial=' . (int)$prepared['partial']]);
             $pdo->commit();
         }
         // Commit consumed preview state before releasing the session lock. Replays cannot retry disclosure.
@@ -602,7 +601,7 @@ if (in_array($action, ['summarize', 'summarize_preview', 'summarize_cancel'], tr
             throw new DocumentSummaryError('session_storage', 'Authorization state could not be saved. Sign in again before retrying.', 503);
         }
         $result = generate_document_summary($extraction, $identifiers, $externalConfirmed,
-            $mode === 'local', $summaryContext);
+            $mode === 'local', $redactIdentifiers);
         $summarySourceUsed = $result['source'];
         // No external service runs under a database lock. Recheck every row field and the file before saving.
         begin_document_write($pdo, $doc);

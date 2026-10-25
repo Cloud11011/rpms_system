@@ -1,75 +1,35 @@
 <?php
-/** Local-only policy, screening and single-use preview bindings. No network operations. */
-function document_summary_policy(array $documentContext = []): array
+/** Local preparation and single-use preview bindings. No network operations. */
+function document_summary_configuration(): array
 {
-    if (defined('PRISM_DOCUMENT_AI_SYNTHETIC_DEMO') && PRISM_DOCUMENT_AI_SYNTHETIC_DEMO === true
-        && document_summary_registered_synthetic($documentContext)) {
-        $model = defined('OPENROUTER_MODEL') ? OPENROUTER_MODEL : '';
-        $valid = is_string($model) && preg_match('~\A[a-z0-9._-]+/[a-z0-9._-]+(?::[a-z0-9._-]+)?\z~i', $model);
-        return ['enabled' => (bool)$valid, 'reference' => 'Server-registered synthetic demonstration document',
-            'authorizationMode' => 'synthetic_demo', 'model' => is_string($model) ? $model : '', 'providers' => [],
-            'reason' => $valid ? 'eligible' : 'demo_model_invalid'];
-    }
-    $enabled = defined('PRISM_DOCUMENT_AI_ENABLED') && PRISM_DOCUMENT_AI_ENABLED === true;
-    $reference = defined('PRISM_DOCUMENT_AI_POLICY_REFERENCE') ? PRISM_DOCUMENT_AI_POLICY_REFERENCE : '';
-    $model = defined('PRISM_DOCUMENT_AI_MODEL') ? PRISM_DOCUMENT_AI_MODEL : '';
-    $providers = defined('PRISM_DOCUMENT_AI_PROVIDERS') ? PRISM_DOCUMENT_AI_PROVIDERS : [];
-    $policyValid = is_string($reference) && trim($reference) !== '' && strlen($reference) <= 160
-        && !preg_match('/[\x00-\x1f\x7f]/', $reference);
-    $routeValid = is_string($model) && preg_match('~\A[a-z0-9._-]+/[a-z0-9._-]+\z~i', $model)
-        && !str_starts_with($model, 'openrouter/') && is_array($providers) && count($providers) > 0 && count($providers) <= 8;
-    foreach ((array)$providers as $provider) {
-        if (!is_string($provider) || !preg_match('~\A[a-z0-9][a-z0-9._/-]{0,79}\z~i', $provider)) $routeValid = false;
-    }
-    return ['enabled' => $enabled && $policyValid && $routeValid, 'reference' => is_string($reference) ? $reference : '', 'authorizationMode' => 'institutional',
-        'model' => is_string($model) ? $model : '', 'providers' => is_array($providers) ? array_values($providers) : [],
-        'reason' => !$enabled ? 'policy_disabled' : (!$policyValid ? 'policy_incomplete' : (!$routeValid ? 'routing_invalid' : 'eligible'))];
-}
-
-/** Only operator-managed private registrations authorize the demo route; text and filenames never do. */
-function document_summary_registered_synthetic(array $context): bool
-{
-    if (!defined('STORAGE_DIR') || !preg_match('/\A[a-f0-9]{24}\z/', (string)($context['id'] ?? ''))
-        || !preg_match('/\A[a-f0-9]{64}\z/', (string)($context['sha256'] ?? ''))) return false;
-    $path = STORAGE_DIR . '/document-summary-synthetic.json';
-    if (!is_file($path) || !is_readable($path) || filesize($path) > 1048576) return false;
-    $json = @file_get_contents($path);
-    if ($json === false) return false;
-    $registry = json_decode($json, true);
-    $entry = is_array($registry) ? ($registry[$context['id']] ?? null) : null;
-    return is_array($entry) && is_string($entry['sha256'] ?? null)
-        && hash_equals($entry['sha256'], $context['sha256'])
-        && (int)($entry['version'] ?? 0) > 0 && (int)$entry['version'] === (int)($context['version'] ?? 0);
+    $model = defined('OPENROUTER_MODEL') ? OPENROUTER_MODEL : '';
+    $reason = !defined('OPENROUTER_API_KEY') || trim(OPENROUTER_API_KEY) === '' ? 'missing_api_key'
+        : (!function_exists('curl_init') ? 'transport_unavailable'
+        : (!is_string($model) || !preg_match('~\A[a-z0-9._-]+/[a-z0-9._-]+(?::[a-z0-9._-]+)?\z~i', $model) ? 'model_invalid' : 'eligible'));
+    return ['enabled' => $reason === 'eligible', 'model' => is_string($model) ? $model : '', 'reason' => $reason];
 }
 
 function document_summary_notice(string $reason): string
 {
     return [
-        'eligible' => 'Review the exact excerpt and confirm the document authorization before external processing.',
-        'policy_disabled' => 'Institutional authorization for external document processing is not enabled.',
-        'policy_incomplete' => 'A valid institutional policy reference authorizing document processing must be configured.',
-        'routing_invalid' => 'Configure an approved fixed document model and provider allowlist. Automatic or unrestricted routing is not permitted.',
-        'demo_model_invalid' => 'Configure a valid OPENROUTER_MODEL for the synthetic demonstration.',
+        'eligible' => 'Review the exact excerpt and confirm that you may send it to OpenRouter.',
+        'model_invalid' => 'Configure a valid shared OPENROUTER_MODEL.',
         'missing_api_key' => 'The server-side OpenRouter API key is not configured.',
         'transport_unavailable' => 'The server does not have the required OpenRouter HTTPS transport available.',
         'not_configured' => 'The document AI service is not configured or its transport is unavailable.',
-        'sensitive_content' => 'High-risk individual or confidential information was detected. A sufficiently minimized external excerpt could not be established; use Local Summary.',
-        'untrusted_content' => 'The document contains suspicious embedded instructions. External processing is disabled; useful research passages may still be summarized locally.',
-        'document_restricted' => 'The document contains a confidentiality or third-party-processing restriction. Use local processing.',
-        'extraction_incomplete' => 'Extraction was incomplete, so external privacy screening cannot cover the document. Use local processing.',
-        'no_useful_text' => 'No useful research text remained after de-identification.',
+        'no_useful_text' => 'No useful research text remained after excerpt preparation.',
         'local_requested' => 'Local processing was selected. No document text was sent to OpenRouter.',
-        'external_not_confirmed' => 'Review the AI excerpt and confirm document authorization before external processing.',
+        'external_not_confirmed' => 'Review the AI excerpt and confirm that you may send it to OpenRouter.',
         'timeout' => 'OpenRouter timed out. No new summary was saved. You can generate a local summary instead.',
         'rate_limited' => 'OpenRouter is rate limited. No new summary was saved. You can generate a local summary instead.',
-        'routing_unavailable' => 'OpenRouter could not serve the configured model/provider route under the required privacy constraints. Review the route and account settings, or generate locally.',
-        'provider_unavailable' => 'No permitted privacy-compliant provider is available. You can generate locally; routing restrictions will not be relaxed.',
+        'routing_unavailable' => 'OpenRouter could not serve the configured shared model. Check the model and account routing settings, or generate locally.',
+        'provider_unavailable' => 'The OpenRouter provider is unavailable. Try again later or generate locally.',
         'service_auth' => 'OpenRouter rejected the API credentials. Ask the operator to check the protected key, or generate locally.',
         'service_forbidden' => 'OpenRouter refused the request. Account permissions, guardrails or content policies may be responsible; the operator must review them. You can generate locally.',
         'service_credits' => 'The OpenRouter account or key has insufficient credits. You can generate locally.',
         'service_unavailable' => 'OpenRouter could not complete the request. No new summary was saved. You can generate locally.',
         'invalid_response' => 'The AI response was empty, invalid or failed output checks. No new summary was saved. You can generate locally.',
-        'ai_success' => 'Generated from a minimized excerpt. Review the original document before official use.',
+        'ai_success' => 'Generated from the reviewed research excerpt. Review the original document before official use.',
     ][$reason] ?? 'External processing is unavailable. You can choose Local Summary.';
 }
 
@@ -84,15 +44,10 @@ function summary_redact_person_names(string $text): string
     return preg_replace('~\b(?i:Dr\.?|Prof\.?|Professor|Mr\.?|Mrs\.?|Ms\.?)\s+' . $word . '(?:[ \t]+(?:' . $word . '|(?i:de|del|dela|la))){0,4}~u', '[name removed]', $text);
 }
 
-function summary_document_body(string $text): string
+/** Optional personal-identifier minimization; institutions and research measurements remain intact. */
+function summary_minimized_text(string $text, array $identifiers, bool $redactIdentifiers = true): string
 {
-    return preg_split('/^\s*(?:appendi(?:x|ces)\b|references\s*$|bibliography\s*$|attachments?\s*:)/imu', $text, 2)[0];
-}
-
-/** Remove appendices, references, signatures and visible identifiers without deleting useful paragraphs. */
-function summary_minimized_text(string $text, array $identifiers): string
-{
-    $text = summary_document_body($text);
+    if ($redactIdentifiers) {
     $text = deidentify_document_summary_text($text, $identifiers);
     // Global phone patterns require a phone-shaped number; numeric results and statistics stay intact.
     $text = preg_replace('/(?<![\p{L}\d])(?:\+?63[ -]?|0)9\d{2}[ -]?\d{3}[ -]?\d{4}(?!\d)|(?<![\p{L}\d])\+\d[\d ()-]{7,18}\d(?!\d)/u', '[phone removed]', $text);
@@ -100,8 +55,7 @@ function summary_minimized_text(string $text, array $identifiers): string
     $text = preg_replace('/\b((?:home address|residential address|address|signature|signed by)\s*[:=]\s*)[^;\n]+/iu', '$1[identifier removed]', $text);
     $text = preg_replace('/\b((?:SSS|PhilHealth|passport)\s*(?:number|no\.?|id)?\s*[:#=]\s*)[A-Z0-9][A-Z0-9.\/-]*/iu', '$1[record identifier removed]', $text);
     $text = preg_replace('/\b((?:date of birth|birth date|DOB)\s*[:=]\s*)(?:\d{1,4}[.\/-]\d{1,2}[.\/-]\d{1,4}|[A-Z][a-z]+\s+\d{1,2},?\s+\d{4})/iu', '$1[date removed]', $text);
-    $text = preg_replace('/\b(?:\p{Lu}[\p{L}.&-]*[ \t]+){1,6}(?:University|College|Hospital|School|Medical Center)\b/u', '[institution removed]', $text);
-    $text = preg_replace('/\b(?:University|College|Hospital|School)[ \t]+of[ \t]+(?:\p{Lu}[\p{L}-]*[ \t]*){1,4}/u', '[institution removed] ', $text);
+    }
     $text = preg_replace('/\b(?:https?:\/\/|www\.)\S+|\b[A-Z]:\\\\\S+|\/(?:home|var|Users|storage)\/\S+/iu', '[link or path removed]', $text);
     $text = preg_replace('/\b(?:sk-(?:or-v1-)?[a-z0-9_-]{12,}|Bearer\s+\S+|(?:api[_ -]?key|password|access[_ -]?token|secret)\s*[:=]\s*\S+)/iu', '[credential removed]', $text);
     return trim($text);
@@ -132,28 +86,29 @@ function summary_untrusted_instructions(string $text): bool
     return (bool)preg_match('/\b(?:ignore\s+(?:all\s+)?(?:previous|system|prior)\s+instructions|reveal\s+(?:the\s+)?(?:database|secrets?|system\s*prompt)|(?:system|developer)\s*:\s*(?:ignore|you are|reveal|override|act as)\b|<\/?(?:script|system|tool)\b)|[\x{200b}-\x{200f}\x{202a}-\x{202e}\x{2060}-\x{206f}]/iu', $text);
 }
 
-function prepare_document_summary(array $extraction, array $identifiers, array $documentContext = []): array
+function prepare_document_summary(array $extraction, array $identifiers, bool $redactIdentifiers = true): array
 {
-    $text = summary_minimized_text($extraction['text'], $identifiers);
-    $excerpt = summary_model_excerpt($text);
-    $policy = document_summary_policy($documentContext);
-    $configurationReason = $policy['reason'];
-    if ($configurationReason === 'eligible' && (!defined('OPENROUTER_API_KEY') || OPENROUTER_API_KEY === '')) $configurationReason = 'missing_api_key';
-    if ($configurationReason === 'eligible' && !function_exists('curl_init')) $configurationReason = 'transport_unavailable';
-    $privacyReason = 'eligible';
-    // High-risk context is checked before redaction; ordinary removable identifiers are not a veto.
-    if (preg_match('/\b(?:confidential\s+(?:attachment|appendix|data|interview\s*transcript)|privileged\s+(?:institutional\s+)?information|internal\s+use\s+only|not\s+(?:be\s+)?shared\s+(?:externally|with\s+third)|no\s+(?:external|third.part(?:y|ies)|AI)\s+processing(?!\s+restrictions?\b)|(?:do\s+not|must\s+not)\s+(?:send|share|disclose|upload|use)[^\n.]{0,100}(?:external|third.part(?:y|ies)|AI)|consent[^\n.]{0,80}(?:prohibits?|restricts?|does\s+not\s+permit)[^\n.]{0,80}(?:external|third.part(?:y|ies)|AI|OpenRouter|OpenAI|cloud))\b/iu', $extraction['text'])) $privacyReason = 'document_restricted';
-    elseif (!empty($extraction['partial'])) $privacyReason = 'extraction_incomplete';
-    elseif (summary_untrusted_instructions($extraction['text'])) $privacyReason = 'untrusted_content';
-    elseif (summary_sensitive_text($extraction['text'], true) || summary_sensitive_text($text)) $privacyReason = 'sensitive_content';
-    if (preg_match_all('/\p{L}{2,}/u', preg_replace('/\[[^\]]*\]/u', '', $excerpt)) < 4) $privacyReason = 'no_useful_text';
-    $category = $privacyReason !== 'eligible' ? 'C' : (preg_match('/\[(?:identifier|name|email|phone|record identifier|date|credential|link or path) removed\]/u', $text) ? 'B' : 'A');
-    $reason = $privacyReason !== 'eligible' ? $privacyReason : $configurationReason;
+    $selection = document_summary_research_excerpt($extraction['text']);
+    $excerpt = summary_minimized_text($selection['excerpt'], $identifiers, $redactIdentifiers);
+    $warnings = [];
+    if ($selection['preliminaryOnly']) $warnings[] = 'No research body was recognized. The available excerpt may contain only a title or preliminary information; methodology and findings may be unavailable.';
+    if (summary_sensitive_text($extraction['text'], true)) $warnings[] = 'Potentially sensitive individual information was detected. Check the excerpt carefully and use Local Summary if you may not share it.';
+    if (preg_match('/\b(?:confidential|internal use only|no external processing|do not (?:share|send|upload)|consent[^\n.]{0,60}(?:prohibits?|restricts?))\b/iu', $extraction['text'])) {
+        $warnings[] = 'The document may contain confidentiality or sharing restrictions. Confirmation does not override those restrictions or establish institutional or legal authorization.';
+    }
+    if (summary_untrusted_instructions($extraction['text'])) {
+        $warnings[] = 'Suspicious embedded instructions were detected. Matching passages were excluded; review the remaining research excerpt.';
+        $parts = preg_split('/(?<=[.!?])\s+|\n+/u', $excerpt, -1, PREG_SPLIT_NO_EMPTY);
+        $excerpt = implode("\n", array_filter($parts, static fn($part) => !summary_untrusted_instructions($part)));
+    }
+    $partial = !empty($extraction['partial']) || $selection['partial'];
+    if ($partial) $warnings[] = 'Only part of the extracted document fits this excerpt. Some passages were omitted; missing details must not be inferred.';
+    if ($redactIdentifiers && $excerpt !== $selection['excerpt']) $warnings[] = 'Some identifiers or links were minimized. Screening can miss identifying details; inspect the exact text below.';
+    $configuration = document_summary_configuration(); $reason = $configuration['reason'];
+    if (preg_match_all('/\p{L}{2,}/u', preg_replace('/\[[^\]]*\]/u', '', $excerpt)) < 4) $reason = 'no_useful_text';
     return ['excerpt' => $excerpt, 'eligible' => $reason === 'eligible', 'reason' => $reason,
-        'privacyCategory' => $category, 'privacyReason' => $privacyReason, 'configurationReason' => $configurationReason,
-        'requiresIdentifierReview' => $category === 'B',
-        'partial' => !empty($extraction['partial']) || mb_strlen($text) > DOCUMENT_SUMMARY_MAX_INPUT_CHARS,
-        'pages' => $extraction['pages'] ?? null, 'policy' => $policy];
+        'warnings' => $warnings, 'redactIdentifiers' => $redactIdentifiers, 'partial' => $partial,
+        'pages' => $extraction['pages'] ?? null, 'configuration' => $configuration];
 }
 
 function document_summary_binding(array $document, string $fileHash, array $prepared, array $actor): string

@@ -127,15 +127,8 @@ if (!defined('OPENROUTER_MODEL')) {
     define('OPENROUTER_MODEL', getenv('OPENROUTER_MODEL') ?: 'openrouter/auto');
 }
 
-// Document text has a separate, opt-in institutional processing boundary.
-// A policy reference must authorize RPMS per-document attestation; an API key is insufficient.
-// Synthetic demo: opt in once, then register reviewed test files with the CLI utility.
-// Registration is pinned to the database document ID/version and file SHA-256 in private storage.
-if (!defined('PRISM_DOCUMENT_AI_SYNTHETIC_DEMO')) define('PRISM_DOCUMENT_AI_SYNTHETIC_DEMO', getenv('PRISM_DOCUMENT_AI_SYNTHETIC_DEMO') === '1');
-if (!defined('PRISM_DOCUMENT_AI_ENABLED')) define('PRISM_DOCUMENT_AI_ENABLED', getenv('PRISM_DOCUMENT_AI_ENABLED') === '1');
-if (!defined('PRISM_DOCUMENT_AI_POLICY_REFERENCE')) define('PRISM_DOCUMENT_AI_POLICY_REFERENCE', getenv('PRISM_DOCUMENT_AI_POLICY_REFERENCE') ?: '');
-if (!defined('PRISM_DOCUMENT_AI_MODEL')) define('PRISM_DOCUMENT_AI_MODEL', getenv('PRISM_DOCUMENT_AI_MODEL') ?: '');
-if (!defined('PRISM_DOCUMENT_AI_PROVIDERS')) define('PRISM_DOCUMENT_AI_PROVIDERS', array_values(array_filter(array_map('trim', explode(',', getenv('PRISM_DOCUMENT_AI_PROVIDERS') ?: '')))));
+// Document summaries reuse these shared OpenRouter settings and account routing/privacy policies.
+// Every document request still requires an authenticated Admin's exact-excerpt confirmation.
 
 // Google Email API (Gmail). Requires a Google Cloud project with the Gmail
 // API enabled, an OAuth 2.0 client, and a refresh token authorized with the

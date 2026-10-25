@@ -19,6 +19,7 @@ const DOCUMENT_SUMMARY_PROMPT = 'You are assisting the Research Planning and Mon
 require_once __DIR__ . '/document_summary_privacy.php';
 require_once __DIR__ . '/document_summary_transport.php';
 require_once __DIR__ . '/document_summary_local.php';
+require_once __DIR__ . '/document_summary_excerpt.php';
 
 class DocumentSummaryError extends RuntimeException
 {
@@ -274,7 +275,7 @@ function deidentify_document_summary_text(string $text, array $identifiers): str
     return summary_redact_person_names($text);
 }
 
-function generate_document_summary(array $extraction, array $identifiers, bool $externalConfirmed = false, bool $localRequested = false, array $documentContext = []): array
+function generate_document_summary(array $extraction, array $identifiers, bool $externalConfirmed = false, bool $localRequested = false, bool $redactIdentifiers = true): array
 {
     // Local display is admin-only and never uses external minimization or an AI excerpt budget.
     if ($localRequested || !$externalConfirmed) {
@@ -283,42 +284,17 @@ function generate_document_summary(array $extraction, array $identifiers, bool $
         return ['summary' => $summary, 'source' => 'local_fallback', 'partial' => !empty($extraction['partial']),
             'pages' => $extraction['pages'] ?? null, 'reason' => 'local_requested', 'notice' => document_summary_notice('local_requested')];
     }
-    $prepared = prepare_document_summary($extraction, $identifiers, $documentContext);
-    if ($prepared['reason'] === 'no_useful_text') throw new DocumentSummaryError('no_useful_text', document_summary_notice('no_useful_text'));
-    $reason = 'local_requested';
-    if ($externalConfirmed && !$localRequested) {
-        if (!$prepared['eligible']) throw new DocumentSummaryError($prepared['reason'], document_summary_notice($prepared['reason']), 422);
-        $response = openrouter_document_summary($prepared['excerpt'], $prepared['policy']);
-        $reason = $response['reason'];
-        if (isset($response['summary'])) {
-            $summary = validate_document_ai_summary($response['summary'], $identifiers);
-            if ($summary !== null) return ['summary' => $summary, 'source' => 'openrouter_ai',
-                'partial' => $prepared['partial'], 'pages' => $prepared['pages'], 'reason' => 'ai_success',
-                'notice' => document_summary_notice('ai_success')];
-            $reason = 'invalid_response';
-        }
-        // AI mode never substitutes or persists local output. The administrator may explicitly choose it next.
-        throw new DocumentSummaryError($reason, document_summary_notice($reason), $reason === 'rate_limited' ? 429 : 503);
+    $prepared = prepare_document_summary($extraction, $identifiers, $redactIdentifiers);
+    if (!$prepared['eligible']) throw new DocumentSummaryError($prepared['reason'], document_summary_notice($prepared['reason']), 422);
+    $response = openrouter_document_summary($prepared['excerpt'], $prepared['configuration']);
+    $reason = $response['reason'];
+    if (isset($response['summary'])) {
+        $summary = validate_document_ai_summary($response['summary'], $identifiers, $redactIdentifiers);
+        if ($summary !== null) return ['summary' => $summary, 'source' => 'openrouter_ai',
+            'partial' => $prepared['partial'], 'pages' => $prepared['pages'], 'reason' => 'ai_success',
+            'notice' => document_summary_notice('ai_success')];
+        $reason = 'invalid_response';
     }
-    throw new DocumentSummaryError('external_not_confirmed', document_summary_notice('external_not_confirmed'));
-}
-
-/** Preserve purpose and select later methods/ethics passages instead of sending only a cover page. */
-function summary_model_excerpt(string $text): string
-{
-    if (mb_strlen($text) <= DOCUMENT_SUMMARY_MAX_INPUT_CHARS) return $text;
-    // Reserve room for every topic; early sections must not crowd out later ethics/findings.
-    $excerpt = mb_substr($text, 0, 3500); $offsets = [];
-    foreach (['objective','problem','method','procedure','finding','result','ethic','consent','data analysis'] as $keyword) {
-        $position = mb_stripos($text, $keyword, 3500);
-        if ($position === false) continue;
-        $start = max(3500, $position - 100);
-        if (array_filter($offsets, fn($offset) => abs($start-$offset) < 650)) continue;
-        $offsets[] = $start;
-        $excerpt .= "\n[Later document excerpt]\n" . mb_substr($text, $start, 700);
-    }
-    if (mb_strlen($excerpt) < DOCUMENT_SUMMARY_MAX_INPUT_CHARS - 750) {
-        $excerpt .= "\n[Final document excerpt]\n" . mb_substr($text, -700);
-    }
-    return mb_substr($excerpt, 0, DOCUMENT_SUMMARY_MAX_INPUT_CHARS);
+    // A failed AI request never substitutes or persists local output.
+    throw new DocumentSummaryError($reason, document_summary_notice($reason), $reason === 'rate_limited' ? 429 : 503);
 }

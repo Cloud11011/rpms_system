@@ -8,7 +8,8 @@ async function api(action,options={}){return PrismUI.request(`documents_api.php?
 const summaryModal=document.getElementById('summaryModal'),summaryResult=document.getElementById('summaryResult'),summarySource=document.getElementById('summarySource'),regenerateSummary=document.getElementById('regenerateSummary');
 const summaryPreview=document.getElementById('summaryPreviewPanel'),summaryExcerpt=document.getElementById('summaryExcerpt'),summaryAuthorization=document.getElementById('summaryAuthorization'),sendSummary=document.getElementById('sendSummary'),localSummary=document.getElementById('localSummary'),summaryStatus=document.getElementById('summaryStatus'),cancelSummaryPreview=document.getElementById('cancelSummaryPreview');
 const summaryModes=[...document.querySelectorAll('input[name="summaryMode"]')];
-let summaryDocument=null,summarySequence=0,summaryReturnFocus=null,summaryBusy=false,summaryPreviewToken=null,summaryRequiresIdentifierReview=false;
+const summaryRedaction=document.getElementById('summaryRedaction'),summaryWarnings=document.getElementById('summaryWarnings');
+let summaryDocument=null,summarySequence=0,summaryReturnFocus=null,summaryBusy=false,summaryPreviewToken=null;
 function summaryButton(d){return currentRole==='admin'&&d.actions?.summarize&&summaryModal?`<button type="button" class="document-action-button summary-action" data-summary="${esc(d.id)}"><i class="fa-solid fa-wand-magic-sparkles" aria-hidden="true"></i>${d.aiSummary?'View Summary':'Generate Summary'}</button>`:''}
 function bindSummaryButtons(host){host.querySelectorAll('[data-summary]').forEach(button=>button.addEventListener('click',()=>showSummary(documents.find(d=>String(d.id)===button.dataset.summary),button)))}
 function summaryLabel(source,reason){return source==='openrouter_ai'?'Generated with OpenRouter AI':source==='local_fallback'?'Generated locally \u2014 '+(reason==='local_requested'?'Local Summary selected':'saved local summary'):'Source not recorded for this older summary'}
@@ -16,10 +17,10 @@ function selectedSummaryMode(){return summaryModes.find(input=>input.checked)?.v
 function cancelPreviewReference(d,token){if(d&&token)api('summarize_cancel',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({id:d.id,previewToken:token})}).catch(()=>{})}
 function resetSummaryPreview(cancel=true){
     if(cancel)cancelPreviewReference(summaryDocument,summaryPreviewToken);
-    summaryPreviewToken=null;summaryRequiresIdentifierReview=false;summaryPreview.hidden=true;summaryExcerpt.textContent='';summaryAuthorization.checked=false;sendSummary.hidden=true;sendSummary.disabled=true;cancelSummaryPreview.hidden=true;regenerateSummary.hidden=false;
+    summaryPreviewToken=null;summaryPreview.hidden=true;summaryExcerpt.textContent='';summaryWarnings.textContent='';summaryWarnings.hidden=true;summaryAuthorization.checked=false;sendSummary.hidden=true;sendSummary.disabled=true;cancelSummaryPreview.hidden=true;regenerateSummary.hidden=false;
 }
-function updateSummaryAction(){regenerateSummary.textContent=selectedSummaryMode()==='local'?'Generate Local Summary':'Review AI Excerpt'}
-function setSummaryBusy(busy){summaryBusy=busy;regenerateSummary.disabled=busy;localSummary.disabled=busy;cancelSummaryPreview.disabled=busy;summaryModes.forEach(input=>input.disabled=busy);sendSummary.disabled=busy||!summaryPreviewToken||(summaryRequiresIdentifierReview&&!summaryAuthorization.checked);summaryStatus.setAttribute('aria-busy',String(busy))}
+function updateSummaryAction(){regenerateSummary.textContent=selectedSummaryMode()==='local'?'Generate Local Summary':'Review AI Excerpt';document.getElementById('summaryRedactionOption').hidden=selectedSummaryMode()==='local'}
+function setSummaryBusy(busy){summaryBusy=busy;regenerateSummary.disabled=busy;localSummary.disabled=busy;cancelSummaryPreview.disabled=busy;summaryRedaction.disabled=busy;summaryAuthorization.disabled=busy;summaryModes.forEach(input=>input.disabled=busy);sendSummary.disabled=busy||!summaryPreviewToken||!summaryAuthorization.checked;summaryStatus.setAttribute('aria-busy',String(busy))}
 function summaryMessage(text,error=false){summaryStatus.textContent=text;summaryStatus.classList.toggle('document-error',error)}
 function showSummary(d,opener){
     if(!d||currentRole!=='admin'||!summaryModal||summaryBusy)return;
@@ -27,7 +28,7 @@ function showSummary(d,opener){
     document.getElementById('summaryFilename').textContent=d.originalName;
     summaryResult.textContent=d.aiSummary||'';summaryResult.hidden=!d.aiSummary;
     summarySource.textContent=d.aiSummary?summaryLabel(d.summarySource,d.summaryReason)+(d.summaryNotice?' \u00b7 '+d.summaryNotice:'')+(d.summaryPartial?' \u00b7 Based on a bounded excerpt.':''):'';
-    summaryModes.forEach(input=>input.checked=input.value==='external');updateSummaryAction();localSummary.hidden=true;
+    summaryModes.forEach(input=>input.checked=input.value==='external');summaryRedaction.value='minimize';updateSummaryAction();localSummary.hidden=true;
     summaryMessage('Choose AI-Powered Summary or Local Summary.');
     openModal(summaryModal);summaryModal.querySelector('[data-close]').focus();
 }
@@ -42,20 +43,14 @@ async function prepareSummary(){
     const d=summaryDocument,sequence=++summarySequence;resetSummaryPreview();localSummary.hidden=true;setSummaryBusy(true);
     summaryMessage('Extracting and screening text locally. No text is being sent to OpenRouter.');
     try{
-        const data=await api('summarize_preview',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({id:d.id})});
+        const data=await api('summarize_preview',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({id:d.id,redactIdentifiers:summaryRedaction.value==='minimize'})});
         if(sequence!==summarySequence||!summaryModal.classList.contains('show')){cancelPreviewReference(d,data.previewToken);return}
         if(data.eligible){
-            summaryPreviewToken=data.previewToken;summaryRequiresIdentifierReview=data.requiresIdentifierReview===true;summaryPreview.hidden=false;summaryExcerpt.textContent=data.excerpt;
-            const synthetic=data.authorizationMode==='synthetic_demo';
-            document.getElementById('summaryPolicy').textContent=(synthetic?'Synthetic demonstration: this exact test document is registered on the server.':'Institutional policy: '+data.policyReference+'.')+' This preview expires in five minutes.';
-            document.querySelector('#summaryConfirmation span').textContent=synthetic?'I reviewed the excerpt from this registered synthetic test document and found no real identifying or confidential details.':'I verified that this document\'s applicable consent and confidentiality terms permit external processing under institutional policy. I reviewed the redacted excerpt and found no identifying or confidential details requiring local-only handling.';
-            document.getElementById('summaryAttestation').textContent=synthetic?'By confirming, you verify that the reviewed excerpt contains only authorized synthetic research information.':'By confirming, you verify that this document\'s applicable consent and confidentiality terms permit external processing under institutional policy.';
-            const classification=document.getElementById('summaryClassification');classification.hidden=!summaryRequiresIdentifierReview;
-            classification.textContent='PRISM detected information that may identify individuals and minimized it below. Review the redacted excerpt before confirming AI processing.';
-            document.getElementById('summaryConfirmation').hidden=!summaryRequiresIdentifierReview;document.getElementById('summaryAttestation').hidden=summaryRequiresIdentifierReview;
+            summaryPreviewToken=data.previewToken;summaryPreview.hidden=false;summaryExcerpt.textContent=data.excerpt;
+            summaryWarnings.textContent=(data.warnings||[]).join('\n\n');summaryWarnings.hidden=!summaryWarnings.textContent;
             sendSummary.hidden=false;cancelSummaryPreview.hidden=false;regenerateSummary.hidden=true;
             summaryMessage('Review the exact excerpt, then confirm to generate an AI-powered summary.');
-            (summaryRequiresIdentifierReview?summaryAuthorization:summaryExcerpt).focus();
+            summaryExcerpt.focus();
         }else{
             summaryMessage(data.notice,true);localSummary.hidden=false;
         }
@@ -64,9 +59,9 @@ async function prepareSummary(){
 }
 async function generateSummary(mode){
     if(!summaryDocument||summaryBusy)return;
-    if(mode==='external'&&(!summaryPreviewToken||(summaryRequiresIdentifierReview&&!summaryAuthorization.checked)))return;
+    if(mode==='external'&&(!summaryPreviewToken||!summaryAuthorization.checked))return;
     const d=summaryDocument,sequence=++summarySequence,request={id:d.id,mode};
-    if(mode==='external'){request.previewToken=summaryPreviewToken;request.confirmed=true}
+    if(mode==='external'){request.previewToken=summaryPreviewToken;request.confirmed=true;request.redactIdentifiers=summaryRedaction.value==='minimize'}
     let offerLocal=false;setSummaryBusy(true);localSummary.hidden=true;summaryPreview.hidden=true;
     summaryMessage(mode==='external'?'Generating AI-Powered Summary with OpenRouter using the confirmed excerpt\u2026':'Generating Local Summary in PRISM\u2026');
     try{
@@ -81,12 +76,13 @@ regenerateSummary?.addEventListener('click',prepareSummary);
 sendSummary?.addEventListener('click',()=>generateSummary('external'));
 localSummary?.addEventListener('click',()=>{summaryModes.forEach(input=>input.checked=input.value==='local');resetSummaryPreview();updateSummaryAction();generateSummary('local')});
 summaryModes.forEach(input=>input.addEventListener('change',changeSummaryMode));
-summaryAuthorization?.addEventListener('change',()=>{sendSummary.disabled=summaryBusy||!summaryPreviewToken||(summaryRequiresIdentifierReview&&!summaryAuthorization.checked)});
+summaryAuthorization?.addEventListener('change',()=>{sendSummary.disabled=summaryBusy||!summaryPreviewToken||!summaryAuthorization.checked});
+summaryRedaction?.addEventListener('change',()=>{if(summaryBusy)return;++summarySequence;resetSummaryPreview();updateSummaryAction();localSummary.hidden=true;summaryMessage('Identifier option changed. Review a fresh excerpt before confirming.');regenerateSummary.focus()});
 cancelSummaryPreview?.addEventListener('click',()=>{resetSummaryPreview();updateSummaryAction();summaryMessage('AI excerpt review canceled. No document content was sent to OpenRouter.');regenerateSummary.focus()});
 summaryModal?.addEventListener('keydown',event=>{
     if(event.key==='Escape'){event.preventDefault();event.stopPropagation();closeModal(summaryModal);return}
     if(event.key!=='Tab')return;
-    const controls=[...summaryModal.querySelectorAll('button:not(:disabled), input:not(:disabled), [tabindex="0"]')].filter(el=>el.getClientRects().length),first=controls[0],last=controls.at(-1);
+    const controls=[...summaryModal.querySelectorAll('button:not(:disabled), input:not(:disabled), select:not(:disabled), [tabindex="0"]')].filter(el=>el.getClientRects().length),first=controls[0],last=controls.at(-1);
     if(event.shiftKey&&document.activeElement===first){event.preventDefault();last.focus()}
     else if(!event.shiftKey&&document.activeElement===last){event.preventDefault();first.focus()}
 });
