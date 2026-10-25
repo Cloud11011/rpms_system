@@ -32,10 +32,7 @@ require_once __DIR__ . '/includes/current_workflow_eligibility.php';
 // before this file, so its values win).
 // ---------------------------------------------------------------------
 
-// When does a student's IERB stage advance to the next stage?
-//   'submission' = when the approved document is formally submitted to RPMS (default)
-//   'approval'   = when the adviser approves it (the behaviour before this upgrade)
-if (!defined('STAGE_ADVANCE_TRIGGER')) define('STAGE_ADVANCE_TRIGGER', getenv('STAGE_ADVANCE_TRIGGER') ?: 'submission');
+// Official IERB stages change only through explicit RPMS Administrator decisions.
 
 // "Students Needing Attention" thresholds (in days).
 if (!defined('ATTENTION_REVIEW_DAYS'))      define('ATTENTION_REVIEW_DAYS', 3);      // waiting on the adviser
@@ -203,6 +200,11 @@ function audit_action_label(string $action): string
         'admin_override_document'           => 'Admin Override: document status',
         'admin_override_submit_to_rpms'     => 'Admin Override: submitted to RPMS',
         'admin_override_student_progress'   => 'Admin Override: student progress',
+        'ierb_stage_advanced' => 'RPMS stage advancement',
+        'ierb_stage_corrected' => 'RPMS stage correction',
+        'ierb_status_updated' => 'RPMS progress status update',
+        'stage_guidance_updated' => 'Stage guidance updated',
+        'stage_label_updated' => 'Stage name updated',
         'stage_auto_advanced'               => 'Stage advanced',
         'ierb_saved'                        => 'IERB record saved',
         'ierb_note_added'                   => 'Note added',
@@ -334,45 +336,6 @@ function record_history(PDO $pdo, int $studentDbId, string $stage, string $statu
         VALUES (:sid,:stage,:status,:note,:sub,:actor)')
         ->execute([':sid' => $studentDbId, ':stage' => $stage, ':status' => $status, ':note' => $note,
                    ':sub' => $submissionDate, ':actor' => $actorLabel]);
-}
-
-/**
- * Moves the student to the next IERB stage when $doc belongs to their CURRENT
- * stage (so re-processing an old document never re-triggers progression).
- * Logs to ierb_history and the audit trail. Returns the new stage key or null.
- * Call inside the caller's transaction if atomicity matters.
- */
-function advance_stage_for_document(PDO $pdo, array $doc, array $actor, string $effectiveDate, string $why, bool $strictAudit = false): ?string
-{
-    if (empty($doc['student_id'])) {
-        return null;
-    }
-    $q = $pdo->prepare('SELECT stage, status FROM students WHERE id = :id AND archived_at IS NULL');
-    $q->execute([':id' => $doc['student_id']]);
-    $student = $q->fetch();
-    if (!$student || $doc['stage'] !== $student['stage']) {
-        return null;
-    }
-    $newStage = next_stage($student['stage']);
-    if ($newStage === $student['stage']) {
-        return null;
-    }
-
-    $pdo->prepare('UPDATE students SET stage = :stage, status = :status, last_submission_date = :sub, updated_at = NOW()
-        WHERE id = :id')
-        ->execute([':stage' => $newStage, ':status' => 'On Track', ':sub' => $effectiveDate, ':id' => $doc['student_id']]);
-
-    $note = 'Auto-advanced to ' . stage_label($newStage) . ' (' . $newStage . ') ' . $why . '.';
-    record_history($pdo, (int)$doc['student_id'], $newStage, 'On Track', $note, $effectiveDate,
-        document_attribution($actor['full_name'],' (auto)'));
-
-    $ctx = [
-        'entity_type' => 'student', 'entity_id' => $doc['student_id'], 'student_id' => $doc['student_id'],
-        'before' => $student['stage'], 'after' => $newStage, 'details' => $note,
-    ];
-    if ($strictAudit) document_workflow_audit($pdo, $actor, 'stage_auto_advanced', $ctx);
-    else audit_log($actor, 'stage_auto_advanced', $ctx);
-    return $newStage;
 }
 
 // ---------------------------------------------------------------------

@@ -39,6 +39,7 @@ $profile_img = 'assets/images/default-avatar.svg';
         <header class="topbar">
             <div class="ierb-heading"><h1>IERB Progress</h1><p><?= $authUser['role'] === 'adviser' ? 'See where each student is in the ethics review process.' : 'Track every research group through the IERB stages.' ?></p></div>
             <div class="top-controls">
+                <?php if ($authUser['role'] === 'admin'): ?><button type="button" class="prism-btn is-secondary" id="manageIerbStages">Manage IERB Stages</button><?php endif; ?>
                 <button type="button" class="theme-toggle" id="themeToggle" title="Toggle light or dark theme" aria-label="Toggle light or dark theme"><i class="fa-solid fa-sun light-icon" aria-hidden="true"></i><i class="fa-solid fa-moon dark-icon" aria-hidden="true"></i></button>
             </div>
         </header>
@@ -72,7 +73,7 @@ $profile_img = 'assets/images/default-avatar.svg';
 <div class="ierb-modal" id="ierbEntryModal" aria-hidden="true">
     <div class="ierb-modal-dialog ierb-entry-dialog" role="dialog" aria-modal="true" aria-labelledby="ierbEntryTitle">
         <div class="ierb-modal-heading"><div><span>IERB monitoring record</span><h2 id="ierbEntryTitle">Add IERB Entry</h2></div><button type="button" id="closeIerbEntry" aria-label="Close"><i class="fa-solid fa-xmark"></i></button></div>
-        <form id="ierbEntryForm">
+        <form id="ierbEntryForm"><p class="prism-sub">New entries begin at Stage 1. Use the separate stage and status actions in Detailed Progress for official decisions.</p>
             <div class="ierb-entry-grid">
                 <div><label for="entryStudentName">Student name</label><input id="entryStudentName" maxlength="120" required></div>
                 <div><label for="entryStudentId">Student ID</label><input id="entryStudentId" maxlength="40" required></div>
@@ -90,11 +91,11 @@ $profile_img = 'assets/images/default-avatar.svg';
                     <button type="button" data-academic="reset" hidden>Keep existing academic values</button>
                 </fieldset>
                 <div><label for="entryGroupId">Research group</label><select id="entryGroupId" data-research-group required><option value="">Select academic information first</option></select></div>
-                <div><label for="entryStage">Current IERB stage</label><select id="entryStage"><option value="Stage 1">Stage 1</option><option value="Stage 2">Stage 2</option><option value="Stage 3">Stage 3</option><option value="Stage 4">Stage 4</option><option value="Stage 5">Stage 5</option><option value="Completed">Completed</option></select></div>
+                <div><label for="entryStage">Official IERB stage (read only)</label><select id="entryStage" disabled><option value="Stage 1">Stage 1</option><option value="Stage 2">Stage 2</option><option value="Stage 3">Stage 3</option><option value="Stage 4">Stage 4</option><option value="Stage 5">Stage 5</option><option value="Completed">Completed</option></select></div>
                 <div class="ierb-entry-wide"><label for="entryResearchTitle">Research title</label><input id="entryResearchTitle" maxlength="250" required></div>
                 <div><label for="entryRequirements">Pending requirements</label><input id="entryRequirements" maxlength="180" placeholder="e.g. Missing Ethics Consent Form"></div>
                 <div><label for="entrySubmissionDate">Latest submission date</label><input id="entrySubmissionDate" type="date"></div>
-                <div><label for="entryStatus">Delay status</label><select id="entryStatus"><option>On Track</option><option>Pending</option><option>Delayed</option></select></div>
+                <div><label for="entryStatus">Delay status</label><select id="entryStatus" disabled><option>On Track</option><option>Pending</option><option>Delayed</option></select></div>
             </div>
             <div class="ierb-modal-actions"><button type="button" class="ierb-secondary" id="cancelIerbEntry">Cancel</button><button type="submit" class="ierb-primary"><i class="fa-solid fa-floppy-disk"></i> Save entry</button></div>
         </form>

@@ -155,3 +155,15 @@ body.prism-workspace.student-page .progress-history-panel>p{margin:0 0 10px;colo
 body.prism-workspace.student-page .progress-history-panel .list-item{padding-bottom:16px}
 body.prism-workspace.student-page .progress-history-panel .list-item strong{font-size:12px}
 body.prism-workspace.student-page .progress-history-panel .list-item span{font-size:11px}
+
+/* Optional shared guidance occupies its own row without displacing the stage journey. */
+body.prism-workspace.student-page #currentStageGuidance { grid-column:1/-1; grid-row:2; }
+body.prism-workspace.student-page #currentStageGuidance .prism-stage-guidance { display:-webkit-box; -webkit-box-orient:vertical; -webkit-line-clamp:3; line-clamp:3; max-height:4.8em; overflow:hidden; }
+body.prism-workspace.student-page .portal-page[data-section=progress]:has(#currentStageGuidance)>.progress-summary { grid-row:1; }
+body.prism-workspace.student-page .portal-page[data-section=progress]:has(#currentStageGuidance)>.progress-journey { grid-row:3; }
+body.prism-workspace.student-page .portal-page[data-section=progress]:has(#currentStageGuidance) .requirement-panels>.panel:nth-child(1) { grid-row:4; }
+body.prism-workspace.student-page .portal-page[data-section=progress]:has(#currentStageGuidance) .requirement-panels>.panel:nth-child(2) { grid-row:5; }
+body.prism-workspace.student-page .portal-page[data-section=progress]:has(#currentStageGuidance)>article.progress-history-panel { grid-row:6; }
+@media(min-width:901px) {
+  body.prism-workspace.student-page .portal-page[data-section=progress]:has(#currentStageGuidance)>article.progress-history-panel { grid-row:4/span 2; }
+}

@@ -1,37 +1,23 @@
 <?php
-require __DIR__ . '/config.php';
-$user = api_require_login(['admin', 'adviser', 'student']);
-$pdo = db();
-$action = $_GET['action'] ?? $_POST['action'] ?? 'list';
-if ($action === 'save') {
+require __DIR__.'/config.php';
+require_once __DIR__.'/workflow.php';
+require_once __DIR__.'/includes/account_lifecycle.php';
+require_once __DIR__.'/includes/stage_configuration.php';
+$user=api_require_login(['admin','adviser','student']);
+$pdo=db();
+$action=$_GET['action']??'list';
+if ($action==='list') json_out(stage_configuration_list($pdo));
+if ($action==='save') {
     require_post_same_origin();
-}
-
-// Anyone logged in can READ the labels (they're shown throughout the UI),
-// but only RPMS admin can rename what each stage means office-wide.
-if ($action === 'list') {
-    json_out(['ok' => true, 'labels' => stage_labels_map(), 'order' => STAGE_SEQUENCE]);
-}
-
-if ($action === 'save') {
     api_require_login('admin');
-    $data = json_decode(file_get_contents('php://input'), true) ?: [];
-    $stageKey = trim((string)($data['stageKey'] ?? ''));
-    $label = trim((string)($data['label'] ?? ''));
-
-    if (!in_array($stageKey, STAGE_SEQUENCE, true)) {
-        json_out(['ok' => false, 'message' => 'Unknown stage key.'], 422);
+    $data=json_body();
+    try { json_out(stage_configuration_save($pdo,$user,$data)); }
+    catch (Throwable $e) {
+        if ($e instanceof AccountLifecycleConflict || $e instanceof AccountLifecycleForbidden || $e instanceof AccountLifecycleValidation) {
+            json_out(['ok'=>false,'message'=>$e->getMessage()],lifecycle_error_status($e));
+        }
+        log_api_error('stage_configuration',$e->getMessage());
+        json_out(['ok'=>false,'message'=>'The stage configuration could not be saved. Refresh to check its current values before retrying.'],500);
     }
-    if ($label === '' || mb_strlen($label) > 190) {
-        json_out(['ok' => false, 'message' => 'Label must be 1-190 characters.'], 422);
-    }
-
-    $pdo->prepare('INSERT INTO stage_labels (stage_key, label) VALUES (:k, :l)
-        ON DUPLICATE KEY UPDATE label = :l2')
-        ->execute([':k' => $stageKey, ':l' => $label, ':l2' => $label]);
-
-    log_activity($user['email'], 'stage_label_updated', "$stageKey => $label");
-    json_out(['ok' => true, 'labels' => stage_labels_map()]);
 }
-
-json_out(['ok' => false, 'message' => 'Unknown action.'], 400);
+json_out(['ok'=>false,'message'=>'Unknown action.'],400);

@@ -123,7 +123,7 @@ try {
 <div class="card">
 <i class="fa-solid fa-circle-check"></i>
 <h1 id="approvedEthicsMetric"><?php echo $approved_ethics; ?></h1>
-<p>IERB Approved</p>
+<p title="Official stage recorded by RPMS; document approval does not grant institutional ethics approval."><?= htmlspecialchars(stage_label('Completed'), ENT_QUOTES, 'UTF-8') ?></p>
 </div>
 <div class="card card-alert">
 <i class="fa-solid fa-triangle-exclamation"></i>
@@ -153,19 +153,19 @@ try {
 </div>
 <div class="pipeline-steps">
 <div class="step-item">
-<span>Initial Submission</span>
+<span><?= htmlspecialchars(stage_label('Stage 1'), ENT_QUOTES, 'UTF-8') ?></span>
 <strong id="initialStageCount">0 Groups</strong>
 </div>
 <div class="step-item">
-<span>Ethics Review</span>
+<span><?= htmlspecialchars(stage_label('Stage 2'), ENT_QUOTES, 'UTF-8') ?></span>
 <strong id="reviewStageCount">0 Groups</strong>
 </div>
 <div class="step-item delayed">
-<span>Revision Phase</span>
+<span><?= htmlspecialchars(stage_label('Stage 3') . ' / ' . stage_label('Stage 4'), ENT_QUOTES, 'UTF-8') ?></span>
 <strong id="revisionStageCount">0 Delayed</strong>
 </div>
 <div class="step-item approved">
-<span>Board Approved</span>
+<span><?= htmlspecialchars(stage_label('Completed'), ENT_QUOTES, 'UTF-8') ?></span>
 <strong id="approvedStageCount">0 Groups</strong>
 </div>
 </div>
@@ -433,7 +433,7 @@ function renderIerbMonitor() {
             <td>${escapeMonitorHtml(record.requirements || 'None')}</td>
             <td><div class="ierb-card-progress"><div><span>Overall progress</span><strong>${progress}%</strong></div><span class="ierb-progress-track" role="progressbar" aria-label="Overall progress" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${progress}"><span style="width:${progress}%"></span></span></div></td>
             <td>${PrismUI.badge(record.status || 'Pending')}</td>
-            <td><button class="icon-btn" data-monitor-action="remind" title="Send follow-up email"><i class="fa-solid fa-paper-plane"></i></button><a class="icon-btn" data-monitor-action="documents" href="documents.php" title="Open Documents" aria-label="Open Documents">Open Documents</a><button class="icon-btn prism-override-icon" data-monitor-action="override" title="Admin Override (always logged)" aria-label="Admin Override for ${escapeMonitorHtml(record.name)}"><i class="fa-solid fa-user-shield"></i></button></td>`;
+            <td><button class="icon-btn" data-monitor-action="remind" title="Send follow-up email"><i class="fa-solid fa-paper-plane"></i></button><a class="icon-btn" data-monitor-action="documents" href="documents.php" title="Open Documents" aria-label="Open Documents">Open Documents</a><button class="icon-btn prism-override-icon" data-monitor-action="override" title="Correct IERB Stage" aria-label="Correct IERB Stage for ${escapeMonitorHtml(record.name)}"><i class="fa-solid fa-user-shield"></i></button></td>`;
         row.querySelector('[data-monitor-action="remind"]').addEventListener('click', e => PrismUI.runAction(e.currentTarget,'Sending...',() => sendMonitorFollowup(record)));
         row.querySelector('[data-monitor-action="override"]').addEventListener('click', e => PrismUI.runAction(e.currentTarget,'Processing...',async () => { if (await PrismUI.overrideStudent(record)) { await loadMonitorStudents(); renderIerbMonitor(); } }));
         PrismUI.actionMenu(row.cells[7],{primary:row.querySelector('[data-monitor-action="documents"]')});

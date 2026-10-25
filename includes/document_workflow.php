@@ -178,10 +178,6 @@ function document_workflow_change(PDO $pdo, array $actor, string $id, string $op
             $after=document_workflow_state(array_replace($doc,['review_status'=>$status]));
             $audit['details'].='; review='.$doc['review_status'].' -> '.$status;
             document_workflow_audit($pdo,$live,'admin_override_document',$audit+['before'=>$before,'after'=>$after,'override'=>true]);
-            if ($status==='Approved' && STAGE_ADVANCE_TRIGGER==='approval') {
-                $advanced=advance_stage_for_document($pdo,$doc,$live,$doc['detected_approval_date']?:date('Y-m-d'),
-                    'after an authorized administrative document override (no institutional IERB approval implied)',true);
-            }
             $message='RPMS updated the status of "'.$doc['original_name'].'" (version '.$doc['version_no'].'). Open Documents for its official state. This does not grant IERB approval.';
             $ids=document_notice_atomic($pdo,$live,(int)$sid,'PRISM Document Status Update',$message,
                 'Admin Override on a document',$audit['details'].'; '.$before.' -> '.$after.'. Reason: '.$reason);
@@ -247,9 +243,7 @@ function document_formal_submission(PDO $pdo, array $actor, array $student, arra
     $pdo->prepare('UPDATE students SET last_submission_date=CURDATE(),updated_at=NOW() WHERE id=?')->execute([$student['id']]);
     record_history($pdo,(int)$student['id'],$student['stage'],$student['status'],
         ($resubmitted?'Formally resubmitted':'Formally submitted').' to RPMS: "'.$doc['original_name'].'" v'.$doc['version_no'].' ('.$doc['document_type'].', '.$doc['stage'].')'.($override?'; authorized Admin Override.':' after Adviser approval.'),date('Y-m-d'),$submitter);
-    $advanced=advance_stage_for_document($pdo,$doc,$actor,
-        STAGE_ADVANCE_TRIGGER==='approval'?($doc['detected_approval_date']?:date('Y-m-d')):date('Y-m-d'),
-        'after formal RPMS submission (workflow progress; no institutional IERB approval implied)',true);
+    $advanced=null; // Document submission never changes the official IERB stage.
     $message=$override?'RPMS formally submitted your document on your behalf.':'Your adviser approved and automatically formally submitted your document to RPMS. No additional submission action is required.';
     $message.=' "'.$doc['original_name'].'" (version '.$doc['version_no'].').';
     if (!$override && $audit['reason']!=='') $message.=' Remarks: '.$audit['reason'];

@@ -710,6 +710,9 @@ html.dark-theme body[data-role="adviser"] .ierb-page #ierbStatusPills.ierb-advis
 }
 
 /* U1: scoped accessibility correction. */
+.ierb-page .ierb-stage-review-warning { margin:8px 0; padding:10px; border:1px solid var(--prism-warning-bd); border-radius:var(--prism-radius-control); background:var(--prism-warning-bg); color:var(--prism-warning-fg); font-size:var(--prism-font-meta); line-height:1.5; white-space:normal; overflow-wrap:anywhere; }
+.ierb-page .top-controls { flex-wrap:wrap; }
+.ierb-page .stage-summary-label { overflow-wrap:anywhere; max-width:100%; }
 html.dark-theme body[data-role=adviser] .ierb-page .ierb-progress-card .prism-record-details>summary { color:#ffadd5; }
 
 /* Stage includes progress; status and file actions reflow as independent rows. */

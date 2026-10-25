@@ -310,6 +310,8 @@ if ($action === 'ai_report') {
     $lines = array_merge($lines, ai_stage_guide(), progress_report_tables($students, 'summary'), ['# Narrative', $narrative]);
     if ($mode === 'full') $lines = array_merge($lines, progress_case_detail_table($students));
 
+    $lines[] = 'Official IERB stages are recorded by RPMS Administrators. Document approval and submission do not grant institutional ethics approval.';
+
     $reportId = bin2hex(random_bytes(12));
     $filename = 'ai_v2_' . $reportId . '.pdf';
     if (file_put_contents(REPORTS_DIR . DIRECTORY_SEPARATOR . $filename, make_pdf($title, $lines), LOCK_EX) === false) {
@@ -460,7 +462,7 @@ if ($action === 'generate') {
         $lines = array_merge($lines, wrap_lines("Research group: " . ($s['research_group'] ?: 'N/A')));
         $lines = array_merge($lines, wrap_lines("Assigned adviser: " . ($s["adviser_name"] ?: "Unassigned")));
         $lines = array_merge($lines, wrap_lines("Research title: " . ($s['research_title'] ?: 'Not provided')));
-        $lines[] = "Current stage: {$s['stage']}   Status: {$s['status']}";
+        $lines = array_merge($lines, wrap_lines('Current stage: ' . stage_label($s['stage']) . ' (' . $s['stage'] . ')   Status: ' . $s['status']));
         $lines = array_merge($lines, wrap_lines('Pending requirements: ' . ($s['requirements'] ?: 'None')));
         $lines[] = 'Last submission date: ' . ($s['last_submission_date'] ?: 'N/A');
         $lines[] = '';
@@ -484,7 +486,7 @@ if ($action === 'generate') {
         $lines[] = 'Students included: ' . count($students);
         $lines[] = '';
         foreach ($students as $s) {
-            $lines = array_merge($lines, wrap_lines("{$s['full_name']} ({$s['student_id']}) - {$s['stage']} - {$s['status']}"));
+            $lines = array_merge($lines, wrap_lines($s['full_name'] . ' (' . $s['student_id'] . ') - ' . stage_label($s['stage']) . ' (' . $s['stage'] . ') - ' . $s['status']));
             $lines = array_merge($lines, wrap_lines('Research: ' . ($s['research_title'] ?: 'Not provided')));
             $lines = array_merge($lines, wrap_lines('Pending requirements: ' . ($s['requirements'] ?: 'None')));
             $lines[] = '';
@@ -495,6 +497,7 @@ if ($action === 'generate') {
     }
 
     $reportId = bin2hex(random_bytes(12));
+    $lines = array_merge($lines, ['', 'Official IERB stages are recorded by RPMS Administrators. Document approval and submission do not grant institutional ethics approval.'], ai_stage_guide());
     $filename = $reportId . '.pdf';
     if (file_put_contents(REPORTS_DIR . DIRECTORY_SEPARATOR . $filename, make_pdf($title, $lines), LOCK_EX) === false) {
         json_out(['ok' => false, 'message' => 'PDF could not be generated.'], 500);

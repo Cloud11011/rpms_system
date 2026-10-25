@@ -55,103 +55,10 @@ $user_email = $authUser['email'];
             <div id="aiHistory" class="admin-history"></div>
         </section>
 
-        <?php if (($_SESSION['account_type'] ?? '') === 'admin'): ?>
         <section class="management-card stage-label-card">
-            <div class="management-card-head"><div><h2>IERB Stage Labels</h2><p>Set the display name used for each IERB stage throughout PRISM.</p></div></div>
-            <div id="stageLabelEditor" class="stage-label-list"></div>
+            <div class="management-card-head"><div><h2>Manage IERB Stages</h2><p>Stage display names and optional guidance are maintained in IERB Progress.</p></div></div>
+            <a class="prism-btn is-secondary" href="ierbprog.php#manage-stages">Manage IERB Stages</a>
         </section>
-        <script>
-        document.addEventListener('DOMContentLoaded', function () {
-            const STAGE_ORDER = <?php echo json_encode(STAGE_SEQUENCE); ?>;
-            const container = document.getElementById('stageLabelEditor');
-
-            function renderMessage(message) {
-                container.replaceChildren();
-                const state = document.createElement('div');
-                state.className = 'workspace-empty-state';
-                const icon = document.createElement('i');
-                icon.className = 'fa-solid fa-triangle-exclamation';
-                icon.setAttribute('aria-hidden', 'true');
-                const text = document.createElement('span');
-                text.textContent = message;
-                state.append(icon, text);
-                container.appendChild(state);
-            }
-
-            function renderLabels(labels) {
-                container.replaceChildren();
-                STAGE_ORDER.forEach((key) => {
-                    const row = document.createElement('div');
-                    row.className = 'stage-label-row';
-
-                    const keyBlock = document.createElement('div');
-                    keyBlock.className = 'stage-key';
-                    const keyName = document.createElement('strong');
-                    keyName.textContent = key;
-                    const keyHelp = document.createElement('span');
-                    keyHelp.textContent = 'Stage key';
-                    keyBlock.append(keyName, keyHelp);
-
-                    const input = document.createElement('input');
-                    input.dataset.stage = key;
-                    input.maxLength = 190;
-                    input.value = labels[key] || key;
-                    input.setAttribute('aria-label', `Display label for ${key}`);
-
-                    const button = document.createElement('button');
-                    button.type = 'button';
-                    button.dataset.save = key;
-                    button.className = 'management-primary';
-                    button.innerHTML = '<i class="fa-solid fa-floppy-disk" aria-hidden="true"></i>'; button.title = 'Save label'; button.setAttribute('aria-label', 'Save label');
-
-                    row.append(keyBlock, input, button);
-                    container.appendChild(row);
-                });
-            }
-
-            async function load() {
-                try {
-                    const data = await PrismUI.request('stage_labels_api.php?action=list');
-                    renderLabels(data.labels || {});
-                } catch (error) {
-                    renderMessage(error.message || 'Could not load stage labels.');
-                }
-            }
-
-            container.addEventListener('click', async (event) => {
-                const button = event.target.closest('[data-save]');
-                if (!button || button.disabled) return;
-                const key = button.dataset.save;
-                const input = container.querySelector(`input[data-stage="${key}"]`);
-                if (!input) return;
-                const label = input.value.trim();
-                if (!label) {
-                    PrismUI.toast('Enter a display label for this stage.', 'error');
-                    input.focus();
-                    return;
-                }
-                button.disabled = true;
-                input.disabled = true;
-                button.textContent = 'Saving...';
-                button.setAttribute('aria-busy', 'true');
-                try {
-                    const data = await PrismUI.postJson('stage_labels_api.php?action=save', { stageKey: key, label });
-                    input.value = data.labels?.[key] || label;
-                    PrismUI.toast('Stage label saved.', 'success');
-                } catch (error) {
-                    PrismUI.toast(error.message, 'error');
-                } finally {
-                    button.disabled = false;
-                    input.disabled = false;
-                    button.innerHTML = '<i class="fa-solid fa-floppy-disk" aria-hidden="true"></i>'; button.title = 'Save label'; button.setAttribute('aria-label', 'Save label');
-                    button.setAttribute('aria-busy', 'false');
-                }
-            });
-
-            load();
-        });
-        </script>
-        <?php endif; ?>
     <?php require __DIR__ . '/includes/ceu_footer.php'; ?>
 </main>
 </div>

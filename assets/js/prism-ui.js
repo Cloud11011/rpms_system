@@ -174,8 +174,8 @@
   }
 
   // ------------------------------------------------------------------ dialogs
-  function modal(innerHtml) {
-    const previous = document.activeElement;
+  function modal(innerHtml, returnFocus = document.activeElement) {
+    const previous = returnFocus;
     const overlay = el('div', 'prism-overlay');
     const dlg = el('div', 'prism-dialog', innerHtml);
     dlg.setAttribute('role', 'dialog');
@@ -194,7 +194,7 @@
     function onKey(e) {
       if (e.key === 'Escape') { e.stopPropagation(); if (api.onCancel) api.onCancel(); close(); return; }
       if (e.key === 'Tab') {
-        const f = dlg.querySelectorAll('button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])');
+        const f = [...dlg.querySelectorAll('button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])')].filter(control => !control.disabled && control.tabIndex >= 0 && control.getClientRects().length);
         if (!f.length) return;
         const first = f[0], last = f[f.length - 1];
         if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }
@@ -317,33 +317,90 @@
     }
   }
 
-  /** Admin: change a student's stage and/or status. Reason is required and logged with name + time. */
-  async function overrideStudent(record) {
+  /** Explicit RPMS decision; document activity never advances official stages. */
+  async function changeStudentProgress(record, operation) {
     const labels = root.PRISM_STAGE_LABELS || {};
-    const stageOpts = STAGES.map(function (s) {
-      return '<option value="' + esc(s) + '"' + (s === record.stage ? ' selected' : '') + '>' + esc(labels[s] ? labels[s] + ' (' + s + ')' : s) + '</option>';
-    }).join('');
-    const statusOpts = ['On Track', 'Pending', 'Delayed'].map(function (s) {
-      return '<option' + (s === record.status ? ' selected' : '') + '>' + esc(s) + '</option>';
-    }).join('');
-    const res = await confirmDialog({
-      title: 'Admin Override', icon: 'fa-user-shield', tone: 'override', confirmText: 'Save override',
-      message: 'You are changing the official IERB progress of ' + record.name + '. This is saved with your name, the time and your reason. The student and adviser are notified.',
-      extraHtml: '<dl class="prism-override-context"><dt>Current official progress</dt><dd>'+esc(record.stage+' / '+record.status)+'</dd><dt>Research group / adviser</dt><dd>'+esc((record.group||'No group recorded')+' / '+(record.adviserName||record.adviser||'Unassigned'))+'</dd></dl><label for="prismOvStage">Proposed stage</label><select id="prismOvStage">' + stageOpts + '</select>' +
-        '<label for="prismOvStatus">Status</label><select id="prismOvStatus">' + statusOpts + '</select>',
-      reasonLabel: 'Reason for this override (required)', reasonRequired: true,
-      collect: function (d) { return { stage: d.querySelector('#prismOvStage').value, status: d.querySelector('#prismOvStatus').value }; },
-      validate: function (v) { return v.stage === record.stage && v.status === record.status ? 'Change the stage or the status first.' : null; }
+    const stageText = key => (labels[key] || key) + ' (' + key + ')';
+    const index = STAGES.indexOf(record.stage);
+    const next = STAGES[index + 1];
+    if (operation === 'advance' && (!next || index < 0)) { toast('Completed is the final stage; it cannot advance further.', 'info'); return false; }
+    const titles = {advance:'Advance to Next Stage',correct:'Correct IERB Stage',status:'Update Progress Status'};
+    let extra = '<dl class="prism-override-context"><dt>Student</dt><dd>' + esc(record.name) + '</dd><dt>Current official stage</dt><dd>' + esc(stageText(record.stage)) + '</dd><dt>Current progress status</dt><dd>' + esc(record.status) + '</dd>';
+    if (operation === 'advance') extra += '<dt>Proposed official stage</dt><dd>' + esc(stageText(next)) + '</dd>';
+    extra += '</dl>';
+    if (operation === 'correct') extra += '<label for="prismOvStage">Corrected official stage</label><select id="prismOvStage">' + STAGES.map(key => '<option value="' + esc(key) + '"' + (key === record.stage ? ' selected' : '') + '>' + esc(stageText(key)) + '</option>').join('') + '</select>';
+    extra += '<label for="prismOvStatus">' + (operation === 'status' ? 'Proposed progress status' : 'Progress status (optional change)') + '</label><select id="prismOvStatus">' + (operation === 'status' ? '' : '<option value="">Keep ' + esc(record.status) + '</option>') + ['On Track','Pending','Delayed'].map(status => '<option' + (operation === 'status' && status === record.status ? ' selected' : '') + '>' + esc(status) + '</option>').join('') + '</select>';
+    const answer = await confirmDialog({
+      dialogClass:'prism-progress-decision', title: titles[operation], icon: operation === 'advance' ? 'fa-arrow-right' : 'fa-user-shield', tone: operation === 'correct' ? 'override' : 'primary',
+      confirmText: operation === 'advance' ? 'Confirm advancement' : operation === 'correct' ? 'Confirm correction' : 'Confirm status update',
+      message: operation === 'correct' ? 'Use a correction for exceptional backward or nonsequential movement. Your identity, time and reason are recorded, and the student and adviser are notified.' : 'RPMS decides readiness. This decision is recorded with your identity, time and reason. Documents and individual requirements do not automatically advance or block the official stage.',
+      extraHtml: extra, reasonLabel: 'Reason for this decision (required)', reasonRequired: true, maxReason: 500,
+      collect: dialog => ({stage:dialog.querySelector('#prismOvStage')?.value,status:dialog.querySelector('#prismOvStatus').value}),
+      validate: values => operation === 'correct' && values.stage === record.stage ? 'Choose a different stage for a correction.' : operation === 'status' && values.status === record.status ? 'Choose a different progress status.' : null
     });
-    if (!res) return false;
+    if (!answer) return false;
+    const payload = {id:record.id,reason:answer.reason,confirmed:true,expectedStage:record.stage,expectedStatus:record.status,expectedVersion:String(record.progressVersion)};
+    if (operation === 'correct') payload.stage = answer.values.stage;
+    if (answer.values.status) payload.status = answer.values.status;
     try {
-      const data = await postJson('ierb_api.php?action=override', { id: record.id, stage: res.values.stage, status: res.values.status, reason: res.reason, expectedStage:record.stage, expectedStatus:record.status });
-      toast(data.message, 'success');
-      return true;
-    } catch (e) {
-      toast(e.message, 'error');
-      return false;
+      const data = await postJson('ierb_api.php?action=' + operation, payload);
+      toast(data.message, 'success'); return true;
+    } catch (error) { toast(error.message, 'error'); return false; }
+  }
+
+  async function overrideStudent(record) { return changeStudentProgress(record, 'correct'); }
+
+  /** Always render content as text. The endpoint is the only persistent source. */
+  async function showStageGuidance(stageKey) {
+    const m = modal('<h3 id="prismGuidanceTitle">Guidance from RPMS</h3><div class="prism-stage-guidance" role="status">Loading guidance...</div><p>This guidance is informational. RPMS determines when your official IERB stage may advance.</p><div class="prism-dialog-actions"><button type="button" class="prism-btn is-secondary" data-close-guidance>Close</button></div>');
+    m.dialog.classList.add('prism-stage-guidance-dialog');
+    m.dialog.setAttribute('aria-labelledby','prismGuidanceTitle');
+    const close = m.dialog.querySelector('[data-close-guidance]'); close.addEventListener('click',m.close); close.focus();
+    try {
+      const data = await request('stage_labels_api.php?action=list');
+      if (!m.dialog.isConnected) return;
+      const stage = data.stages.find(item => item.key === stageKey);
+      m.dialog.querySelector('h3').textContent = 'Guidance from RPMS - ' + (stage?.label || stageKey);
+      m.dialog.querySelector('.prism-stage-guidance').textContent = !data.guidanceAvailable ? 'Stage guidance is currently unavailable. Contact RPMS for guidance.' : stage?.guidance || 'No guidance has been added for this stage. Contact RPMS if you need help.';
+    } catch (error) { if (m.dialog.isConnected) m.dialog.querySelector('.prism-stage-guidance').textContent = error.message; }
+  }
+
+  async function manageStages(onSaved, returnFocus = document.activeElement) {
+    let data;
+    try { data = await request('stage_labels_api.php?action=list'); }
+    catch (error) { toast(error.message,'error'); return; }
+    const m = modal('<h3 id="prismManageStagesTitle">Manage IERB Stages</h3><p>Edit office-wide display names and optional guidance. Internal keys and ordering stay fixed. Saving here does not change official student progress.</p><form><label for="prismStageKey">Fixed stage key</label><select id="prismStageKey">' + data.stages.map(stage => '<option>' + esc(stage.key) + '</option>').join('') + '</select><label for="prismStageName">Display name</label><input id="prismStageName" maxlength="190" required><label for="prismStageGuidance">Guidance from RPMS (optional)</label><textarea id="prismStageGuidance" rows="6" maxlength="4000" aria-describedby="prismStageGuidanceHelp"></textarea><p id="prismStageGuidanceHelp">Plain text, up to 4,000 characters. Students and Advisers can read this guidance. Clear it to remove guidance for this stage.</p><div class="prism-field-error" role="status" aria-live="polite"></div><div class="prism-dialog-actions"><button type="button" class="prism-btn is-secondary" data-close-stages>Close</button><button type="submit" class="prism-btn is-primary">Save stage</button></div></form>', returnFocus);
+    m.dialog.classList.add('prism-stage-management');
+    m.dialog.setAttribute('aria-labelledby','prismManageStagesTitle');
+    const form=m.dialog.querySelector('form'), key=m.dialog.querySelector('select'), name=m.dialog.querySelector('input'), guidance=m.dialog.querySelector('textarea'), feedback=m.dialog.querySelector('.prism-field-error'), save=form.querySelector('[type=submit]');
+    let selected, saving=false;
+    function populate() {
+      selected = data.stages.find(stage => stage.key === key.value);
+      name.value = selected.label; guidance.value = selected.guidance || ''; feedback.textContent = '';
+      guidance.disabled = !data.guidanceAvailable;
+      if (!data.guidanceAvailable) feedback.textContent = 'Guidance saving is unavailable until the authorized stage-guidance migration is applied. Display names can still be saved.';
     }
+    const dirty=dirtyForm(form), originalClose=m.close;
+    m.close=()=>{if(saving)return;dirty.clean();dirty.dispose();originalClose();};
+    m.onCancel=()=>{ if(saving)return; dirty.clean();dirty.dispose(); };
+    key.addEventListener('change',()=>{populate();dirty.clean();});
+    m.dialog.querySelector('[data-close-stages]').addEventListener('click',()=>m.close());
+    form.addEventListener('submit',async event=>{
+      event.preventDefault();
+      const release=busy(save,'Saving...'); if(!release)return;
+      saving=true; key.disabled=true; name.disabled=true; guidance.disabled=true; feedback.textContent='Saving stage configuration...';
+      const payload={stageKey:selected.key,label:name.value.trim(),expectedVersion:selected.version};
+      if(data.guidanceAvailable)payload.guidance=guidance.value;
+      try {
+        data=await postJson('stage_labels_api.php?action=save',payload);
+        if (!m.dialog.isConnected) return;
+        Object.assign(root.PRISM_STAGE_LABELS || (root.PRISM_STAGE_LABELS={}),data.labels);
+        name.disabled=false; guidance.disabled=!data.guidanceAvailable; populate(); dirty.clean(); feedback.textContent=data.message;
+        toast(data.message,'success'); if(onSaved)await onSaved(data);
+      } catch(error) { if(m.dialog.isConnected)feedback.textContent=error.message; toast(error.message,'error'); }
+      finally { saving=false;key.disabled=false;name.disabled=false;guidance.disabled=!data.guidanceAvailable;release(); }
+    });
+    populate();dirty.clean();key.focus();
   }
 
   /** Admin: change a document's review status. Reason is required and logged. */
@@ -352,7 +409,7 @@
     const opts = statuses.map(function (s) { return '<option' + (s === doc.reviewStatus ? ' selected' : '') + '>' + esc(s) + '</option>'; }).join('');
     const res = await confirmDialog({
       title: 'Admin Override', icon: 'fa-user-shield', tone: 'override', confirmText: 'Save override',
-      message: 'You are overriding the adviser review of \u201c' + doc.originalName + '\u201d. The student and assigned adviser are notified. This does not itself formally submit the file to RPMS; existing RPMS progression rules still apply.',
+      message: 'You are overriding the adviser review of \u201c' + doc.originalName + '\u201d. The student and assigned adviser are notified. This does not itself formally submit the file to RPMS. The official IERB stage remains unchanged.',
       extraHtml: '<dl class="prism-override-context"><dt>Student / document version</dt><dd>'+esc((doc.student||doc.studentName||'Student not recorded')+' / v'+(doc.versionNo||1))+'</dd><dt>Document type / official stage</dt><dd>'+esc((doc.documentType||'Not recorded')+' / '+(doc.stageLabel||doc.stage||'Not recorded'))+'</dd><dt>Current review / workflow</dt><dd>'+esc(doc.reviewStatus+' / '+(doc.workflowState||doc.reviewStatus))+'</dd><dt>Prior feedback</dt><dd>'+esc(doc.reviewRemarks||'No feedback recorded')+'</dd></dl><label for="prismOvDoc">Proposed review status</label><select id="prismOvDoc">' + opts + '</select>',
       reasonLabel: 'Reason for this override (required)', reasonRequired: true,
       collect: function (d) { return { status: d.querySelector('#prismOvDoc').value }; },
@@ -1150,7 +1207,7 @@
     const unit=root.PRISM_ACADEMIC_CATALOG?.units?.[record.academicUnitKey]?.label||record.academicUnitKey;
     list.replaceChildren(...[['Student ID',record.studentId],['Program',record.course],['Research Title',record.research],['Research group',record.groupId||record.group],['Academic Unit',unit],['Year Level',record.yearLevel],['Academic Year',record.academicYear],['Principal Investigator',record.isPrincipalInvestigator==null?'Not recorded':record.isPrincipalInvestigator?'Yes':'No']].map(([label,value])=>recordField(label,value)));
     // This is the distinct stage journey, not a second Overall Progress metric.
-    if(stages.length){const sequence=document.createElement('div'),label=document.createElement('span'),steps=document.createElement('ol');sequence.className='ierb-stage-sequence';label.className='ierb-field-label';label.textContent='IERB stage sequence';steps.setAttribute('aria-label','IERB stage sequence');const current=stages.indexOf(record.stage);stages.forEach((name,index)=>{const step=document.createElement('li');step.textContent=name;if(index===current)step.setAttribute('aria-current','step');if(current>=0&&index<=current)step.className='is-complete';steps.append(step);});sequence.append(label,steps);details.append(sequence);}
+    if(stages.length){const sequence=document.createElement('div'),label=document.createElement('span'),steps=document.createElement('ol');sequence.className='ierb-stage-sequence';label.className='ierb-field-label';label.textContent='IERB stage sequence';steps.setAttribute('aria-label','IERB stage sequence');const current=stages.indexOf(record.stage);stages.forEach((name,index)=>{const step=document.createElement('li');step.textContent=(root.PRISM_STAGE_LABELS||{})[name]||name;step.title=name;if(index===current)step.setAttribute('aria-current','step');if(current>=0&&index<=current)step.className='is-complete';steps.append(step);});sequence.append(label,steps);details.append(sequence);}
     return card;
   }
 
@@ -1243,7 +1300,7 @@
     documentTypes: DOCUMENT_TYPES, actionMenu: actionMenu, compactRecord: compactRecord, statusPills: statusPills,
     actionOrigin: control => control?.closest('.prism-action-menu')?.querySelector('.prism-action-trigger') || control,
     confirm: confirmDialog, request: request, handleSessionExpiry: handleSessionExpiry, debounce: debounce, recordFilters: recordFilters, filtersDisclosure: filtersDisclosure, postJson: postJson, esc: esc, pagination: pagination, pageSizeControl: pageSizeControl, clientPager: clientPager, menuDisclosure: menuDisclosure, paginationWindow: paginationWindow, busy: busy, runAction: runAction, dirtyForm: dirtyForm, recordPager: recordPager, clearFilters: clearFilters,
-    submitToRpms: submitToRpms, uploadRevision: uploadRevision, overrideStudent: overrideStudent, overrideDocument: overrideDocument, showVersions: showVersions,
+    changeStudentProgress: changeStudentProgress, manageStages: manageStages, showStageGuidance: showStageGuidance, submitToRpms: submitToRpms, uploadRevision: uploadRevision, overrideStudent: overrideStudent, overrideDocument: overrideDocument, showVersions: showVersions,
     enhanceTable: enhanceTable, tableFilter: tableFilter, hint: hint,
     mountStudentWorkflow: mountStudentWorkflow, mountNeedsAttention: mountNeedsAttention, init: init,
     BADGES: BADGES

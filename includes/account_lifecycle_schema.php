@@ -25,9 +25,16 @@ function lifecycle_schema_inventory(PDO $pdo): array
     return $result;
 }
 
-function lifecycle_manifest_hash(): string
+function lifecycle_manifest_file(?PDO $pdo = null): string
 {
-    return hash_file('sha256',defined('PRISM_LIFECYCLE_MANIFEST_FILE') ? PRISM_LIFECYCLE_MANIFEST_FILE : __DIR__.'/account_lifecycle_schema.json');
+    if (defined('PRISM_LIFECYCLE_MANIFEST_FILE')) return PRISM_LIFECYCLE_MANIFEST_FILE;
+    $version=$pdo?(string)$pdo->query("SELECT v FROM schema_meta WHERE k='schema_version'")->fetchColumn():'10';
+    return __DIR__.($version==='11'?'/account_lifecycle_schema_v11.json':'/account_lifecycle_schema.json');
+}
+
+function lifecycle_manifest_hash(?PDO $pdo = null): string
+{
+    return hash_file('sha256',lifecycle_manifest_file($pdo));
 }
 
 function lifecycle_database_binding(PDO $pdo): array
@@ -38,11 +45,16 @@ function lifecycle_database_binding(PDO $pdo): array
 
 function lifecycle_compare_schema(PDO $pdo): void
 {
-    $expected=json_decode(file_get_contents(defined('PRISM_LIFECYCLE_MANIFEST_FILE') ? PRISM_LIFECYCLE_MANIFEST_FILE : __DIR__.'/account_lifecycle_schema.json'),true,512,JSON_THROW_ON_ERROR);
+    $expected=json_decode(file_get_contents(lifecycle_manifest_file($pdo)),true,512,JSON_THROW_ON_ERROR);
     $actual=lifecycle_schema_inventory($pdo);
     foreach($expected as $key=>$value) if($key==='schema_version' ? ($actual[$key]??null)!==$value :
         json_encode($actual[$key]??null,JSON_NUMERIC_CHECK)!==json_encode($value,JSON_NUMERIC_CHECK)) {
         throw new AccountLifecycleConflict('Permanent deletion is unavailable: database '.$key.' differ from the reviewed manifest. Retain the account using Archive.');
+    }
+    if ($actual['schema_version']==='11') {
+        require_once __DIR__.'/schema_v11.php';
+        try { schema_v11_verify($pdo); }
+        catch (RuntimeException $e) { throw new AccountLifecycleConflict('Permanent deletion is unavailable: v11 guidance constraints differ. Retain the account using Archive.',0,$e); }
     }
     if ($actual['schema_version']==='10') {
         require_once __DIR__.'/schema_v10.php';
@@ -125,13 +137,14 @@ function lifecycle_verification_key(): string
 }
 
 /** Bind the verifier implementation and, for v10, its additional frozen constraint checks. */
-function lifecycle_verification_contract_hash(): string
+function lifecycle_verification_contract_hash(?PDO $pdo = null): string
 {
     $files=[__FILE__];
-    $manifest=json_decode(file_get_contents(defined('PRISM_LIFECYCLE_MANIFEST_FILE')?PRISM_LIFECYCLE_MANIFEST_FILE:__DIR__.'/account_lifecycle_schema.json'),true,512,JSON_THROW_ON_ERROR);
-    if(($manifest['schema_version']??null)==='10') {
+    $manifest=json_decode(file_get_contents(lifecycle_manifest_file($pdo)),true,512,JSON_THROW_ON_ERROR);
+    if(in_array($manifest['schema_version']??null,['10','11'],true)) {
         $files[]=__DIR__.'/schema_v10.php'; $files[]=__DIR__.'/schema_v10_plan.json';
     }
+    if (($manifest['schema_version']??null)==='11') $files[]=__DIR__.'/schema_v11.php';
     $hashes=[];
     foreach($files as $file) {
         $hash=hash_file('sha256',$file);
@@ -153,8 +166,8 @@ function lifecycle_verification_evidence(PDO $pdo, string $mode): array
     if((int)$pdo->query('SELECT @@SESSION.foreign_key_checks')->fetchColumn()!==1) {
         throw new AccountLifecycleConflict('Verification requires database foreign-key enforcement.');
     }
-    return ['evidence_version'=>3,'validity_policy'=>'deployment_invariants','verification_mode'=>$mode,'manifest_sha256'=>lifecycle_manifest_hash(),
-        'verification_contract_sha256'=>lifecycle_verification_contract_hash(),
+    return ['evidence_version'=>3,'validity_policy'=>'deployment_invariants','verification_mode'=>$mode,'manifest_sha256'=>lifecycle_manifest_hash($pdo),
+        'verification_contract_sha256'=>lifecycle_verification_contract_hash($pdo),
         'database'=>lifecycle_database_binding($pdo),'schema_changes_excluded'=>true,
         'issued_at'=>time()];
 }
@@ -213,9 +226,9 @@ function lifecycle_validate_verification(PDO $pdo): void
         || !is_int($verification['issued_at']??null) || $verification['issued_at']<1
         || ($verification['schema_changes_excluded']??false)!==true
         || !is_string($verification['manifest_sha256']??null)
-        || !hash_equals(lifecycle_manifest_hash(),$verification['manifest_sha256'])
+        || !hash_equals(lifecycle_manifest_hash($pdo),$verification['manifest_sha256'])
         || !is_string($verification['verification_contract_sha256']??null)
-        || !hash_equals(lifecycle_verification_contract_hash(),$verification['verification_contract_sha256'])
+        || !hash_equals(lifecycle_verification_contract_hash($pdo),$verification['verification_contract_sha256'])
         || ($verification['database']??null)!==lifecycle_database_binding($pdo)) {
         throw new AccountLifecycleConflict('Permanent deletion is disabled: valid deployment-bound schema verification is required. Retain the account using Archive.');
     }

@@ -194,8 +194,10 @@ function migrate(PDO $pdo): void
     $stored = $hasMeta
         ? $pdo->query("SELECT v FROM schema_meta WHERE k = 'schema_version'")->fetchColumn()
         : false;
+    // V11 is opt-in through the separate CLI runner; requests never apply its DDL.
+    if ((string)$stored === '11') return;
     if ($stored !== false && (int)$stored >= SCHEMA_VERSION) {
-        if ((int)$stored > SCHEMA_VERSION) throw new RuntimeException('This deployment supports the frozen v10 contract only.');
+        if ((int)$stored > SCHEMA_VERSION) throw new RuntimeException('This deployment supports schema v10 and the authorized v11 guidance extension only.');
         return;
     }
     // Keep the existing explicitly authorized v6 command compatible; v7 needs its own opt-in.
@@ -1411,10 +1413,10 @@ function next_stage(string $currentStage): string
 }
 
 /** All configured stage labels as [stage_key => label], with a safe fallback to the key itself. */
-function stage_labels_map(): array
+function stage_labels_map(bool $refresh = false): array
 {
     static $cached = null;
-    if ($cached !== null) {
+    if (!$refresh && $cached !== null) {
         return $cached;
     }
     $cached = [];

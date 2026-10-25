@@ -5,6 +5,7 @@ require_once __DIR__ . '/includes/pagination.php';
 require_once __DIR__ . '/includes/csv_export.php';
 require_once __DIR__ . '/includes/record_filters.php';
 require_once __DIR__ . '/workflow.php';
+require_once __DIR__ . '/includes/ierb_progress.php';
 require_once __DIR__ . '/includes/account_lifecycle.php';
 require_once __DIR__ . '/includes/academic_catalog.php';
 require_once __DIR__ . '/includes/research_groups.php';
@@ -12,7 +13,7 @@ require_once __DIR__ . '/includes/research_groups.php';
 $user = api_require_login(['admin', 'adviser', 'student']);
 $pdo = db();
 $action = $_GET['action'] ?? 'list';
-if (in_array($action, ['override', 'save', 'note', 'delete'], true)) {
+if (in_array($action, ['advance', 'correct', 'status', 'override', 'save', 'note', 'delete'], true)) {
     require_post_same_origin();
 }
 
@@ -27,7 +28,7 @@ function adviser_may_access_student(PDO $pdo, array $user, int $studentId): bool
     return (bool)$q->fetchColumn();
 }
 
-function ierb_row(array $r, array $docCounts = []): array
+function ierb_row(array $r, array $docCounts = [], array $earlierReturns = []): array
 {
     return [
         'id' => (int)$r['id'],
@@ -41,6 +42,8 @@ function ierb_row(array $r, array $docCounts = []): array
         'yearLevel' => $r['year_level'] ?? null,
         'academicYear' => $r['academic_year'] ?? null,
         'research' => $r['research_title'],
+        'progressVersion' => (string)($r['progress_version'] ?? '0'),
+        'earlierStageReturns' => $earlierReturns[(int)$r['id']] ?? [],
         'stage' => $r['stage'],
         'stageLabel' => stage_label($r['stage']),
         'status' => $r['status'],
@@ -102,10 +105,11 @@ if ($action === 'list') {
         foreach ($dashboardStages[$dashboardStage] as $i=>$stage) { $key=':dashboardStage'.$i; $keys[]=$key; $params[$key]=$stage; }
         $scope .= ' AND s.stage IN ('.implode(',',$keys).')';
     }
-    $page = prism_page_query($pdo, 'SELECT s.*, f.full_name AS adviser_name', $scope, $params, $order, $_GET);
+    $page = prism_page_query($pdo, 'SELECT s.*, f.full_name AS adviser_name, (SELECT COALESCE(MAX(h.id),0) FROM ierb_history h WHERE h.student_id=s.id) AS progress_version', $scope, $params, $order, $_GET);
     $rows = $page['rows']; unset($page['rows']);
     $counts = student_document_counts($pdo, array_column($rows, 'id'));
-    json_out(['ok' => true, 'records' => array_map(fn($r) => ierb_row($r, $counts), $rows), 'overview' => $overview, 'courses' => $courseOptions, 'filterOptions'=>$filterOptions] + $page);
+    $earlierReturns = ierb_earlier_stage_returns($pdo, $rows);
+    json_out(['ok' => true, 'records' => array_map(fn($r) => ierb_row($r, $counts, $earlierReturns), $rows), 'overview' => $overview, 'courses' => $courseOptions, 'filterOptions'=>$filterOptions] + $page);
 }
 
 if ($action === 'history') {
@@ -226,76 +230,20 @@ if ($action === 'export_csv') {
 // Everything below is RPMS-only (or the assigned research adviser, read/annotate only).
 $data = json_body();
 
-// ---------------------------------------------------------------------
-// override (admin only): change a student's stage and/or status, always with a logged reason
-// ---------------------------------------------------------------------
-if ($action === 'override') {
+// Explicit stage/status decisions share one transactional, reasoned RPMS gate.
+if (in_array($action,['advance','correct','status','override'],true)) {
     api_require_login('admin');
-    foreach (['reason','stage','status'] as $field) {
-        if (isset($data[$field]) && !is_string($data[$field])) json_out(['ok'=>false,'message'=>'Invalid override input.'],422);
-    }
-    $id = (int)($data['id'] ?? 0);
-    $newStage = trim((string)($data['stage'] ?? ''));
-    $newStatus = trim((string)($data['status'] ?? ''));
-    $reason = trim((string)($data['reason'] ?? ''));
-
-    $cur = student_with_adviser($pdo, $id);
-    if (!$cur) {
-        json_out(['ok' => false, 'message' => 'Student record not found.'], 404);
-    }
-    $newStage = $newStage !== '' ? $newStage : $cur['stage'];
-    $newStatus = $newStatus !== '' ? $newStatus : $cur['status'];
-    if (!in_array($newStage, STAGE_SEQUENCE, true)) {
-        json_out(['ok' => false, 'message' => 'Invalid IERB stage.'], 422);
-    }
-    if (!in_array($newStatus, ['On Track', 'Pending', 'Delayed'], true)) {
-        json_out(['ok' => false, 'message' => 'Invalid status.'], 422);
-    }
-    if ($newStage === $cur['stage'] && $newStatus === $cur['status']) {
-        json_out(['ok' => false, 'message' => 'Nothing to override: the stage and status already have those values.'], 422);
-    }
-    if (!override_reason_valid($reason)) {
-        json_out(['ok' => false, 'requiresReason' => true, 'message' => override_reason_message()], 422);
-    }
-
-    $change = describe_progress_change($cur, $newStage, $newStatus);
     try {
-        $pdo->beginTransaction();
-        $locked=$pdo->prepare('SELECT * FROM students WHERE id=? FOR UPDATE');$locked->execute([$id]);
-        $live=$locked->fetch();
-        if(!$live)throw new AccountLifecycleNotFound('Student record not found.');
-        current_workflow_student($pdo,$id,$user);
-        if ($live['stage']!==$cur['stage'] || $live['status']!==$cur['status']
-            || (isset($data['expectedStage']) && $data['expectedStage']!==$live['stage'])
-            || (isset($data['expectedStatus']) && $data['expectedStatus']!==$live['status'])) {
-            throw new AccountLifecycleConflict('This progress record changed. Refresh and review its current stage and status before retrying.');
-        }
-        purge_require_no_pending($pdo,'student',$id);
-        $pdo->prepare('UPDATE students SET stage = :stage, status = :status, updated_at = NOW() WHERE id = :id')
-            ->execute([':stage' => $newStage, ':status' => $newStatus, ':id' => $id]);
-        record_history($pdo, $id, $newStage, $newStatus, 'ADMIN OVERRIDE - ' . $change . '. Reason: ' . $reason,
-            null, document_attribution($user['full_name'],' (Admin Override)'));
-        audit_override_atomic($pdo, $user, 'admin_override_student_progress', [
-            'entity_type' => 'student', 'entity_id' => $id, 'student_id' => $id, 'override' => true, 'reason' => $reason,
-            'before' => $cur['stage'] . ' / ' . $cur['status'], 'after' => $newStage . ' / ' . $newStatus, 'details' => $change,
-        ]);
-        $notificationIds=workflow_queue_notices($pdo,$user,$id,
-            ['subject'=>'PRISM IERB Progress Updated','message'=>"RPMS updated your IERB record. Current stage: " . stage_label($newStage) . " ($newStage). Status: $newStatus."],
-            ['subject'=>'Admin Override on a student record','message'=>"{$user['full_name']} updated {$cur['full_name']}'s IERB record. $change. Reason: $reason",'type'=>'Admin Override']);
-        $pdo->commit();
-        research_group_release($pdo);
+        // Legacy override callers receive the same correction safeguards; there is no bypass.
+        json_out(ierb_progress_decide($pdo,$user,$action==='override'?'correct':$action,$data));
     } catch (Throwable $e) {
-        if ($pdo->inTransaction()) {
-            $pdo->rollBack();
+        if ($e instanceof AccountLifecycleConflict || $e instanceof AccountLifecycleForbidden
+            || $e instanceof AccountLifecycleValidation || $e instanceof AccountLifecycleNotFound) {
+            json_out(['ok'=>false,'message'=>$e->getMessage()],lifecycle_error_status($e));
         }
-        log_api_error('ierb_override', $e->getMessage());
-        if($e instanceof AccountLifecycleConflict || $e instanceof AccountLifecycleForbidden || $e instanceof AccountLifecycleNotFound)json_out(['ok'=>false,'message'=>$e->getMessage()],lifecycle_error_status($e));
-        json_out(['ok' => false, 'message' => 'The override could not be saved. Refresh to check the current state before retrying.'], 500);
+        log_api_error('ierb_decision',$e->getMessage());
+        json_out(['ok'=>false,'message'=>'The progress decision could not be saved. Refresh to check the current state before retrying.'],500);
     }
-
-    document_workflow_deliver($pdo,$notificationIds);
-
-    json_out(['ok' => true, 'message' => "Admin Override saved for {$cur['full_name']}. Your name, the time and your reason were added to the audit log."]);
 }
 
 // ---------------------------------------------------------------------
@@ -303,6 +251,7 @@ if ($action === 'override') {
 // ---------------------------------------------------------------------
 if ($action === 'save') {
     api_require_login('admin');
+    foreach (['stage','status'] as $field) if (isset($data[$field]) && !is_string($data[$field])) json_out(['ok'=>false,'message'=>'Invalid progress value.'],422);
     if (isset($data['reason']) && !is_string($data['reason'])) json_out(['ok'=>false,'message'=>'Invalid progress change reason.'],422);
     $id = (int)($data['id'] ?? 0);
     $studentIdCode = trim((string)($data['studentId'] ?? ''));
@@ -352,6 +301,8 @@ if ($action === 'save') {
     try {
         $pdo->beginTransaction();
         if ($id===0) {
+            current_workflow_actor($pdo,$user);
+            if ($stage!=='Stage 1') throw new AccountLifecycleValidation('New records begin at Stage 1. Use a reasoned IERB correction after creation if needed.');
             onboarding_email_available($pdo,$email);
             onboarding_id_available($pdo,$studentIdCode,'student',0,0);
         }
@@ -365,6 +316,11 @@ if ($action === 'save') {
             }
             if (array_key_exists('profile_completed_at',$oldRow) && $oldRow['profile_completed_at']===null) throw new AccountLifecycleConflict('Pending identities must complete secure onboarding before record editing.');
             current_workflow_student($pdo,$id,$user);
+            $stage=$data['stage']??$oldRow['stage'];
+            $status=$data['status']??$oldRow['status'];
+            if ($stage!==$oldRow['stage'] || $status!==$oldRow['status']) {
+                throw new AccountLifecycleValidation('Use Advance to Next Stage, Correct IERB Stage or Update Progress Status in IERB Progress. Record editing cannot change official progress.');
+            }
             purge_require_no_pending($pdo,'student',$id);
             $identityBefore=lifecycle_identity_capture($pdo,$oldRow,'student');
             try {
@@ -386,12 +342,12 @@ if ($action === 'save') {
             }
             $pdo->prepare('UPDATE students SET student_id=:sid, full_name=:name, email=:email,
                 research_group=:grp, course=:course, academic_unit_key=:academic_unit, program_key=:program,
-                year_level=:year_level, academic_year=:academic_year, research_title=:research, stage=:stage, status=:status,
+                year_level=:year_level, academic_year=:academic_year, research_title=:research,
                 requirements=:req, last_submission_date=:sub, updated_at=NOW() WHERE id=:id')
                 ->execute([':sid' => $studentIdCode, ':name' => $name, ':email' => $email, ':grp' => $groupId,
                     ':course' => $academic['course'],
                     ':academic_unit' => $academic['academic_unit_key'], ':program' => $academic['program_key'],
-                    ':year_level' => $academic['year_level'], ':academic_year' => $academic['academic_year'], ':research' => $research, ':stage' => $stage, ':status' => $status,
+                    ':year_level' => $academic['year_level'], ':academic_year' => $academic['academic_year'], ':research' => $research,
                     ':req' => $requirements, ':sub' => $submissionDate, ':id' => $id]);
             sync_student_login_identity($pdo, $previousEmail, $studentIdCode, $name, $email);
         } else {
@@ -480,7 +436,7 @@ if ($action === 'save') {
             $pdo->rollBack();
         }
         research_group_release($pdo);
-        if ($e instanceof AccountLifecycleConflict || $e instanceof AccountLifecycleForbidden) json_out(['ok'=>false,'message'=>$e->getMessage()],lifecycle_error_status($e));
+        if ($e instanceof AccountLifecycleConflict || $e instanceof AccountLifecycleForbidden || $e instanceof AccountLifecycleValidation) json_out(['ok'=>false,'message'=>$e->getMessage()],lifecycle_error_status($e));
         if ($e instanceof PDOException && (int)($e->errorInfo[1] ?? 0) === 1062) {
             json_out(['ok' => false, 'message' => 'That student ID or email is already in use.'], 422);
         }

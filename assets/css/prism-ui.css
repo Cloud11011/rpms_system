@@ -4,6 +4,24 @@
 
 /* Shared tokens: prism-tokens.css. Shared buttons: prism-components.css. */
 
+/* Stage configuration reuses the shared dialog, tokens and form geometry. */
+body.prism-workspace .prism-overlay .prism-dialog:is(.prism-stage-management,.prism-progress-decision) { box-sizing:border-box; width:min(100%,36rem); max-width:36rem; }
+body.prism-workspace .prism-overlay .prism-dialog.prism-stage-guidance-dialog { box-sizing:border-box; width:min(100%,32rem); max-width:32rem; }
+.prism-stage-management input { width:100%; min-width:0; box-sizing:border-box; padding:.55rem .7rem; font:inherit; font-size:var(--prism-font-body); color:var(--prism-text); background:var(--prism-surface-2); border:1px solid var(--prism-border); border-radius:var(--prism-radius-control); }
+.prism-stage-management :is(input,textarea,select):focus-visible { outline:2px solid var(--prism-focus); outline-offset:2px; }
+.prism-stage-management textarea { max-width:100%; min-height:8rem; }
+.prism-stage-management :is(p,label,.prism-field-error), .prism-stage-guidance { overflow-wrap:anywhere; }
+.prism-stage-guidance { white-space:pre-wrap; font-size:var(--prism-font-body); line-height:1.6; margin-block:.75rem; }
+.prism-stage-guidance-panel { margin-block:var(--prism-space-4); padding:var(--prism-space-4); border:1px solid var(--prism-border); border-radius:var(--prism-radius); background:var(--prism-surface); color:var(--prism-text); }
+.prism-stage-guidance-panel h3 { margin:0 0 var(--prism-space-2); font-size:var(--prism-font-subheading); }
+.prism-stage-guidance-panel p { margin:var(--prism-space-2) 0; font-size:var(--prism-font-body); line-height:1.5; color:var(--prism-muted); }
+.prism-progress-decision .prism-override-context dd, .prism-dialog:has(.prism-stage-guidance) h3 { overflow-wrap:anywhere; }
+body.prism-workspace .stage-tag { max-width:100%; white-space:normal; overflow-wrap:anywhere; }
+body.prism-workspace .dashboard-stage .step-item>span { min-width:0; overflow-wrap:anywhere; }
+body.prism-workspace.student-page :is(.stage-card strong,.progress-stage-detail strong,#currentStage,.student-ierb-current) { min-width:0; max-width:100%; overflow-wrap:anywhere; }
+body.prism-workspace.student-page .portal-page[data-section=progress] .progress-stage-detail { flex-wrap:wrap; }
+body.prism-workspace.student-page .portal-page[data-section=progress] .progress-stage-detail strong { flex-shrink:1; min-width:0; }
+
 /* ---------- Status badges (colour + icon + text, never colour alone) ---------- */
 .prism-badge {
   display: inline-flex; align-items: center; gap: .4em;

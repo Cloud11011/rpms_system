@@ -107,6 +107,7 @@ $data = json_body();
 
 if ($action === 'save') {
     api_require_login(['admin', 'adviser']);
+    foreach (['stage','status'] as $field) if (isset($data[$field]) && !is_string($data[$field])) json_out(['ok'=>false,'message'=>'Invalid progress value.'],422);
     $id = (int)($data['id'] ?? 0);
     $studentId = trim((string)($data['studentId'] ?? ''));
     $name = trim((string)($data['name'] ?? ''));
@@ -139,6 +140,7 @@ if ($action === 'save') {
         // Ignore forged Adviser values on creation and preserve them on edits.
         $protocolCode = null;
         $isPrincipal = null;
+        if ($id===0 && isset($data['stage']) && $data['stage']!=='Stage 1') json_out(['ok'=>false,'message'=>'New records begin at Stage 1. Only RPMS may decide official stages.'],403);
         $stage = 'Stage 1';
         $status = 'On Track';
     }
@@ -187,6 +189,8 @@ if ($action === 'save') {
     try {
         $pdo->beginTransaction();
         if ($id===0) {
+            current_workflow_actor($pdo,$user);
+            if ($stage!=='Stage 1') throw new AccountLifecycleValidation('New records begin at Stage 1. Use a reasoned IERB correction after creation if needed.');
             onboarding_email_available($pdo,$email);
             onboarding_id_available($pdo,$studentId,'student',0,0);
         }
@@ -206,6 +210,12 @@ if ($action === 'save') {
             }
             if (array_key_exists('profile_completed_at',$before) && $before['profile_completed_at']===null) throw new AccountLifecycleConflict('Pending identities must complete secure onboarding before record editing.');
             current_workflow_student($pdo,$id,$user);
+            $stage=$data['stage']??$before['stage'];
+            $status=$data['status']??$before['status'];
+            if ($stage!==$before['stage'] || $status!==$before['status']) {
+                if ($user['role']==='adviser') throw new AccountLifecycleForbidden('Only RPMS Administrators may change official IERB progress.');
+                throw new AccountLifecycleValidation('Use the explicit stage or status actions in IERB Progress. Record editing cannot change official progress.');
+            }
             purge_require_no_pending($pdo,'student',$id);
             $identityBefore = lifecycle_identity_capture($pdo,$before,'student');
             if ($adviserEdit) {
@@ -233,13 +243,12 @@ if ($action === 'save') {
                 research_title=:research, research_group=:grp, course=:course,
                 academic_unit_key=:academic_unit, program_key=:program, year_level=:year_level,
                 academic_year=:academic_year, adviser_id=:adv,
-                stage=:stage, status=:status, requirements=:req, protocol_code=:pcode,
+                requirements=:req, protocol_code=:pcode,
                 is_principal_investigator=:pi, updated_at=NOW() WHERE id=:id');
             $stmt->execute([':sid' => $studentId, ':name' => $name, ':email' => $email, ':research' => $research,
                 ':grp' => $group, ':course' => $academic['course'],
                 ':academic_unit' => $academic['academic_unit_key'], ':program' => $academic['program_key'],
-                ':year_level' => $academic['year_level'], ':academic_year' => $academic['academic_year'], ':adv' => $adviserId, ':stage' => $stage,
-                ':status' => $status, ':req' => $finalRequirements, ':pcode' => $finalProtocolCode,
+                ':year_level' => $academic['year_level'], ':academic_year' => $academic['academic_year'], ':adv' => $adviserId, ':req' => $finalRequirements, ':pcode' => $finalProtocolCode,
                 ':pi' => $finalIsPrincipal, ':id' => $id]);
 
             if (!$adviserEdit) {

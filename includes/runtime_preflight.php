@@ -55,14 +55,14 @@ function prism_runtime_database_preflight(PDO $pdo): array
     $pdo->beginTransaction();
     try {
         $version=(string)$pdo->query("SELECT v FROM schema_meta WHERE k='schema_version'")->fetchColumn();
-        $manifest=json_decode(file_get_contents(__DIR__.'/account_lifecycle_schema.json'),true,512,JSON_THROW_ON_ERROR);
+        $manifest=json_decode(file_get_contents(__DIR__.($version==='11'?'/account_lifecycle_schema_v11.json':'/account_lifecycle_schema.json')),true,512,JSON_THROW_ON_ERROR);
         $missing=[];
         $q=$pdo->prepare('SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME=? AND COLUMN_NAME=?');
         foreach ($manifest['columns'] as $column) {
             $q->execute([$column['TABLE_NAME'],$column['COLUMN_NAME']]);
             if ((int)$q->fetchColumn()!==1) $missing[]=$column['TABLE_NAME'].'.'.$column['COLUMN_NAME'];
         }
-        return ['ok'=>$version==='10'&&!$missing,'schema_version'=>$version,'missing_objects'=>$missing,
+        return ['ok'=>in_array($version,['10','11'],true)&&!$missing,'schema_version'=>$version,'missing_objects'=>$missing,
             'boundary'=>'Read-only column presence check; not complete index/constraint or authenticated workflow verification.'];
     } finally { $pdo->rollBack(); }
 }

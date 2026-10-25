@@ -60,9 +60,11 @@
     // Show the configured form/document name instead of a bare "Stage N"
     // wherever a stage select appears, while keeping the option VALUE as
     // "Stage 1" etc so filtering/saving stays unchanged (feature request 7).
-    document.querySelectorAll('#stageFilter option[value], #entryStage option[value]').forEach(opt => {
+    function refreshStageNames() { document.querySelectorAll('#stageFilter option[value], #entryStage option[value]').forEach(opt => {
         if (opt.value) opt.textContent = `${opt.value} - ${labelForStage(opt.value)}`;
-    });
+    }); }
+    refreshStageNames();
+    document.getElementById('manageIerbStages')?.addEventListener('click', event => { const control=event.currentTarget; return PrismUI.runAction(control, 'Loading...', () => PrismUI.manageStages(async () => { refreshStageNames(); await loadRecords(); }, control)); });
 
     async function loadRecords() {
         filters.reconcile();
@@ -209,6 +211,17 @@
             tr.className = `ierb-progress-row ${statusClass}`;
             const actions = tr.querySelector('.row-actions');
 
+            const guidanceBtn = document.createElement('button');
+            guidanceBtn.className = 'icon-btn'; guidanceBtn.title = 'View stage guidance';
+            guidanceBtn.innerHTML = '<i class="fa-solid fa-circle-info" aria-hidden="true"></i>';
+            guidanceBtn.addEventListener('click', () => PrismUI.showStageGuidance(record.stage));
+            actions.appendChild(guidanceBtn);
+            if (isAdmin && record.earlierStageReturns?.length) {
+                const warning = document.createElement('p'); warning.className = 'ierb-stage-review-warning';
+                warning.textContent = 'RPMS review: returned documents belong to an earlier stage (' + record.earlierStageReturns.map(labelForStage).join(', ') + '). Review whether an official stage correction is appropriate. No correction has been made.';
+                tr.cells[1].append(warning);
+            }
+
             const noteBtn = document.createElement('button');
             noteBtn.className = 'icon-btn';
             noteBtn.title = 'Add note';
@@ -224,6 +237,13 @@
             actions.appendChild(remindBtn);
 
             if (isAdmin) {
+                [['advance','Advance to Next Stage','fa-arrow-right'],['correct','Correct IERB Stage','fa-user-shield'],['status','Update Progress Status','fa-sliders']].forEach(([operation,title,icon]) => {
+                    const button=document.createElement('button');button.className='icon-btn';button.title=title;button.setAttribute('aria-label',title);
+                    button.innerHTML='<i class="fa-solid '+icon+'" aria-hidden="true"></i>';
+                    if(operation==='advance' && record.stage==='Completed')button.disabled=true;
+                    button.addEventListener('click',event=>PrismUI.runAction(event.currentTarget,'Saving...',async()=>{if(await PrismUI.changeStudentProgress(record,operation))await loadRecords();}));
+                    actions.appendChild(button);
+                });
                 const editBtn = document.createElement('button');
                 editBtn.className = 'icon-btn';
                 editBtn.title = 'Edit entry';
@@ -274,6 +294,7 @@
         entryForm.reset();
         academicFields.setRecord(record);
         editingId = record ? record.id : null;
+        document.getElementById('entryStage').value = record?.stage || 'Stage 1';
         document.getElementById('entryGroupId').required = !record;
         entryTitle.textContent = record ? 'Edit IERB Entry' : 'Add IERB Entry';
         if (record) {
@@ -330,16 +351,6 @@
         const release = PrismUI.busy(saveBtn, 'Saving...');
         if (!release) return;
         try {
-            const original = editingId ? records.find(r => r.id === editingId) : null;
-            if (original && (original.stage !== payload.stage || original.status !== payload.status)) {
-                const answer = await PrismUI.confirm({
-                    title:'Confirm progress override', icon:'fa-user-shield', tone:'override', confirmText:'Save changes',
-                    message:'Changing the official stage or status is recorded as an Admin Override and the student will be notified.',
-                    reasonLabel:'Reason for this change', reasonRequired:true
-                });
-                if (!answer) return;
-                payload.reason = answer.reason;
-            }
             const data = await PrismUI.postJson('ierb_api.php?action=save', payload);
             closeEntryModal();
             await loadRecords();
@@ -447,5 +458,5 @@
         }
     }
 
-    loadRecords();
+    loadRecords().then(() => { if (isAdmin && window.location.hash === '#manage-stages') document.getElementById('manageIerbStages')?.click(); });
 })();

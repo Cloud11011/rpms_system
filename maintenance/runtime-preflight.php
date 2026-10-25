@@ -13,7 +13,7 @@ if (array_key_exists('database',$options)) {
         $result['ok']=$result['ok']&&$result['database']['ok'];
     } catch (Throwable $e) {
         $result['ok']=false;
-        $result['database']=['ok'=>false,'message'=>'Read-only database preflight could not complete. Check explicitly supplied credentials and schema v10.'];
+        $result['database']=['ok'=>false,'message'=>'Read-only database preflight could not complete. Check explicitly supplied credentials and supported schema v10/v11.'];
     }
 }
 echo json_encode($result,JSON_PRETTY_PRINT|JSON_THROW_ON_ERROR).PHP_EOL;

@@ -590,6 +590,13 @@
                 if (piField) piField.checked = !!record.isPrincipalInvestigator;
             }
         }
+        if (!isAdviser) {
+            document.getElementById('stage').disabled=true;
+            document.getElementById('recordStatus').disabled=!!record || loggedInRole==='adviser';
+            let explanation=document.getElementById('studentOfficialProgressHelp');
+            if (!explanation) { explanation=document.createElement('p');explanation.id='studentOfficialProgressHelp';explanation.className='prism-sub';document.getElementById('stage').closest('label').after(explanation); }
+            explanation.textContent='Official stage and progress status decisions are made by RPMS in IERB Progress.';
+        }
         if (!isAdviser && loggedInRole === 'adviser') {
             [nameField, accountIdField, emailField].forEach(field => { field.readOnly = !!record; });
             ['stage', 'recordStatus'].forEach(id => { const field = document.getElementById(id); field.disabled = true; field.closest('label').style.display = record ? '' : 'none'; });
@@ -779,18 +786,6 @@
                 if (piField) payload.isPrincipalInvestigator = piField.checked;
             }
 
-            if (!isAdviser && loggedInRole === 'admin' && payload.id) {
-                const original = records.find(r => r.id === payload.id);
-                if (original && (original.stage !== payload.stage || original.status !== payload.status)) {
-                    const answer = await PrismUI.confirm({
-                        title:'Confirm progress change', icon:'fa-clipboard-check', confirmText:'Save changes',
-                        message:`Changing ${recordNameForMessage(original)}'s stage or status will be added to the official progress history and the student will be notified.`,
-                        reasonLabel:'Reason for this progress change', reasonRequired:true
-                    });
-                    if (!answer) return;
-                    payload.reason = answer.reason;
-                }
-            }
             const data = await PrismUI.postJson(`${apiUrl}?action=save`, payload);
             closeModal();
             await loadRecords();

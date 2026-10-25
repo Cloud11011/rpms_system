@@ -1,9 +1,28 @@
 document.addEventListener('DOMContentLoaded', () => {
     const body = document.body;
     const STAGES = ['Stage 1', 'Stage 2', 'Stage 3', 'Stage 4', 'Stage 5', 'Completed'];
-    const progressStageNames = ['Protocol Submission', 'Initial Ethics Review', 'Revisions & Resubmission', 'Certificate of Approval', 'Continuing Review / Monitoring', 'IERB Process Completed'];
     const stageLabels = window.PRISM_STAGE_LABELS || {};
     const labelForStage = stageKey => stageLabels[stageKey] || stageKey;
+    let stageConfiguration = null;
+    async function loadStageConfiguration() {
+        try { return await PrismUI.request('stage_labels_api.php?action=list'); }
+        catch (_) { return null; }
+    }
+    function renderStageGuidance() {
+        let panel = $('currentStageGuidance');
+        if (!panel) {
+            panel = document.createElement('section'); panel.id='currentStageGuidance';panel.className='prism-stage-guidance-panel';
+            panel.setAttribute('aria-labelledby','currentStageGuidanceTitle');
+            panel.innerHTML='<h3 id="currentStageGuidanceTitle">Guidance from RPMS</h3><div class="prism-stage-guidance"></div><button type="button" class="prism-btn is-secondary">Read current-stage guidance</button><p>This guidance is informational. RPMS determines when your official IERB stage may advance.</p>';
+            document.querySelector('.progress-summary').after(panel);
+            panel.querySelector('button').addEventListener('click',()=>{if(myRecord)PrismUI.showStageGuidance(myRecord.stage);});
+        }
+        const current=stageConfiguration?.stages.find(stage=>stage.key===myRecord?.stage);
+        const preview=current?.guidance?Array.from(current.guidance):[];
+        panel.querySelector('.prism-stage-guidance').textContent = !myRecord ? 'Your current stage is not available.' : !stageConfiguration?.guidanceAvailable ? 'Stage guidance is currently unavailable. Contact RPMS for guidance.' : current?.guidance ? preview.slice(0,240).join('')+(preview.length>240?'...':'') : 'No guidance has been added for your current stage. Contact RPMS if you need help.';
+        panel.querySelector('button').disabled=!myRecord;
+    }
+
     const $ = id => document.getElementById(id);
     const documentUiPreview = (document.body.dataset.prismAllowDemo==='1') && new URLSearchParams(window.location.search).get('ui-preview') === '1';
     PrismUI.documentTypes.forEach(type => $('documentType').add(new Option(type, type)));
@@ -94,14 +113,7 @@ document.addEventListener('DOMContentLoaded', () => {
         activity: ['Activity Logs', 'Review actions recorded for your student account.'],
     };
 
-    const dashboardStageDescriptions = [
-        'Submit your research proposal and required forms.',
-        'Your adviser reviews and endorses your proposal.',
-        'Revise your documents based on feedback, then upload the updated files.',
-        'The ethics board reviews your submitted documents.',
-        'Receive your ethics clearance.',
-        'Complete final reporting and close your IERB requirements.',
-    ];
+    const dashboardStageDescriptions = STAGES.map(() => 'RPMS maintains the official stage. Review stage guidance or contact RPMS for help. Document review and submission do not grant institutional ethics approval.');
     let selectedDashboardStage = 0;
     let selectedProgressStage = 0;
     let dashboardPercentFrame = 0;
@@ -226,13 +238,12 @@ document.addEventListener('DOMContentLoaded', () => {
             ? 'Completed' : myRecord && number + 1 === stageIndex ? 'In progress' : 'Upcoming';
         target.replaceChildren();
         const label = document.createElement('span'); label.textContent = `Stage ${number + 1}`;
-        const name = document.createElement('strong'); name.textContent = progressStageNames[number];
+        const name = document.createElement('strong'); name.textContent = labelForStage(STAGES[number]);
         const description = document.createElement('span');
-        description.textContent = loadErrors.progress ? 'Stage details are unavailable.'
-            : state === 'In progress' ? number === 1 ? 'The IERB reviews your protocol for ethical soundness and may send comments.'
-                : myRecord?.requirements && myRecord.requirements !== 'None' ? `Current requirement: ${myRecord.requirements}` : dashboardStageDescriptions[number]
-                : dashboardStageDescriptions[number];
-        target.append(label, name, description);
+        description.textContent = loadErrors.progress ? 'Stage details are unavailable.' : dashboardStageDescriptions[number];
+        const guidance = document.createElement('button'); guidance.type='button';guidance.className='prism-btn is-secondary';
+        guidance.textContent='Read guidance for this stage';guidance.addEventListener('click',()=>PrismUI.showStageGuidance(stageKey));
+        target.append(label, name, description, guidance);
     }
 
     $('stageList').addEventListener('click', event => {
@@ -427,6 +438,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         renderNotificationOverview();
 
+        renderStageGuidance();
         $('currentStage').textContent = loadErrors.progress ? 'Unavailable' : myRecord ? labelForStage(myRecord.stage) : 'No record yet';
         $('progressStageNumber').textContent = loadErrors.progress ? 'Stage unavailable' : myRecord
             ? `Stage ${stageIndex} of ${STAGES.length}` : 'No IERB stage assigned yet';
@@ -457,7 +469,7 @@ document.addEventListener('DOMContentLoaded', () => {
         $('stageList').innerHTML = loadErrors.progress ? empty('Unable to load your IERB progress. Please try again.') : STAGES.map((s, i) => {
             const cls = i + 1 < stageIndex ? 'complete' : i + 1 === stageIndex ? 'current' : '';
             const icon = i + 1 < stageIndex ? 'fa-circle-check' : 'fa-circle';
-            return `<button type="button" class="stage-card ${cls}" data-progress-stage="${i}"${cls==='current'?' aria-current="step"':''} aria-pressed="${i === selectedProgressStage ? 'true' : 'false'}"><i class="fa-solid ${icon}" aria-hidden="true"></i><strong>${esc(progressStageNames[i])}</strong><small>${cls==='complete'?'✓ Completed':cls==='current'?"You're here":'Upcoming'}</small><span>${esc(s)}</span></button>`;
+            return `<button type="button" class="stage-card ${cls}" data-progress-stage="${i}"${cls==='current'?' aria-current="step"':''} aria-pressed="${i === selectedProgressStage ? 'true' : 'false'}"><i class="fa-solid ${icon}" aria-hidden="true"></i><strong>${esc(labelForStage(s))}</strong><small>${cls==='complete'?'✓ Completed':cls==='current'?"You're here":'Upcoming'}</small><span>${esc(s)}</span></button>`;
         }).join('');
         $('stageList').querySelectorAll('.stage-card').forEach((card, index) => {
             const selected = index === selectedProgressStage;
@@ -466,9 +478,9 @@ document.addEventListener('DOMContentLoaded', () => {
         });
         updateProgressStageDetail(selectedProgressStage);
 
-        $('completedRequirements').innerHTML = loadErrors.progress ? empty('Completed requirements are unavailable.') : myRecord && stageIndex > 1
+        $('completedRequirements').innerHTML = loadErrors.progress ? empty('Earlier stages are unavailable.') : myRecord && stageIndex > 1
             ? `<div class="list-item"><i class="fa-solid fa-circle-check"></i><div><strong>${stageIndex - 1 === 1 ? 'Stage 1' : `Stages 1-${stageIndex - 1}`}</strong><span>Completed</span></div></div>`
-            : empty('No completed requirements yet.');
+            : empty('No earlier stages recorded.');
         $('pendingRequirements').innerHTML = loadErrors.progress ? empty('Pending requirements are unavailable.') : myRecord && myRecord.requirements && myRecord.requirements !== 'None'
             ? `<div class="list-item"><i class="fa-regular fa-clock"></i><div><strong>${esc(myRecord.requirements)}</strong><span>Pending</span></div></div>`
             : empty('No pending requirements.');
@@ -614,8 +626,10 @@ document.addEventListener('DOMContentLoaded', () => {
         ++documentSequence; ++historySequence;
         $('studentDashboardState').setAttribute('aria-busy', 'true');
         $('studentDashboardState').textContent = 'Loading your workspace...';
-        const [progress, documents, notifications] = await Promise.all([loadProgress(), loadDocuments(), loadNotifications()]);
+        const [progress, documents, notifications, configuration] = await Promise.all([loadProgress(), loadDocuments(), loadNotifications(), loadStageConfiguration()]);
         if (sequence !== refreshSequence) return;
+        stageConfiguration = configuration;
+        if(configuration)Object.assign(stageLabels,configuration.labels);
         myRecord = progress.record;
         myHistory = progress.history;
         historyState = {total:progress.total??myHistory.length,page:progress.page??1,limit:progress.limit};
@@ -763,6 +777,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if(![...submissionType.options].some(option=>option.value===doc.documentType)){const option=new Option(doc.documentType,doc.documentType);option.dataset.legacyRevision='1';submissionType.add(option);}
         revisionDocument=doc; $('documentType').value=doc.documentType; $('documentType').disabled=true; $('documentFile').multiple=false;
         revisionNotice.textContent=`Upload a NEW revision of ${doc.originalName} (version ${doc.versionNo}, ${doc.stageLabel || doc.stage}). The submitted file and history will be kept. ${doc.rpmsReturnReason || doc.reviewRemarks || ''}`;
+        const originalGuidance=document.createElement('button');originalGuidance.type='button';originalGuidance.className='prism-btn is-secondary';originalGuidance.textContent='Read original-stage guidance';originalGuidance.addEventListener('click',()=>PrismUI.showStageGuidance(doc.stage));revisionNotice.append(document.createElement('br'),originalGuidance);
         revisionNotice.hidden=false; cancelRevision.hidden=false; updateSubmissionReadiness(); $('documentFile').focus();
     });
     updateSubmissionReadiness();
