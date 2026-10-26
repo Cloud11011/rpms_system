@@ -46,11 +46,21 @@ if ($authUser['role'] === 'student') {
 <script src="<?php echo htmlspecialchars(asset_url('assets/js/document-upload.js'), ENT_QUOTES, 'UTF-8'); ?>"></script>
 <?php if ($authUser['role'] === 'admin'): ?>
 <div class="document-modal" id="summaryModal" aria-hidden="true"><div class="document-modal-dialog summary-dialog" role="dialog" aria-modal="true" aria-labelledby="summaryHeading">
-<div class="document-modal-heading"><div><span>RPMS review aid</span><h2 id="summaryHeading">AI-Assisted Document Summary</h2></div><button type="button" data-close="summaryModal" aria-label="Close summary"><i class="fa-solid fa-xmark" aria-hidden="true"></i></button></div>
+<div class="document-modal-heading"><div><span>RPMS review aid</span><h2 id="summaryHeading">Document Summary</h2></div><button type="button" data-close="summaryModal" aria-label="Close summary">&times;</button></div>
 <p id="summaryFilename" class="summary-filename"></p><p id="summarySource" class="summary-source"></p>
-<div id="summaryResult" class="summary-result" role="status" aria-live="polite"></div>
-<p class="summary-review-note">This summary is provided as an RPMS review aid. Verify important information against the original document. It does not replace RPMS/IERB professional judgment.</p>
-<div class="document-modal-actions"><button type="button" class="doc-secondary" data-close="summaryModal">Close</button><button type="button" class="doc-primary" id="regenerateSummary">Regenerate Summary</button></div>
-</div></div>
-<?php endif; ?>
+<div id="summaryResult" class="summary-result"></div>
+<fieldset class="summary-modes"><legend>Choose a summarization mode</legend>
+<label><input type="radio" id="summaryModeAI" name="summaryMode" value="external" checked> <span>AI-Powered Summary<small>Review a minimized excerpt before sending it to OpenRouter.</small></span></label>
+<label><input type="radio" id="summaryModeLocal" name="summaryMode" value="local"> <span>Local Summary<small>Research-aware PHP summary. Works offline.</small></span></label>
+</fieldset>
+<p id="summaryStatus" class="summary-status" role="status" aria-live="polite" aria-busy="false"></p>
+<section id="summaryPreviewPanel" class="summary-preview" aria-label="Review outgoing research excerpt" hidden>
+<h3>Review the exact outgoing excerpt</h3><p>Only the text below will be sent to OpenRouter. Check for remaining names, confidential information, and details that could identify participants. Use Local Summary if external processing is restricted or institutional permission is uncertain. OpenRouter and its model provider process the excerpt under their own policies.</p>
+<p id="summaryOmitted" class="summary-source"></p><pre id="summaryExcerpt" class="summary-excerpt" tabindex="0"></pre>
+<label class="summary-confirmation"><input type="checkbox" id="summaryAuthorization"> <span>I have reviewed the excerpt and confirm that I am authorized to send this information to OpenRouter for AI summarization.</span></label>
+<div class="document-modal-actions"><button type="button" class="doc-secondary" id="cancelSummaryPreview">Cancel Excerpt</button><button type="button" class="doc-primary" id="sendSummary" disabled>Generate AI Summary</button></div>
+</section>
+<p class="summary-review-note">Verify important facts against the original document. Summaries do not replace RPMS/IERB professional judgment or grant institutional or ethics approval.</p>
+<div class="document-modal-actions summary-main-actions"><button type="button" class="doc-secondary" data-close="summaryModal">Close</button><button type="button" class="doc-secondary" id="localSummary" hidden>Generate Local Summary Instead</button><button type="button" class="doc-primary" id="regenerateSummary">Review AI Excerpt</button></div>
+</div></div><?php endif; ?>
 <script src="<?php echo htmlspecialchars(asset_url('assets/js/documents.js'), ENT_QUOTES, 'UTF-8'); ?>"></script></body></html>

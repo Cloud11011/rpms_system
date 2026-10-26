@@ -7,3 +7,12 @@
 .summary-result.document-error{color:#c62828}html.dark-theme .summary-result.document-error{color:#ff9b9b}
 .summary-action:focus-visible,.summary-dialog button:focus-visible{outline:2px solid var(--accent-purple);outline-offset:3px}
 .summary-dialog button:disabled{opacity:.65;cursor:wait}
+
+.summary-modes{display:grid;gap:12px;margin:18px 0;padding:12px;border:1px solid var(--border-color);border-radius:8px;color:var(--text-primary)}
+.summary-modes legend{padding:0 6px;font-weight:600}.summary-modes label,.summary-confirmation{display:flex;align-items:flex-start;gap:10px;cursor:pointer;line-height:1.5}.summary-modes input,.summary-confirmation input{flex:0 0 auto;margin-top:5px}.summary-modes small{display:block;color:var(--text-secondary);font-size:var(--prism-font-meta)}
+.summary-status{color:var(--text-primary);line-height:1.5;overflow-wrap:anywhere}.summary-status.document-error{color:#b71c1c}html.dark-theme .summary-status.document-error{color:#ffaaaa}
+.summary-preview{margin-top:14px;padding:14px;border:1px solid var(--border-color);border-radius:8px;color:var(--text-primary);line-height:1.6}.summary-preview h3{font-size:var(--prism-font-subheading)}.summary-preview>p{margin:10px 0;color:var(--text-secondary)}
+.summary-excerpt{max-height:300px;overflow:auto;margin:12px 0;padding:12px;border:1px solid var(--border-color);border-radius:8px;color:var(--text-primary);background:var(--bg-color);white-space:pre-wrap;overflow-wrap:anywhere;font:inherit;line-height:1.6}.summary-confirmation{margin:14px 0}.summary-dialog [hidden]{display:none!important}.summary-dialog .document-modal-actions{flex-wrap:wrap}.summary-dialog .document-modal-actions button{max-width:100%;white-space:normal}.summary-dialog input:focus-visible,.summary-excerpt:focus-visible{outline:2px solid var(--accent-purple);outline-offset:3px}
+@media(max-width:600px){.summary-dialog{padding:14px}.summary-dialog .document-modal-actions>*{flex:1 1 150px}.summary-preview{padding:10px}.summary-modes{padding:10px}}
+
+.summary-dialog .document-modal-heading button{font-size:24px;line-height:1}

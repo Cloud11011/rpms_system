@@ -6,40 +6,91 @@ const esc=v=>String(v??'').replace(/[&<>'"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&
 const size=v=>v<1024?`${v} B`:v<1048576?`${(v/1024).toFixed(1)} KB`:`${(v/1048576).toFixed(1)} MB`;const date=v=>new Date(v).toLocaleString('en-PH',{month:'short',day:'numeric',year:'numeric',hour:'numeric',minute:'2-digit'});
 async function api(action,options={}){return PrismUI.request(`documents_api.php?action=${encodeURIComponent(action)}`,options)}
 const summaryModal=document.getElementById('summaryModal'),summaryResult=document.getElementById('summaryResult'),summarySource=document.getElementById('summarySource'),regenerateSummary=document.getElementById('regenerateSummary');
-let summaryDocument=null,summarySequence=0,summaryReturnFocus=null,summaryBusy=false;
-const summarySources=new Map();
-function summaryButton(d){return currentRole==='admin'&&d.actions?.summarize&&summaryModal?`<button type="button" class="document-action-button summary-action" data-summary="${esc(d.id)}"><i class="fa-solid fa-wand-magic-sparkles" aria-hidden="true"></i>${d.aiSummary?'View AI Summary':'Generate AI Summary'}</button>`:''}
+const summaryStatus=document.getElementById('summaryStatus'),summaryPanel=document.getElementById('summaryPreviewPanel'),summarySend=document.getElementById('sendSummary'),summaryAuthorization=document.getElementById('summaryAuthorization'),summaryLocal=document.getElementById('localSummary');
+let summaryDocument=null,summarySequence=0,summaryReturnFocus=null,summaryBusy=false,summaryPreview=null,summaryRetryAt=0,summaryRetryTimer;
+const summaryMode=()=>document.getElementById('summaryModeLocal')?.checked?'local':'external';
+function summaryButton(d){return currentRole==='admin'&&d.actions?.summarize&&summaryModal?`<button type="button" class="document-action-button summary-action" data-summary="${esc(d.id)}"><i class="fa-solid fa-wand-magic-sparkles" aria-hidden="true"></i>${d.aiSummary?'View Summary':'Summarize'}</button>`:''}
 function bindSummaryButtons(host){host.querySelectorAll('[data-summary]').forEach(button=>button.addEventListener('click',()=>showSummary(documents.find(d=>String(d.id)===button.dataset.summary),button)))}
+function summarySourceLabel(d){return !d.aiSummary?'':(d.summarySource==='openrouter_ai'?'Generated with OpenRouter AI':d.summarySource==='local_fallback'?'Generated locally with PHP':'Previously saved summary · source not recorded')+(d.summaryPartial?' · Based on selected text; some document content was omitted.':'')}
+function summaryControls(){
+    if(!summaryModal)return;
+    const waiting=Date.now()<summaryRetryAt;
+    summaryModal.querySelectorAll('button,input[type=radio]').forEach(el=>el.disabled=summaryBusy);
+    regenerateSummary.disabled=summaryBusy||(summaryMode()==='external'&&waiting);
+    regenerateSummary.textContent=summaryMode()==='local'?'Generate Local Summary':'Review AI Excerpt';
+    summaryAuthorization.disabled=summaryBusy;
+    summarySend.disabled=summaryBusy||!summaryPreview||!summaryAuthorization.checked||waiting;
+    summaryStatus.setAttribute('aria-busy',String(summaryBusy));
+}
+function clearSummaryPreview(){
+    summaryPreview=null;summaryPanel.hidden=true;summaryAuthorization.checked=false;
+    document.getElementById('summaryExcerpt').textContent='';summaryControls();
+}
+function cancelSummaryPreview(){
+    const pending=summaryPreview,d=summaryDocument;
+    clearSummaryPreview();
+    if(pending&&d)api('summarize_cancel',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({id:d.id,previewToken:pending.previewToken})}).catch(()=>{});
+}
 function showSummary(d,opener){
     if(!d||currentRole!=='admin'||!summaryModal||summaryBusy)return;
-    summaryDocument=d;summaryReturnFocus=PrismUI.actionOrigin(opener||document.activeElement);
+    cancelSummaryPreview();summarySequence++;summaryDocument=d;summaryReturnFocus=PrismUI.actionOrigin(opener||document.activeElement);
     document.getElementById('summaryFilename').textContent=d.originalName;
-    summaryResult.textContent=d.aiSummary||'';
-    summaryResult.classList.remove('document-error');
-    const recordedSource=summarySources.get(d.id);
-    summarySource.textContent=d.aiSummary?(recordedSource?.summary===d.aiSummary?recordedSource.label:'Source not recorded'):'';
-    openModal(summaryModal);summaryModal.querySelector('[data-close]').focus();
-    if(!d.aiSummary)generateSummary();
+    summaryResult.textContent=d.aiSummary||'No saved summary yet. Choose a mode to generate one.';
+    summarySource.textContent=summarySourceLabel(d);
+    summaryStatus.textContent='';summaryStatus.classList.remove('document-error');summaryLocal.hidden=true;
+    summaryControls();openModal(summaryModal);summaryModal.querySelector('[data-close]').focus();
+}
+function summaryFailure(error){
+    summaryStatus.textContent=error.message+' Any previously saved summary is retained.';
+    summaryStatus.classList.add('document-error');summaryLocal.hidden=false;
+    const seconds=error.data?.retryAfter;
+    if(Number.isFinite(seconds)&&seconds>0){
+        summaryRetryAt=Date.now()+seconds*1000;clearTimeout(summaryRetryTimer);
+        summaryRetryTimer=setTimeout(summaryControls,Math.min(seconds*1000+50,2147483647));
+    }
 }
 async function generateSummary(){
-    if(!summaryDocument||summaryBusy)return;
-    const d=summaryDocument,sequence=++summarySequence;summaryBusy=true;regenerateSummary.disabled=true;
-    summaryResult.textContent='Extracting document text and preparing the summary…';summaryResult.setAttribute('aria-busy','true');summaryResult.classList.remove('document-error');summarySource.textContent='';
+    if(!summaryDocument||summaryBusy||summaryMode()==='external'&&Date.now()<summaryRetryAt)return;
+    const d=summaryDocument,sequence=++summarySequence,mode=summaryMode();cancelSummaryPreview();
+    summaryBusy=true;summaryLocal.hidden=true;summaryControls();summaryStatus.classList.remove('document-error');
+    summaryStatus.textContent=mode==='local'?'Preparing Local Summary…':'Preparing an excerpt for review. No information has been sent to OpenRouter.';
     try{
-        const data=await api('summarize',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({id:d.id})});
+        const data=await api(mode==='local'?'summarize':'summarize_preview',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({id:d.id,mode})});
         if(sequence!==summarySequence)return;
-        d.aiSummary=data.summary;summaryResult.textContent=data.summary;
-        const source=data.source==='ai'?'AI generated':data.source==='local_fallback'?'Local extractive fallback — AI unavailable or response rejected':'Source not recorded';
-        summarySource.textContent=source+(data.partial?' · Based on a bounded excerpt; some document content was omitted.':'');summarySources.set(d.id,{summary:data.summary,label:summarySource.textContent});
-        renderTable();renderFolders();renderCourseView();
-    }catch(error){if(sequence===summarySequence){summaryResult.textContent=error.message;summaryResult.classList.add('document-error');summarySource.textContent='Summary was not generated. Any existing saved summary is retained.'}}
-    finally{summaryBusy=false;regenerateSummary.disabled=false;summaryResult.setAttribute('aria-busy','false')}
+        if(mode==='local'){saveSummaryResult(d,data);return}
+        summaryPreview=data;document.getElementById('summaryExcerpt').textContent=data.excerpt;
+        document.getElementById('summaryOmitted').textContent=data.partial?'This excerpt selects research sections. Some document content was omitted.':'';
+        summaryPanel.hidden=false;summaryStatus.textContent='Review the exact excerpt below. It will be sent only after you confirm and select Generate AI Summary.';
+    }catch(error){if(sequence===summarySequence)summaryFailure(error)}
+    finally{summaryBusy=false;summaryControls()}
+}
+function saveSummaryResult(d,data){
+    d.aiSummary=data.summary;d.summarySource=data.source;d.summaryPartial=data.partial;
+    summaryResult.textContent=data.summary;summarySource.textContent=summarySourceLabel(d);
+    summaryStatus.textContent=data.source==='openrouter_ai'?'AI-Powered Summary saved.':'Local Summary saved.';
+    summaryLocal.hidden=true;renderTable();renderFolders();renderCourseView();
+}
+async function sendSummary(){
+    if(!summaryDocument||summaryBusy||!summaryPreview||!summaryAuthorization.checked||Date.now()<summaryRetryAt)return;
+    const d=summaryDocument,pending=summaryPreview,sequence=++summarySequence;
+    summaryBusy=true;summaryControls();summaryStatus.classList.remove('document-error');summaryStatus.textContent='Generating AI summary with OpenRouter…';
+    try{
+        const data=await api('summarize',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({id:d.id,mode:'external',confirmed:true,previewToken:pending.previewToken})});
+        if(sequence===summarySequence)saveSummaryResult(d,data);
+    }catch(error){if(sequence===summarySequence)summaryFailure(error)}
+    finally{clearSummaryPreview();summaryBusy=false;summaryControls()}
 }
 regenerateSummary?.addEventListener('click',generateSummary);
+summarySend?.addEventListener('click',sendSummary);
+summaryAuthorization?.addEventListener('change',summaryControls);
+document.getElementById('cancelSummaryPreview')?.addEventListener('click',()=>{cancelSummaryPreview();summaryStatus.textContent='Excerpt canceled. No information was sent to OpenRouter.'});
+summaryModal?.querySelectorAll('input[name=summaryMode]').forEach(input=>input.addEventListener('change',()=>{cancelSummaryPreview();summaryStatus.textContent='';summaryStatus.classList.remove('document-error');summaryLocal.hidden=true;summaryControls()}));
+summaryLocal?.addEventListener('click',()=>{document.getElementById('summaryModeLocal').checked=true;generateSummary()});
 summaryModal?.addEventListener('keydown',event=>{
     if(event.key==='Escape'){event.preventDefault();event.stopPropagation();closeModal(summaryModal);return}
     if(event.key!=='Tab')return;
-    const buttons=[...summaryModal.querySelectorAll('button:not(:disabled)')],first=buttons[0],last=buttons.at(-1);
+    const controls=[...summaryModal.querySelectorAll('button:not(:disabled),input:not(:disabled)')].filter(el=>el.getClientRects().length),first=controls[0],last=controls.at(-1);
+    if(!first){event.preventDefault();return}
     if(event.shiftKey&&document.activeElement===first){event.preventDefault();last.focus()}
     else if(!event.shiftKey&&document.activeElement===last){event.preventDefault();first.focus()}
 });
