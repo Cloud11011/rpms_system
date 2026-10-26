@@ -6,83 +6,40 @@ const esc=v=>String(v??'').replace(/[&<>'"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&
 const size=v=>v<1024?`${v} B`:v<1048576?`${(v/1024).toFixed(1)} KB`:`${(v/1048576).toFixed(1)} MB`;const date=v=>new Date(v).toLocaleString('en-PH',{month:'short',day:'numeric',year:'numeric',hour:'numeric',minute:'2-digit'});
 async function api(action,options={}){return PrismUI.request(`documents_api.php?action=${encodeURIComponent(action)}`,options)}
 const summaryModal=document.getElementById('summaryModal'),summaryResult=document.getElementById('summaryResult'),summarySource=document.getElementById('summarySource'),regenerateSummary=document.getElementById('regenerateSummary');
-const summaryPreview=document.getElementById('summaryPreviewPanel'),summaryExcerpt=document.getElementById('summaryExcerpt'),summaryAuthorization=document.getElementById('summaryAuthorization'),sendSummary=document.getElementById('sendSummary'),localSummary=document.getElementById('localSummary'),summaryStatus=document.getElementById('summaryStatus'),cancelSummaryPreview=document.getElementById('cancelSummaryPreview');
-const summaryModes=[...document.querySelectorAll('input[name="summaryMode"]')];
-const summaryRedaction=document.getElementById('summaryRedaction'),summaryWarnings=document.getElementById('summaryWarnings');
-let summaryDocument=null,summarySequence=0,summaryReturnFocus=null,summaryBusy=false,summaryPreviewToken=null;
-function summaryButton(d){return currentRole==='admin'&&d.actions?.summarize&&summaryModal?`<button type="button" class="document-action-button summary-action" data-summary="${esc(d.id)}"><i class="fa-solid fa-wand-magic-sparkles" aria-hidden="true"></i>${d.aiSummary?'View Summary':'Generate Summary'}</button>`:''}
+let summaryDocument=null,summarySequence=0,summaryReturnFocus=null,summaryBusy=false;
+const summarySources=new Map();
+function summaryButton(d){return currentRole==='admin'&&d.actions?.summarize&&summaryModal?`<button type="button" class="document-action-button summary-action" data-summary="${esc(d.id)}"><i class="fa-solid fa-wand-magic-sparkles" aria-hidden="true"></i>${d.aiSummary?'View AI Summary':'Generate AI Summary'}</button>`:''}
 function bindSummaryButtons(host){host.querySelectorAll('[data-summary]').forEach(button=>button.addEventListener('click',()=>showSummary(documents.find(d=>String(d.id)===button.dataset.summary),button)))}
-function summaryLabel(source,reason,modelLabel){return source==='openrouter_ai'?'Generated using OpenRouter AI'+(modelLabel?' \u2014 '+modelLabel:''):source==='local_fallback'?'Generated locally \u2014 '+(reason==='local_requested'?'Local Summary selected':'saved local summary'):'Source not recorded for this older summary'}
-function selectedSummaryMode(){return summaryModes.find(input=>input.checked)?.value||'external'}
-function cancelPreviewReference(d,token){if(d&&token)api('summarize_cancel',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({id:d.id,previewToken:token})}).catch(()=>{})}
-function resetSummaryPreview(cancel=true){
-    if(cancel)cancelPreviewReference(summaryDocument,summaryPreviewToken);
-    summaryPreviewToken=null;summaryPreview.hidden=true;summaryExcerpt.textContent='';summaryWarnings.textContent='';summaryWarnings.hidden=true;summaryAuthorization.checked=false;sendSummary.hidden=true;sendSummary.disabled=true;cancelSummaryPreview.hidden=true;regenerateSummary.hidden=false;
-}
-function updateSummaryAction(){regenerateSummary.textContent=selectedSummaryMode()==='local'?'Generate Local Summary':'Review AI Excerpt';document.getElementById('summaryRedactionOption').hidden=selectedSummaryMode()==='local'}
-function setSummaryBusy(busy){summaryBusy=busy;regenerateSummary.disabled=busy;localSummary.disabled=busy;cancelSummaryPreview.disabled=busy;summaryRedaction.disabled=busy;summaryAuthorization.disabled=busy;summaryModes.forEach(input=>input.disabled=busy);sendSummary.disabled=busy||!summaryPreviewToken||!summaryAuthorization.checked;summaryStatus.setAttribute('aria-busy',String(busy))}
-function summaryMessage(text,error=false){summaryStatus.textContent=text;summaryStatus.classList.toggle('document-error',error)}
 function showSummary(d,opener){
     if(!d||currentRole!=='admin'||!summaryModal||summaryBusy)return;
-    resetSummaryPreview();summaryDocument=d;summaryReturnFocus=PrismUI.actionOrigin(opener||document.activeElement);
+    summaryDocument=d;summaryReturnFocus=PrismUI.actionOrigin(opener||document.activeElement);
     document.getElementById('summaryFilename').textContent=d.originalName;
-    summaryResult.textContent=d.aiSummary||'';summaryResult.hidden=!d.aiSummary;
-    summarySource.textContent=d.aiSummary?summaryLabel(d.summarySource,d.summaryReason,d.summaryModelLabel)+(d.summaryNotice?' \u00b7 '+d.summaryNotice:'')+(d.summaryPartial?' \u00b7 Based on a bounded excerpt.':''):'';
-    summaryModes.forEach(input=>input.checked=input.value==='external');summaryRedaction.value='minimize';updateSummaryAction();localSummary.hidden=true;
-    summaryMessage('Choose AI-Powered Summary or Local Summary.');
+    summaryResult.textContent=d.aiSummary||'';
+    summaryResult.classList.remove('document-error');
+    const recordedSource=summarySources.get(d.id);
+    summarySource.textContent=d.aiSummary?(recordedSource?.summary===d.aiSummary?recordedSource.label:'Source not recorded'):'';
     openModal(summaryModal);summaryModal.querySelector('[data-close]').focus();
+    if(!d.aiSummary)generateSummary();
 }
-function changeSummaryMode(){
-    if(summaryBusy)return;
-    ++summarySequence;resetSummaryPreview();updateSummaryAction();localSummary.hidden=true;
-    summaryMessage(selectedSummaryMode()==='local'?'Local Summary uses PRISM only. No document content will be sent externally.':'Review the AI excerpt before confirming external processing.');
-}
-async function prepareSummary(){
+async function generateSummary(){
     if(!summaryDocument||summaryBusy)return;
-    if(selectedSummaryMode()==='local'){generateSummary('local');return}
-    const d=summaryDocument,sequence=++summarySequence;resetSummaryPreview();localSummary.hidden=true;setSummaryBusy(true);
-    summaryMessage('Extracting and screening text locally. No text is being sent to OpenRouter.');
+    const d=summaryDocument,sequence=++summarySequence;summaryBusy=true;regenerateSummary.disabled=true;
+    summaryResult.textContent='Extracting document text and preparing the summary…';summaryResult.setAttribute('aria-busy','true');summaryResult.classList.remove('document-error');summarySource.textContent='';
     try{
-        const data=await api('summarize_preview',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({id:d.id,redactIdentifiers:summaryRedaction.value==='minimize'})});
-        if(sequence!==summarySequence||!summaryModal.classList.contains('show')){cancelPreviewReference(d,data.previewToken);return}
-        if(data.eligible){
-            summaryPreviewToken=data.previewToken;summaryPreview.hidden=false;summaryExcerpt.textContent=data.excerpt;
-            summaryWarnings.textContent=(data.warnings||[]).join('\n\n');summaryWarnings.hidden=!summaryWarnings.textContent;
-            sendSummary.hidden=false;cancelSummaryPreview.hidden=false;regenerateSummary.hidden=true;
-            summaryMessage('Review the exact excerpt, then confirm to generate an AI-powered summary.');
-            summaryExcerpt.focus();
-        }else{
-            summaryMessage(data.notice,true);localSummary.hidden=false;
-        }
-    }catch(error){if(sequence===summarySequence){summaryMessage(error.message,true);localSummary.hidden=error.data?.canGenerateLocal===false}}
-    finally{setSummaryBusy(false)}
-}
-async function generateSummary(mode){
-    if(!summaryDocument||summaryBusy)return;
-    if(mode==='external'&&(!summaryPreviewToken||!summaryAuthorization.checked))return;
-    const d=summaryDocument,sequence=++summarySequence,request={id:d.id,mode};
-    if(mode==='external'){request.previewToken=summaryPreviewToken;request.confirmed=true;request.redactIdentifiers=summaryRedaction.value==='minimize'}
-    let offerLocal=false;setSummaryBusy(true);localSummary.hidden=true;summaryPreview.hidden=true;
-    summaryMessage(mode==='external'?'Generating AI-Powered Summary with OpenRouter using the confirmed excerpt\u2026':'Generating Local Summary in PRISM\u2026');
-    try{
-        const data=await api('summarize',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(request)});
-        d.aiSummary=data.summary;d.summarySource=data.source;d.summaryPartial=data.partial;d.summaryNotice=data.notice;d.summaryReason=data.reason;d.summaryModel=data.model;d.summaryModelLabel=data.modelLabel;
-        if(sequence===summarySequence){summaryResult.textContent=data.summary;summaryResult.hidden=false;summarySource.textContent=summaryLabel(data.source,data.reason,data.modelLabel)+(data.notice?' \u00b7 '+data.notice:'')+(data.partial?' \u00b7 Based on a bounded excerpt; some content was omitted.':'');summaryMessage(mode==='external'?'AI-Powered Summary saved.':'Local Summary saved. No content was sent to OpenRouter.')}
+        const data=await api('summarize',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({id:d.id})});
+        if(sequence!==summarySequence)return;
+        d.aiSummary=data.summary;summaryResult.textContent=data.summary;
+        const source=data.source==='ai'?'AI generated':data.source==='local_fallback'?'Local extractive fallback — AI unavailable or response rejected':'Source not recorded';
+        summarySource.textContent=source+(data.partial?' · Based on a bounded excerpt; some document content was omitted.':'');summarySources.set(d.id,{summary:data.summary,label:summarySource.textContent});
         renderTable();renderFolders();renderCourseView();
-    }catch(error){if(sequence===summarySequence){summaryMessage(error.message,true);offerLocal=mode==='external'&&(error.data?.canGenerateLocal??true)}}
-    finally{resetSummaryPreview(false);updateSummaryAction();setSummaryBusy(false);localSummary.hidden=!offerLocal;if(summaryModal.classList.contains('show'))(offerLocal?localSummary:regenerateSummary).focus()}
+    }catch(error){if(sequence===summarySequence){summaryResult.textContent=error.message;summaryResult.classList.add('document-error');summarySource.textContent='Summary was not generated. Any existing saved summary is retained.'}}
+    finally{summaryBusy=false;regenerateSummary.disabled=false;summaryResult.setAttribute('aria-busy','false')}
 }
-regenerateSummary?.addEventListener('click',prepareSummary);
-sendSummary?.addEventListener('click',()=>generateSummary('external'));
-localSummary?.addEventListener('click',()=>{summaryModes.forEach(input=>input.checked=input.value==='local');resetSummaryPreview();updateSummaryAction();generateSummary('local')});
-summaryModes.forEach(input=>input.addEventListener('change',changeSummaryMode));
-summaryAuthorization?.addEventListener('change',()=>{sendSummary.disabled=summaryBusy||!summaryPreviewToken||!summaryAuthorization.checked});
-summaryRedaction?.addEventListener('change',()=>{if(summaryBusy)return;++summarySequence;resetSummaryPreview();updateSummaryAction();localSummary.hidden=true;summaryMessage('Identifier option changed. Review a fresh excerpt before confirming.');regenerateSummary.focus()});
-cancelSummaryPreview?.addEventListener('click',()=>{resetSummaryPreview();updateSummaryAction();summaryMessage('AI excerpt review canceled. No document content was sent to OpenRouter.');regenerateSummary.focus()});
+regenerateSummary?.addEventListener('click',generateSummary);
 summaryModal?.addEventListener('keydown',event=>{
     if(event.key==='Escape'){event.preventDefault();event.stopPropagation();closeModal(summaryModal);return}
     if(event.key!=='Tab')return;
-    const controls=[...summaryModal.querySelectorAll('button:not(:disabled), input:not(:disabled), select:not(:disabled), [tabindex="0"]')].filter(el=>el.getClientRects().length),first=controls[0],last=controls.at(-1);
+    const buttons=[...summaryModal.querySelectorAll('button:not(:disabled)')],first=buttons[0],last=buttons.at(-1);
     if(event.shiftKey&&document.activeElement===first){event.preventDefault();last.focus()}
     else if(!event.shiftKey&&document.activeElement===last){event.preventDefault();first.focus()}
 });
@@ -211,7 +168,6 @@ function render(){renderFilters();renderTypeManager();renderTable();renderFolder
 function openModal(m){m.classList.add('show');m.setAttribute('aria-hidden','false')}function closeModal(m){
     m.classList.remove('show');m.setAttribute('aria-hidden','true');
     if(m===summaryModal){
-        if(!summaryBusy)resetSummaryPreview();
         const host=view==='folder'?folderView:view==='course'?courseView:body;
         const current=[...host.querySelectorAll('[data-summary]')].find(button=>button.dataset.summary===String(summaryDocument?.id));
         const focus=summaryReturnFocus?.isConnected?summaryReturnFocus:current;
