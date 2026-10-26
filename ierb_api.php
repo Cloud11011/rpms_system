@@ -9,12 +9,31 @@ require_once __DIR__ . '/includes/ierb_progress.php';
 require_once __DIR__ . '/includes/account_lifecycle.php';
 require_once __DIR__ . '/includes/academic_catalog.php';
 require_once __DIR__ . '/includes/research_groups.php';
+require_once __DIR__ . '/includes/ierb_group_advancement.php';
 
 $user = api_require_login(['admin', 'adviser', 'student']);
 $pdo = db();
 $action = $_GET['action'] ?? 'list';
-if (in_array($action, ['advance', 'correct', 'status', 'override', 'save', 'note', 'delete'], true)) {
+if (in_array($action, ['advance', 'correct', 'status', 'override', 'save', 'note', 'delete', 'group_advance_preview', 'group_advance', 'group_advance_cancel'], true)) {
     require_post_same_origin();
+}
+
+if (in_array($action, ['group_advance_list','group_advance_preview','group_advance','group_advance_cancel'], true)) {
+    api_require_login('admin');
+    if ($action !== 'group_advance_list') require_session_generation(true);
+    header('Cache-Control: no-store');
+    try {
+        if ($action === 'group_advance_list') json_out(ierb_group_list($pdo,$user));
+        $payload=lifecycle_decode_body(file_get_contents('php://input'));
+        if ($action === 'group_advance_preview') json_out(ierb_group_preview($pdo,$user,$payload['groupKey'] ?? null));
+        if ($action === 'group_advance_cancel') json_out(ierb_group_cancel($user,$payload['confirmationToken'] ?? null));
+        json_out(ierb_group_advance($pdo,$user,$payload));
+    } catch (Throwable $e) {
+        $status=lifecycle_error_status($e);
+        if ($status>=500) log_api_error('ierb_group_advancement','The research group operation could not be completed.');
+        json_out(['ok'=>false,'message'=>$status<500 ? $e->getMessage()
+            : 'The group operation could not be completed. Refresh and review current group progress before continuing.'], $status);
+    }
 }
 
 /** Advisers only see and annotate their own advisees; admins can do both for anyone. */

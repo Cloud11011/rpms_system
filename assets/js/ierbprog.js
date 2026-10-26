@@ -458,5 +458,91 @@
         }
     }
 
+    // Independent of Detailed Progress filters, selections and pagination.
+    if (isAdmin && document.getElementById('ierbGroupAdvancement')) {
+        const select = document.getElementById('ierbGroupSelect');
+        const refresh = document.getElementById('ierbGroupRefresh');
+        const review = document.getElementById('ierbGroupReview');
+        const host = document.getElementById('ierbGroupPreview');
+        let preview = null, sequence = 0, busy = false;
+        const stageText = (key, label) => key ? (label && label !== key ? `${key} — ${label}` : key) : 'Review required';
+        const memberHtml = data => '<ul class="ierb-group-members" tabindex="0" aria-label="Associated Students">' + data.members.map(m =>
+            `<li><div><strong>${escapeHtml(m.name)}</strong><span>${escapeHtml(m.studentId)}</span></div>` +
+            `<div>${escapeHtml(stageText(m.stage, m.stageLabel))}<span>${escapeHtml(m.status)}</span></div>` +
+            (m.issues.length ? `<span class="ierb-group-issue">${m.issues.map(escapeHtml).join(' ')}</span>` : '') + '</li>').join('') + '</ul>';
+        const factsHtml = data => `<dl class="ierb-group-facts"><div><dt>Current official stage</dt><dd>${escapeHtml(stageText(data.currentStage, data.currentStageLabel))}</dd></div>` +
+            `<div><dt>Next official stage</dt><dd>${escapeHtml(stageText(data.nextStage, data.nextStageLabel))}</dd></div><div><dt>Associated Students</dt><dd>${data.memberCount}</dd></div></dl>`;
+        function controls() {
+            select.disabled = busy;
+            refresh.disabled = busy || !select.value;
+            review.disabled = busy || !preview?.eligible || !preview?.confirmationToken || Date.now() >= preview.expiresAt * 1000;
+        }
+        async function cancelToken(data) {
+            if (data?.confirmationToken) await PrismUI.postJson('ierb_api.php?action=group_advance_cancel', { confirmationToken: data.confirmationToken });
+        }
+        async function loadPreview() {
+            if (busy) return;
+            const requestSequence = ++sequence, old = preview;
+            preview = null;
+            controls();
+            if (!select.value) { host.textContent = 'Select a group to review all associated Student records.'; if (old) cancelToken(old).catch(() => {}); return; }
+            host.setAttribute('aria-busy', 'true');
+            host.textContent = 'Loading all associated Student records…';
+            try {
+                if (old) await cancelToken(old).catch(() => {});
+                const data = await PrismUI.postJson('ierb_api.php?action=group_advance_preview', { groupKey: select.value });
+                if (requestSequence !== sequence) { cancelToken(data).catch(() => {}); return; }
+                preview = data;
+                host.innerHTML = `<p>${escapeHtml(data.label)}</p>` + factsHtml(data) +
+                    (data.reasons.length ? '<ul class="ierb-group-blockers">' + data.reasons.map(r => `<li>${escapeHtml(r)}</li>`).join('') + '</ul>' : '<p>All associated Students are eligible. Individual progress statuses will be preserved.</p>') + memberHtml(data);
+            } catch (e) {
+                if (requestSequence === sequence) host.textContent = e.message;
+            } finally {
+                if (requestSequence === sequence) { host.setAttribute('aria-busy', 'false'); controls(); }
+            }
+        }
+        select.addEventListener('change', loadPreview);
+        refresh.addEventListener('click', loadPreview);
+        review.addEventListener('click', async () => {
+            if (busy || !preview?.eligible || !preview.confirmationToken) return;
+            if (Date.now() >= preview.expiresAt * 1000) { preview = null; host.textContent = 'This confirmation expired. Refresh and review the group.'; controls(); return; }
+            busy = true; controls();
+            const reviewed = preview;
+            try {
+                const answer = await PrismUI.confirm({
+                    title: 'Advance Research Group to Next IERB Stage?', confirmText: 'Confirm Group Advancement',
+                    dialogClass: 'ierb-group-dialog', message: 'Official progress records for every listed Student will be changed. This decision does not grant institutional ethics approval.',
+                    extraHtml: `<p>${escapeHtml(reviewed.label)}</p>` + factsHtml(reviewed) + memberHtml(reviewed),
+                    reasonLabel: 'Reason for group advancement', reasonRequired: true, minReason: 5, maxReason: 500,
+                    validate: (_values, reason) => /[\p{L}\p{N}]/u.test(reason) ? null : 'Explain this decision using letters or numbers.'
+                });
+                preview = null;
+                if (!answer) {
+                    await cancelToken(reviewed);
+                    host.textContent = 'Group advancement canceled. Refresh the preview to review this group again.';
+                    return;
+                }
+                review.textContent = 'Advancing group…';
+                const data = await PrismUI.postJson('ierb_api.php?action=group_advance', {
+                    confirmationToken: reviewed.confirmationToken, reason: answer.reason, confirmed: true
+                });
+                PrismUI.toast(data.message, 'success');
+                host.textContent = `${data.memberCount} Students advanced to ${stageText(data.stage, data.stageLabel)}. Refresh the preview before another decision.`;
+                await loadRecords();
+            } catch (e) {
+                preview = null;
+                host.textContent = e.message;
+                PrismUI.toast(e.message, 'error');
+            } finally {
+                busy = false; review.textContent = 'Review & Advance Group'; controls(); refresh.focus();
+            }
+        });
+        PrismUI.request('ierb_api.php?action=group_advance_list').then(data => {
+            select.replaceChildren(new Option(data.groups.length ? 'Select a research group' : 'No associated research groups', ''));
+            data.groups.forEach(g => select.add(new Option(g.label + (g.standard ? '' : ' — record review required'), g.key)));
+            controls();
+        }).catch(e => { select.replaceChildren(new Option('Group list unavailable', '')); host.textContent = e.message; });
+    }
+
     loadRecords().then(() => { if (isAdmin && window.location.hash === '#manage-stages') document.getElementById('manageIerbStages')?.click(); });
 })();

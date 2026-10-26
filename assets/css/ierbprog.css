@@ -1,4 +1,30 @@
 .ierb-page { padding-bottom: 35px; }
+.ierb-group-card { min-width: 0; margin-top: 24px; padding: 20px; border: 1px solid var(--border-color); border-radius: 8px; background: var(--card-bg); color: var(--text-primary); }
+.ierb-group-card h2 { margin: 0 0 6px; font-size: var(--prism-font-subheading); }
+.ierb-group-card p { margin: 6px 0 14px; color: var(--text-secondary); line-height: 1.5; }
+.ierb-group-controls { display: flex; align-items: flex-end; gap: 12px; margin: 16px 0; }
+.ierb-group-controls label { display: grid; flex: 1; gap: 7px; min-width: 0; font-size: var(--prism-font-label); font-weight: 600; }
+.ierb-group-controls select { width: 100%; min-width: 0; padding: 10px; border: 1px solid var(--border-color); border-radius: 8px; color: var(--text-primary); background: var(--input-bg); font: inherit; }
+.ierb-group-facts { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; margin: 14px 0; }
+.ierb-group-facts dt { color: var(--text-secondary); font-size: var(--prism-font-label); }
+.ierb-group-facts dd { margin: 5px 0 0; font-weight: 600; overflow-wrap: anywhere; }
+.ierb-group-members { list-style: none; padding: 0; margin: 12px 0; max-height: 300px; overflow-y: auto; }
+.ierb-group-members li { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 8px 16px; padding: 12px 0; border-top: 1px solid var(--border-color); overflow-wrap: anywhere; }
+.ierb-group-members strong, .ierb-group-members span { display: block; }
+.ierb-group-members span { margin-top: 4px; color: var(--text-secondary); font-size: var(--prism-font-meta); line-height: 1.5; }
+.ierb-group-members .ierb-group-issue { grid-column: 1 / -1; color: var(--text-primary); }
+.ierb-group-blockers { padding: 12px 12px 12px 30px; border: 1px solid var(--border-color); border-left: 3px solid var(--accent-pink); border-radius: 6px; line-height: 1.5; }
+.ierb-group-actions { display: flex; justify-content: flex-end; margin-top: 16px; }
+.ierb-group-dialog { overflow-wrap: anywhere; }
+.ierb-group-dialog .ierb-group-members { max-height: 220px; }
+@media (max-width: 600px) {
+    .ierb-group-card { padding: 16px; }
+    .ierb-group-controls { align-items: stretch; flex-direction: column; }
+    .ierb-group-facts { grid-template-columns: 1fr; gap: 10px; }
+    .ierb-group-members li { grid-template-columns: 1fr; gap: 4px; }
+    .ierb-group-actions .prism-btn { width: 100%; white-space: normal; }
+    .ierb-group-dialog .prism-dialog-actions { flex-wrap: wrap; }
+}
 .ierb-heading h1 { color: var(--text-primary); font-size:var(--prism-font-title); }
 .ierb-heading p { margin-top: 5px; color: var(--text-secondary); font-size:var(--prism-font-body); }
 .progress-overview { padding: 18px 0 22px; border-top: 1px solid var(--border-color); border-bottom: 1px solid var(--border-color); }

@@ -66,6 +66,18 @@ $profile_img = 'assets/images/default-avatar.svg';
                 <tbody id="ierbTableBody"></tbody>
             </table></div>
         </section>
+        <?php if ($authUser['role'] === 'admin'): ?>
+        <section class="ierb-group-card" id="ierbGroupAdvancement" aria-labelledby="ierbGroupTitle">
+            <h2 id="ierbGroupTitle">Research Group Advancement</h2>
+            <p>Advance all eligible members of a research group to the next official IERB stage.</p>
+            <div class="ierb-group-controls">
+                <label for="ierbGroupSelect">Research group<select id="ierbGroupSelect" disabled><option value="">Loading research groups…</option></select></label>
+                <button type="button" class="prism-btn is-secondary" id="ierbGroupRefresh" disabled>Refresh preview</button>
+            </div>
+            <div id="ierbGroupPreview" aria-live="polite" aria-busy="false"><p>Select a group to review all associated Student records.</p></div>
+            <div class="ierb-group-actions"><button type="button" class="prism-btn is-primary" id="ierbGroupReview" disabled>Review &amp; Advance Group</button></div>
+        </section>
+        <?php endif; ?>
     <?php require __DIR__ . '/includes/ceu_footer.php'; ?>
 </main>
 </div>
