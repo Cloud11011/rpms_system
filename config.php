@@ -127,7 +127,18 @@ if (!defined('OPENROUTER_MODEL')) {
     define('OPENROUTER_MODEL', getenv('OPENROUTER_MODEL') ?: 'openrouter/auto');
 }
 
-// Document summaries reuse these shared OpenRouter settings and account routing/privacy policies.
+// Task lists are protected server-side configuration (arrays, JSON arrays, or comma-separated IDs).
+// Only reviewed free text models in OPENROUTER_TASK_MODEL_CATALOG are eligible; at most two.
+// OPENROUTER_MODEL remains the compatibility default for other integrations.
+if (!defined('OPENROUTER_DOCUMENT_SUMMARY_MODELS')) {
+    define('OPENROUTER_DOCUMENT_SUMMARY_MODELS', getenv('OPENROUTER_DOCUMENT_SUMMARY_MODELS') !== false
+        ? getenv('OPENROUTER_DOCUMENT_SUMMARY_MODELS') : ['google/gemma-4-31b-it:free', 'google/gemma-4-26b-a4b-it:free']);
+}
+if (!defined('OPENROUTER_PROGRESS_REPORT_MODELS')) {
+    define('OPENROUTER_PROGRESS_REPORT_MODELS', getenv('OPENROUTER_PROGRESS_REPORT_MODELS') !== false
+        ? getenv('OPENROUTER_PROGRESS_REPORT_MODELS') : ['google/gemma-4-26b-a4b-it:free', 'google/gemma-4-31b-it:free']);
+}
+require_once __DIR__ . '/includes/openrouter_tasks.php';
 // Every document request still requires an authenticated Admin's exact-excerpt confirmation.
 
 // Google Email API (Gmail). Requires a Google Cloud project with the Gmail

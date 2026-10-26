@@ -2,6 +2,7 @@
 require __DIR__ . '/config.php';
 require_once __DIR__ . '/workflow.php';
 require_once __DIR__ . '/includes/pagination.php';
+require_once __DIR__ . '/includes/progress_report_ai.php';
 $user = api_require_login('admin');
 $pdo = db();
 $action = $_GET['action'] ?? 'list';
@@ -260,6 +261,7 @@ const AI_REPORT_RULES = "Use only the provided snapshot (JSON). Refer to the pro
     . "Do not infer causes of delay, missing requirements, deadlines, risk, compliance, trends or future outcomes. "
     . "A missing submission date means not recorded, not proof of no submission. A requirementsRecorded flag does not prove outstanding work. Do not infer risk or outstanding requirements from missing fields. "
     . "Do not infer that Completed means approved, or that Approved means formally submitted. "
+    . "Adviser document approval is distinct from official RPMS IERB stage decisions; do not invent stage decisions, institutional approvals or missing requirements. "
     . "State when information is not recorded. Distinguish observations from optional verification steps. "
     . "Never include personal names; identify cases only by the supplied caseRef. Do not invent identities or expand case references. Respect the stated scope and supplied aggregate counts. "
     . "Case details may be omitted for payload size; use aggregates for totals, never extrapolate a sample. "
@@ -280,21 +282,9 @@ if ($action === 'ai_report') {
         json_out(['ok' => false, 'message' => 'There are no active student records to report on.'], 422);
     }
 
-    $scopeText = "Scope: all active student records visible to RPMS administration.\n";
-    $structured = $scopeText . build_structured_progress_text($students);
-    $prompt = $mode === 'full' ? AI_FULL_PROMPT : AI_SUMMARY_PROMPT;
-    $narrative = openrouter_generate($prompt, $structured);
-    if ($narrative !== null && !ai_narrative_excludes_names($narrative, $students)) $narrative = null;
-    if ($narrative !== null) {
-        $narrative = strip_report_markdown_tables($narrative);
-        if ($narrative === '') $narrative = null;
-    }
-    $aiUsed = $narrative !== null;
-    if (!$aiUsed) {
-        $narrative = $mode === 'full'
-            ? local_full_narrative($students)
-            : local_summary_narrative($students);
-    }
+    $generation = generate_progress_report_narrative($students, $mode);
+    $narrative = $generation['narrative'];
+    $aiUsed = $generation['aiUsed'];
 
     $localIds = [];
     foreach (array_values($students) as $index => $student) $localIds[report_case_ref($index)] = 'Student ID ' . (trim((string)($student['student_id'] ?? '')) ?: 'Not recorded');
@@ -303,7 +293,8 @@ if ($action === 'ai_report') {
     $scopeTitle = 'All Active Students';
     $title = $mode === 'full' ? "AI Full Progress Report - $scopeTitle" : "AI Summarized Progress Report - $scopeTitle";
     $lines = [
-        $aiUsed ? 'Narrative source: AI-assisted; verify against the factual tables.' : 'Narrative source: Local fallback (AI unavailable).',
+        $aiUsed ? 'Narrative source: AI-assisted' . ($generation['model'] !== null ? ' - ' . $generation['model'] : ' (model not returned)')
+            . '; verify against the factual tables.' : 'Narrative source: Local fallback (AI unavailable).',
         'Scope: ' . $scopeTitle . '. Counts represent student records, not distinct projects.',
         'Prepared for: RPMS administration. Internal review copy.',
     ];
@@ -330,8 +321,10 @@ if ($action === 'ai_report') {
         json_out(['ok'=>false,'message'=>'The report outcome could not be confirmed. Refresh your reports before retrying.'],500);
     }
 
-    audit_log($user, 'ai_report_generated', ['entity_type'=>'report', 'entity_id'=>$reportId, 'after'=>$mode, 'details'=>'External model used: '.($aiUsed ? 'yes' : 'no')]);
-    json_out(['ok' => true, 'report' => ['id' => $reportId, 'name' => $title, 'type' => $reportType, 'generatedAt' => date(DATE_ATOM)], 'aiUsed' => $aiUsed]);
+    audit_log($user, 'ai_report_generated', ['entity_type'=>'report', 'entity_id'=>$reportId, 'after'=>$mode,
+        'details'=>'External model used: '.($aiUsed ? 'yes' : 'no').'; model='.($generation['model'] ?? 'not_recorded').'; category='.$generation['reason']]);
+    json_out(['ok' => true, 'report' => ['id' => $reportId, 'name' => $title, 'type' => $reportType, 'generatedAt' => date(DATE_ATOM)],
+        'aiUsed' => $aiUsed, 'aiModel' => $generation['model'], 'aiReason' => $generation['reason'], 'retryAfter' => $generation['retryAfter']]);
 }
 
 function report_case_ref(int $index): string { return sprintf('CASE-%04d', $index + 1); }

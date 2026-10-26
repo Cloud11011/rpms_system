@@ -1,34 +1,42 @@
 <?php
 /** Local preparation and single-use preview bindings. No network operations. */
+require_once __DIR__ . '/openrouter_tasks.php';
 function document_summary_configuration(): array
 {
-    $model = defined('OPENROUTER_MODEL') ? OPENROUTER_MODEL : '';
+    $models = openrouter_task_models('document_summary');
     $reason = !defined('OPENROUTER_API_KEY') || trim(OPENROUTER_API_KEY) === '' ? 'missing_api_key'
         : (!function_exists('curl_init') ? 'transport_unavailable'
-        : (!is_string($model) || !preg_match('~\A[a-z0-9._-]+/[a-z0-9._-]+(?::[a-z0-9._-]+)?\z~i', $model) ? 'model_invalid' : 'eligible'));
-    return ['enabled' => $reason === 'eligible', 'model' => is_string($model) ? $model : '', 'reason' => $reason];
+        : (!$models ? 'model_invalid' : 'eligible'));
+    return ['enabled' => $reason === 'eligible', 'models' => $models, 'reason' => $reason];
 }
 
 function document_summary_notice(string $reason): string
 {
+    if (in_array($reason, ['timeout', 'rate_limited', 'provider_rate_limited', 'account_quota', 'retry_after',
+        'routing_unavailable', 'provider_unavailable', 'service_unavailable', 'invalid_response', 'output_empty',
+        'output_truncated', 'reasoning_only', 'output_classification', 'output_incomplete', 'output_invalid', 'unexpected_model'], true)) {
+        $detail = ['account_quota' => 'The OpenRouter account free-tier quota is exhausted; wait for the quota to reset.',
+            'rate_limited' => 'OpenRouter is rate limited; the response did not confirm a model-specific limit.',
+            'retry_after' => 'OpenRouter requested a cooldown before another request.',
+            'unexpected_model' => 'OpenRouter returned an unapproved model identifier. Ask the operator to review the routing.'][$reason] ?? '';
+        return 'AI generation is temporarily unavailable. You can generate a Local Summary instead.' . ($detail !== '' ? ' ' . $detail : '');
+    }
     return [
         'eligible' => 'Review the exact excerpt and confirm that you may send it to OpenRouter.',
-        'model_invalid' => 'Configure a valid shared OPENROUTER_MODEL.',
+        'model_invalid' => 'Ask the operator to configure one or two reviewed free text models in OPENROUTER_DOCUMENT_SUMMARY_MODELS.',
+        'content_refused' => 'OpenRouter refused the request. No other model was tried after this refusal. Review the content and permissions; you can choose Local Summary.',
+        'privacy_output' => 'The AI response failed privacy checks. No new summary was saved and no other model was tried. You can choose Local Summary.',
+        'policy_output' => 'The AI response failed instruction-safety checks. No new summary was saved and no other model was tried. You can choose Local Summary.',
+        'cooldown_storage' => 'The server cannot persist OpenRouter backoff safely. Ask the operator to check private storage permissions. You can choose Local Summary.',
         'missing_api_key' => 'The server-side OpenRouter API key is not configured.',
         'transport_unavailable' => 'The server does not have the required OpenRouter HTTPS transport available.',
         'not_configured' => 'The document AI service is not configured or its transport is unavailable.',
         'no_useful_text' => 'No useful research text remained after excerpt preparation.',
         'local_requested' => 'Local processing was selected. No document text was sent to OpenRouter.',
         'external_not_confirmed' => 'Review the AI excerpt and confirm that you may send it to OpenRouter.',
-        'timeout' => 'OpenRouter timed out. No new summary was saved. You can generate a local summary instead.',
-        'rate_limited' => 'OpenRouter is rate limited. No new summary was saved. You can generate a local summary instead.',
-        'routing_unavailable' => 'OpenRouter could not serve the configured shared model. Check the model and account routing settings, or generate locally.',
-        'provider_unavailable' => 'The OpenRouter provider is unavailable. Try again later or generate locally.',
         'service_auth' => 'OpenRouter rejected the API credentials. Ask the operator to check the protected key, or generate locally.',
         'service_forbidden' => 'OpenRouter refused the request. Account permissions, guardrails or content policies may be responsible; the operator must review them. You can generate locally.',
         'service_credits' => 'The OpenRouter account or key has insufficient credits. You can generate locally.',
-        'service_unavailable' => 'OpenRouter could not complete the request. No new summary was saved. You can generate locally.',
-        'invalid_response' => 'The AI response was empty, invalid or failed output checks. No new summary was saved. You can generate locally.',
         'ai_success' => 'Generated from the reviewed research excerpt. Review the original document before official use.',
     ][$reason] ?? 'External processing is unavailable. You can choose Local Summary.';
 }
@@ -153,16 +161,20 @@ function document_summary_unpack(?string $stored): array
     $value = json_decode((string)$stored, true);
     if (is_array($value) && ($value['format'] ?? '') === 'prism.document-summary.v1'
         && is_string($value['summary'] ?? null) && in_array($value['source'] ?? '', ['openrouter_ai', 'local_fallback'], true)) {
+        $model = $value['source'] === 'openrouter_ai' && is_string($value['model'] ?? null)
+            && strlen($value['model']) <= 160 && preg_match('~\A[a-zA-Z0-9._:/-]+\z~', $value['model']) ? $value['model'] : null;
         return ['summary' => $value['summary'], 'source' => $value['source'], 'partial' => !empty($value['partial']),
+            'model' => $model, 'modelLabel' => openrouter_model_label($model),
             'notice' => $value['source'] === 'local_fallback' && ($value['reason'] ?? '') !== 'local_requested'
                 ? 'This saved summary was generated locally because AI was unavailable or external processing was not permitted.'
                 : document_summary_notice((string)($value['reason'] ?? '')), 'reason' => (string)($value['reason'] ?? '')];
     }
-    return ['summary' => $stored, 'source' => null, 'partial' => false, 'notice' => '', 'reason' => 'legacy'];
+    return ['summary' => $stored, 'source' => null, 'model' => null, 'modelLabel' => null, 'partial' => false, 'notice' => '', 'reason' => 'legacy'];
 }
 
 function document_summary_pack(array $result): string
 {
     return json_encode(['format' => 'prism.document-summary.v1', 'summary' => $result['summary'],
-        'source' => $result['source'], 'partial' => $result['partial'], 'reason' => $result['reason']], JSON_THROW_ON_ERROR | JSON_UNESCAPED_UNICODE);
+        'source' => $result['source'], 'partial' => $result['partial'], 'reason' => $result['reason'],
+        'model' => $result['source'] === 'openrouter_ai' ? ($result['model'] ?? null) : null], JSON_THROW_ON_ERROR | JSON_UNESCAPED_UNICODE);
 }

@@ -12,7 +12,7 @@ const summaryRedaction=document.getElementById('summaryRedaction'),summaryWarnin
 let summaryDocument=null,summarySequence=0,summaryReturnFocus=null,summaryBusy=false,summaryPreviewToken=null;
 function summaryButton(d){return currentRole==='admin'&&d.actions?.summarize&&summaryModal?`<button type="button" class="document-action-button summary-action" data-summary="${esc(d.id)}"><i class="fa-solid fa-wand-magic-sparkles" aria-hidden="true"></i>${d.aiSummary?'View Summary':'Generate Summary'}</button>`:''}
 function bindSummaryButtons(host){host.querySelectorAll('[data-summary]').forEach(button=>button.addEventListener('click',()=>showSummary(documents.find(d=>String(d.id)===button.dataset.summary),button)))}
-function summaryLabel(source,reason){return source==='openrouter_ai'?'Generated with OpenRouter AI':source==='local_fallback'?'Generated locally \u2014 '+(reason==='local_requested'?'Local Summary selected':'saved local summary'):'Source not recorded for this older summary'}
+function summaryLabel(source,reason,modelLabel){return source==='openrouter_ai'?'Generated using OpenRouter AI'+(modelLabel?' \u2014 '+modelLabel:''):source==='local_fallback'?'Generated locally \u2014 '+(reason==='local_requested'?'Local Summary selected':'saved local summary'):'Source not recorded for this older summary'}
 function selectedSummaryMode(){return summaryModes.find(input=>input.checked)?.value||'external'}
 function cancelPreviewReference(d,token){if(d&&token)api('summarize_cancel',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({id:d.id,previewToken:token})}).catch(()=>{})}
 function resetSummaryPreview(cancel=true){
@@ -27,7 +27,7 @@ function showSummary(d,opener){
     resetSummaryPreview();summaryDocument=d;summaryReturnFocus=PrismUI.actionOrigin(opener||document.activeElement);
     document.getElementById('summaryFilename').textContent=d.originalName;
     summaryResult.textContent=d.aiSummary||'';summaryResult.hidden=!d.aiSummary;
-    summarySource.textContent=d.aiSummary?summaryLabel(d.summarySource,d.summaryReason)+(d.summaryNotice?' \u00b7 '+d.summaryNotice:'')+(d.summaryPartial?' \u00b7 Based on a bounded excerpt.':''):'';
+    summarySource.textContent=d.aiSummary?summaryLabel(d.summarySource,d.summaryReason,d.summaryModelLabel)+(d.summaryNotice?' \u00b7 '+d.summaryNotice:'')+(d.summaryPartial?' \u00b7 Based on a bounded excerpt.':''):'';
     summaryModes.forEach(input=>input.checked=input.value==='external');summaryRedaction.value='minimize';updateSummaryAction();localSummary.hidden=true;
     summaryMessage('Choose AI-Powered Summary or Local Summary.');
     openModal(summaryModal);summaryModal.querySelector('[data-close]').focus();
@@ -66,8 +66,8 @@ async function generateSummary(mode){
     summaryMessage(mode==='external'?'Generating AI-Powered Summary with OpenRouter using the confirmed excerpt\u2026':'Generating Local Summary in PRISM\u2026');
     try{
         const data=await api('summarize',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(request)});
-        d.aiSummary=data.summary;d.summarySource=data.source;d.summaryPartial=data.partial;d.summaryNotice=data.notice;d.summaryReason=data.reason;
-        if(sequence===summarySequence){summaryResult.textContent=data.summary;summaryResult.hidden=false;summarySource.textContent=summaryLabel(data.source,data.reason)+(data.notice?' \u00b7 '+data.notice:'')+(data.partial?' \u00b7 Based on a bounded excerpt; some content was omitted.':'');summaryMessage(mode==='external'?'AI-Powered Summary saved.':'Local Summary saved. No content was sent to OpenRouter.')}
+        d.aiSummary=data.summary;d.summarySource=data.source;d.summaryPartial=data.partial;d.summaryNotice=data.notice;d.summaryReason=data.reason;d.summaryModel=data.model;d.summaryModelLabel=data.modelLabel;
+        if(sequence===summarySequence){summaryResult.textContent=data.summary;summaryResult.hidden=false;summarySource.textContent=summaryLabel(data.source,data.reason,data.modelLabel)+(data.notice?' \u00b7 '+data.notice:'')+(data.partial?' \u00b7 Based on a bounded excerpt; some content was omitted.':'');summaryMessage(mode==='external'?'AI-Powered Summary saved.':'Local Summary saved. No content was sent to OpenRouter.')}
         renderTable();renderFolders();renderCourseView();
     }catch(error){if(sequence===summarySequence){summaryMessage(error.message,true);offerLocal=mode==='external'&&(error.data?.canGenerateLocal??true)}}
     finally{resetSummaryPreview(false);updateSummaryAction();setSummaryBusy(false);localSummary.hidden=!offerLocal;if(summaryModal.classList.contains('show'))(offerLocal?localSummary:regenerateSummary).focus()}

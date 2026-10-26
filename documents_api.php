@@ -132,6 +132,8 @@ function doc_row(array $d, array $user, ?int $viewerAdviserId): array
         'approvalDateSource' => $d['approval_date_source'] ?? null,
         'aiSummary' => $savedSummary['summary'] ?? null,
         'summarySource' => $savedSummary['source'] ?? null,
+        'summaryModel' => $savedSummary['model'] ?? null,
+        'summaryModelLabel' => $savedSummary['modelLabel'] ?? null,
         'summaryPartial' => $savedSummary['partial'] ?? false,
         'summaryNotice' => $savedSummary['notice'] ?? '',
         'summaryReason' => $savedSummary['reason'] ?? null,
@@ -620,6 +622,7 @@ if (in_array($action, ['summarize', 'summarize_preview', 'summarize_cancel'], tr
     } catch (Throwable $error) {
         if ($pdo->inTransaction()) $pdo->rollBack();
         $reason = $error instanceof DocumentSummaryError ? $error->reasonCode : ($error instanceof DocumentWriteConflict ? 'document_changed' : 'summary_failed');
+        if ($error instanceof DocumentSummaryError && $error->retryAfter > 0) header('Retry-After: ' . $error->retryAfter);
         audit_log($user, 'document_summary_failed', ['entity_type' => 'document', 'entity_id' => $id,
             'details' => 'source=' . $summarySourceUsed . '; category=' . $reason . '; mode=' . (in_array($mode ?? null, ['external','local'], true) ? $mode : 'unknown') . '; partial=' . ($summaryPartial === null ? 'unknown' : (int)$summaryPartial)]);
         $summaryActive = false;

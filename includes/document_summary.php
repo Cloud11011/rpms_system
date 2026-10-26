@@ -23,7 +23,7 @@ require_once __DIR__ . '/document_summary_excerpt.php';
 
 class DocumentSummaryError extends RuntimeException
 {
-    public function __construct(public string $reasonCode, string $message, public int $httpStatus = 422)
+    public function __construct(public string $reasonCode, string $message, public int $httpStatus = 422, public int $retryAfter = 0)
     { parent::__construct($message); }
 }
 
@@ -286,15 +286,18 @@ function generate_document_summary(array $extraction, array $identifiers, bool $
     }
     $prepared = prepare_document_summary($extraction, $identifiers, $redactIdentifiers);
     if (!$prepared['eligible']) throw new DocumentSummaryError($prepared['reason'], document_summary_notice($prepared['reason']), 422);
-    $response = openrouter_document_summary($prepared['excerpt'], $prepared['configuration']);
+    $response = openrouter_document_summary($prepared['excerpt'], $prepared['configuration'], $identifiers, $redactIdentifiers);
     $reason = $response['reason'];
     if (isset($response['summary'])) {
-        $summary = validate_document_ai_summary($response['summary'], $identifiers, $redactIdentifiers);
+        $summary = $response['summary']; // Both the transport and task privacy checks already passed.
         if ($summary !== null) return ['summary' => $summary, 'source' => 'openrouter_ai',
             'partial' => $prepared['partial'], 'pages' => $prepared['pages'], 'reason' => 'ai_success',
+            'model' => $response['model'] ?? null, 'modelLabel' => openrouter_model_label($response['model'] ?? null),
             'notice' => document_summary_notice('ai_success')];
         $reason = 'invalid_response';
     }
     // A failed AI request never substitutes or persists local output.
-    throw new DocumentSummaryError($reason, document_summary_notice($reason), $reason === 'rate_limited' ? 429 : 503);
+    throw new DocumentSummaryError($reason, document_summary_notice($reason),
+        in_array($reason, ['rate_limited', 'provider_rate_limited', 'account_quota', 'retry_after'], true) ? 429 : 503,
+        $response['retryAfter'] ?? 0);
 }
