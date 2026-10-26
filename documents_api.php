@@ -8,15 +8,17 @@ require_once __DIR__ . '/includes/account_lifecycle.php';
 require_once __DIR__ . '/includes/office_container.php';
 require_once __DIR__ . '/includes/document_catalog.php';
 require_once __DIR__ . '/includes/document_upload.php';
+require_once __DIR__ . '/includes/document_summary_ai.php';
+require_once __DIR__ . '/includes/document_management.php';
 
 $user = api_require_login(['admin', 'adviser', 'student']);
 $pdo = db();
 $action = $_GET['action'] ?? $_POST['action'] ?? 'list';
-if ($action === 'summarize' && $user['role'] !== 'admin') {
+if (in_array($action, ['summarize','summarize_preview','summarize_cancel'], true) && $user['role'] !== 'admin') {
     audit_log($user, 'document_summary_failed', ['entity_type' => 'document', 'details' => 'reason=forbidden_role']);
     json_out(['ok' => false, 'message' => 'Only RPMS Administrators may generate document summaries.'], 403);
 }
-if (in_array($action, ['upload', 'review', 'comment', 'return_for_revision', 'submit_to_rpms', 'override_review', 'delete', 'summarize'], true)) {
+if (in_array($action, ['upload', 'review', 'comment', 'return_for_revision', 'submit_to_rpms', 'override_review', 'delete', 'summarize', 'summarize_preview', 'summarize_cancel', 'selection_snapshot', 'bulk_delete_preview', 'bulk_delete'], true)) {
     require_post_same_origin();
 }
 
@@ -107,6 +109,8 @@ function doc_row(array $d, array $user, ?int $viewerAdviserId): array
 
     $row = [
         'id' => $d['id'],
+        'selectionVersion' => $role === 'admin' ? document_selection_fingerprint($d) : null,
+        'adviserName' => $role === 'admin' ? ($d['adviser_name'] ?? null) : null,
         'originalName' => $d['original_name'],
         'size' => (int)$d['size'],
         'mime' => $d['mime'],
@@ -128,7 +132,9 @@ function doc_row(array $d, array $user, ?int $viewerAdviserId): array
         // The AI/regex-detected approval date printed on the document itself.
         'detectedApprovalDate' => $d['detected_approval_date'] ?? null,
         'approvalDateSource' => $d['approval_date_source'] ?? null,
-        'aiSummary' => $role === 'admin' ? $d['ai_summary'] : null,
+        'aiSummary' => $role === 'admin' ? document_summary_record($d['ai_summary'])['summary'] : null,
+        'summarySource' => $role === 'admin' ? document_summary_record($d['ai_summary'])['source'] : null,
+        'summaryPartial' => $role === 'admin' ? document_summary_record($d['ai_summary'])['partial'] : false,
 
         // Workflow + record integrity
         'workflowState' => $state,
@@ -177,53 +183,21 @@ function doc_row(array $d, array $user, ?int $viewerAdviserId): array
 // list
 // ---------------------------------------------------------------------
 if ($action === 'list') {
-    $scope = 'FROM documents d LEFT JOIN students s ON s.id = d.student_id WHERE 1=1';
-    $params = [];
-    if ($user['role'] === 'student') {
-        $scope .= ' AND s.email = :e'; $params[':e'] = $user['email'];
-    } elseif ($user['role'] === 'adviser') {
-        $scope .= $viewerAdviserId !== null ? ' AND s.adviser_id = :vad AND s.archived_at IS NULL' : ' AND 1=0';
-        if ($viewerAdviserId !== null) $params[':vad'] = $viewerAdviserId;
+    try {
+        $spec = document_list_query($user, $viewerAdviserId, $_GET);
+        $metadata = document_list_options($pdo, $spec, $user);
+        $page = prism_page_query($pdo, $spec['select'], $spec['scope'], $spec['params'], $spec['order'], $_GET);
+        $rows = array_map(fn($d) => doc_row($d, $user, $viewerAdviserId), $page['rows']);
+        unset($page['rows']);
+        json_out(['ok' => true, 'documents' => $rows] + $metadata + $page);
+    } catch (DocumentManagementError $error) {
+        json_out(['ok' => false, 'message' => $error->getMessage()], $error->status);
     }
-    if (($_GET['includeOld'] ?? '') !== '1') $scope .= ' AND d.is_current = 1';
-    $stateSql = "CASE WHEN d.is_current = 0 THEN 'Superseded' WHEN " . document_returned_sql() . " THEN 'Returned for Revision' WHEN d.review_status = 'Approved' THEN CASE WHEN d.rpms_submitted_at IS NOT NULL AND CAST(d.rpms_submitted_at AS CHAR) <> '' THEN 'Submitted to RPMS' ELSE 'Ready for Formal RPMS Submission' END WHEN d.review_status IN ('Denied', 'Resubmission Requested') THEN 'Needs Revision' ELSE 'Pending Adviser Review' END";
-    if (($_GET['actionable'] ?? '') === '1') {
-        $scope .= " AND d.is_current = 1 AND ($stateSql) IN ('Needs Revision','Returned for Revision','Ready for Formal RPMS Submission')";
-    }
-    $stmt = $pdo->prepare('SELECT ' . $stateSql . ' AS state, COUNT(*) AS c ' . $scope . ' GROUP BY ' . $stateSql);
-    $stmt->execute($params);
-    $counts = array_map('intval', array_column($stmt->fetchAll(), 'c', 'state'));
-    $filterOptions = [];
-    foreach (['types' => 'd.document_type', 'courses' => 's.course', 'years' => 'SUBSTR(d.uploaded_at,1,4)'] as $key => $column) {
-        $stmt = $pdo->prepare('SELECT DISTINCT ' . $column . ' AS value ' . $scope . ' ORDER BY value');
-        $stmt->execute($params);
-        $filterOptions[$key] = array_values(array_filter(array_column($stmt->fetchAll(), 'value'), fn($v) => $v !== null && $v !== ''));
-    }
-    $q = trim((string)($_GET['q'] ?? ''));
-    if ($q !== '') {
-        $search = prism_search_clause(['d.original_name', 'd.student_name', 's.protocol_code', 'd.document_type', 'd.uploaded_by', 'd.stage'], $q, $params);
-        foreach (STAGE_SEQUENCE as $i => $stage) {
-            if (mb_strpos(mb_strtolower(stage_label($stage)), mb_strtolower($q)) !== false) {
-                $search .= ' OR d.stage = :labelStage' . $i; $params[':labelStage' . $i] = $stage;
-            }
-        }
-        $scope .= ' AND (' . $search . ')';
-    }
-    foreach (['review' => 'd.review_status', 'stage' => 'd.stage', 'type' => 'd.document_type', 'course' => 's.course', 'year' => 'SUBSTR(d.uploaded_at,1,4)', 'state' => $stateSql] as $key => $column) {
-        if (trim((string)($_GET[$key] ?? '')) !== '') {
-            $scope .= " AND ($column) = :$key"; $params[":$key"] = trim((string)$_GET[$key]);
-        }
-    }
-    $orders = ['oldest' => 'd.uploaded_at ASC, d.id ASC', 'name-asc' => 'd.original_name ASC, d.id ASC', 'name-desc' => 'd.original_name DESC, d.id ASC', 'student-asc' => 'd.student_name ASC, d.id ASC'];
-    // Presentation grouping only: preserve the distinct underlying workflow states.
-    if (($_GET['stateGroup'] ?? '') === 'approved') {
-        $scope .= " AND ($stateSql) IN ('Ready for Formal RPMS Submission','Submitted to RPMS')";
-    }
-    $page = prism_page_query($pdo, 'SELECT d.*, s.course, s.protocol_code, s.adviser_id, s.archived_at', $scope, $params, $orders[$_GET['sort'] ?? ''] ?? 'd.uploaded_at DESC, d.id DESC', $_GET);
-    $rows = array_map(fn($d) => doc_row($d, $user, $viewerAdviserId), $page['rows']); unset($page['rows']);
-    json_out(['ok' => true, 'documents' => $rows, 'counts' => $counts, 'filterOptions' => $filterOptions] + $page);
 }
 
+if (in_array($action, ['selection_snapshot','bulk_delete_preview','bulk_delete'], true)) {
+    require __DIR__ . '/includes/document_management_actions.php';
+}
 // ---------------------------------------------------------------------
 // upload (a re-upload for the same student + stage + type becomes a new version)
 // ---------------------------------------------------------------------
@@ -506,52 +480,8 @@ if ($action === 'upload') {
 // ---------------------------------------------------------------------
 // Everything below works on one existing document
 // ---------------------------------------------------------------------
-if ($action === 'summarize') {
-    require_once __DIR__ . '/includes/document_summary.php';
-    $payload = json_body();
-    $id = $payload['id'] ?? null;
-    if (!is_string($id) || !preg_match('/\A[a-f0-9]{24}\z/', $id)) {
-        audit_log($user, 'document_summary_failed', ['entity_type' => 'document', 'details' => 'reason=invalid_document_id']);
-        json_out(['ok' => false, 'message' => 'Provide a valid document ID.'], 422);
-    }
-    // Reserve enough memory to return a safe response if a hostile PDF exhausts PHP's budget.
-    $summaryReserve = str_repeat('x', 262144); $summaryActive = true;
-    register_shutdown_function(static function () use (&$summaryReserve, &$summaryActive): void {
-        $last = error_get_last();
-        if (!$summaryActive || !$last || !in_array($last['type'], [E_ERROR, E_CORE_ERROR, E_COMPILE_ERROR], true)) return;
-        $summaryReserve = null;
-        if (!headers_sent()) { http_response_code(422); header('Content-Type: application/json'); }
-        echo json_encode(['ok' => false, 'message' => 'The document exceeded safe processing limits. Try a smaller text-based copy.']);
-    });
-    try {
-        $doc = fetch_doc($pdo, $id);
-        if (!$doc) throw new DocumentSummaryError('document_missing', 'Document not found. It may have been deleted.', 404);
-        begin_document_write($pdo,$doc);
-        $pdo->commit();
-        $path = summary_stored_document_path($doc);
-        $extraction = extract_document_text_for_summary($path);
-        $result = generate_document_summary($extraction, document_summary_identifiers($pdo, $doc, $user));
-        // No external service runs under a database lock. Recheck the document before saving.
-        begin_document_write($pdo, $doc);
-        $current = fetch_doc($pdo, $id, true);
-        if ($current['stored_name'] !== $doc['stored_name'] || $current['version_no'] !== $doc['version_no']) {
-            throw new DocumentWriteConflict('This document changed. Refresh and try again.');
-        }
-        $pdo->prepare('UPDATE documents SET ai_summary = :summary WHERE id = :id')->execute([':summary' => $result['summary'], ':id' => $id]);
-        $pdo->commit();
-        audit_log($user, 'document_summarized', ['entity_type' => 'document', 'entity_id' => $id,
-            'student_id' => $doc['student_id'], 'details' => 'source=' . $result['source'] . '; partial=' . (int)$result['partial']]);
-        $summaryActive = false;
-        json_out(['ok' => true] + $result);
-    } catch (Throwable $error) {
-        if ($pdo->inTransaction()) $pdo->rollBack();
-        $reason = $error instanceof DocumentSummaryError ? $error->reasonCode : ($error instanceof DocumentWriteConflict ? 'document_changed' : 'summary_failed');
-        audit_log($user, 'document_summary_failed', ['entity_type' => 'document', 'entity_id' => $id, 'details' => 'reason=' . $reason]);
-        $summaryActive = false;
-        json_out(['ok' => false, 'message' => $error instanceof DocumentSummaryError || $error instanceof DocumentWriteConflict
-            ? $error->getMessage() : 'The summary could not be saved. Please try again.'],
-            $error instanceof DocumentSummaryError ? $error->httpStatus : ($error instanceof DocumentWriteConflict ? 409 : 503));
-    }
+if (in_array($action, ['summarize','summarize_preview','summarize_cancel'], true)) {
+    require __DIR__ . '/includes/document_summary_actions.php';
 }
 $workflowAction=in_array($action,['review','comment','return_for_revision','submit_to_rpms','override_review'],true);
 try { $payload = json_body($workflowAction); }

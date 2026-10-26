@@ -7,41 +7,112 @@ const size=v=>v<1024?`${v} B`:v<1048576?`${(v/1024).toFixed(1)} KB`:`${(v/104857
 async function api(action,options={}){return PrismUI.request(`documents_api.php?action=${encodeURIComponent(action)}`,options)}
 const summaryModal=document.getElementById('summaryModal'),summaryResult=document.getElementById('summaryResult'),summarySource=document.getElementById('summarySource'),regenerateSummary=document.getElementById('regenerateSummary');
 let summaryDocument=null,summarySequence=0,summaryReturnFocus=null,summaryBusy=false;
-const summarySources=new Map();
-function summaryButton(d){return currentRole==='admin'&&d.actions?.summarize&&summaryModal?`<button type="button" class="document-action-button summary-action" data-summary="${esc(d.id)}"><i class="fa-solid fa-wand-magic-sparkles" aria-hidden="true"></i>${d.aiSummary?'View AI Summary':'Generate AI Summary'}</button>`:''}
+const summaryMode=document.getElementById('summaryMode'),summaryReview=document.getElementById('summaryReview'),summaryExcerpt=document.getElementById('summaryExcerpt'),summaryConfirmed=document.getElementById('summaryConfirmed');
+let summaryPreviewToken=null;
+function summaryButton(d){return currentRole==='admin'&&d.actions?.summarize&&summaryModal?`<button type="button" class="document-action-button summary-action" data-summary="${esc(d.id)}"><i class="fa-solid fa-wand-magic-sparkles" aria-hidden="true"></i>${d.aiSummary?'View Summary':'Generate Summary'}</button>`:''}
 function bindSummaryButtons(host){host.querySelectorAll('[data-summary]').forEach(button=>button.addEventListener('click',()=>showSummary(documents.find(d=>String(d.id)===button.dataset.summary),button)))}
 function showSummary(d,opener){
     if(!d||currentRole!=='admin'||!summaryModal||summaryBusy)return;
     summaryDocument=d;summaryReturnFocus=PrismUI.actionOrigin(opener||document.activeElement);
     document.getElementById('summaryFilename').textContent=d.originalName;
     summaryResult.textContent=d.aiSummary||'';
-    summaryResult.classList.remove('document-error');
-    const recordedSource=summarySources.get(d.id);
-    summarySource.textContent=d.aiSummary?(recordedSource?.summary===d.aiSummary?recordedSource.label:'Source not recorded'):'';
+    summaryResult.classList.remove('document-error');summarySource.classList.remove('document-error');
+    summaryMode.value=d.summarySource==='ai'?'ai':'local';clearSummaryPreview();
+    summarySource.textContent=d.aiSummary?summarySourceLabel(d.summarySource,d.summaryPartial):'';
     openModal(summaryModal);summaryModal.querySelector('[data-close]').focus();
-    if(!d.aiSummary)generateSummary();
 }
+function summarySourceLabel(source,partial){return (source==='ai'?'AI-Powered Summary · Liquid AI':source==='local'||source==='local_fallback'?'Local Summary':'Previously saved summary')+(partial?' · Based on a bounded excerpt.':'')}
+function clearSummaryPreview(){
+    const token=summaryPreviewToken;summaryPreviewToken=null;
+    if(token)api('summarize_cancel',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({id:summaryDocument?.id,previewToken:token})}).catch(()=>{});
+    if(summaryReview)summaryReview.hidden=true;if(summaryExcerpt)summaryExcerpt.value='';if(summaryConfirmed)summaryConfirmed.checked=false;
+    if(regenerateSummary){regenerateSummary.textContent='Generate Summary';regenerateSummary.disabled=summaryBusy}
+    const note=document.getElementById('summaryModeNote');if(note)note.textContent=summaryMode?.value==='ai'?'Review the extracted excerpt before sending it to Liquid AI.':'Local Summary runs in PRISM without sending document contents externally.';
+}
+summaryMode?.addEventListener('change',clearSummaryPreview);
+summaryConfirmed?.addEventListener('change',()=>{regenerateSummary.disabled=summaryBusy||!summaryConfirmed.checked});
 async function generateSummary(){
     if(!summaryDocument||summaryBusy)return;
+    if(summaryMode.value==='ai'&&summaryPreviewToken&&!summaryConfirmed.checked)return;
     const d=summaryDocument,sequence=++summarySequence;summaryBusy=true;regenerateSummary.disabled=true;
-    summaryResult.textContent='Extracting document text and preparing the summary…';summaryResult.setAttribute('aria-busy','true');summaryResult.classList.remove('document-error');summarySource.textContent='';
+    summaryMode.disabled=true;summaryResult.setAttribute('aria-busy','true');summaryResult.classList.remove('document-error');summarySource.classList.remove('document-error');
+    const preview=summaryMode.value==='ai'&&!summaryPreviewToken;
+    summarySource.textContent=preview?'Extracting text for your review…':summaryMode.value==='ai'?'Liquid AI is generating the summary…':'Generating Local Summary…';
     try{
-        const data=await api('summarize',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({id:d.id})});
+        const data=await api(preview?'summarize_preview':'summarize',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({id:d.id,mode:summaryMode.value,...(!preview&&summaryMode.value==='ai'?{previewToken:summaryPreviewToken,confirmed:true}:{})})});
         if(sequence!==summarySequence)return;
+        if(preview){summaryPreviewToken=data.previewToken;summaryExcerpt.value=data.excerpt;summaryReview.hidden=false;summaryConfirmed.checked=false;regenerateSummary.textContent='Generate AI Summary';summarySource.textContent='Review and authorize this excerpt. No document text has been sent externally.';summaryConfirmed.focus();return}
+        summaryPreviewToken=null;summaryReview.hidden=true;summaryExcerpt.value='';summaryConfirmed.checked=false;
         d.aiSummary=data.summary;summaryResult.textContent=data.summary;
-        const source=data.source==='ai'?'AI generated':data.source==='local_fallback'?'Local extractive fallback — AI unavailable or response rejected':'Source not recorded';
-        summarySource.textContent=source+(data.partial?' · Based on a bounded excerpt; some document content was omitted.':'');summarySources.set(d.id,{summary:data.summary,label:summarySource.textContent});
-        renderTable();renderFolders();renderCourseView();
-    }catch(error){if(sequence===summarySequence){summaryResult.textContent=error.message;summaryResult.classList.add('document-error');summarySource.textContent='Summary was not generated. Any existing saved summary is retained.'}}
-    finally{summaryBusy=false;regenerateSummary.disabled=false;summaryResult.setAttribute('aria-busy','false')}
+        d.summarySource=data.source;d.summaryPartial=data.partial;summarySource.textContent=summarySourceLabel(data.source,data.partial);regenerateSummary.textContent='Generate Summary';
+        await load();
+    }catch(error){if(sequence===summarySequence){clearSummaryPreview();summaryResult.textContent=d.aiSummary||'';summarySource.textContent=error.message+' Any existing saved summary is retained.';summarySource.classList.add('document-error')}}
+    finally{summaryBusy=false;summaryMode.disabled=false;regenerateSummary.disabled=!!summaryPreviewToken&&!summaryConfirmed.checked;summaryResult.setAttribute('aria-busy','false')}
 }
 regenerateSummary?.addEventListener('click',generateSummary);
 summaryModal?.addEventListener('keydown',event=>{
     if(event.key==='Escape'){event.preventDefault();event.stopPropagation();closeModal(summaryModal);return}
     if(event.key!=='Tab')return;
-    const buttons=[...summaryModal.querySelectorAll('button:not(:disabled)')],first=buttons[0],last=buttons.at(-1);
+    const buttons=[...summaryModal.querySelectorAll('button:not(:disabled),select:not(:disabled),input:not(:disabled),textarea')].filter(el=>el.getClientRects().length),first=buttons[0],last=buttons.at(-1);
     if(event.shiftKey&&document.activeElement===first){event.preventDefault();last.focus()}
     else if(!event.shiftKey&&document.activeElement===last){event.preventDefault();first.focus()}
+});
+// Selection keeps exact server identities across pages and presentation views.
+const selectedDocuments=new Map();let matchingSelection=null,selectionFilterKey=null,selectionBusy=false,deleteBusy=false,deleteConfirmation=null,deleteReturnFocus=null;
+const pageSelection=document.getElementById('selectDocumentPage'),allSelection=document.getElementById('selectAllDocuments'),clearSelectionButton=document.getElementById('clearDocumentSelection'),bulkDeleteButton=document.getElementById('bulkDeleteDocuments'),deleteModal=document.getElementById('bulkDeleteModal'),deleteReason=document.getElementById('bulkDeleteReason'),deleteConfirmButton=document.getElementById('confirmBulkDelete'),deleteStatus=document.getElementById('bulkDeleteStatus');
+function isDocumentSelected(id){return matchingSelection?matchingSelection.ids.has(String(id))&&!matchingSelection.excluded.has(String(id)):selectedDocuments.has(String(id))}
+function selectedDocumentCount(){return matchingSelection?matchingSelection.ids.size-matchingSelection.excluded.size:selectedDocuments.size}
+function selectionControl(d){return currentRole==='admin'&&!d.preview?`<label class="document-record-select"><input type="checkbox" data-document-select="${esc(d.id)}" aria-label="Select ${esc(d.originalName)} version ${Number(d.versionNo||1)}" ${isDocumentSelected(d.id)?'checked':''}><span class="document-selection-label">Select</span></label>`:''}
+function updateDocumentSelection(){
+    if(!pageSelection)return;
+    const visible=documents.filter(d=>!d.preview),count=selectedDocumentCount(),onPage=visible.filter(d=>isDocumentSelected(d.id)).length;
+    pageSelection.checked=visible.length>0&&onPage===visible.length;pageSelection.indeterminate=onPage>0&&onPage<visible.length;pageSelection.disabled=selectionBusy||deleteBusy||loadError||!visible.length;
+    allSelection.disabled=selectionBusy||deleteBusy||loadError||previewOnly||!listData.total;
+    clearSelectionButton.disabled=selectionBusy||deleteBusy||(!count&&!matchingSelection);bulkDeleteButton.disabled=selectionBusy||deleteBusy||!count;
+    document.getElementById('documentSelectedCount').textContent=`${count} selected${matchingSelection?' across all matching pages':''}`;
+    document.querySelectorAll('[data-document-select]').forEach(input=>{input.checked=isDocumentSelected(input.dataset.documentSelect);input.disabled=selectionBusy||deleteBusy});
+}
+function clearDocumentSelection(){selectedDocuments.clear();matchingSelection=null;deleteConfirmation=null;if(deleteModal?.classList.contains('show')&&!deleteBusy)closeModal(deleteModal);updateDocumentSelection()}
+function selectDocument(d,checked){
+    if(!d||d.preview||selectionBusy||deleteBusy)return;
+    const id=String(d.id);
+    if(matchingSelection){if(!matchingSelection.ids.has(id)){toast('This document was added after Select All. Clear the selection to include it.','error');return}if(checked)matchingSelection.excluded.delete(id);else matchingSelection.excluded.add(id)}
+    else if(checked)selectedDocuments.set(id,d.selectionVersion);else selectedDocuments.delete(id);
+}
+document.addEventListener('change',event=>{const input=event.target.closest('[data-document-select]');if(!input)return;selectDocument(documents.find(d=>String(d.id)===input.dataset.documentSelect),input.checked);updateDocumentSelection()});
+pageSelection?.addEventListener('change',()=>{documents.forEach(d=>selectDocument(d,pageSelection.checked));updateDocumentSelection()});
+clearSelectionButton?.addEventListener('click',clearDocumentSelection);
+allSelection?.addEventListener('click',async()=>{
+    if(selectionBusy||deleteBusy)return;selectionBusy=true;updateDocumentSelection();const filterKey=selectionFilterKey;
+    try{const data=await api('selection_snapshot',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({filters:documentQuery()})});if(filterKey!==selectionFilterKey)return;selectedDocuments.clear();matchingSelection={token:data.selectionToken,ids:new Set(data.ids.map(String)),excluded:new Set()};toast(`${data.count} matching documents selected across all pages.`)}catch(error){toast(error.message,'error')}finally{selectionBusy=false;updateDocumentSelection()}
+});
+bulkDeleteButton?.addEventListener('click',async()=>{
+    if(!selectedDocumentCount()||selectionBusy||deleteBusy)return;deleteReturnFocus=bulkDeleteButton;selectionBusy=true;updateDocumentSelection();const filterKey=selectionFilterKey;
+    const selection=matchingSelection?{selectionToken:matchingSelection.token,excludedIds:[...matchingSelection.excluded]}:{ids:[...selectedDocuments.keys()],expectedVersions:Object.fromEntries(selectedDocuments)};
+    try{
+        const data=await api('bulk_delete_preview',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(selection)});if(filterKey!==selectionFilterKey)return;
+        deleteConfirmation=data;deleteReason.value='';deleteStatus.textContent='';deleteStatus.classList.remove('document-error');
+        const counts=document.getElementById('bulkDeleteCounts');counts.replaceChildren();
+        [['Selected',data.count],['Current versions',data.currentVersions],['Historical versions',data.historicalVersions],['Formally submitted',data.submitted],['No longer eligible',(data.ineligible||[]).length]].forEach(([label,value])=>{const term=document.createElement('dt'),detail=document.createElement('dd');term.textContent=label;detail.textContent=value;counts.append(term,detail)});
+        const ineligible=document.getElementById('bulkDeleteIneligible');ineligible.replaceChildren();(data.ineligible||[]).forEach(record=>{const item=document.createElement('li');item.textContent=`${record.id}: ${record.message}`;ineligible.append(item)});
+        if(!data.canDelete)deleteStatus.textContent='Nothing can be deleted from this confirmation. Clear the selection and refresh the records.';
+        deleteConfirmButton.disabled=true;openModal(deleteModal);deleteReason.focus();
+    }catch(error){toast(error.message,'error')}finally{selectionBusy=false;updateDocumentSelection()}
+});
+deleteReason?.addEventListener('input',()=>{deleteConfirmButton.disabled=deleteBusy||!deleteConfirmation?.canDelete||[...deleteReason.value.trim()].length<Number(deleteReason.minLength)});
+deleteConfirmButton?.addEventListener('click',async()=>{
+    if(deleteBusy||deleteConfirmButton.disabled||!deleteConfirmation?.confirmationToken)return;
+    deleteBusy=true;deleteConfirmButton.disabled=true;deleteReason.disabled=true;deleteStatus.textContent='Deleting the confirmed documents…';updateDocumentSelection();
+    try{
+        const data=await api('bulk_delete',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({confirmationToken:deleteConfirmation.confirmationToken,confirmed:true,reason:deleteReason.value.trim()})});
+        deleteBusy=false;closeModal(deleteModal);clearDocumentSelection();await load();toast(data.message,data.cleanupFailures?.length?'error':'success');
+    }catch(error){deleteConfirmation=null;deleteStatus.textContent=error.message+' Refresh and select the records again before another deletion attempt.';deleteStatus.classList.add('document-error')}
+    finally{deleteBusy=false;deleteReason.disabled=false;deleteConfirmButton.disabled=true;updateDocumentSelection()}
+});
+deleteModal?.addEventListener('keydown',event=>{
+    if(event.key==='Escape'){event.preventDefault();event.stopPropagation();closeModal(deleteModal)}
+    if(event.key!=='Tab')return;const controls=[...deleteModal.querySelectorAll('button:not(:disabled),textarea:not(:disabled)')],first=controls[0],last=controls.at(-1);
+    if(event.shiftKey&&document.activeElement===first){event.preventDefault();last?.focus()}else if(!event.shiftKey&&document.activeElement===last){event.preventDefault();first?.focus()}
 });
 let uploadStudents=[];
 async function loadUploadStudents(){
@@ -94,7 +165,7 @@ function renderTable(){
     rows.forEach(d=>{
         const a=d.actions||{};
         const tr=document.createElement('tr');
-        tr.innerHTML=`<td><div class="file-cell"><i class="fa-regular ${fileIcon(d.originalName)}"></i><div><strong>${esc(d.originalName)}</strong><span>${size(d.size)}${d.versionNo>1?' · v'+d.versionNo:''}</span></div></div></td>
+        tr.innerHTML=`<td><div class="file-cell">${selectionControl(d)}<i class="fa-regular ${fileIcon(d.originalName)}"></i><div><strong>${esc(d.originalName)}</strong><span>${size(d.size)}${d.versionNo>1?' · v'+d.versionNo:''}</span></div></div></td>
             <td>${esc(d.uploadedBy)}</td>
             <td>${esc(date(d.uploadedAt))}</td>
             <td>${esc(d.student)}${d.course?` <small>(${esc(d.course)})</small>`:''}</td>
@@ -162,12 +233,16 @@ function renderTable(){
     bindSummaryButtons(body);
 }
 function renderPreviewFolder(host,title,icon){const folder=document.createElement('div');folder.className='document-folder';const heading=document.createElement('div');heading.className='folder-heading';const mark=document.createElement('i');mark.className='fa-solid '+icon;const label=document.createElement('strong');label.textContent=title;const total=document.createElement('span');total.textContent='1';heading.append(mark,label,total);const files=document.createElement('div');files.className='folder-files';const sample=document.createElement('span');sample.className='folder-file document-preview-folder-item';sample.textContent='Screenshot 2025-05-24 104329.png · UI preview sample only';files.append(sample);folder.append(heading,files);host.replaceChildren(folder)}
-function renderFolders(){folderView.replaceChildren();if(previewOnly){renderPreviewFolder(folderView,'Cyrus Salvador','fa-folder');return}const groups=new Map();filtered().forEach(d=>{if(!groups.has(d.student))groups.set(d.student,[]);groups.get(d.student).push(d)});groups.forEach((files,name)=>{const folder=document.createElement('div');folder.className='document-folder';folder.innerHTML=`<div class="folder-heading"><i class="fa-solid fa-folder"></i><strong>${esc(name)}</strong><span>${files.length}</span></div><div class="folder-files">${files.map(f=>`<a class="folder-file" href="${documentFileHref(f)}" target="_blank"><i class="fa-regular ${fileIcon(f.originalName)}"></i>${esc(f.originalName)}</a><span class="prism-document-quick-actions">${PrismUI.documentActionsHtml(f)}</span>${summaryButton(f)}`).join('')}</div>`;folderView.appendChild(folder)});bindSummaryButtons(folderView)}
-function renderCourseView(){courseView.replaceChildren();if(previewOnly){renderPreviewFolder(courseView,'BSIT','fa-layer-group');return}const groups=new Map();filtered().forEach(d=>{const key=d.course||'Unassigned / No Course';if(!groups.has(key))groups.set(key,[]);groups.get(key).push(d)});[...groups.keys()].sort().forEach(course=>{const files=groups.get(course);const folder=document.createElement('div');folder.className='document-folder';folder.innerHTML=`<div class="folder-heading"><i class="fa-solid fa-layer-group"></i><strong>${esc(course)}</strong><span>${files.length}</span></div><div class="folder-files">${files.map(f=>`<a class="folder-file" href="${documentFileHref(f)}" target="_blank"><i class="fa-regular ${fileIcon(f.originalName)}"></i>${esc(f.originalName)} <small>(${esc(f.student)}, ${esc(f.year||'')})</small></a><span class="prism-document-quick-actions">${PrismUI.documentActionsHtml(f)}</span>${summaryButton(f)}`).join('')}</div>`;courseView.appendChild(folder)});bindSummaryButtons(courseView)}
-function render(){renderFilters();renderTypeManager();renderTable();renderFolders();renderCourseView()}
+function renderFolders(){folderView.replaceChildren();if(previewOnly){renderPreviewFolder(folderView,'Cyrus Salvador','fa-folder');return}const groups=new Map();filtered().forEach(d=>{if(!groups.has(d.student))groups.set(d.student,[]);groups.get(d.student).push(d)});groups.forEach((files,name)=>{const folder=document.createElement('div');folder.className='document-folder';folder.innerHTML=`<div class="folder-heading"><i class="fa-solid fa-folder"></i><strong>${esc(name)}</strong><span>${files.length}</span></div><div class="folder-files">${files.map(f=>`${selectionControl(f)}<a class="folder-file" href="${documentFileHref(f)}" target="_blank"><i class="fa-regular ${fileIcon(f.originalName)}"></i>${esc(f.originalName)}</a><span class="prism-document-quick-actions">${PrismUI.documentActionsHtml(f)}</span>${summaryButton(f)}`).join('')}</div>`;folderView.appendChild(folder)});bindSummaryButtons(folderView)}
+function renderCourseView(){courseView.replaceChildren();if(previewOnly){renderPreviewFolder(courseView,'BSIT','fa-layer-group');return}const groups=new Map();filtered().forEach(d=>{const key=d.course||'Unassigned / No Course';if(!groups.has(key))groups.set(key,[]);groups.get(key).push(d)});[...groups.keys()].sort().forEach(course=>{const files=groups.get(course);const folder=document.createElement('div');folder.className='document-folder';folder.innerHTML=`<div class="folder-heading"><i class="fa-solid fa-layer-group"></i><strong>${esc(course)}</strong><span>${files.length}</span></div><div class="folder-files">${files.map(f=>`${selectionControl(f)}<a class="folder-file" href="${documentFileHref(f)}" target="_blank"><i class="fa-regular ${fileIcon(f.originalName)}"></i>${esc(f.originalName)} <small>(${esc(f.student)}, ${esc(f.year||'')})</small></a><span class="prism-document-quick-actions">${PrismUI.documentActionsHtml(f)}</span>${summaryButton(f)}`).join('')}</div>`;courseView.appendChild(folder)});bindSummaryButtons(courseView)}
+function render(){renderFilters();renderTypeManager();renderTable();renderFolders();renderCourseView();updateDocumentSelection()}
 function openModal(m){m.classList.add('show');m.setAttribute('aria-hidden','false')}function closeModal(m){
+    if(m===summaryModal&&summaryBusy)return;
+    if(m===deleteModal&&deleteBusy)return;
     m.classList.remove('show');m.setAttribute('aria-hidden','true');
+    if(m===deleteModal){deleteConfirmation=null;PrismUI.actionOrigin(deleteReturnFocus)?.focus()}
     if(m===summaryModal){
+        clearSummaryPreview();
         const host=view==='folder'?folderView:view==='course'?courseView:body;
         const current=[...host.querySelectorAll('[data-summary]')].find(button=>button.dataset.summary===String(summaryDocument?.id));
         const focus=summaryReturnFocus?.isConnected?summaryReturnFocus:current;
@@ -181,18 +256,39 @@ document.querySelector('.document-actions').prepend(filterPanel);
 const stateFilter=document.createElement('select');stateFilter.id='documentStateFilter';stateFilter.setAttribute('aria-label','Workflow status');
 [['','All'],['Pending Adviser Review','Pending adviser review'],['Needs Revision','Needs revision'],['Returned for Revision','Returned by RPMS'],['Ready for Formal RPMS Submission','Ready for formal submission'],['Submitted to RPMS','Submitted to RPMS'],['Superseded','Superseded']].forEach(([value,label])=>stateFilter.add(new Option(label,value)));
 const stateLabel=document.createElement('label');stateLabel.textContent='Workflow status';stateLabel.append(stateFilter);filterPanel.append(stateLabel);
-const pager=PrismUI.recordPager(document.getElementById('documentsCourseView'),document.getElementById('documentCount'),[search,typeFilter,courseFilter,yearFilter,sortSelect,stateFilter].filter(Boolean),load,
+const advancedFilters={};
+if(currentRole==='admin'){
+    const addSelect=(key,id,label,options)=>{const control=document.createElement('select');control.id=id;options.forEach(([value,text])=>control.add(new Option(text,value)));const wrapper=document.createElement('label');wrapper.textContent=label;wrapper.append(control);filterPanel.append(wrapper);advancedFilters[key]=control;return control};
+    addSelect('stage','documentStageFilter','IERB stage',[['','All stages'],...(window.PRISM_STAGE_SEQUENCE||['Stage 1','Stage 2','Stage 3','Stage 4','Stage 5','Completed']).map(stage=>[stage,stage+' · '+((window.PRISM_STAGE_LABELS||{})[stage]||stage)])]);
+    addSelect('adviser','documentAdviserFilter','Assigned adviser',[['','All advisers'],['unassigned','Unassigned']]);
+    addSelect('review','documentReviewFilter','Review status',[['','All review statuses']]);
+    addSelect('includeOld','documentVersionsFilter','Document versions',[['','Current versions'],['1','All versions (including historical)']]);
+    [['fromDate','documentFromDate','From date'],['toDate','documentToDate','To date']].forEach(([key,id,label])=>{const control=document.createElement('input');control.type='date';control.id=id;const wrapper=document.createElement('label');wrapper.textContent=label;wrapper.append(control);filterPanel.append(wrapper);advancedFilters[key]=control});
+    [['student-desc','Student (Z–A)'],['type-asc','Document type (A–Z)'],['adviser-asc','Assigned adviser (A–Z)'],['stage-asc','IERB stage (ascending)'],['stage-desc','IERB stage (descending)'],['review','Review status'],['reviewed-newest','Last reviewed (newest first)']].forEach(([value,label])=>sortSelect.add(new Option(label,value)));
+    Object.values(advancedFilters).forEach(control=>control.addEventListener('change',()=>{pager.reset();load()}));
+}
+const pager=PrismUI.recordPager(document.getElementById('documentsCourseView'),document.getElementById('documentCount'),[search,typeFilter,courseFilter,yearFilter,sortSelect,stateFilter,...Object.values(advancedFilters)].filter(Boolean),load,
     {host:filterPanel,toolbar:document.querySelector('.document-actions')});
+// Shared pager treats text inputs as search; these two controls retain native date validation.
+if(advancedFilters.fromDate)advancedFilters.fromDate.type='date';if(advancedFilters.toDate)advancedFilters.toDate.type='date';
 const statePills=document.createElement('div');document.querySelector('.document-controls').append(statePills);
 const stateDefinitions=[['','All'],['Pending Adviser Review','Pending review'],['Needs Revision','Needs revision'],['Returned for Revision','Returned by RPMS'],['Submitted to RPMS','Submitted to RPMS']];
 function documentFileHref(d){return ['application/pdf','image/png','image/jpeg'].includes(d.mime)?'document_preview.php?id='+encodeURIComponent(d.id):'documents_api.php?action=file&download=1&id='+encodeURIComponent(d.id)}
 function adviserPreviewRecord(){return{id:'ui-preview-sample',preview:true,originalName:'Research Proposal.pdf',uploadedBy:'Sample Student',uploadedAt:new Date('2026-10-14T19:52:19+08:00').toISOString(),student:'Sample Student',course:'BS in Information Technology',year:'2026',documentType:'Research Proposal',stage:'Stage 1',stageLabel:'Stage 1',workflowState:'Pending Adviser Review',reviewStatus:'Under Review',reviewRemarks:'Sample reviewer remarks appear here.',size:38700,versionNo:1,actions:{}}}
 stateFilter.addEventListener('change',()=>{pager.reset();load();});
 document.addEventListener('click',event=>{if(event.target.closest('.prism-clear-filters')){stateFilter.value='';}});
+function documentQuery(){return {q:search.value.trim(),type:typeFilter.value,course:courseFilter.value,year:yearFilter.value,sort:sortSelect?.value||'newest',state:stateFilter.value,...Object.fromEntries(Object.entries(advancedFilters).map(([key,control])=>[key,control.value]))}}
+function renderAdvancedOptions(){
+    const replace=(control,options)=>{if(!control)return;const selected=control.value;while(control.options.length>1)control.remove(1);options.forEach(([value,label])=>control.add(new Option(label,value)));if([...control.options].some(option=>option.value===selected))control.value=selected};
+    replace(advancedFilters.adviser,[['unassigned','Unassigned'],...(listData.filterOptions?.advisers||[]).map(adviser=>[String(adviser.id),adviser.name])]);
+    replace(advancedFilters.review,(listData.filterOptions?.reviews||[]).map(value=>[value,value]));
+    if(listData.filterOptions?.stages)replace(advancedFilters.stage,listData.filterOptions.stages.map(stage=>[stage.key,stage.key+' · '+stage.label]));
+}
 async function load(){
     const sequence=++loadSequence;pager.loading();body.setAttribute('aria-busy','true');
-    const qs=new URLSearchParams({action:'list',page:pager.page,perPage:pager.pageSize,q:search.value.trim(),type:typeFilter.value,course:courseFilter.value,year:yearFilter.value,sort:sortSelect?.value||'newest',state:stateFilter.value});
-    try{const data=await PrismUI.request('documents_api.php?'+qs);if(sequence!==loadSequence)return;listData=data;documents=data.documents;previewOnly=uiPreview&&!documents.length&&!search.value.trim()&&!typeFilter.value&&!courseFilter.value&&!yearFilter.value&&!stateFilter.value;if(previewOnly)documents=[adviserPreviewRecord()];loadError=false;render();pager.render({...data,total:previewOnly?1:data.total??documents.length});if(previewOnly)document.getElementById('documentCount').textContent='UI preview · 1 sample record (not stored)';PrismUI.statusPills(statePills,stateDefinitions,stateFilter,previewOnly?{'Pending Adviser Review':1}:data.counts||{})}
+    const query=documentQuery(),{sort,...filterQuery}=query,filterKey=JSON.stringify(filterQuery);if(selectionFilterKey!==filterKey){clearDocumentSelection();selectionFilterKey=filterKey}
+    const qs=new URLSearchParams({action:'list',page:pager.page,perPage:pager.pageSize,...query});
+    try{const data=await PrismUI.request('documents_api.php?'+qs);if(sequence!==loadSequence)return;listData=data;documents=data.documents;previewOnly=uiPreview&&!documents.length&&!Object.values(filterQuery).some(Boolean);if(previewOnly)documents=[adviserPreviewRecord()];loadError=false;renderAdvancedOptions();render();pager.render({...data,total:previewOnly?1:data.total??documents.length});if(previewOnly)document.getElementById('documentCount').textContent='UI preview · 1 sample record (not stored)';PrismUI.statusPills(statePills,stateDefinitions,stateFilter,previewOnly?{'Pending Adviser Review':1}:data.counts||{})}
     catch(e){if(sequence!==loadSequence)return;loadError=true;documents=[];previewOnly=false;render();pager.error();toast(e.message,'error')}
     finally{if(sequence===loadSequence)body.setAttribute('aria-busy','false')}
 }
@@ -274,7 +370,7 @@ document.getElementById('uploadDocumentButton').addEventListener('click',async()
     const s=uploadStudents.find(x=>String(x.id)===e.target.value);
     if(s&&s.stage)document.getElementById('documentStage').value=s.stage;
 });
-document.getElementById('manageDocumentTypes').addEventListener('click',()=>openModal(document.getElementById('documentTypesModal')));document.querySelectorAll('[data-close]').forEach(b=>b.addEventListener('click',()=>closeModal(document.getElementById(b.dataset.close))));[uploadModal,summaryModal,document.getElementById('documentTypesModal')].filter(Boolean).forEach(m=>m.addEventListener('click',e=>{if(e.target===m)closeModal(m)}));search.addEventListener('input',()=>{pager.reset();load()});typeFilter.addEventListener('change',()=>{pager.reset();load()});courseFilter.addEventListener('change',()=>{pager.reset();load()});yearFilter.addEventListener('change',()=>{pager.reset();load()});if(sortSelect)sortSelect.addEventListener('change',()=>{pager.reset();load()});
+document.getElementById('manageDocumentTypes').addEventListener('click',()=>openModal(document.getElementById('documentTypesModal')));document.querySelectorAll('[data-close]').forEach(b=>b.addEventListener('click',()=>closeModal(document.getElementById(b.dataset.close))));[uploadModal,summaryModal,deleteModal,document.getElementById('documentTypesModal')].filter(Boolean).forEach(m=>m.addEventListener('click',e=>{if(e.target===m)closeModal(m)}));search.addEventListener('input',()=>{pager.reset();load()});typeFilter.addEventListener('change',()=>{pager.reset();load()});courseFilter.addEventListener('change',()=>{pager.reset();load()});yearFilter.addEventListener('change',()=>{pager.reset();load()});if(sortSelect)sortSelect.addEventListener('change',()=>{pager.reset();load()});
 function setView(next){view=next;tableView.style.display=next==='table'?'block':'none';folderView.classList.toggle('show',next==='folder');courseView.classList.toggle('show',next==='course');document.getElementById('tableViewButton').classList.toggle('active',next==='table');document.getElementById('folderViewButton').classList.toggle('active',next==='folder');document.getElementById('courseViewButton').classList.toggle('active',next==='course')}
 document.getElementById('tableViewButton').addEventListener('click',()=>setView('table'));document.getElementById('folderViewButton').addEventListener('click',()=>setView('folder'));document.getElementById('courseViewButton').addEventListener('click',()=>setView('course'));
 const theme=document.getElementById('themeToggle');theme.addEventListener('click',()=>{const dark=document.documentElement.classList.toggle('dark-theme');try{localStorage.setItem('prismTheme',dark?'dark':'light')}catch(_){}});document.addEventListener('keydown',e=>{if(e.key==='Escape'){if(summaryModal?.classList.contains('show'))closeModal(summaryModal);closeModal(uploadModal);closeModal(document.getElementById('documentTypesModal'))}});load();

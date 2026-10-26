@@ -1,5 +1,6 @@
 <?php
 require __DIR__ . '/config.php';
+require_once __DIR__ . '/workflow.php';
 $authUser = require_login(['admin', 'adviser', 'student']);
 $user_name = $authUser['full_name'];
 $user_email = $authUser['email'];
@@ -35,6 +36,11 @@ if ($authUser['role'] === 'student') {
 <?php if ($authUser['role'] === 'adviser'): ?><div data-prism-hint="adviser-documents"></div><?php endif; ?>
 <section class="document-controls"><div class="document-search"><i class="fa-solid fa-magnifying-glass"></i><input id="documentSearch" type="search" placeholder="Search file name, student, or document type"></div><div class="document-actions"><select id="documentTypeFilter"><option value="">All document types</option></select><select id="documentCourseFilter"><option value="">All courses</option></select><select id="documentYearFilter"><option value="">All years</option></select><select id="documentSort"><option value="newest">Newest first</option><option value="oldest">Oldest first</option><option value="name-asc">File name (A–Z)</option><option value="name-desc">File name (Z–A)</option><option value="student-asc">Student (A–Z)</option></select><div class="view-switch" aria-label="Document view"><button class="active" id="tableViewButton" title="Table view"><i class="fa-solid fa-table-list"></i></button><button id="folderViewButton" title="Folder view"><i class="fa-solid fa-folder-tree"></i></button><button id="courseViewButton" title="Group by course"><i class="fa-solid fa-layer-group"></i></button></div><button class="upload-document-button" id="uploadDocumentButton"><i class="fa-solid fa-upload"></i> Upload Document</button></div></section>
 <section class="documents-content"><div class="documents-section-heading"><div><h2>Document Repository</h2><p id="documentCount">0 documents</p></div></div>
+<?php if ($authUser['role'] === 'admin'): ?>
+<div class="document-selection-toolbar" id="documentSelectionToolbar" aria-label="Document selection">
+<label><input type="checkbox" id="selectDocumentPage"> Select current page</label><button type="button" class="doc-secondary" id="selectAllDocuments">Select all matching filters</button><span id="documentSelectedCount" role="status" aria-live="polite">0 selected</span><button type="button" class="doc-secondary" id="clearDocumentSelection" disabled>Clear selection</button><button type="button" class="doc-primary document-danger" id="bulkDeleteDocuments" disabled>Permanently Delete Selected Documents</button>
+</div>
+<?php endif; ?>
 <div class="documents-table-wrap" id="documentsTableView"><table class="documents-table"><thead><tr><th>File Name</th><th>Uploaded By</th><th>Date Uploaded</th><th>Student Associated</th><th>Category</th><th>Actions</th></tr></thead><tbody id="documentsTableBody"></tbody></table></div>
 <div class="folder-view" id="documentsFolderView"></div>
 <div class="folder-view" id="documentsCourseView"></div></section>
@@ -46,11 +52,20 @@ if ($authUser['role'] === 'student') {
 <script src="<?php echo htmlspecialchars(asset_url('assets/js/document-upload.js'), ENT_QUOTES, 'UTF-8'); ?>"></script>
 <?php if ($authUser['role'] === 'admin'): ?>
 <div class="document-modal" id="summaryModal" aria-hidden="true"><div class="document-modal-dialog summary-dialog" role="dialog" aria-modal="true" aria-labelledby="summaryHeading">
-<div class="document-modal-heading"><div><span>RPMS review aid</span><h2 id="summaryHeading">AI-Assisted Document Summary</h2></div><button type="button" data-close="summaryModal" aria-label="Close summary"><i class="fa-solid fa-xmark" aria-hidden="true"></i></button></div>
+<div class="document-modal-heading"><div><span>RPMS review aid</span><h2 id="summaryHeading">Document Summary</h2></div><button type="button" data-close="summaryModal" aria-label="Close summary"><i class="fa-solid fa-xmark" aria-hidden="true"></i></button></div>
 <p id="summaryFilename" class="summary-filename"></p><p id="summarySource" class="summary-source"></p>
+<label class="summary-mode" for="summaryMode">Summary mode <select id="summaryMode"><option value="local">Local Summary</option><option value="ai">AI-Powered Summary</option></select></label>
+<p id="summaryModeNote" class="summary-review-note">Local Summary runs in PRISM without sending document contents externally.</p>
+<div id="summaryReview" hidden><label for="summaryExcerpt">Text to be sent to Liquid AI:</label><textarea id="summaryExcerpt" rows="9" readonly></textarea><label class="summary-consent"><input id="summaryConfirmed" type="checkbox"> I have reviewed this excerpt and confirm that it is authorized for external AI processing.</label><p class="summary-review-note">Use Local Summary for identifiable participant information, confidential records, or material that is not authorized for external processing.</p></div>
 <div id="summaryResult" class="summary-result" role="status" aria-live="polite"></div>
 <p class="summary-review-note">This summary is provided as an RPMS review aid. Verify important information against the original document. It does not replace RPMS/IERB professional judgment.</p>
-<div class="document-modal-actions"><button type="button" class="doc-secondary" data-close="summaryModal">Close</button><button type="button" class="doc-primary" id="regenerateSummary">Regenerate Summary</button></div>
+<div class="document-modal-actions"><button type="button" class="doc-secondary" data-close="summaryModal">Close</button><button type="button" class="doc-primary" id="regenerateSummary">Generate Summary</button></div>
+</div></div>
+<div class="document-modal" id="bulkDeleteModal" aria-hidden="true"><div class="document-modal-dialog" role="dialog" aria-modal="true" aria-labelledby="bulkDeleteHeading">
+<div class="document-modal-heading"><div><span>Permanent document deletion</span><h2 id="bulkDeleteHeading">Permanently Delete Selected Documents?</h2></div><button type="button" data-close="bulkDeleteModal" aria-label="Cancel deletion"><i class="fa-solid fa-xmark" aria-hidden="true"></i></button></div>
+<p class="summary-review-note">These document records and stored files will be permanently deleted. This action cannot be undone.</p><dl id="bulkDeleteCounts" class="document-delete-counts"></dl><ul id="bulkDeleteIneligible"></ul>
+<label class="summary-mode" for="bulkDeleteReason">Administrative reason<textarea id="bulkDeleteReason" rows="3" minlength="<?= (int)OVERRIDE_MIN_REASON_LENGTH ?>" maxlength="5000" required></textarea></label><p class="summary-review-note">Enter at least <?= (int)OVERRIDE_MIN_REASON_LENGTH ?> characters. The reason and your identity are recorded in the audit log.</p><p id="bulkDeleteStatus" role="status" aria-live="polite"></p>
+<div class="document-modal-actions"><button type="button" class="doc-secondary" data-close="bulkDeleteModal">Cancel</button><button type="button" class="doc-primary document-danger" id="confirmBulkDelete" disabled>Permanently Delete</button></div>
 </div></div>
 <?php endif; ?>
 <script src="<?php echo htmlspecialchars(asset_url('assets/js/documents.js'), ENT_QUOTES, 'UTF-8'); ?>"></script></body></html>
