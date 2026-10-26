@@ -54,11 +54,6 @@ $user_email = $authUser['email'];
             <div class="management-card-head"><div><h2>Generated AI Reports</h2><p id="aiHistoryCount">0 reports</p></div></div>
             <div id="aiHistory" class="admin-history"></div>
         </section>
-
-        <section class="management-card stage-label-card">
-            <div class="management-card-head"><div><h2>Manage IERB Stages</h2><p>Stage display names and optional guidance are maintained in IERB Progress.</p></div></div>
-            <a class="prism-btn is-secondary" href="ierbprog.php#manage-stages">Manage IERB Stages</a>
-        </section>
     <?php require __DIR__ . '/includes/ceu_footer.php'; ?>
 </main>
 </div>
