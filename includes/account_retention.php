@@ -219,6 +219,10 @@ function retention_notifications(PDO $pdo,array $r,string $type,array &$mutexes)
 function retention_purge_plan(PDO $pdo,array $r,string $type,?array $login,array &$mutexes): array
 {
     $id=(int)$r['id']; $docs=[]; $reports=[]; $files=[];
+    if ($type==='student' && (string)$pdo->query("SELECT v FROM schema_meta WHERE k='schema_version'")->fetchColumn()==='12') {
+        $q=$pdo->prepare('SELECT id FROM ierb_workflows WHERE student_id=? FOR UPDATE'); $q->execute([$id]);
+        if ($q->fetchColumn()) throw new AccountLifecycleConflict('Retained V14 workflow history prevents permanent deletion. Retain the account using Archive.');
+    }
     $notices=retention_notifications($pdo,$r,$type,$mutexes);
     if ($login) {
         foreach (['students','advisers'] as $table) {

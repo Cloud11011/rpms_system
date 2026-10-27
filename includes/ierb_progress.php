@@ -1,6 +1,7 @@
 <?php
 /** Official progress is an explicit RPMS decision, independent of document workflow. */
 require_once __DIR__.'/current_workflow_eligibility.php';
+require_once __DIR__.'/ierb_v14_workflow.php';
 
 function ierb_progress_version(PDO $pdo, int $id): string
 {
@@ -53,6 +54,7 @@ function ierb_progress_decide(PDO $pdo, array $actor, string $operation, array $
     $pdo->beginTransaction();
     try {
         $before=current_workflow_student($pdo,(int)$id,$actor);
+        ierb_v14_guard_legacy_write($pdo,(int)$id);
         $live=current_workflow_actor($pdo,$actor);
         if (!legal_admin_eligible($live)) throw new AccountLifecycleForbidden('An eligible active RPMS Administrator is required.');
         if ($before['stage']!==$data['expectedStage'] || $before['status']!==$data['expectedStatus']

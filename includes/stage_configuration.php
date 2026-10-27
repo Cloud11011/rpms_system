@@ -5,7 +5,7 @@ require_once __DIR__.'/current_workflow_eligibility.php';
 function stage_guidance_available(PDO $pdo): bool
 {
     $version=(string)$pdo->query("SELECT v FROM schema_meta WHERE k='schema_version'")->fetchColumn();
-    if ($version!=='11') return false;
+    if (!in_array($version,['11','12'],true)) return false;
     $column=$pdo->query("SELECT COLUMN_TYPE,IS_NULLABLE FROM INFORMATION_SCHEMA.COLUMNS
         WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME='stage_labels' AND COLUMN_NAME='guidance'")->fetch(PDO::FETCH_ASSOC);
     return $column && $column['COLUMN_TYPE']==='text' && $column['IS_NULLABLE']==='YES';

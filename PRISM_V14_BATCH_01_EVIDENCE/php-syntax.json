@@ -1,0 +1,652 @@
+[
+    {
+        "file":  "account.php",
+        "passed":  true,
+        "output":  "No syntax errors detected in account.php"
+    },
+    {
+        "file":  "account_invitation_api.php",
+        "passed":  true,
+        "output":  "No syntax errors detected in account_invitation_api.php"
+    },
+    {
+        "file":  "account_lifecycle_api.php",
+        "passed":  true,
+        "output":  "No syntax errors detected in account_lifecycle_api.php"
+    },
+    {
+        "file":  "account_setup.php",
+        "passed":  true,
+        "output":  "No syntax errors detected in account_setup.php"
+    },
+    {
+        "file":  "admin_advisers.php",
+        "passed":  true,
+        "output":  "No syntax errors detected in admin_advisers.php"
+    },
+    {
+        "file":  "admin_ai.php",
+        "passed":  true,
+        "output":  "No syntax errors detected in admin_ai.php"
+    },
+    {
+        "file":  "admin_archived_accounts.php",
+        "passed":  true,
+        "output":  "No syntax errors detected in admin_archived_accounts.php"
+    },
+    {
+        "file":  "admin_legal_policies.php",
+        "passed":  true,
+        "output":  "No syntax errors detected in admin_legal_policies.php"
+    },
+    {
+        "file":  "admin_notifications.php",
+        "passed":  true,
+        "output":  "No syntax errors detected in admin_notifications.php"
+    },
+    {
+        "file":  "admin_people.php",
+        "passed":  true,
+        "output":  "No syntax errors detected in admin_people.php"
+    },
+    {
+        "file":  "admin_students.php",
+        "passed":  true,
+        "output":  "No syntax errors detected in admin_students.php"
+    },
+    {
+        "file":  "advisers_api.php",
+        "passed":  true,
+        "output":  "No syntax errors detected in advisers_api.php"
+    },
+    {
+        "file":  "ai_helpers.php",
+        "passed":  true,
+        "output":  "No syntax errors detected in ai_helpers.php"
+    },
+    {
+        "file":  "audit_api.php",
+        "passed":  true,
+        "output":  "No syntax errors detected in audit_api.php"
+    },
+    {
+        "file":  "auth_rate_limit.php",
+        "passed":  true,
+        "output":  "No syntax errors detected in auth_rate_limit.php"
+    },
+    {
+        "file":  "calendar.php",
+        "passed":  true,
+        "output":  "No syntax errors detected in calendar.php"
+    },
+    {
+        "file":  "calendar_deadlines_api.php",
+        "passed":  true,
+        "output":  "No syntax errors detected in calendar_deadlines_api.php"
+    },
+    {
+        "file":  "change_password_required.php",
+        "passed":  true,
+        "output":  "No syntax errors detected in change_password_required.php"
+    },
+    {
+        "file":  "complete_profile.php",
+        "passed":  true,
+        "output":  "No syntax errors detected in complete_profile.php"
+    },
+    {
+        "file":  "config.php",
+        "passed":  true,
+        "output":  "No syntax errors detected in config.php"
+    },
+    {
+        "file":  "dashboard.php",
+        "passed":  true,
+        "output":  "No syntax errors detected in dashboard.php"
+    },
+    {
+        "file":  "data_export.php",
+        "passed":  true,
+        "output":  "No syntax errors detected in data_export.php"
+    },
+    {
+        "file":  "data_exports_api.php",
+        "passed":  true,
+        "output":  "No syntax errors detected in data_exports_api.php"
+    },
+    {
+        "file":  "document_preview.php",
+        "passed":  true,
+        "output":  "No syntax errors detected in document_preview.php"
+    },
+    {
+        "file":  "documents.php",
+        "passed":  true,
+        "output":  "No syntax errors detected in documents.php"
+    },
+    {
+        "file":  "documents_api.php",
+        "passed":  true,
+        "output":  "No syntax errors detected in documents_api.php"
+    },
+    {
+        "file":  "forgot_password.php",
+        "passed":  true,
+        "output":  "No syntax errors detected in forgot_password.php"
+    },
+    {
+        "file":  "forgot_password_process.php",
+        "passed":  true,
+        "output":  "No syntax errors detected in forgot_password_process.php"
+    },
+    {
+        "file":  "help_support.php",
+        "passed":  true,
+        "output":  "No syntax errors detected in help_support.php"
+    },
+    {
+        "file":  "help_support_api.php",
+        "passed":  true,
+        "output":  "No syntax errors detected in help_support_api.php"
+    },
+    {
+        "file":  "ierb_api.php",
+        "passed":  true,
+        "output":  "No syntax errors detected in ierb_api.php"
+    },
+    {
+        "file":  "ierbprog.php",
+        "passed":  true,
+        "output":  "No syntax errors detected in ierbprog.php"
+    },
+    {
+        "file":  "includes/academic_catalog.php",
+        "passed":  true,
+        "output":  "No syntax errors detected in includes/academic_catalog.php"
+    },
+    {
+        "file":  "includes/account_identity.php",
+        "passed":  true,
+        "output":  "No syntax errors detected in includes/account_identity.php"
+    },
+    {
+        "file":  "includes/account_lifecycle.php",
+        "passed":  true,
+        "output":  "No syntax errors detected in includes/account_lifecycle.php"
+    },
+    {
+        "file":  "includes/account_lifecycle_schema.php",
+        "passed":  true,
+        "output":  "No syntax errors detected in includes/account_lifecycle_schema.php"
+    },
+    {
+        "file":  "includes/account_onboarding.php",
+        "passed":  true,
+        "output":  "No syntax errors detected in includes/account_onboarding.php"
+    },
+    {
+        "file":  "includes/account_purge_files.php",
+        "passed":  true,
+        "output":  "No syntax errors detected in includes/account_purge_files.php"
+    },
+    {
+        "file":  "includes/account_retention.php",
+        "passed":  true,
+        "output":  "No syntax errors detected in includes/account_retention.php"
+    },
+    {
+        "file":  "includes/account_retention_bulk.php",
+        "passed":  true,
+        "output":  "No syntax errors detected in includes/account_retention_bulk.php"
+    },
+    {
+        "file":  "includes/assets.php",
+        "passed":  true,
+        "output":  "No syntax errors detected in includes/assets.php"
+    },
+    {
+        "file":  "includes/calendar_deadlines.php",
+        "passed":  true,
+        "output":  "No syntax errors detected in includes/calendar_deadlines.php"
+    },
+    {
+        "file":  "includes/ceu_footer.php",
+        "passed":  true,
+        "output":  "No syntax errors detected in includes/ceu_footer.php"
+    },
+    {
+        "file":  "includes/csv_export.php",
+        "passed":  true,
+        "output":  "No syntax errors detected in includes/csv_export.php"
+    },
+    {
+        "file":  "includes/current_workflow_eligibility.php",
+        "passed":  true,
+        "output":  "No syntax errors detected in includes/current_workflow_eligibility.php"
+    },
+    {
+        "file":  "includes/document_catalog.php",
+        "passed":  true,
+        "output":  "No syntax errors detected in includes/document_catalog.php"
+    },
+    {
+        "file":  "includes/document_catalog_client.php",
+        "passed":  true,
+        "output":  "No syntax errors detected in includes/document_catalog_client.php"
+    },
+    {
+        "file":  "includes/document_management.php",
+        "passed":  true,
+        "output":  "No syntax errors detected in includes/document_management.php"
+    },
+    {
+        "file":  "includes/document_management_actions.php",
+        "passed":  true,
+        "output":  "No syntax errors detected in includes/document_management_actions.php"
+    },
+    {
+        "file":  "includes/document_summary.php",
+        "passed":  true,
+        "output":  "No syntax errors detected in includes/document_summary.php"
+    },
+    {
+        "file":  "includes/document_summary_actions.php",
+        "passed":  true,
+        "output":  "No syntax errors detected in includes/document_summary_actions.php"
+    },
+    {
+        "file":  "includes/document_summary_ai.php",
+        "passed":  true,
+        "output":  "No syntax errors detected in includes/document_summary_ai.php"
+    },
+    {
+        "file":  "includes/document_upload.php",
+        "passed":  true,
+        "output":  "No syntax errors detected in includes/document_upload.php"
+    },
+    {
+        "file":  "includes/document_workflow.php",
+        "passed":  true,
+        "output":  "No syntax errors detected in includes/document_workflow.php"
+    },
+    {
+        "file":  "includes/email_format.php",
+        "passed":  true,
+        "output":  "No syntax errors detected in includes/email_format.php"
+    },
+    {
+        "file":  "includes/frontend_styles.php",
+        "passed":  true,
+        "output":  "No syntax errors detected in includes/frontend_styles.php"
+    },
+    {
+        "file":  "includes/help_support.php",
+        "passed":  true,
+        "output":  "No syntax errors detected in includes/help_support.php"
+    },
+    {
+        "file":  "includes/help_support_modal.php",
+        "passed":  true,
+        "output":  "No syntax errors detected in includes/help_support_modal.php"
+    },
+    {
+        "file":  "includes/ierb_group_advancement.php",
+        "passed":  true,
+        "output":  "No syntax errors detected in includes/ierb_group_advancement.php"
+    },
+    {
+        "file":  "includes/ierb_progress.php",
+        "passed":  true,
+        "output":  "No syntax errors detected in includes/ierb_progress.php"
+    },
+    {
+        "file":  "includes/legal_header.php",
+        "passed":  true,
+        "output":  "No syntax errors detected in includes/legal_header.php"
+    },
+    {
+        "file":  "includes/legal_placeholders.php",
+        "passed":  true,
+        "output":  "No syntax errors detected in includes/legal_placeholders.php"
+    },
+    {
+        "file":  "includes/legal_policy.php",
+        "passed":  true,
+        "output":  "No syntax errors detected in includes/legal_policy.php"
+    },
+    {
+        "file":  "includes/notification_delivery.php",
+        "passed":  true,
+        "output":  "No syntax errors detected in includes/notification_delivery.php"
+    },
+    {
+        "file":  "includes/notification_lifecycle.php",
+        "passed":  true,
+        "output":  "No syntax errors detected in includes/notification_lifecycle.php"
+    },
+    {
+        "file":  "includes/notification_worker.php",
+        "passed":  true,
+        "output":  "No syntax errors detected in includes/notification_worker.php"
+    },
+    {
+        "file":  "includes/office_container.php",
+        "passed":  true,
+        "output":  "No syntax errors detected in includes/office_container.php"
+    },
+    {
+        "file":  "includes/pagination.php",
+        "passed":  true,
+        "output":  "No syntax errors detected in includes/pagination.php"
+    },
+    {
+        "file":  "includes/prism-navigation.php",
+        "passed":  true,
+        "output":  "No syntax errors detected in includes/prism-navigation.php"
+    },
+    {
+        "file":  "includes/public_landing.php",
+        "passed":  true,
+        "output":  "No syntax errors detected in includes/public_landing.php"
+    },
+    {
+        "file":  "includes/public_legal.php",
+        "passed":  true,
+        "output":  "No syntax errors detected in includes/public_legal.php"
+    },
+    {
+        "file":  "includes/public_urls.php",
+        "passed":  true,
+        "output":  "No syntax errors detected in includes/public_urls.php"
+    },
+    {
+        "file":  "includes/record_filters.php",
+        "passed":  true,
+        "output":  "No syntax errors detected in includes/record_filters.php"
+    },
+    {
+        "file":  "includes/report_lifecycle.php",
+        "passed":  true,
+        "output":  "No syntax errors detected in includes/report_lifecycle.php"
+    },
+    {
+        "file":  "includes/research_groups.php",
+        "passed":  true,
+        "output":  "No syntax errors detected in includes/research_groups.php"
+    },
+    {
+        "file":  "includes/research_resources.php",
+        "passed":  true,
+        "output":  "No syntax errors detected in includes/research_resources.php"
+    },
+    {
+        "file":  "includes/runtime_preflight.php",
+        "passed":  true,
+        "output":  "No syntax errors detected in includes/runtime_preflight.php"
+    },
+    {
+        "file":  "includes/schema_v10.php",
+        "passed":  true,
+        "output":  "No syntax errors detected in includes/schema_v10.php"
+    },
+    {
+        "file":  "includes/schema_v11.php",
+        "passed":  true,
+        "output":  "No syntax errors detected in includes/schema_v11.php"
+    },
+    {
+        "file":  "includes/session_browser.php",
+        "passed":  true,
+        "output":  "No syntax errors detected in includes/session_browser.php"
+    },
+    {
+        "file":  "includes/staff_registration.php",
+        "passed":  true,
+        "output":  "No syntax errors detected in includes/staff_registration.php"
+    },
+    {
+        "file":  "includes/staff_registration_card.php",
+        "passed":  true,
+        "output":  "No syntax errors detected in includes/staff_registration_card.php"
+    },
+    {
+        "file":  "includes/stage_configuration.php",
+        "passed":  true,
+        "output":  "No syntax errors detected in includes/stage_configuration.php"
+    },
+    {
+        "file":  "includes/student_activity.php",
+        "passed":  true,
+        "output":  "No syntax errors detected in includes/student_activity.php"
+    },
+    {
+        "file":  "includes/student_snapshot.php",
+        "passed":  true,
+        "output":  "No syntax errors detected in includes/student_snapshot.php"
+    },
+    {
+        "file":  "includes/summary_pdf_parser.php",
+        "passed":  true,
+        "output":  "No syntax errors detected in includes/summary_pdf_parser.php"
+    },
+    {
+        "file":  "index.php",
+        "passed":  true,
+        "output":  "No syntax errors detected in index.php"
+    },
+    {
+        "file":  "legal_consent.php",
+        "passed":  true,
+        "output":  "No syntax errors detected in legal_consent.php"
+    },
+    {
+        "file":  "loading.php",
+        "passed":  true,
+        "output":  "No syntax errors detected in loading.php"
+    },
+    {
+        "file":  "login.php",
+        "passed":  true,
+        "output":  "No syntax errors detected in login.php"
+    },
+    {
+        "file":  "login_admin.php",
+        "passed":  true,
+        "output":  "No syntax errors detected in login_admin.php"
+    },
+    {
+        "file":  "login_adviser.php",
+        "passed":  true,
+        "output":  "No syntax errors detected in login_adviser.php"
+    },
+    {
+        "file":  "login_process.php",
+        "passed":  true,
+        "output":  "No syntax errors detected in login_process.php"
+    },
+    {
+        "file":  "login_students.php",
+        "passed":  true,
+        "output":  "No syntax errors detected in login_students.php"
+    },
+    {
+        "file":  "logout.php",
+        "passed":  true,
+        "output":  "No syntax errors detected in logout.php"
+    },
+    {
+        "file":  "maintenance/ierb-group-tests/bootstrap.php",
+        "passed":  true,
+        "output":  "No syntax errors detected in maintenance/ierb-group-tests/bootstrap.php"
+    },
+    {
+        "file":  "maintenance/ierb-group-tests/fixture.php",
+        "passed":  true,
+        "output":  "No syntax errors detected in maintenance/ierb-group-tests/fixture.php"
+    },
+    {
+        "file":  "maintenance/ierb-group-tests/initialize.php",
+        "passed":  true,
+        "output":  "No syntax errors detected in maintenance/ierb-group-tests/initialize.php"
+    },
+    {
+        "file":  "maintenance/ierb-group-tests/mock-curl.php",
+        "passed":  true,
+        "output":  "No syntax errors detected in maintenance/ierb-group-tests/mock-curl.php"
+    },
+    {
+        "file":  "maintenance/ierb-group-tests/runtime.php",
+        "passed":  true,
+        "output":  "No syntax errors detected in maintenance/ierb-group-tests/runtime.php"
+    },
+    {
+        "file":  "maintenance/ierb-group-tests/seed.php",
+        "passed":  true,
+        "output":  "No syntax errors detected in maintenance/ierb-group-tests/seed.php"
+    },
+    {
+        "file":  "maintenance/ierb-group-tests/shutdown.php",
+        "passed":  true,
+        "output":  "No syntax errors detected in maintenance/ierb-group-tests/shutdown.php"
+    },
+    {
+        "file":  "maintenance/migrate-stage-guidance.php",
+        "passed":  true,
+        "output":  "No syntax errors detected in maintenance/migrate-stage-guidance.php"
+    },
+    {
+        "file":  "maintenance/notification-dispatch.php",
+        "passed":  true,
+        "output":  "No syntax errors detected in maintenance/notification-dispatch.php"
+    },
+    {
+        "file":  "maintenance/runtime-preflight.php",
+        "passed":  true,
+        "output":  "No syntax errors detected in maintenance/runtime-preflight.php"
+    },
+    {
+        "file":  "notifications_api.php",
+        "passed":  true,
+        "output":  "No syntax errors detected in notifications_api.php"
+    },
+    {
+        "file":  "privacy.php",
+        "passed":  true,
+        "output":  "No syntax errors detected in privacy.php"
+    },
+    {
+        "file":  "profile_api.php",
+        "passed":  true,
+        "output":  "No syntax errors detected in profile_api.php"
+    },
+    {
+        "file":  "register.php",
+        "passed":  true,
+        "output":  "No syntax errors detected in register.php"
+    },
+    {
+        "file":  "register_process.php",
+        "passed":  true,
+        "output":  "No syntax errors detected in register_process.php"
+    },
+    {
+        "file":  "reports.php",
+        "passed":  true,
+        "output":  "No syntax errors detected in reports.php"
+    },
+    {
+        "file":  "reports_api.php",
+        "passed":  true,
+        "output":  "No syntax errors detected in reports_api.php"
+    },
+    {
+        "file":  "research_adviser.php",
+        "passed":  true,
+        "output":  "No syntax errors detected in research_adviser.php"
+    },
+    {
+        "file":  "reset_password.php",
+        "passed":  true,
+        "output":  "No syntax errors detected in reset_password.php"
+    },
+    {
+        "file":  "role_portal.php",
+        "passed":  true,
+        "output":  "No syntax errors detected in role_portal.php"
+    },
+    {
+        "file":  "security.php",
+        "passed":  true,
+        "output":  "No syntax errors detected in security.php"
+    },
+    {
+        "file":  "send_followup.php",
+        "passed":  true,
+        "output":  "No syntax errors detected in send_followup.php"
+    },
+    {
+        "file":  "staff_registration_manage.php",
+        "passed":  true,
+        "output":  "No syntax errors detected in staff_registration_manage.php"
+    },
+    {
+        "file":  "stage_labels_api.php",
+        "passed":  true,
+        "output":  "No syntax errors detected in stage_labels_api.php"
+    },
+    {
+        "file":  "student.php",
+        "passed":  true,
+        "output":  "No syntax errors detected in student.php"
+    },
+    {
+        "file":  "students_api.php",
+        "passed":  true,
+        "output":  "No syntax errors detected in students_api.php"
+    },
+    {
+        "file":  "terms.php",
+        "passed":  true,
+        "output":  "No syntax errors detected in terms.php"
+    },
+    {
+        "file":  "update_password.php",
+        "passed":  true,
+        "output":  "No syntax errors detected in update_password.php"
+    },
+    {
+        "file":  "workflow.php",
+        "passed":  true,
+        "output":  "No syntax errors detected in workflow.php"
+    },
+    {
+        "file":  "includes/ierb_stages.php",
+        "passed":  true,
+        "output":  "No syntax errors detected in includes/ierb_stages.php"
+    },
+    {
+        "file":  "includes/ierb_v14_workflow.php",
+        "passed":  true,
+        "output":  "No syntax errors detected in includes/ierb_v14_workflow.php"
+    },
+    {
+        "file":  "includes/schema_v12.php",
+        "passed":  true,
+        "output":  "No syntax errors detected in includes/schema_v12.php"
+    },
+    {
+        "file":  "maintenance/migrate-ierb-v14.php",
+        "passed":  true,
+        "output":  "No syntax errors detected in maintenance/migrate-ierb-v14.php"
+    },
+    {
+        "file":  "maintenance/ierb-v14-tests/cases.php",
+        "passed":  true,
+        "output":  "No syntax errors detected in maintenance/ierb-v14-tests/cases.php"
+    },
+    {
+        "file":  "maintenance/ierb-v14-tests/generate-contract.php",
+        "passed":  true,
+        "output":  "No syntax errors detected in maintenance/ierb-v14-tests/generate-contract.php"
+    }
+]

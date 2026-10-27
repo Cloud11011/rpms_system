@@ -97,6 +97,7 @@ function ierb_group_inspect(PDO $pdo, array $actor, array $identity): array
         if (empty($row['profile_completed_at'])) $issues[]='Student profile is incomplete.';
         try {
             $row=current_workflow_student($pdo,$id,$actor);
+            ierb_v14_guard_legacy_write($pdo,$id);
             if (ierb_group_key(ierb_group_identity($row))!==ierb_group_key($identity)) throw new AccountLifecycleConflict(IERB_GROUP_CHANGED);
             $login=lifecycle_resolve_login($pdo,$row,'student');
             if (!empty($login['must_change_password']) || legal_outstanding($pdo,(int)$login['id'])) {

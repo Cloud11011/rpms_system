@@ -14,6 +14,10 @@ require_once __DIR__ . '/includes/ierb_group_advancement.php';
 $user = api_require_login(['admin', 'adviser', 'student']);
 $pdo = db();
 $action = $_GET['action'] ?? 'list';
+if ($action === 'v14_contract') {
+    header('Cache-Control: no-store');
+    json_out(['ok'=>true,'contract'=>IerbStage::contract(),'activeWorkflow'=>'legacy']);
+}
 if (in_array($action, ['advance', 'correct', 'status', 'override', 'save', 'note', 'delete', 'group_advance_preview', 'group_advance', 'group_advance_cancel'], true)) {
     require_post_same_origin();
 }
