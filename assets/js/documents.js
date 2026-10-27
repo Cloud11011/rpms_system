@@ -115,6 +115,16 @@ deleteModal?.addEventListener('keydown',event=>{
     if(event.shiftKey&&document.activeElement===first){event.preventDefault();last?.focus()}else if(!event.shiftKey&&document.activeElement===last){event.preventDefault();first?.focus()}
 });
 let uploadStudents=[];
+document.getElementById('viewProjectRequirements')?.addEventListener('click',async()=>{
+    await loadUploadStudents();
+    const select=document.getElementById('documentStudent').cloneNode(true);select.id='requirementStudent';
+    const answer=await PrismUI.confirm({title:'Research project requirements',confirmText:'Open checklist',
+        message:'Choose the designated submission holder to view current requirements, including missing documents.',
+        extraHtml:'<label for="requirementStudent">Submission holder</label>'+select.outerHTML,
+        collect:dialog=>({studentId:dialog.querySelector('#requirementStudent').value}),
+        validate:values=>values.studentId?'':'Select a submission holder.'});
+    if(answer)await PrismRequirements.open(answer.values.studentId);
+});
 async function loadUploadStudents(){
     if(!isStaff)return;
     const select=document.getElementById('documentStudent');
@@ -200,6 +210,7 @@ function renderTable(){
         let adviserViewAction=null,adviserDownloadAction=null;
         if(!d.preview){
             const actionHost=tr.querySelector('.document-row-actions');
+            if(d.studentId){const requirements=document.createElement('button');requirements.className='document-action-button';requirements.textContent='Project requirements';requirements.onclick=()=>PrismRequirements.open(d.studentId);actionHost.append(requirements);}
             const fileActions=actionHost.querySelectorAll('a');
             adviserViewAction=fileActions[0];adviserDownloadAction=fileActions[1];
             if(adviserViewAction)PrismUI.documentAction(adviserViewAction,'view','View '+(d.originalName||'document'));

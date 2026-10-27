@@ -1,4 +1,5 @@
 <?php
+require_once __DIR__.'/ierb_v14_requirements.php';
 /** Frozen-v10 document transitions. The caller authenticates transport/session first. */
 class DocumentWorkflowError extends RuntimeException
 {
@@ -155,6 +156,17 @@ function document_workflow_change(PDO $pdo, array $actor, string $id, string $op
         $before=document_workflow_state($doc); $audit=['entity_id'=>$id,'student_id'=>(int)$sid,
             'details'=>'Version '.(int)$doc['version_no'].' ('.$doc['document_type'].', '.$doc['stage'].')','reason'=>$reason];
         $ids=[]; $advanced=null;
+        if ($operation==='review' && $status==='Approved' && $doc['review_status']==='Approved'
+            && !empty($doc['rpms_submitted_at']) && empty($doc['rpms_returned_at'])
+            && $reason === (string)($doc['review_remarks'] ?? '')) {
+            $pdo->commit();
+            return ['ok'=>true,'noChange'=>true,'message'=>'This approved version is already formally submitted.',
+                'workflowState'=>WF_SUBMITTED_RPMS,'stageAdvanced'=>false,'notificationIds'=>[]];
+        }
+        if ($operation !== 'comment' && ierb_v14_schema_available($pdo)) {
+            $q=$pdo->prepare('SELECT stage_key FROM ierb_workflows WHERE student_id=? FOR UPDATE'); $q->execute([$sid]);
+            if ($q->fetchColumn() === IerbStage::COMPLETED) throw new DocumentWorkflowError('This completed V14 submission retains its document evidence.',409);
+        }
         if ($operation==='return') {
             if ($before!==WF_SUBMITTED_RPMS || $doc['review_status']!=='Approved') {
                 throw new DocumentWorkflowError('Only a current formally submitted version can be returned; it may already have changed.',409);
@@ -243,7 +255,13 @@ function document_formal_submission(PDO $pdo, array $actor, array $student, arra
     $pdo->prepare('UPDATE students SET last_submission_date=CURDATE(),updated_at=NOW() WHERE id=?')->execute([$student['id']]);
     record_history($pdo,(int)$student['id'],$student['stage'],$student['status'],
         ($resubmitted?'Formally resubmitted':'Formally submitted').' to RPMS: "'.$doc['original_name'].'" v'.$doc['version_no'].' ('.$doc['document_type'].', '.$doc['stage'].')'.($override?'; authorized Admin Override.':' after Adviser approval.'),date('Y-m-d'),$submitter);
-    $advanced=null; // Document submission never changes the official IERB stage.
+    $advanced=null;
+    if (ierb_v14_requirement_key($doc['document_type']) === 'final_report') {
+        try { $completion=ierb_v14_document_event($pdo,$actor,(int)$student['id'],'final_report_submitted',$doc['id']); }
+        catch (AccountLifecycleForbidden $e) { throw new DocumentWorkflowError($e->getMessage(),403); }
+        catch (AccountLifecycleConflict|AccountLifecycleValidation $e) { throw new DocumentWorkflowError($e->getMessage(),409); }
+        if ($completion) $advanced=$completion['stage'];
+    }
     $message=$override?'RPMS formally submitted your document on your behalf.':'Your adviser approved and automatically formally submitted your document to RPMS. No additional submission action is required.';
     $message.=' "'.$doc['original_name'].'" (version '.$doc['version_no'].').';
     if (!$override && $audit['reason']!=='') $message.=' Remarks: '.$audit['reason'];

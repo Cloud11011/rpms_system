@@ -54,6 +54,6 @@ final class IerbStage
             'completionContract' => ['formalSubmissionRequired' => true, 'atomicWithSubmission' => true,
                 'authorized' => true, 'idempotent' => true, 'auditable' => true,
                 'additionalRpmsAcceptance' => false, 'manualCompletion' => false],
-            'httpActivationAvailable' => false, 'documentIntegrationAvailable' => false];
+            'httpActivationAvailable' => false, 'documentIntegrationAvailable' => true];
     }
 }

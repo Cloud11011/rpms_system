@@ -187,6 +187,10 @@ function document_management_lock(PDO $pdo, array $actor, array $versions): arra
         $row=$rows[$id]??null;
         $reason = !$row ? 'Document was deleted after selection.' : (!hash_equals($fingerprint,document_selection_fingerprint($row)) ? 'Document changed after selection.' : null);
         if ($row && !$reason) $reason=empty($row['student_id']) ? 'Document has no eligible Student record.' : ($unavailable[(int)$row['student_id']]??null);
+        if ($row && !$reason) {
+            try { ierb_v14_guard_document_delete($pdo,$row); }
+            catch (DocumentWorkflowError $e) { $reason=$e->getMessage(); }
+        }
         if ($reason) $ineligible[]=['id'=>$id,'message'=>$reason];
     }
     return ['rows'=>$rows,'ineligible'=>$ineligible];

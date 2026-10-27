@@ -75,6 +75,7 @@ function ierb_row(array $r, array $docCounts = [], array $earlierReturns = []): 
         'isPrincipalInvestigator' => !empty($r['is_principal_investigator']),
         'lastSubmissionDate' => $r['last_submission_date'],
         'progress' => stage_progress_percent($r['stage']),
+        'v14' => ierb_v14_read_summary(db(), (int)$r['id']),
         'adviser' => $r['adviser_name'] ?? null,
         // Current document versions by workflow state (see workflow.php)
         'docs' => $docCounts[(int)$r['id']] ?? empty_doc_counts(),

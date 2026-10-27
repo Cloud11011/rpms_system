@@ -18,7 +18,7 @@ if (in_array($action, ['summarize','summarize_preview','summarize_cancel'], true
     audit_log($user, 'document_summary_failed', ['entity_type' => 'document', 'details' => 'reason=forbidden_role']);
     json_out(['ok' => false, 'message' => 'Only RPMS Administrators may generate document summaries.'], 403);
 }
-if (in_array($action, ['upload', 'review', 'comment', 'return_for_revision', 'submit_to_rpms', 'override_review', 'delete', 'summarize', 'summarize_preview', 'summarize_cancel', 'selection_snapshot', 'bulk_delete_preview', 'bulk_delete'], true)) {
+if (in_array($action, ['accept_requirement', 'upload', 'review', 'comment', 'return_for_revision', 'submit_to_rpms', 'override_review', 'delete', 'summarize', 'summarize_preview', 'summarize_cancel', 'selection_snapshot', 'bulk_delete_preview', 'bulk_delete'], true)) {
     require_post_same_origin();
 }
 
@@ -182,6 +182,30 @@ function doc_row(array $d, array $user, ?int $viewerAdviserId): array
 // ---------------------------------------------------------------------
 // list
 // ---------------------------------------------------------------------
+if (in_array($action, ['requirements', 'accept_requirement'], true)) {
+    header('Cache-Control: no-store');
+    if ($action === 'accept_requirement') require_session_generation(true);
+    try {
+        $input = $action === 'requirements' ? $_GET : json_body(true);
+        $sid = $input['studentId'] ?? null;
+        if ((!is_string($sid) && !is_int($sid)) || !ctype_digit((string)$sid) || (int)$sid < 1) throw new AccountLifecycleValidation('Select a valid submission holder.');
+        if ($action === 'requirements') json_out(ierb_v14_checklist($pdo, $user, (int)$sid));
+        foreach (['requirementKey','documentId','reason','requestKey','institutionalApprovalReference'] as $field) {
+            if (isset($input[$field]) && !is_string($input[$field])) throw new AccountLifecycleValidation('Malformed acceptance request.');
+        }
+        if (!isset($input['revision']) || !is_int($input['revision']) || $input['revision'] < 1) throw new AccountLifecycleValidation('Provide the current workflow revision.');
+        foreach (['accepted','review_status','reviewed_by','rpms_submitted_at','student_id','actor_user_id'] as $field) {
+            if (array_key_exists($field,$input)) throw new AccountLifecycleValidation('Acceptance evidence is derived by RPMS.');
+        }
+        json_out(ierb_v14_accept_requirement($pdo, $user, (int)$sid, $input['requirementKey'] ?? '', $input['documentId'] ?? '',
+            $input['revision'], $input['reason'] ?? '', $input['requestKey'] ?? '', $input['institutionalApprovalReference'] ?? ''));
+    } catch (AccountLifecycleForbidden $e) { json_out(['ok'=>false,'message'=>$e->getMessage()],403); }
+    catch (AccountLifecycleValidation $e) { json_out(['ok'=>false,'message'=>$e->getMessage()],422); }
+    catch (AccountLifecycleBadRequest $e) { json_out(['ok'=>false,'message'=>$e->getMessage()],400); }
+    catch (AccountLifecycleConflict|DocumentWorkflowError $e) { json_out(['ok'=>false,'message'=>$e->getMessage()],409); }
+    catch (Throwable $e) { log_api_error('v14_requirement', get_class($e)); json_out(['ok'=>false,'message'=>'The requirement decision could not be saved. Refresh before retrying.'],500); }
+}
+
 if ($action === 'list') {
     try {
         $spec = document_list_query($user, $viewerAdviserId, $_GET);
@@ -201,7 +225,7 @@ if (in_array($action, ['selection_snapshot','bulk_delete_preview','bulk_delete']
 // ---------------------------------------------------------------------
 // upload (a re-upload for the same student + stage + type becomes a new version)
 // ---------------------------------------------------------------------
-function upload_document_file(PDO $pdo, array $user, ?int $viewerAdviserId, array $file): array
+function upload_document_file(PDO $pdo, array $user, ?int $viewerAdviserId, array $file, string $documentType): array
 {
     $validated = prism_validate_upload($file);
     $ext = $validated['ext'];
@@ -252,7 +276,6 @@ function upload_document_file(PDO $pdo, array $user, ?int $viewerAdviserId, arra
         }
     }
 
-    $documentType = $_POST['documentType'];
     $notes = trim((string)($_POST['notes'] ?? ''));
     if (mb_strlen($documentType) > 100 || mb_strlen($notes) > 5000 || mb_strlen(basename((string)$file['name'])) > 255) {
         throw new DocumentUploadError('The document type, notes, or file name is too long. Please shorten it and try again.', 422);
@@ -325,6 +348,9 @@ function upload_document_file(PDO $pdo, array $user, ?int $viewerAdviserId, arra
             throw new DocumentWriteConflict('The student record changed while the file was uploading. Refresh and select the student again.');
         }
         $studentName = $currentStudent['full_name'];
+        try { $uploadStage = ierb_v14_upload_stage($pdo, (int)$studentDbId, $documentType, $stage); }
+        catch (AccountLifecycleConflict $e) { throw new DocumentWriteConflict($e->getMessage()); }
+        if ($revisionOf === '') $stage = $uploadStage;
         if ($user['role'] === 'student') {
             // Metadata is taken from the locked record, never from form controls.
             $notes = 'Research title: ' . (string)($currentStudent['research_title'] ?? '')
@@ -427,11 +453,9 @@ if ($action === 'upload') {
             if (isset($_POST[$field]) && !is_string($_POST[$field])) throw new DocumentUploadError('The upload request is malformed.', 400);
         }
         // Historical labels are permitted only through the existing owned/current Student revision validation.
-        if (!in_array($_POST['documentType'] ?? null, prism_document_types(), true)
-            && !($user['role'] === 'student' && trim((string)($_POST['revisionOf'] ?? '')) !== '')) {
-            throw new DocumentUploadError('Choose a document type from the PRISM document catalog.');
-        }
         $files = prism_upload_files($_FILES['document'] ?? null);
+        $types = $_POST['documentTypes'] ?? array_fill(0, count($files), $_POST['documentType'] ?? '');
+        if (!is_array($types) || !array_is_list($types) || count($types) !== count($files)) throw new DocumentUploadError('Assign one document type to every file.',400);
         if (!empty($_POST['revisionOf']) && count($files) !== 1) throw new DocumentUploadError('Upload one new file for this revision.', 422);
         $expected = $_POST['fileCount'] ?? null;
         if ($expected !== null && (!is_string($expected) || !ctype_digit($expected) || (int)$expected !== count($files))) {
@@ -448,10 +472,13 @@ if ($action === 'upload') {
             json_out($receipt['response'], $receipt['status']);
         }
         $results = [];
-        foreach ($files as $file) {
+        foreach ($files as $index => $file) {
             try {
-                $result = upload_document_file($pdo, $user, $viewerAdviserId, $file);
-                $results[] = ['name' => $file['name']] + $result;
+                $type = $types[$index];
+                if (!is_string($type) || (!in_array($type, prism_document_upload_types(), true)
+                    && !($user['role'] === 'student' && trim((string)($_POST['revisionOf'] ?? '')) !== ''))) throw new DocumentUploadError('Choose a valid PRISM document type for this file.');
+                $result = upload_document_file($pdo, $user, $viewerAdviserId, $file, $type);
+                $results[] = ['name' => $file['name'], 'documentType'=>$type] + $result;
             } catch (DocumentUploadError $e) {
                 $results[] = ['name' => basename(str_replace('\\', '/', $file['name'])), 'ok' => false, 'message' => $e->getMessage(), 'status' => $e->status];
             } catch (Throwable $e) {
@@ -605,6 +632,8 @@ if ($action === 'delete') {
     $restoredId = null;
     try {
         begin_document_write($pdo, $doc);
+        try { ierb_v14_guard_document_delete($pdo, $doc); }
+        catch (DocumentWorkflowError $e) { throw new DocumentWriteConflict($e->getMessage()); }
         if (!empty($doc['supersedes_id'])) {
             $predecessor=fetch_doc($pdo,(string)$doc['supersedes_id'],true);
             if (!$predecessor || (int)$predecessor['student_id']!==(int)$doc['student_id']

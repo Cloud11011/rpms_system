@@ -142,9 +142,9 @@ document.addEventListener('DOMContentLoaded', () => {
         const host = $('studentProgressDetail');
         const stageNumber = index + 1;
         const stageName = labelForStage(STAGES[index]);
-        const done = !loadErrors.progress && Boolean(myRecord) && (stageNumber < stageIndex || stageIndex === STAGES.length);
+        const done = !loadErrors.progress && completedStage(index, stageIndex);
         const current = !loadErrors.progress && Boolean(myRecord) && stageNumber === stageIndex && stageIndex < STAGES.length;
-        const state = loadErrors.progress ? 'Progress unavailable' : done ? 'Completed' : current ? 'In progress' : 'Coming up';
+        const state = loadErrors.progress ? 'Progress unavailable' : myRecord?.v14 && STAGES[index] === 'resubmission_amendment' && !current ? 'Conditional' : done ? 'Completed' : current ? 'In progress' : 'Coming up';
         const copy = loadErrors.progress ? 'Your IERB stage details could not be loaded. Please try again shortly.'
             : current && myRecord?.requirements && myRecord.requirements !== 'None'
                 ? `Current requirement: ${myRecord.requirements}` : dashboardStageDescriptions[index];
@@ -194,9 +194,9 @@ document.addEventListener('DOMContentLoaded', () => {
         const selectedIndex = Math.min(Math.max(selectedDashboardStage, 0), STAGES.length - 1);
         STAGES.forEach((stage, index) => {
             const number = index + 1;
-            const done = !unavailable && Boolean(myRecord) && (number < stageIndex || stageIndex === STAGES.length);
+            const done = !unavailable && completedStage(index, stageIndex);
             const current = !unavailable && Boolean(myRecord) && number === stageIndex && stageIndex < STAGES.length;
-            const state = done ? 'completed' : current ? 'current' : 'upcoming';
+            const state = myRecord?.v14 && stage === 'resubmission_amendment' && !current ? 'conditional' : done ? 'completed' : current ? 'current' : 'upcoming';
             const item = document.createElement('li');
             const button = document.createElement('button');
             button.type = 'button';
@@ -234,7 +234,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const number = Math.max(0, Math.min(STAGES.length - 1, Number(index) || 0));
         const stageKey = STAGES[number];
         const stageIndex = myRecord ? STAGES.indexOf(myRecord.stage) + 1 : 0;
-        const state = loadErrors.progress ? 'Unavailable' : myRecord && (number + 1 < stageIndex || stageIndex === STAGES.length)
+        const state = loadErrors.progress ? 'Unavailable' : myRecord?.v14 && stageKey === 'resubmission_amendment' && myRecord.stage !== stageKey ? 'Conditional' : completedStage(number, stageIndex)
             ? 'Completed' : myRecord && number + 1 === stageIndex ? 'In progress' : 'Upcoming';
         target.replaceChildren();
         const label = document.createElement('span'); label.textContent = `Stage ${number + 1}`;
@@ -387,6 +387,14 @@ document.addEventListener('DOMContentLoaded', () => {
     // ------------------------------------------------------------------
     // Rendering
     // ------------------------------------------------------------------
+    function completedStage(index, stageIndex) {
+        if (!myRecord?.v14) return Boolean(myRecord) && (index + 1 < stageIndex || stageIndex === STAGES.length);
+        const key = STAGES[index];
+        if (key === 'resubmission_amendment') return false;
+        if (key === 'initial_submission') return myRecord.progress >= 50;
+        return myRecord.stage === 'ierb_completed';
+    }
+
     function render() {
         const stageIndex = myRecord ? STAGES.indexOf(myRecord.stage) + 1 : 0;
         const rawProgress = Number(myRecord?.progress || 0);
@@ -440,6 +448,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         renderStageGuidance();
         $('currentStage').textContent = loadErrors.progress ? 'Unavailable' : myRecord ? labelForStage(myRecord.stage) : 'No record yet';
+        if (myRecord?.v14) document.querySelector('.progress-official-note').textContent = 'RPMS accepts required evidence. Successful formal submission of the approved Final Report completes IERB after all earlier requirements are met.';
         $('progressStageNumber').textContent = loadErrors.progress ? 'Stage unavailable' : myRecord
             ? `Stage ${stageIndex} of ${STAGES.length}` : 'No IERB stage assigned yet';
         const hasPendingRequirement = Boolean(myRecord?.requirements && myRecord.requirements !== 'None');
@@ -467,9 +476,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
         selectedProgressStage = myRecord ? Math.max(0, stageIndex - 1) : 0;
         $('stageList').innerHTML = loadErrors.progress ? empty('Unable to load your IERB progress. Please try again.') : STAGES.map((s, i) => {
-            const cls = i + 1 < stageIndex ? 'complete' : i + 1 === stageIndex ? 'current' : '';
-            const icon = i + 1 < stageIndex ? 'fa-circle-check' : 'fa-circle';
-            return `<button type="button" class="stage-card ${cls}" data-progress-stage="${i}"${cls==='current'?' aria-current="step"':''} aria-pressed="${i === selectedProgressStage ? 'true' : 'false'}"><i class="fa-solid ${icon}" aria-hidden="true"></i><strong>${esc(labelForStage(s))}</strong><small>${cls==='complete'?'✓ Completed':cls==='current'?"You're here":'Upcoming'}</small><span>${esc(s)}</span></button>`;
+            const cls = completedStage(i, stageIndex) ? 'complete' : i + 1 === stageIndex ? 'current' : '';
+            const icon = cls === 'complete' ? 'fa-circle-check' : 'fa-circle';
+            const conditional = myRecord?.v14 && s === 'resubmission_amendment' && cls !== 'current';
+            return `<button type="button" class="stage-card ${cls}" data-progress-stage="${i}"${cls==='current'?' aria-current="step"':''} aria-pressed="${i === selectedProgressStage ? 'true' : 'false'}"><i class="fa-solid ${icon}" aria-hidden="true"></i><strong>${esc(labelForStage(s))}</strong><small>${conditional?'Conditional':cls==='complete'?'✓ Completed':cls==='current'?"You're here":'Upcoming'}</small><span>${esc(s)}</span></button>`;
         }).join('');
         $('stageList').querySelectorAll('.stage-card').forEach((card, index) => {
             const selected = index === selectedProgressStage;
@@ -478,7 +488,9 @@ document.addEventListener('DOMContentLoaded', () => {
         });
         updateProgressStageDetail(selectedProgressStage);
 
-        $('completedRequirements').innerHTML = loadErrors.progress ? empty('Earlier stages are unavailable.') : myRecord && stageIndex > 1
+        if (myRecord?.v14) {
+            $('completedRequirements').textContent = myRecord.progress >= 50 ? 'Initial Submission requirements accepted. Corrections preserve their interrupted progress.' : 'Initial Submission requirements are being reviewed.';
+        } else $('completedRequirements').innerHTML = loadErrors.progress ? empty('Earlier stages are unavailable.') : myRecord && stageIndex > 1
             ? `<div class="list-item"><i class="fa-solid fa-circle-check"></i><div><strong>${stageIndex - 1 === 1 ? 'Stage 1' : `Stages 1-${stageIndex - 1}`}</strong><span>Completed</span></div></div>`
             : empty('No earlier stages recorded.');
         $('pendingRequirements').innerHTML = loadErrors.progress ? empty('Pending requirements are unavailable.') : myRecord && myRecord.requirements && myRecord.requirements !== 'None'
@@ -631,6 +643,20 @@ document.addEventListener('DOMContentLoaded', () => {
         stageConfiguration = configuration;
         if(configuration)Object.assign(stageLabels,configuration.labels);
         myRecord = progress.record;
+        if (myRecord?.v14) {
+            STAGES.splice(0, STAGES.length, ...Object.keys(myRecord.v14.labels));
+            Object.assign(stageLabels, myRecord.v14.labels);
+            myRecord.legacyStage = myRecord.stage; myRecord.stage = myRecord.v14.stage; myRecord.progress = myRecord.v14.progress;
+        }
+        if (myRecord) {
+            const checklist = await PrismRequirements.load(myRecord.id, $('v14RequirementChecklist'));
+            if (myRecord.v14 && checklist?.enrolled) {
+                const context = checklist.workflow.correctionCase?.interruptedStage || myRecord.stage;
+                const pending = checklist.requirements.filter(row => row.key !== 'amendment' && (context === 'initial_submission'
+                    ? row.stage === 'initial_submission' : ['form33','final_report'].includes(row.key)) && row.state !== 'Accepted');
+                myRecord.requirements = myRecord.stage === 'ierb_completed' || !pending.length ? 'None' : pending.map(row => row.label).join(', ');
+            }
+        }
         myHistory = progress.history;
         historyState = {total:progress.total??myHistory.length,page:progress.page??1,limit:progress.limit};
         historyPager.reset();
@@ -702,6 +728,7 @@ document.addEventListener('DOMContentLoaded', () => {
         });
         const hasFiles = files.length > 0 && !invalid;
         const fileSelection = $('uploadSelection');
+        const selectedTypes = PrismUpload.selectedTypes();
         fileSelection.replaceChildren();
         files.forEach((file, index) => {
             const card = document.createElement('div'); card.className = 'submission-file-card';
@@ -721,7 +748,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 submissionFile.dispatchEvent(new Event('change', { bubbles: true }));
                 submissionDropzone.focus();
             });
-            card.append(badge, meta, remove); fileSelection.append(card);
+            const assignedType = selectedTypes.get(`${file.name}:${file.size}:${file.lastModified}`) || submissionType.value;
+            card.append(badge, meta, remove, PrismUpload.typeControl(file, index, assignedType, Boolean(revisionDocument))); fileSelection.append(card);
         });
         $('submissionTypeReady').classList.toggle('is-ready', hasType);
         $('submissionFileReady').classList.toggle('is-ready', hasFiles);

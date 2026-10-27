@@ -1196,3 +1196,16 @@ input[type="radio"] { accent-color: var(--accent-purple, #A21368); }
     width: 100%;
   }
 }
+
+/* Version-bound project requirement checklist and per-file category assignment. */
+.upload-file-type{display:flex;flex-direction:column;gap:.35rem;min-width:0;margin:.5rem 0;overflow-wrap:anywhere}
+.upload-file-type select{max-width:100%;min-width:0;padding:.5rem}
+.submission-file-card{flex-wrap:wrap}
+.submission-file-card .upload-file-type{flex-basis:100%}
+.v14-checklist-dialog{width:min(900px,94vw);max-height:90vh;overflow:auto;padding:1.5rem;border:1px solid var(--border-color,#ccd);border-radius:12px;background:var(--card-bg,#fff);color:var(--text-color,#223)}
+.v14-checklist-dialog::backdrop{background:#0008}
+.v14-requirements{padding-left:1.2rem}
+.v14-requirements li{margin:.75rem 0;overflow-wrap:anywhere}
+.v14-requirements small{display:block}
+.v14-requirements button{margin:.4rem}
+.dark-theme .v14-checklist-dialog{background:#172233;color:#edf2ff}

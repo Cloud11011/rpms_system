@@ -1,5 +1,5 @@
 <?php
-/** Batch 1 foundation. No HTTP mutation routes or automatic legacy enrollment. */
+/** Reviewed V14 foundation. General HTTP activation and automatic enrollment remain unavailable. */
 require_once __DIR__.'/ierb_stages.php';
 require_once __DIR__.'/current_workflow_eligibility.php';
 
@@ -10,9 +10,9 @@ function ierb_v14_schema_available(PDO $pdo): bool
 
 function ierb_v14_gate(PDO $pdo): void
 {
-    // Only explicit CLI integration/operator use until document evidence and UI are connected in Batch 2.
+    // Enrollment/correction administration remain explicitly opted-in CLI operations.
     if (PHP_SAPI !== 'cli' || getenv('PRISM_IERB_V14_FOUNDATION') !== '1' || !ierb_v14_schema_available($pdo)) {
-        throw new AccountLifecycleConflict('V14 activation awaits the document integration batch. Existing legacy workflow remains available.');
+        throw new AccountLifecycleConflict('General V14 activation remains unavailable. Explicit CLI enrollment and correction administration require operator opt-in.');
     }
 }
 
@@ -110,7 +110,7 @@ function ierb_v14_event(PDO $pdo, array $actor, array $workflow, string $event, 
 function ierb_v14_enroll(PDO $pdo, array $actor, int $studentId, string $stage, string $reason, string $evidence, string $key): array
 {
     ierb_v14_gate($pdo);
-    if (!in_array($stage, [IerbStage::INITIAL, IerbStage::GATHERING], true)) throw new AccountLifecycleValidation('Enroll in an explicitly verified review context. Completion requires its future formal submission event.');
+    if (!in_array($stage, [IerbStage::INITIAL, IerbStage::GATHERING], true)) throw new AccountLifecycleValidation('Enroll in an explicitly verified review context. Completion requires its authorized formal submission event.');
     $reason = ierb_v14_reason($reason); $evidence = ierb_v14_reason($evidence); ierb_v14_request_key($key);
     $digest = hash('sha256', json_encode([$actor['id'], 'enroll', $studentId, $stage, $reason, $evidence], JSON_THROW_ON_ERROR));
     if ($pdo->inTransaction()) throw new LogicException('Enrollment owns its transaction.');
@@ -157,6 +157,11 @@ function ierb_v14_open_correction(PDO $pdo, array $actor, int $studentId, int $e
             $q = $pdo->prepare('SELECT id,student_id,document_type,stage,version_no,is_current FROM documents WHERE id=? FOR UPDATE');
             $q->execute([$id]); $doc = $q->fetch(PDO::FETCH_ASSOC);
             if (!$doc || (int)$doc['student_id'] !== $studentId || (int)$doc['is_current'] !== 1) throw new AccountLifecycleValidation('Affected documents must be current versions owned by this Student.');
+            require_once __DIR__.'/ierb_v14_requirements.php';
+            $requirement = ierb_v14_requirement_key($doc['document_type']);
+            if ($requirement === 'final_report' || ($requirement === 'amendment' && !$requiresAmendment)) {
+                throw new AccountLifecycleValidation('Resolve official corrections before Final Report submission; an affected Amendment Form requires the case Amendment policy.');
+            }
             $current = document_current_version($pdo, $studentId, $doc['stage'], $doc['document_type']);
             if (!$current || $current['id'] !== $doc['id']) throw new AccountLifecycleConflict('Select the authoritative current document version.');
             $affected[] = $doc;
@@ -172,11 +177,10 @@ function ierb_v14_open_correction(PDO $pdo, array $actor, int $studentId, int $e
     finally { $pdo->query("SELECT RELEASE_LOCK('prism_migrate')"); }
 }
 
-/** Future evidence adapter must perform these transitions in the document transaction.
- * Batch 1 deliberately provides no callable completion/advancement/resolution bypass.
- */
-function ierb_v14_document_event(PDO $pdo, array $actor, int $studentId, string $event, string $documentId): never
+/** The evidence adapter shares the authorized document transaction and never commits it. */
+function ierb_v14_document_event(PDO $pdo, array $actor, int $studentId, string $event, string $documentId): ?array
 {
     if (!$pdo->inTransaction()) throw new LogicException('Document events must be atomic with their authoritative submission/review transaction.');
-    throw new AccountLifecycleConflict('Document evidence integration is deferred to Batch 2. No V14 stage was changed.');
+    require_once __DIR__.'/ierb_v14_requirements.php';
+    return ierb_v14_apply_document_event($pdo, $actor, $studentId, $event, $documentId);
 }

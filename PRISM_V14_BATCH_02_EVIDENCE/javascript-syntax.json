@@ -1,0 +1,30 @@
+{
+  "status": "PASS",
+  "files": 6,
+  "results": [
+    {
+      "file": "assets/js/document-upload.js",
+      "ok": true
+    },
+    {
+      "file": "assets/js/documents.js",
+      "ok": true
+    },
+    {
+      "file": "assets/js/role-portal.js",
+      "ok": true
+    },
+    {
+      "file": "assets/js/ierb-requirements.js",
+      "ok": true
+    },
+    {
+      "file": "maintenance/ierb-group-tests/run.cjs",
+      "ok": true
+    },
+    {
+      "file": "maintenance/ierb-v14-tests/documents.cjs",
+      "ok": true
+    }
+  ]
+}

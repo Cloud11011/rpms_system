@@ -1,0 +1,11 @@
+{
+  "status": "PASS",
+  "rollback": {
+    "ok": true,
+    "mode": "rollback",
+    "to": "11",
+    "legacyRowsChanged": 0
+  },
+  "isolatedServerStopped": true,
+  "scope": "Datadir-verified synthetic fixture only"
+}

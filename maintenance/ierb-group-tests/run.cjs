@@ -32,6 +32,7 @@ function prepareApp() {
   fs.copyFileSync(path.join(root, 'includes/ierb_group_advancement.php'), path.join(app, 'includes/ierb_group_advancement.php'));
   // Include additive foundation files before they are staged in Git.
   fs.cpSync(path.join(root, 'includes'), path.join(app, 'includes'), { recursive: true });
+  fs.cpSync(path.join(root, 'assets'), path.join(app, 'assets'), { recursive: true });
   fs.cpSync(path.join(root, 'vendor'), path.join(app, 'vendor'), { recursive: true });
   for (const folder of ['storage/documents', 'storage/reports', 'sessions', 'uploads']) fs.mkdirSync(path.join(app, folder), { recursive: true });
 }
@@ -54,8 +55,9 @@ function prepareApp() {
     }
     const phase = process.env.PRISM_TEST_PHASE || 'all';
     const h = { root, review, php, base, app, playwright, checks, check, fixture, sql, post, response, expect, generation, sessions, login, child, locked, sleep, phase };
-    await require('./backend.cjs')(h);
-    if (phase !== 'backend') { await require('./browser.cjs')(h); await require('./regression.cjs')(h); }
+    if (phase !== 'documents') await require('./backend.cjs')(h);
+    if (!['backend','documents'].includes(phase)) { await require('./browser.cjs')(h); await require('./regression.cjs')(h); }
+    if (process.env.PRISM_TEST_V14_DOCUMENTS === '1') await require('../ierb-v14-tests/documents.cjs')(h);
     check(fixture({ action: 'schema' }).schemaVersion === expectedSchema, 'Full schema v' + expectedSchema + ' and version remain unchanged after all tests');
     const result = { status: 'PASS', assertions: checks.length, cases: checks, scope: 'Isolated synthetic MariaDB 10.4, actual PHP HTTP sessions and Chromium; no production data or external delivery' };
     fs.writeFileSync(path.join(review, phase === 'all' ? 'test-results.json' : `test-results-${phase}.json`), JSON.stringify(result, null, 2)); console.log(JSON.stringify({ status: 'PASS', assertions: checks.length }));

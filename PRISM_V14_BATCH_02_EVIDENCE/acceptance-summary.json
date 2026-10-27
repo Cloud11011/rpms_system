@@ -1,0 +1,31 @@
+{
+  "status": "PASS",
+  "acceptanceFailures": 0,
+  "suites": {
+    "foundation-tests": {
+      "status": "PASS",
+      "assertions": 99
+    },
+    "legacy-v11": {
+      "status": "PASS",
+      "assertions": 310
+    },
+    "legacy-v12-and-documents": {
+      "status": "PASS",
+      "assertions": 528
+    },
+    "focused-documents": {
+      "status": "PASS",
+      "assertions": 232
+    },
+    "document-tests": {
+      "status": "PASS",
+      "assertions": 219
+    }
+  },
+  "phpFiles": 132,
+  "javascriptFiles": 6,
+  "schemaChanges": false,
+  "operationalActivation": false,
+  "deployment": false
+}
