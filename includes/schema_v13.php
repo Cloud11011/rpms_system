@@ -79,16 +79,16 @@ function schema_v13_definition(PDO $pdo, string $name): string
     return preg_replace('/ AUTO_INCREMENT=\d+/', '', $pdo->query('SHOW CREATE TABLE `'.$name.'`')->fetch(PDO::FETCH_NUM)[1]);
 }
 
-function schema_v13_verify(PDO $pdo, bool $partial = false): void
+function schema_v13_verify(PDO $pdo, bool $partial = false, array $extraTables = []): void
 {
     $names = array_keys(schema_v13_tables());
-    schema_v12_verify($pdo, false, $names);
+    schema_v12_verify($pdo, false, array_merge($names,$extraTables));
     $contract = json_decode(file_get_contents(__DIR__.'/research_schema_v13.json'), true, 512, JSON_THROW_ON_ERROR);
     $version = $pdo->query("SELECT v FROM schema_meta WHERE k='schema_version'")->fetchColumn();
     foreach ($names as $name) {
         $q = $pdo->prepare('SELECT COUNT(*) FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME=?'); $q->execute([$name]);
         if (!$q->fetchColumn()) {
-            if (!$partial || $version === '13') throw new RuntimeException('Incomplete project schema.');
+            if (!$partial || in_array($version,['13','14'],true)) throw new RuntimeException('Incomplete project schema.');
         } elseif (schema_v13_definition($pdo, $name) !== $contract[$name]) throw new RuntimeException('Project schema drift: '.$name);
     }
 }

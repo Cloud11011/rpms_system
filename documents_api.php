@@ -548,6 +548,7 @@ if ($user['role'] === 'adviser' && ($viewerAdviserId === null || (int)($doc['adv
 }
 
 $path = DOCS_DIR . DIRECTORY_SEPARATOR . basename($doc['stored_name']);
+if (in_array($action,['summary_history','summary_pdf'],true)) require __DIR__.'/includes/document_summary_read.php';
 $docName = $doc['original_name'];
 $isCurrent = (int)($doc['is_current'] ?? 1) === 1;
 $locked = document_is_locked($doc);

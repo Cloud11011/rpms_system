@@ -1,0 +1,13 @@
+{
+  "status": "PASS",
+  "files": [
+    "assets/js/documents.js",
+    "assets/js/reports.js",
+    "maintenance/ierb-group-tests/regression.cjs",
+    "maintenance/ierb-group-tests/run.cjs",
+    "maintenance/ierb-project-tests/projects.cjs",
+    "maintenance/ierb-project-tests/uploads.cjs",
+    "maintenance/ierb-v14-tests/documents.cjs",
+    "maintenance/ierb-report-tests/integration.cjs"
+  ]
+}

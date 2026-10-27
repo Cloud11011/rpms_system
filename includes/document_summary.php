@@ -189,7 +189,13 @@ function document_summary_identifiers(PDO $pdo, array $document, array $actor): 
         $q->execute([':id' => $document['student_id']]); $student = $q->fetch();
         if ($student) {
             $members = [$student];
-            if (trim((string)$student['research_group']) !== '') {
+            $project=function_exists('research_project_for_student')?research_project_for_student($pdo,(int)$document['student_id']):null;
+            if ($project) {
+                $q=$pdo->prepare('SELECT s.full_name,s.student_id,s.email,s.protocol_code FROM students s JOIN research_project_members m ON m.student_id=s.id WHERE m.project_id=? LIMIT 501');
+                $q->execute([$project['id']]); $members=$q->fetchAll();
+                if (count($members)>500) throw new DocumentSummaryError('identity_limit','This project exceeds the safe de-identification limit.');
+                $values[]=$project['public_identifier']; $values[]=$project['research_title'];
+            } elseif (trim((string)$student['research_group']) !== '') {
                 $q = $pdo->prepare('SELECT full_name, student_id, email, protocol_code FROM students WHERE research_group = :groupName LIMIT 501');
                 $q->execute([':groupName' => $student['research_group']]); $members = $q->fetchAll();
                 if (count($members) > 500) throw new DocumentSummaryError('identity_limit', 'This research group exceeds the safe de-identification limit.');

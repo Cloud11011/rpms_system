@@ -1,0 +1,74 @@
+{
+  "status": "PASS",
+  "suites": {
+    "legacy-v11.json": {
+      "status": "PASS",
+      "assertions": 310
+    },
+    "foundation-tests.json": {
+      "status": "PASS",
+      "assertions": 99
+    },
+    "legacy-v12-projects.json": {
+      "status": "PASS",
+      "assertions": 724
+    },
+    "schema14-workflow.json": {
+      "status": "PASS",
+      "assertions": 429
+    },
+    "schema14-document-tests.json": {
+      "status": "PASS",
+      "assertions": 415
+    },
+    "batch4-final.json": {
+      "status": "PASS",
+      "assertions": 136
+    },
+    "batch4-integration.json": {
+      "status": "PASS",
+      "assertions": 124
+    },
+    "summary-migration-tests.json": {
+      "status": "PASS",
+      "assertions": 8
+    },
+    "pdf-rendering.json": {
+      "status": "PASS",
+      "assertions": null
+    },
+    "php-syntax.json": {
+      "status": "PASS",
+      "assertions": null
+    },
+    "javascript-syntax.json": {
+      "status": "PASS",
+      "assertions": null
+    },
+    "teardown.json": {
+      "status": "PASS",
+      "assertions": null
+    },
+    "cycle-tests.json": {
+      "status": "PASS",
+      "assertions": 44
+    }
+  },
+  "pdfs": 10,
+  "renderedPages": 28,
+  "responsiveViewports": [
+    390,
+    768,
+    1440
+  ],
+  "themes": [
+    "light",
+    "dark"
+  ],
+  "criticalFailuresUnresolved": 0,
+  "diffCheck": "PASS",
+  "stagedDiffCheck": "PASS",
+  "productionMigrationOrDeployment": false,
+  "changedFileReview": "PASS",
+  "pdfStagedBytes": "PASS"
+}

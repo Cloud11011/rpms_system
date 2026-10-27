@@ -9,6 +9,29 @@ const summaryModal=document.getElementById('summaryModal'),summaryResult=documen
 let summaryDocument=null,summarySequence=0,summaryReturnFocus=null,summaryBusy=false;
 const summaryMode=document.getElementById('summaryMode'),summaryReview=document.getElementById('summaryReview'),summaryExcerpt=document.getElementById('summaryExcerpt'),summaryConfirmed=document.getElementById('summaryConfirmed');
 let summaryPreviewToken=null;
+const summaryVersion=document.getElementById('summaryVersion'),summaryPdf=document.getElementById('summaryPdf');
+let summaryVersions=[];
+function selectSummaryVersion(){
+    const v=summaryVersions.find(row=>String(row.id)===summaryVersion.value);if(!v)return;
+    summaryResult.replaceChildren();
+    String(v.summary_content).split(/\n\s*\n/).forEach(text=>{
+        const match=text.match(/^\s*(?:#{1,4}\s*)?(Source facts|Purpose|Methods|Methodology|Findings stated in source|Findings|Limitations and interpretation|Limitations)\s*:?\s*(?:\n|$)/i);
+        if(match){const heading=document.createElement('h3');heading.textContent=match[1];summaryResult.append(heading);text=text.slice(match[0].length)}
+        if(text){const p=document.createElement('p');p.textContent=text;summaryResult.append(p)}
+    });
+    summarySource.textContent=summarySourceLabel(v.source_type,!!Number(v.partial_extraction))+' · v'+v.version_no+' · '+(v.generated_at||'Generation time not recorded');
+    document.getElementById('summaryLimitations').textContent=v.limitations;
+    summaryPdf.href='documents_api.php?action=summary_pdf&id='+encodeURIComponent(summaryDocument.id)+'&summaryId='+encodeURIComponent(v.id);summaryPdf.hidden=false;
+}
+async function loadSummaryVersions(d){
+    summaryVersion.disabled=true;summaryPdf.hidden=true;summaryVersion.replaceChildren(new Option('Loading versions...',''));
+    try{const result=await PrismUI.request('documents_api.php?action=summary_history&id='+encodeURIComponent(d.id));if(summaryDocument!==d)return;
+        summaryVersions=result.versions||[];summaryVersion.replaceChildren(...summaryVersions.map(v=>new Option('Version '+v.version_no+' · '+(v.generated_at||'Historical value')+' · '+v.source_type,String(v.id))));
+        if(!summaryVersions.length)summaryVersion.add(new Option('No saved summaries',''));
+        summaryVersion.disabled=!summaryVersions.length;selectSummaryVersion();
+    }catch(e){if(summaryDocument===d){summaryVersion.replaceChildren(new Option('History unavailable',''));summarySource.textContent=e.message}}
+}
+summaryVersion?.addEventListener('change',selectSummaryVersion);
 function summaryButton(d){return currentRole==='admin'&&d.actions?.summarize&&summaryModal?`<button type="button" class="document-action-button summary-action" data-summary="${esc(d.id)}"><i class="fa-solid fa-wand-magic-sparkles" aria-hidden="true"></i>${d.aiSummary?'View Summary':'Generate Summary'}</button>`:''}
 function bindSummaryButtons(host){host.querySelectorAll('[data-summary]').forEach(button=>button.addEventListener('click',()=>showSummary(documents.find(d=>String(d.id)===button.dataset.summary),button)))}
 function showSummary(d,opener){
@@ -20,6 +43,7 @@ function showSummary(d,opener){
     summaryMode.value=d.summarySource==='ai'?'ai':'local';clearSummaryPreview();
     summarySource.textContent=d.aiSummary?summarySourceLabel(d.summarySource,d.summaryPartial):'';
     openModal(summaryModal);summaryModal.querySelector('[data-close]').focus();
+    document.getElementById('summaryLimitations').textContent='';loadSummaryVersions(d);
 }
 function summarySourceLabel(source,partial){return (source==='ai'?'AI-Powered Summary · Liquid AI':source==='local'||source==='local_fallback'?'Local Summary':'Previously saved summary')+(partial?' · Based on a bounded excerpt.':'')}
 function clearSummaryPreview(){
@@ -44,7 +68,7 @@ async function generateSummary(){
         if(preview){summaryPreviewToken=data.previewToken;summaryExcerpt.value=data.excerpt;summaryReview.hidden=false;summaryConfirmed.checked=false;regenerateSummary.textContent='Generate AI Summary';summarySource.textContent='Review and authorize this excerpt. No document text has been sent externally.';summaryConfirmed.focus();return}
         summaryPreviewToken=null;summaryReview.hidden=true;summaryExcerpt.value='';summaryConfirmed.checked=false;
         d.aiSummary=data.summary;summaryResult.textContent=data.summary;
-        d.summarySource=data.source;d.summaryPartial=data.partial;summarySource.textContent=summarySourceLabel(data.source,data.partial);regenerateSummary.textContent='Generate Summary';
+        d.summarySource=data.source;d.summaryPartial=data.partial;summarySource.textContent=summarySourceLabel(data.source,data.partial);regenerateSummary.textContent='Generate Summary';await loadSummaryVersions(d);
         await load();
     }catch(error){if(sequence===summarySequence){clearSummaryPreview();summaryResult.textContent=d.aiSummary||'';summarySource.textContent=error.message+' Any existing saved summary is retained.';summarySource.classList.add('document-error')}}
     finally{summaryBusy=false;summaryMode.disabled=false;regenerateSummary.disabled=!!summaryPreviewToken&&!summaryConfirmed.checked;summaryResult.setAttribute('aria-busy','false')}

@@ -54,6 +54,9 @@ if ($authUser['role'] === 'student') {
 <div class="document-modal" id="summaryModal" aria-hidden="true"><div class="document-modal-dialog summary-dialog" role="dialog" aria-modal="true" aria-labelledby="summaryHeading">
 <div class="document-modal-heading"><div><span>RPMS review aid</span><h2 id="summaryHeading">Document Summary</h2></div><button type="button" data-close="summaryModal" aria-label="Close summary"><i class="fa-solid fa-xmark" aria-hidden="true"></i></button></div>
 <p id="summaryFilename" class="summary-filename"></p><p id="summarySource" class="summary-source"></p>
+<label class="summary-mode" for="summaryVersion">Saved version <select id="summaryVersion" disabled><option>Loading versions...</option></select></label>
+<a id="summaryPdf" class="doc-secondary" hidden>Download selected summary PDF</a>
+<p id="summaryLimitations" class="summary-review-note"></p>
 <label class="summary-mode" for="summaryMode">Summary mode <select id="summaryMode"><option value="local">Local Summary</option><option value="ai">AI-Powered Summary</option></select></label>
 <p id="summaryModeNote" class="summary-review-note">Local Summary runs in PRISM without sending document contents externally.</p>
 <div id="summaryReview" hidden><label for="summaryExcerpt">Text to be sent to Liquid AI:</label><textarea id="summaryExcerpt" rows="9" readonly></textarea><label class="summary-consent"><input id="summaryConfirmed" type="checkbox"> I have reviewed this excerpt and confirm that it is authorized for external AI processing.</label><p class="summary-review-note">Use Local Summary for identifiable participant information, confidential records, or material that is not authorized for external processing.</p></div>

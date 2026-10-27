@@ -1,0 +1,7 @@
+{
+  "status": "PASS",
+  "source": "Existing reports_api.php PDF implementation moved to includes/report_pdf.php; only trailing empty separator removed",
+  "sha256": "51adc071cb911553ee569d5c88641aa4a1ea1b8799d3bcab8f82c1e11207e8dc",
+  "duplicateRendererIntroduced": false,
+  "hashScope": "Renderer implementation excluding trailing file separator whitespace"
+}

@@ -23,6 +23,24 @@ document.addEventListener('DOMContentLoaded', () => {
     document.querySelectorAll('.report-modal').forEach(m => m.addEventListener('click', e => { if (e.target === m) closeModal(m); }));
 
     const studentModal = document.getElementById('studentModal');
+    const projectModal=document.getElementById('projectModal');
+    const projectButton=document.createElement('button');projectButton.type='button';projectButton.className='report-tool';projectButton.textContent='Generate IERB Project Track Sheet';
+    document.querySelector('.report-tools').append(projectButton);
+    const aggregateButton=document.createElement('button');aggregateButton.type='button';aggregateButton.className='report-tool';aggregateButton.textContent='Generate Institutional Project Report';document.querySelector('.report-tools').append(aggregateButton);
+    aggregateButton.addEventListener('click',async()=>{const release=PrismUI.busy(aggregateButton,'Generating...');if(!release)return;try{const data=await PrismUI.postJson('reports_api.php?action=project_aggregate',{});await loadReports();downloadReport(data.report.id)}catch(e){PrismUI.toast(e.message,'error')}finally{release()}});
+    projectButton.addEventListener('click',async()=>{
+        const release=PrismUI.busy(projectButton,'Loading projects...');if(!release)return;
+        try{const data=await PrismUI.request('reports_api.php?action=project_options');const select=document.getElementById('reportProject');
+            select.replaceChildren(...data.projects.map(p=>new Option(p.research_title+' · '+p.public_identifier,p.id)));
+            if(!data.projects.length)select.add(new Option('No canonical projects available',''));
+            const c=data.counts;document.getElementById('projectCounts').textContent=c.studentRecords+' Student records · '+c.distinctResearchProjects+' distinct research projects · '+c.v14EnrolledProjects+' V14 projects · '+c.unreconciledStudentRecords+' unreconciled Student records';openModal(projectModal);
+        }catch(e){PrismUI.toast(e.message,'error')}finally{release()}
+    });
+    document.getElementById('projectReportForm').addEventListener('submit',async event=>{
+        event.preventDefault();const id=Number(document.getElementById('reportProject').value);if(!id)return;
+        const release=PrismUI.busy(event.target.querySelector('button'),'Generating...');if(!release)return;
+        try{const data=await PrismUI.postJson('reports_api.php?action=project_report',{projectId:id});await loadReports();closeModal(projectModal);downloadReport(data.report.id)}catch(e){PrismUI.toast(e.message,'error')}finally{release()}
+    });
 
     document.getElementById('openStudentReport').addEventListener('click', async () => { await loadStudentOptions(); openModal(studentModal); });
 

@@ -1,0 +1,602 @@
+{
+  "status": "PASS",
+  "files": 149,
+  "checks": [
+    {
+      "file": "account.php",
+      "exitCode": 0
+    },
+    {
+      "file": "account_invitation_api.php",
+      "exitCode": 0
+    },
+    {
+      "file": "account_lifecycle_api.php",
+      "exitCode": 0
+    },
+    {
+      "file": "account_setup.php",
+      "exitCode": 0
+    },
+    {
+      "file": "admin_advisers.php",
+      "exitCode": 0
+    },
+    {
+      "file": "admin_ai.php",
+      "exitCode": 0
+    },
+    {
+      "file": "admin_archived_accounts.php",
+      "exitCode": 0
+    },
+    {
+      "file": "admin_legal_policies.php",
+      "exitCode": 0
+    },
+    {
+      "file": "admin_notifications.php",
+      "exitCode": 0
+    },
+    {
+      "file": "admin_people.php",
+      "exitCode": 0
+    },
+    {
+      "file": "admin_students.php",
+      "exitCode": 0
+    },
+    {
+      "file": "advisers_api.php",
+      "exitCode": 0
+    },
+    {
+      "file": "ai_helpers.php",
+      "exitCode": 0
+    },
+    {
+      "file": "audit_api.php",
+      "exitCode": 0
+    },
+    {
+      "file": "auth_rate_limit.php",
+      "exitCode": 0
+    },
+    {
+      "file": "calendar.php",
+      "exitCode": 0
+    },
+    {
+      "file": "calendar_deadlines_api.php",
+      "exitCode": 0
+    },
+    {
+      "file": "change_password_required.php",
+      "exitCode": 0
+    },
+    {
+      "file": "complete_profile.php",
+      "exitCode": 0
+    },
+    {
+      "file": "config.php",
+      "exitCode": 0
+    },
+    {
+      "file": "dashboard.php",
+      "exitCode": 0
+    },
+    {
+      "file": "data_export.php",
+      "exitCode": 0
+    },
+    {
+      "file": "data_exports_api.php",
+      "exitCode": 0
+    },
+    {
+      "file": "document_preview.php",
+      "exitCode": 0
+    },
+    {
+      "file": "documents.php",
+      "exitCode": 0
+    },
+    {
+      "file": "documents_api.php",
+      "exitCode": 0
+    },
+    {
+      "file": "forgot_password.php",
+      "exitCode": 0
+    },
+    {
+      "file": "forgot_password_process.php",
+      "exitCode": 0
+    },
+    {
+      "file": "help_support.php",
+      "exitCode": 0
+    },
+    {
+      "file": "help_support_api.php",
+      "exitCode": 0
+    },
+    {
+      "file": "ierb_api.php",
+      "exitCode": 0
+    },
+    {
+      "file": "ierbprog.php",
+      "exitCode": 0
+    },
+    {
+      "file": "includes/academic_catalog.php",
+      "exitCode": 0
+    },
+    {
+      "file": "includes/account_identity.php",
+      "exitCode": 0
+    },
+    {
+      "file": "includes/account_lifecycle.php",
+      "exitCode": 0
+    },
+    {
+      "file": "includes/account_lifecycle_schema.php",
+      "exitCode": 0
+    },
+    {
+      "file": "includes/account_onboarding.php",
+      "exitCode": 0
+    },
+    {
+      "file": "includes/account_purge_files.php",
+      "exitCode": 0
+    },
+    {
+      "file": "includes/account_retention.php",
+      "exitCode": 0
+    },
+    {
+      "file": "includes/account_retention_bulk.php",
+      "exitCode": 0
+    },
+    {
+      "file": "includes/assets.php",
+      "exitCode": 0
+    },
+    {
+      "file": "includes/calendar_deadlines.php",
+      "exitCode": 0
+    },
+    {
+      "file": "includes/ceu_footer.php",
+      "exitCode": 0
+    },
+    {
+      "file": "includes/csv_export.php",
+      "exitCode": 0
+    },
+    {
+      "file": "includes/current_workflow_eligibility.php",
+      "exitCode": 0
+    },
+    {
+      "file": "includes/document_catalog.php",
+      "exitCode": 0
+    },
+    {
+      "file": "includes/document_catalog_client.php",
+      "exitCode": 0
+    },
+    {
+      "file": "includes/document_management.php",
+      "exitCode": 0
+    },
+    {
+      "file": "includes/document_management_actions.php",
+      "exitCode": 0
+    },
+    {
+      "file": "includes/document_summary.php",
+      "exitCode": 0
+    },
+    {
+      "file": "includes/document_summary_actions.php",
+      "exitCode": 0
+    },
+    {
+      "file": "includes/document_summary_ai.php",
+      "exitCode": 0
+    },
+    {
+      "file": "includes/document_summary_history.php",
+      "exitCode": 0
+    },
+    {
+      "file": "includes/document_summary_read.php",
+      "exitCode": 0
+    },
+    {
+      "file": "includes/document_upload.php",
+      "exitCode": 0
+    },
+    {
+      "file": "includes/document_workflow.php",
+      "exitCode": 0
+    },
+    {
+      "file": "includes/email_format.php",
+      "exitCode": 0
+    },
+    {
+      "file": "includes/frontend_styles.php",
+      "exitCode": 0
+    },
+    {
+      "file": "includes/help_support.php",
+      "exitCode": 0
+    },
+    {
+      "file": "includes/help_support_modal.php",
+      "exitCode": 0
+    },
+    {
+      "file": "includes/ierb_group_advancement.php",
+      "exitCode": 0
+    },
+    {
+      "file": "includes/ierb_progress.php",
+      "exitCode": 0
+    },
+    {
+      "file": "includes/ierb_stages.php",
+      "exitCode": 0
+    },
+    {
+      "file": "includes/ierb_track_actions.php",
+      "exitCode": 0
+    },
+    {
+      "file": "includes/ierb_track_report.php",
+      "exitCode": 0
+    },
+    {
+      "file": "includes/ierb_v14_requirements.php",
+      "exitCode": 0
+    },
+    {
+      "file": "includes/ierb_v14_workflow.php",
+      "exitCode": 0
+    },
+    {
+      "file": "includes/legal_header.php",
+      "exitCode": 0
+    },
+    {
+      "file": "includes/legal_placeholders.php",
+      "exitCode": 0
+    },
+    {
+      "file": "includes/legal_policy.php",
+      "exitCode": 0
+    },
+    {
+      "file": "includes/notification_delivery.php",
+      "exitCode": 0
+    },
+    {
+      "file": "includes/notification_lifecycle.php",
+      "exitCode": 0
+    },
+    {
+      "file": "includes/notification_worker.php",
+      "exitCode": 0
+    },
+    {
+      "file": "includes/office_container.php",
+      "exitCode": 0
+    },
+    {
+      "file": "includes/pagination.php",
+      "exitCode": 0
+    },
+    {
+      "file": "includes/prism-navigation.php",
+      "exitCode": 0
+    },
+    {
+      "file": "includes/public_landing.php",
+      "exitCode": 0
+    },
+    {
+      "file": "includes/public_legal.php",
+      "exitCode": 0
+    },
+    {
+      "file": "includes/public_urls.php",
+      "exitCode": 0
+    },
+    {
+      "file": "includes/record_filters.php",
+      "exitCode": 0
+    },
+    {
+      "file": "includes/report_lifecycle.php",
+      "exitCode": 0
+    },
+    {
+      "file": "includes/report_pdf.php",
+      "exitCode": 0
+    },
+    {
+      "file": "includes/research_groups.php",
+      "exitCode": 0
+    },
+    {
+      "file": "includes/research_project_advancement.php",
+      "exitCode": 0
+    },
+    {
+      "file": "includes/research_projects.php",
+      "exitCode": 0
+    },
+    {
+      "file": "includes/research_resources.php",
+      "exitCode": 0
+    },
+    {
+      "file": "includes/runtime_preflight.php",
+      "exitCode": 0
+    },
+    {
+      "file": "includes/schema_v10.php",
+      "exitCode": 0
+    },
+    {
+      "file": "includes/schema_v11.php",
+      "exitCode": 0
+    },
+    {
+      "file": "includes/schema_v12.php",
+      "exitCode": 0
+    },
+    {
+      "file": "includes/schema_v13.php",
+      "exitCode": 0
+    },
+    {
+      "file": "includes/schema_v14.php",
+      "exitCode": 0
+    },
+    {
+      "file": "includes/session_browser.php",
+      "exitCode": 0
+    },
+    {
+      "file": "includes/staff_registration.php",
+      "exitCode": 0
+    },
+    {
+      "file": "includes/staff_registration_card.php",
+      "exitCode": 0
+    },
+    {
+      "file": "includes/stage_configuration.php",
+      "exitCode": 0
+    },
+    {
+      "file": "includes/student_activity.php",
+      "exitCode": 0
+    },
+    {
+      "file": "includes/student_snapshot.php",
+      "exitCode": 0
+    },
+    {
+      "file": "includes/summary_pdf_parser.php",
+      "exitCode": 0
+    },
+    {
+      "file": "index.php",
+      "exitCode": 0
+    },
+    {
+      "file": "legal_consent.php",
+      "exitCode": 0
+    },
+    {
+      "file": "loading.php",
+      "exitCode": 0
+    },
+    {
+      "file": "login.php",
+      "exitCode": 0
+    },
+    {
+      "file": "login_admin.php",
+      "exitCode": 0
+    },
+    {
+      "file": "login_adviser.php",
+      "exitCode": 0
+    },
+    {
+      "file": "login_process.php",
+      "exitCode": 0
+    },
+    {
+      "file": "login_students.php",
+      "exitCode": 0
+    },
+    {
+      "file": "logout.php",
+      "exitCode": 0
+    },
+    {
+      "file": "maintenance/ierb-group-tests/bootstrap.php",
+      "exitCode": 0
+    },
+    {
+      "file": "maintenance/ierb-group-tests/fixture.php",
+      "exitCode": 0
+    },
+    {
+      "file": "maintenance/ierb-group-tests/initialize.php",
+      "exitCode": 0
+    },
+    {
+      "file": "maintenance/ierb-group-tests/mock-curl.php",
+      "exitCode": 0
+    },
+    {
+      "file": "maintenance/ierb-group-tests/runtime.php",
+      "exitCode": 0
+    },
+    {
+      "file": "maintenance/ierb-group-tests/seed.php",
+      "exitCode": 0
+    },
+    {
+      "file": "maintenance/ierb-group-tests/shutdown.php",
+      "exitCode": 0
+    },
+    {
+      "file": "maintenance/ierb-project-tests/fixture.php",
+      "exitCode": 0
+    },
+    {
+      "file": "maintenance/ierb-project-tests/generate-contract.php",
+      "exitCode": 0
+    },
+    {
+      "file": "maintenance/ierb-project-tests/migration-cases.php",
+      "exitCode": 0
+    },
+    {
+      "file": "maintenance/ierb-report-tests/cycles.php",
+      "exitCode": 0
+    },
+    {
+      "file": "maintenance/ierb-report-tests/fixture.php",
+      "exitCode": 0
+    },
+    {
+      "file": "maintenance/ierb-v14-tests/cases.php",
+      "exitCode": 0
+    },
+    {
+      "file": "maintenance/ierb-v14-tests/documents-fixture.php",
+      "exitCode": 0
+    },
+    {
+      "file": "maintenance/ierb-v14-tests/generate-contract.php",
+      "exitCode": 0
+    },
+    {
+      "file": "maintenance/migrate-ierb-v14.php",
+      "exitCode": 0
+    },
+    {
+      "file": "maintenance/migrate-research-projects.php",
+      "exitCode": 0
+    },
+    {
+      "file": "maintenance/migrate-stage-guidance.php",
+      "exitCode": 0
+    },
+    {
+      "file": "maintenance/migrate-summary-history.php",
+      "exitCode": 0
+    },
+    {
+      "file": "maintenance/notification-dispatch.php",
+      "exitCode": 0
+    },
+    {
+      "file": "maintenance/reconcile-research-project.php",
+      "exitCode": 0
+    },
+    {
+      "file": "maintenance/runtime-preflight.php",
+      "exitCode": 0
+    },
+    {
+      "file": "notifications_api.php",
+      "exitCode": 0
+    },
+    {
+      "file": "privacy.php",
+      "exitCode": 0
+    },
+    {
+      "file": "profile_api.php",
+      "exitCode": 0
+    },
+    {
+      "file": "register.php",
+      "exitCode": 0
+    },
+    {
+      "file": "register_process.php",
+      "exitCode": 0
+    },
+    {
+      "file": "reports.php",
+      "exitCode": 0
+    },
+    {
+      "file": "reports_api.php",
+      "exitCode": 0
+    },
+    {
+      "file": "research_adviser.php",
+      "exitCode": 0
+    },
+    {
+      "file": "reset_password.php",
+      "exitCode": 0
+    },
+    {
+      "file": "role_portal.php",
+      "exitCode": 0
+    },
+    {
+      "file": "security.php",
+      "exitCode": 0
+    },
+    {
+      "file": "send_followup.php",
+      "exitCode": 0
+    },
+    {
+      "file": "staff_registration_manage.php",
+      "exitCode": 0
+    },
+    {
+      "file": "stage_labels_api.php",
+      "exitCode": 0
+    },
+    {
+      "file": "student.php",
+      "exitCode": 0
+    },
+    {
+      "file": "students_api.php",
+      "exitCode": 0
+    },
+    {
+      "file": "terms.php",
+      "exitCode": 0
+    },
+    {
+      "file": "update_password.php",
+      "exitCode": 0
+    },
+    {
+      "file": "workflow.php",
+      "exitCode": 0
+    }
+  ]
+}

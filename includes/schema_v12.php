@@ -90,7 +90,7 @@ function schema_v12_verify(PDO $pdo, bool $partial = false, array $projectTables
         foreach (['tables','columns','indexes','foreign_keys'] as $kind) {
             $actual[$kind] = array_values(array_filter($actual[$kind], static fn($r) => !in_array($r['TABLE_NAME'], $projectTables, true)));
         }
-        if ($actual['schema_version'] === '13') $actual['schema_version'] = '12';
+        if (in_array($actual['schema_version'],['13','14'],true)) $actual['schema_version'] = '12';
     }
     $names = array_keys(schema_v12_tables());
     $present = array_values(array_intersect(array_column($actual['tables'], 'TABLE_NAME'), $names));

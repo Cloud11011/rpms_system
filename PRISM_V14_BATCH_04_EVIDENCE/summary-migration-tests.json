@@ -1,0 +1,13 @@
+{
+  "status": "PASS",
+  "cases": [
+    "Migration requires operator authorization",
+    "Migration requires exact database binding",
+    "Migration rejects open transactions",
+    "Migration requires foreign keys",
+    "Apply replay is idempotent",
+    "Schema drift is rejected",
+    "Published missing table is not silently recreated",
+    "Empty rollback and reapply preserve exact contract"
+  ]
+}

@@ -1,0 +1,39 @@
+{
+  "failures": [
+    {
+      "phase": "initial Batch4 fixture upload",
+      "cause": "Synthetic TXT input was correctly rejected by the existing PDF/DOCX upload policy (415)",
+      "fix": "Use a synthetic PDF fixture; no upload policy changes"
+    },
+    {
+      "phase": "PDF source fixture formatting",
+      "cause": "Fixture put the investigator label and all prose on one extracted line; de-identification correctly removed the whole labeled line",
+      "fix": "Preserve separate text lines and paragraphs in the synthetic PDF"
+    },
+    {
+      "phase": "Source-based synthetic AI check",
+      "cause": "Mock provider misclassified the strengthened document prompt as a progress report because it contained the word progress",
+      "fix": "Classify the mock document request by its explicit prompt prefix; keep source-based numerical assertions"
+    },
+    {
+      "phase": "Cross-document summary fixture",
+      "cause": "Prior regression cleanup correctly left no unrelated documents; isolation test assumed one existed",
+      "fix": "Create the separate long-source document before testing cross-document version isolation"
+    },
+    {
+      "phase": "Project report HTTP integration",
+      "cause": "Report route lacked the schema helper include required by the shared purge-recovery eligibility check; CLI bootstrap already loaded it",
+      "fix": "Explicitly require account_lifecycle_schema.php in the new shared report adapter and retain private failure diagnostics"
+    },
+    {
+      "phase": "Responsive summary browser fixture",
+      "cause": "Summary action is inside the existing contextual Actions menu; test tried to click its hidden menu item",
+      "fix": "Open the record Actions menu before selecting View Summary"
+    },
+    {
+      "phase": "Browser fixture navigation",
+      "cause": "Existing action panels are portalled to body and the desktop navigation backdrop must be dismissed before interacting with the record",
+      "fix": "Use the visible portalled panel and the existing Escape navigation behavior; final six light/dark viewport cases pass"
+    }
+  ]
+}

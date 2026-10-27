@@ -1,7 +1,7 @@
 const fs=require('node:fs'),path=require('node:path');
 module.exports=async h=>{
   const {browser,check,pdf,guideKeys,sessions:s,base}=h;
-  const evidence=path.join(h.root,'PRISM_V14_BATCH_03_EVIDENCE');fs.mkdirSync(evidence,{recursive:true});
+  const evidence=path.resolve(process.env.PRISM_TEST_EVIDENCE_DIR||path.join(h.root,'PRISM_V14_BATCH_03_EVIDENCE'));fs.mkdirSync(evidence,{recursive:true});
   const start=h.checks.length,errors=[];
   const queueStudent=await h.login('student5@example.test');
   const queueGuideKeys=[...guideKeys,`prismTour.student.${require('node:crypto').createHash('sha256').update('Student|S5').digest('hex')}.v1`];

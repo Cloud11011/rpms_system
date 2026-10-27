@@ -53,9 +53,10 @@ module.exports = async h => {
     check(report.body.aiUsed === false, mode + ' progress report explicitly records local fallback');
   }
   fs.writeFileSync(path.join(h.review, 'sandbox/provider-scenario.txt'), 'success');
-  await expect(post(s.admin, 'summarize', { id: newId, mode: 'local' }, 'documents_api.php'), 200, 'Existing document Local Summary generates and persists');
+  const summaryStatus=sql("SELECT v FROM schema_meta WHERE k='schema_version'")[0].v==='14'?200:503;
+  await expect(post(s.admin, 'summarize', { id: newId, mode: 'local' }, 'documents_api.php'), summaryStatus, summaryStatus===200?'Local Summary persists with durable history':'Unmigrated schema safely blocks summary overwrites');
   const outgoing = await expect(post(s.admin, 'summarize_preview', { id: newId }, 'documents_api.php'), 200, 'Existing AI outgoing excerpt preview succeeds');
-  await expect(post(s.admin, 'summarize', { id: newId, mode: 'ai', previewToken: outgoing.body.previewToken, confirmed: true }, 'documents_api.php'), 200, 'Existing document AI summarization generates and persists with isolated synthetic provider');
+  await expect(post(s.admin, 'summarize', { id: newId, mode: 'ai', previewToken: outgoing.body.previewToken, confirmed: true }, 'documents_api.php'), summaryStatus, summaryStatus===200?'AI summary persists with isolated provider and history':'AI generation also requires durable history migration');
   const evidence = JSON.stringify(sql('SELECT * FROM documents ORDER BY id'));
   const studentBefore = sql('SELECT * FROM students WHERE id=4')[0];
   const ready = await group.preview(); await expect(post(s.admin, 'group_advance', group.payload(ready)), 200, 'Group advancement succeeds independently of existing submitted documents and summaries');

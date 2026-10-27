@@ -9,7 +9,7 @@ module.exports=h=>{
   const payload=preview=>({confirmationToken:preview.confirmationToken,reason:'Synthetic RPMS reviewed all accepted project evidence.',confirmed:true});
   const preview=async()=> (await expect(post(s.admin,'group_advance_preview',{groupKey:key()}),200,'Canonical Admin group preview is available')).body;
   const snapshot=()=>{const result=project({action:'snapshot'});if(!result.ok)throw Error(JSON.stringify(result));return result.result;};
-  const evidence=path.join(h.root,'PRISM_V14_BATCH_03_EVIDENCE');let partner,docBefore,noticeFloor=0;const ownCases=[];
+  const evidence=path.resolve(process.env.PRISM_TEST_EVIDENCE_DIR||path.join(h.root,'PRISM_V14_BATCH_03_EVIDENCE'));let partner,docBefore,noticeFloor=0;const ownCases=[];
   return async(phase,docs={})=>{
     const phaseStart=h.checks.length;
     if(phase==='migration'){

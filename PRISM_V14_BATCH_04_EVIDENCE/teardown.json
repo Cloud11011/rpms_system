@@ -1,0 +1,8 @@
+{
+  "status": "PASS",
+  "fixture": "Datadir-verified disposable MariaDB on 127.0.0.1:13527",
+  "schemaRestored": "11",
+  "shutdown": "Confirmed successful SHUTDOWN after guarded empty rollback",
+  "productionDatabaseReadOrMigrated": false,
+  "deploymentPerformed": false
+}

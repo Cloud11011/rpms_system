@@ -1,0 +1,2 @@
+# PDF evidence must retain exact bytes, including xref spacing and offsets.
+PRISM_V14_BATCH_04_EVIDENCE/*.pdf binary

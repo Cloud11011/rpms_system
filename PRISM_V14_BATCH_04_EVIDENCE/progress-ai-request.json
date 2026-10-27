@@ -1,0 +1,14 @@
+{
+  "model": "liquid/lfm-2.5-2.6b:free",
+  "messages": [
+    {
+      "role": "system",
+      "content": "Organize a concise progress assessment using only the supplied verified sentences. Return JSON with a single sentenceKeys array containing each supplied key once. Do not add prose, claims, predictions or keys."
+    },
+    {
+      "role": "user",
+      "content": "{\"facts\":{\"stage\":\"initial_submission\",\"progress\":0,\"acceptedRequirementCount\":0,\"formalResubmissionCycles\":0,\"recordedTrackingDates\":[{\"submission\":null,\"return\":null},{\"submission\":null,\"return\":null},{\"submission\":null,\"return\":null},{\"submission\":null,\"return\":null}],\"openCorrection\":false,\"completionRecorded\":false,\"reportOverflow\":false},\"sentences\":{\"stage\":\"The recorded official stage is Initial Submission.\",\"cycles\":\"There are 0 correction cases with formal resubmission evidence.\",\"verification\":\"Review missing dates and outstanding requirements against the factual tables; causes of delay and future outcomes are not established.\"}}"
+    }
+  ],
+  "temperature": 0.3
+}

@@ -34,6 +34,10 @@ module.exports = async h => {
     check(cli({action:'enroll'}).ok,'Batch2 explicitly enrolls only the selected synthetic submission holder');
     await projectTests('migration');
     check(cli({action:'project'}).ok,'Batch3 explicitly maps the regression holder to a canonical singleton project');
+    if(process.env.PRISM_TEST_REPORT_SCHEMA14==='1'){
+      const r=JSON.parse(cp.execFileSync(php,[path.join(root,'maintenance/ierb-report-tests/fixture.php')],{input:JSON.stringify({action:'install'}),encoding:'utf8',windowsHide:true}));
+      check(r.ok,'Existing V14 document suite runs on explicitly migrated synthetic schema 14');
+    }
     await projectTests('setup');
     check(initial.length===13,'Exactly the approved 13 Initial Submission requirements');
     let list=await checklist();check(list.body.requirements.filter(r=>r.stage==='initial_submission').every(r=>r.state==='Missing'),'Missing requirements never count as accepted');
@@ -68,6 +72,10 @@ module.exports = async h => {
       if (key!=='protocol') await accept(key,docs[key]);
     }
     check(state().stage_key==='initial_submission','Twelve accepted requirements cannot advance Stage 1');
+    if(process.env.PRISM_TEST_REPORT_SCHEMA14==='1'){
+      const privacy=JSON.parse(cp.execFileSync(php,[path.join(root,'maintenance/ierb-report-tests/fixture.php')],{input:JSON.stringify({action:'privacy',documentId:docs.protocol}),encoding:'utf8',windowsHide:true}));
+      check(privacy.ok&&privacy.result.includes(sql('SELECT full_name FROM students WHERE id=6')[0].full_name),'Canonical investigator identities remain de-identified even if a legacy group label is stale');
+    }
     for(const role of ['adviser','student']) await expect(post(s[role],'accept_requirement',{studentId:4,requirementKey:'protocol',documentId:docs.protocol,revision:rev(),reason:'Synthetic unauthorized acceptance',requestKey:crypto.randomUUID()},'documents_api.php'),403,role+' cannot fabricate RPMS acceptance');
     await accept('protocol',docs.protocol,422,{accepted:true});
     await accept('protocol',docs.protocol,409,{documentId:docs.cv});
@@ -213,6 +221,10 @@ module.exports = async h => {
     const legacy=sql('SELECT stage FROM students WHERE id=4')[0];check(legacy.stage!=='Completed','V14 completion preserves the legacy stage snapshot and separation');
     check(!sql("SELECT id FROM ierb_workflow_events WHERE event_key='requirement_accepted' AND JSON_UNQUOTE(JSON_EXTRACT(evidence_json,'$.requirementKey'))='final_report'").length,'Final Report completion requires no additional RPMS acceptance event');
     await projectTests('completed',docs);
+    if(process.env.PRISM_TEST_REPORT_SCHEMA14==='1'){
+      const r=JSON.parse(cp.execFileSync(php,[path.join(root,'maintenance/ierb-report-tests/fixture.php')],{input:JSON.stringify({action:'completed-evidence'}),encoding:'utf8',windowsHide:true}));
+      check(r.ok&&r.result.completed&&r.result.progress===100&&r.result.trackingRows===4,'Schema14 completed project report matches actual automatic Final Report completion and fixed tracking rows');
+    }
     const completion=sql("SELECT workflow_id,revision,event_key,from_stage,to_stage,actor_user_id,evidence_json,request_key,created_at FROM ierb_workflow_events WHERE event_key='final_report_submitted'")[0];
     completion.evidence=JSON.parse(completion.evidence_json);delete completion.evidence_json;
     fs.writeFileSync(path.join(evidence,'final-report-completion.json'),JSON.stringify({scope:'Synthetic fixture only',workflow:state(),
@@ -222,6 +234,7 @@ module.exports = async h => {
     fs.writeFileSync(path.join(evidence,'document-tests.json'),JSON.stringify({status:'PASS',assertions:h.checks.length-start,cases:h.checks.slice(start),scope:'Datadir-verified isolated MariaDB; real PHP HTTP sessions and Chromium; no external delivery'},null,2)+'\n');
   } finally {
     if(browser)await browser.close();fs.writeFileSync(path.join(h.review,'sandbox/provider-scenario.txt'),'success');
+    if(process.env.PRISM_TEST_REPORT_SCHEMA14==='1')cp.execFileSync(php,[path.join(root,'maintenance/ierb-report-tests/fixture.php')],{input:JSON.stringify({action:'cleanup'}),encoding:'utf8',windowsHide:true});
     await projectTests('cleanup');
     check(cli({action:'cleanup'}).ok,'Remove only explicit Batch2 synthetic workflows and document rows after evidence capture');
   }

@@ -5,7 +5,7 @@ require_once __DIR__.'/current_workflow_eligibility.php';
 
 function ierb_v14_schema_available(PDO $pdo): bool
 {
-    return in_array((string)$pdo->query("SELECT v FROM schema_meta WHERE k='schema_version'".($pdo->inTransaction() ? ' LOCK IN SHARE MODE' : ''))->fetchColumn(), ['12','13'], true);
+    return in_array((string)$pdo->query("SELECT v FROM schema_meta WHERE k='schema_version'".($pdo->inTransaction() ? ' LOCK IN SHARE MODE' : ''))->fetchColumn(), ['12','13','14'], true);
 }
 
 function ierb_v14_gate(PDO $pdo): void

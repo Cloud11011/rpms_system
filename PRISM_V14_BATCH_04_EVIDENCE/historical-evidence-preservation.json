@@ -1,0 +1,20 @@
+{
+  "status": "PASS",
+  "restoredOnlyFreshWorktreeRegressionOutputs": [
+    "PRISM_V14_BATCH_03_EVIDENCE/admin-member-completed.png",
+    "PRISM_V14_BATCH_03_EVIDENCE/group-advancement.json",
+    "PRISM_V14_BATCH_03_EVIDENCE/group-completion.json",
+    "PRISM_V14_BATCH_03_EVIDENCE/member-completed-1440-dark.png",
+    "PRISM_V14_BATCH_03_EVIDENCE/member-completed-1440-light.png",
+    "PRISM_V14_BATCH_03_EVIDENCE/member-completed-390-dark.png",
+    "PRISM_V14_BATCH_03_EVIDENCE/member-completed-390-light.png",
+    "PRISM_V14_BATCH_03_EVIDENCE/uploads-1440-dark.png",
+    "PRISM_V14_BATCH_03_EVIDENCE/uploads-1440-light.png",
+    "PRISM_V14_BATCH_03_EVIDENCE/uploads-390-dark.png",
+    "PRISM_V14_BATCH_03_EVIDENCE/uploads-390-light.png",
+    "PRISM_V14_BATCH_03_EVIDENCE/uploads-768-dark.png",
+    "PRISM_V14_BATCH_03_EVIDENCE/uploads-768-light.png",
+    "PRISM_V14_BATCH_03_EVIDENCE/uploads-partial-recovery.png"
+  ],
+  "originalWorktreesModified": false
+}

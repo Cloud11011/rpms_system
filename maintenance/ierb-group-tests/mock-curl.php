@@ -11,10 +11,16 @@ function curl_exec($handle) {
     $request = json_decode($handle->options[CURLOPT_POSTFIELDS] ?? '{}', true);
     file_put_contents(dirname(__DIR__,2) . '/PRISM_V13_GROUP_ADVANCEMENT_REVIEW/sandbox/provider-calls.ndjson', json_encode(['scenario' => $scenario, 'model' => $request['model'] ?? null,
         'hasMaxTokens' => array_key_exists('max_tokens', $request), 'inputCharacters' => mb_strlen($request['messages'][1]['content'] ?? '')]) . "\n", FILE_APPEND);
-    $isReport = str_contains($request['messages'][0]['content'] ?? '', 'progress');
+    $isReport = !str_starts_with($request['messages'][0]['content']??'','Summarize the research excerpt')
+        && str_contains($request['messages'][0]['content'] ?? '', 'progress');
     $content = $isReport
         ? "## Progress snapshot\nTwo active records are recorded at Stage 1. Submission dates are not recorded. Optional verification can clarify missing information."
         : 'This descriptive quantitative study examined 40 fictional research transactions. Average retrieval time was 12 minutes manually and 4 minutes with centralized retrieval. The findings describe this synthetic sample only; the small sample and absence of randomization limit generalization.';
+    if (str_starts_with($request['messages'][0]['content']??'','Organize a concise progress assessment')) {
+        file_put_contents(dirname(__DIR__,2).'/PRISM_V13_GROUP_ADVANCEMENT_REVIEW/sandbox/project-ai-request.json',json_encode($request));
+        if ($scenario==='project-success') $content=json_encode(['sentenceKeys'=>['stage','cycles','verification']]);
+        if ($scenario==='project-stale') db()->exec("UPDATE research_projects SET research_title=CONCAT(research_title,' changed during provider call')");
+    }
     $response = $scenario === 'malformed' ? '{bad json' : json_encode(['choices' => [['finish_reason' => $scenario === 'incomplete' ? 'length' : 'stop', 'message' => ['content' => $scenario === 'empty' ? '' : $content]]]]);
     $header = $handle->options[CURLOPT_HEADERFUNCTION] ?? null;
     if ($header && $handle->status === 429) $header($handle, "Retry-After: 30\r\n");

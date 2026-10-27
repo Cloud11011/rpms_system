@@ -1,0 +1,39 @@
+{
+  "concurrentResults": [
+    {
+      "status": 200,
+      "body": {
+        "ok": true,
+        "stage": "approval_data_gathering",
+        "stageLabel": "Approval of Data Gathering",
+        "memberCount": 2,
+        "correlationId": "15871c43b3e03932d51d6d41",
+        "message": "Research group advanced after all mandatory requirements were verified."
+      },
+      "providerCalls": 3,
+      "errors": []
+    },
+    {
+      "status": 409,
+      "message": "Research group information changed after your preview. Refresh and review the group before continuing."
+    }
+  ],
+  "memberProgress": [
+    {
+      "project_id": 1,
+      "student_id": 4,
+      "legacy_identity_json": "{\"id\":4,\"student_id\":\"S4\",\"full_name\":\"Synthetic Student 4\",\"email\":\"student4@example.test\",\"research_title\":null,\"research_group\":\"AMT-BSIT-Y4-2627-G97\",\"course\":\"BS in Information Technology\",\"adviser_id\":2,\"stage\":\"Stage 1\",\"status\":\"On Track\",\"requirements\":null,\"protocol_code\":null,\"is_principal_investigator\":0,\"last_submission_date\":\"2026-10-28\",\"user_id\":4,\"created_at\":\"2026-01-01 00:00:00\",\"updated_at\":\"2026-10-28 03:01:09\",\"academic_unit_key\":\"amt\",\"program_key\":\"bsit\",\"year_level\":\"4th Year\",\"academic_year\":\"2026-2027\",\"archived_at\":null,\"retention_hold\":0,\"retention_hold_at\":null,\"retention_hold_by\":null,\"retention_hold_reason\":null,\"purge_postponed_at\":null,\"purge_postponed_reason\":null,\"restored_at\":null,\"profile_completed_at\":\"2026-01-01 00:00:00\"}",
+      "stage_key": "approval_data_gathering",
+      "workflow_revision": 18,
+      "joined_at": "2026-10-28 03:01:17.852524"
+    },
+    {
+      "project_id": 1,
+      "student_id": 6,
+      "legacy_identity_json": "{\"id\":6,\"student_id\":\"S6\",\"full_name\":\"Synthetic Student 6\",\"email\":\"student6@example.test\",\"research_title\":\" changed\",\"research_group\":\"AMT-BSIT-Y4-2627-G97\",\"course\":\"BS in Information Technology\",\"adviser_id\":2,\"stage\":\"Stage 1\",\"status\":\"Delayed\",\"requirements\":null,\"protocol_code\":null,\"is_principal_investigator\":0,\"last_submission_date\":null,\"user_id\":6,\"created_at\":\"2026-01-01 00:00:00\",\"updated_at\":\"2026-10-28 03:01:10\",\"academic_unit_key\":\"amt\",\"program_key\":\"bsit\",\"year_level\":\"4th Year\",\"academic_year\":\"2026-2027\",\"archived_at\":null,\"retention_hold\":0,\"retention_hold_at\":null,\"retention_hold_by\":null,\"retention_hold_reason\":null,\"purge_postponed_at\":null,\"purge_postponed_reason\":null,\"restored_at\":null,\"profile_completed_at\":\"2026-01-01 00:00:00\"}",
+      "stage_key": "approval_data_gathering",
+      "workflow_revision": 18,
+      "joined_at": "2026-10-28 03:01:17.852876"
+    }
+  ]
+}

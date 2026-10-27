@@ -1,8 +1,8 @@
 <?php
 /** Included only by the authenticated, same-origin document API. */
-require_once __DIR__ . '/document_summary_ai.php';
+require_once __DIR__ . '/document_summary_history.php';
 
-$summaryActive = true; $summaryReserve = str_repeat('x', 262144);
+$summaryActive = true; $summarySchemaLock = false; $summaryReserve = str_repeat('x', 262144);
 register_shutdown_function(static function () use (&$summaryActive, &$summaryReserve): void {
     $last = error_get_last();
     if (!$summaryActive || !$last || !in_array($last['type'], [E_ERROR, E_CORE_ERROR, E_COMPILE_ERROR], true)) return;
@@ -45,6 +45,7 @@ try {
         $summaryActive = false;
         json_out(['ok' => true, 'previewToken' => $token] + $preview);
     }
+    if (!summary_history_available($pdo)) throw new DocumentAIError('summary_schema_required','The reviewed summary history migration is required before generating new summaries. Saved summaries remain readable.',503);
     $mode = $payload['mode'] ?? 'local';
     if (!is_string($mode) || !in_array($mode, ['local', 'ai'], true)) throw new DocumentAIError('invalid_mode', 'Choose Local Summary or AI-Powered Summary.');
     if ($mode === 'ai') {
@@ -57,35 +58,46 @@ try {
         if (!hash_equals($preview['excerptHash'], hash('sha256', $outgoing['excerpt']))) throw new DocumentAIError('stale_preview', 'The outgoing excerpt changed. Review it again.', 409);
         // A confirmed token authorizes exactly one external attempt, including provider failures.
         unset($_SESSION['document_summary_previews'][$token]);
-        $result = ['summary' => generate_document_ai_summary($outgoing['excerpt']), 'source' => 'ai',
-            'partial' => $outgoing['partial'], 'pages' => $outgoing['pages']];
+        try {
+            $result = ['summary' => generate_document_ai_summary($outgoing['excerpt']), 'source' => 'ai',
+                'partial' => $outgoing['partial'], 'pages' => $outgoing['pages']];
+        } catch (DocumentAIError $providerError) {
+            $result=generate_document_summary($extraction,$identifiers); $result['source']='local';
+            $result['fallbackReason']=$providerError->reasonCode;
+        }
     } else {
         $result = generate_document_summary($extraction, $identifiers);
         $result['source'] = 'local';
     }
     // Network/extraction work holds no database locks. Revalidate the exact version and file before saving.
+    if ((int)$pdo->query("SELECT GET_LOCK('prism_migrate',5)")->fetchColumn()!==1) throw new DocumentAIError('schema_busy','Schema maintenance is in progress. Try again after review.',409);
+    $summarySchemaLock=true;
     begin_document_write($pdo, $doc);
     $current = fetch_doc($pdo, $id, true);
     $currentPath = summary_stored_document_path($current);
     if (!hash_equals($fingerprint, document_summary_fingerprint($current, document_summary_file_hash($currentPath)))) {
         throw new DocumentAIError('document_changed', 'The document changed before saving. Your previous summary is unchanged. Refresh and try again.', 409);
     }
+    $result += summary_history_append($pdo,$current,$user,$result,$fileHash);
     $pdo->prepare('UPDATE documents SET ai_summary = :summary WHERE id = :id')->execute([
         ':summary' => document_summary_storage($result), ':id' => $id]);
     document_workflow_audit($pdo, $user, 'document_summarized', ['entity_id' => $id, 'student_id' => $doc['student_id'],
-        'details' => 'source=' . $result['source'] . '; partial=' . (int)$result['partial']]);
+        'details' => 'source=' . $result['source'] . '; partial=' . (int)$result['partial']
+            . '; summary_id='.$result['summaryId'].'; summary_version='.$result['summaryVersion'].'; source_version='.$current['version_no']]);
     $pdo->commit();
+    $pdo->query("SELECT RELEASE_LOCK('prism_migrate')"); $summarySchemaLock=false;
     $summaryActive = false;
     json_out(['ok' => true] + $result);
 } catch (Throwable $error) {
     if ($pdo->inTransaction()) $pdo->rollBack();
+    if ($summarySchemaLock) { $pdo->query("SELECT RELEASE_LOCK('prism_migrate')"); $summarySchemaLock=false; }
     $badRequest = $error instanceof AccountLifecycleBadRequest;
     $known = $error instanceof DocumentSummaryError || $error instanceof DocumentWriteConflict || $badRequest;
     $reason = $error instanceof DocumentSummaryError ? $error->reasonCode : ($error instanceof DocumentWriteConflict ? 'document_changed' : ($badRequest ? 'bad_request' : 'summary_failed'));
     $auditId = is_string($id) && preg_match('/\A[a-f0-9]{24}\z/', $id) ? $id : null;
     audit_log($user, 'document_summary_failed', ['entity_type' => 'document', 'entity_id' => $auditId, 'details' => 'reason=' . $reason]);
     $summaryActive = false;
-    $response = ['ok' => false, 'code' => $reason, 'message' => $known ? $error->getMessage() : 'The summary could not be generated or saved. Your previous summary is unchanged.'];
+    $response = ['ok' => false, 'code' => $reason, 'message' => $known ? $error->getMessage() : 'The summary outcome could not be confirmed. Refresh summary history before retrying. Earlier versions remain retained.'];
     if ($error instanceof DocumentAIError && $error->retryAfter !== null) {
         $response['retryAfter'] = $error->retryAfter; header('Retry-After: ' . $error->retryAfter);
     }

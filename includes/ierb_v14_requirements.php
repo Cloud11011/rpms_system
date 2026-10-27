@@ -294,18 +294,23 @@ function ierb_v14_resolve_correction(PDO $pdo, array $actor, int $studentId, int
 
 function ierb_v14_guard_document_delete(PDO $pdo, array $doc): void
 {
+    if ((string)$pdo->query("SELECT v FROM schema_meta WHERE k='schema_version'")->fetchColumn()==='14') {
+        $q=$pdo->prepare('SELECT id FROM document_summary_versions WHERE document_id=? LIMIT 1 FOR UPDATE'); $q->execute([$doc['id']]);
+        if ($q->fetchColumn()) throw new DocumentWorkflowError('Summary versions and their source documents are retained. Use Return for Revision.',409);
+    }
     if (!ierb_v14_schema_available($pdo)) return;
     $q = $pdo->prepare('SELECT id FROM ierb_workflows WHERE student_id=? FOR UPDATE'); $q->execute([$doc['student_id']]);
     if ($q->fetchColumn()) throw new DocumentWorkflowError('V14 submission documents and prior versions are retained as workflow evidence. Use Return for Revision.', 409);
 }
 
 /** Identical backend states for all roles; source documents stay within their existing permissions. */
-function ierb_v14_checklist(PDO $pdo, array $actor, int $studentId): array
+function ierb_v14_checklist(PDO $pdo, array $actor, int $studentId, bool $ownTransaction = true): array
 {
-    if ($pdo->inTransaction()) throw new LogicException('Checklist owns its consistent read transaction.');
-    $pdo->beginTransaction();
+    if ($ownTransaction && $pdo->inTransaction()) throw new LogicException('Checklist owns its consistent read transaction.');
+    if ($ownTransaction) $pdo->beginTransaction();
+    elseif (!$pdo->inTransaction()) throw new LogicException('Report snapshot requires a transaction.');
     try {
-        if (!ierb_v14_schema_available($pdo)) { $pdo->commit(); return ['ok'=>true, 'enrolled'=>false]; }
+        if (!ierb_v14_schema_available($pdo)) { if ($ownTransaction) $pdo->commit(); return ['ok'=>true, 'enrolled'=>false]; }
         current_workflow_student($pdo,$studentId,$actor);
         $viewerStudentId = $studentId;
         $project = research_project_for_student($pdo,$studentId,true);
@@ -313,7 +318,7 @@ function ierb_v14_checklist(PDO $pdo, array $actor, int $studentId): array
         $live = current_workflow_actor($pdo,$actor);
         $q = $pdo->prepare('SELECT * FROM ierb_workflows WHERE student_id=? FOR UPDATE'); $q->execute([$studentId]);
         $workflow = $q->fetch(PDO::FETCH_ASSOC);
-        if (!$workflow) { $pdo->commit(); return ['ok'=>true, 'enrolled'=>false]; }
+        if (!$workflow) { if ($ownTransaction) $pdo->commit(); return ['ok'=>true, 'enrolled'=>false]; }
         $case = ierb_v14_case($pdo, (int)$workflow['id']);
         $q = $pdo->prepare('SELECT * FROM documents WHERE student_id=? AND is_current=1 ORDER BY uploaded_at DESC,version_no DESC,id DESC FOR UPDATE');
         $q->execute([$studentId]); $docs = $q->fetchAll(PDO::FETCH_ASSOC); $rows = [];
@@ -347,8 +352,8 @@ function ierb_v14_checklist(PDO $pdo, array $actor, int $studentId): array
         // No internal case reason, administrator identity, or affected-document JSON in Student reads.
         $snapshot['correctionCase'] = $case ? ['id'=>(int)$case['id'], 'interruptedStage'=>$case['interrupted_stage'],
             'requiresAmendment'=>(bool)$case['requires_amendment'], 'openedAt'=>$case['opened_at']] : null;
-        $pdo->commit();
+        if ($ownTransaction) $pdo->commit();
         return ['ok'=>true, 'enrolled'=>true, 'submissionScope'=>['kind'=>'project_submission_holder', 'studentId'=>$studentId,
             'groupSynchronization'=>$project ? 'canonical' : 'requires_reconciliation', 'projectId'=>$project ? (int)$project['id'] : null, 'identifier'=>$project['public_identifier'] ?? null], 'workflow'=>$snapshot, 'requirements'=>$rows];
-    } catch (Throwable $e) { if ($pdo->inTransaction()) $pdo->rollBack(); throw $e; }
+    } catch (Throwable $e) { if ($ownTransaction && $pdo->inTransaction()) $pdo->rollBack(); throw $e; }
 }

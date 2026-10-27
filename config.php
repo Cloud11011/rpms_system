@@ -195,9 +195,9 @@ function migrate(PDO $pdo): void
         ? $pdo->query("SELECT v FROM schema_meta WHERE k = 'schema_version'")->fetchColumn()
         : false;
     // V11/V12 are opt-in through separate CLI runners; requests never apply their DDL.
-    if (in_array((string)$stored, ['11', '12', '13'], true)) return;
+    if (in_array((string)$stored, ['11', '12', '13', '14'], true)) return;
     if ($stored !== false && (int)$stored >= SCHEMA_VERSION) {
-        if ((int)$stored > SCHEMA_VERSION) throw new RuntimeException('This deployment supports schema v10 and the authorized v11/v12/v13 extensions only.');
+        if ((int)$stored > SCHEMA_VERSION) throw new RuntimeException('This deployment supports schema v10 and the authorized v11/v12/v13/v14 extensions only.');
         return;
     }
     // Keep the existing explicitly authorized v6 command compatible; v7 needs its own opt-in.

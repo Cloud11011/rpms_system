@@ -1,0 +1,8 @@
+{
+  "requiredStartingCommit": "4da179e8619afa219ad8983d333ec08f6947770c",
+  "fetchedRemoteStartingCommit": "4da179e8619afa219ad8983d333ec08f6947770c",
+  "workingBranch": "feature/prism-v14-major-revisions",
+  "isolation": "Initially clean detached linked worktree at the authorized starting commit; existing V14 worktree contains unrelated modified test evidence and remains preserved. Commit will be fast-forwarded onto the established branch.",
+  "mainMergeOrRebase": false,
+  "productionMigrationOrDeployment": false
+}
