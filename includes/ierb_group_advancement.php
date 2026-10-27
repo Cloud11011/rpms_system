@@ -2,6 +2,7 @@
 /** Coordinated individual progress decisions. No group stage or schema writes. */
 require_once __DIR__.'/ierb_progress.php';
 require_once __DIR__.'/research_groups.php';
+require_once __DIR__.'/research_project_advancement.php';
 
 const IERB_GROUP_CONFIRM_SECONDS = 600;
 const IERB_GROUP_CHANGED = 'Research group information changed after your preview. Refresh and review the group before continuing.';
@@ -39,8 +40,15 @@ function ierb_group_label(array $identity): string
 /** Includes legacy, archived and incomplete associations so none disappear silently. */
 function ierb_group_options(PDO $pdo): array
 {
+    $canonical = [];
+    if (research_projects_available($pdo)) {
+        foreach ($pdo->query('SELECT p.*,(SELECT COUNT(*) FROM research_project_members m WHERE m.project_id=p.id) AS member_count FROM research_projects p')->fetchAll(PDO::FETCH_ASSOC) as $p) {
+            $canonical[] = ['key'=>hash('sha256','project:'.$p['id']),'identity'=>['project_id'=>(int)$p['id']],
+                'label'=>$p['research_title'].' / '.$p['public_identifier'],'standard'=>true,'memberCount'=>(int)$p['member_count']];
+        }
+    }
     $rows=$pdo->query('SELECT research_group,academic_unit_key,program_key,year_level,academic_year FROM students
-        WHERE research_group IS NOT NULL AND research_group <> \'\' ORDER BY id')->fetchAll(PDO::FETCH_ASSOC);
+        WHERE research_group IS NOT NULL AND research_group <> \'\''. (research_projects_available($pdo) ? ' AND id NOT IN (SELECT student_id FROM research_project_members)' : '').' ORDER BY id')->fetchAll(PDO::FETCH_ASSOC);
     $groups=[];
     foreach ($rows as $row) {
         $key=ierb_group_key($row);
@@ -49,7 +57,7 @@ function ierb_group_options(PDO $pdo): array
         $groups[$key]['memberCount']++;
     }
     uasort($groups,static fn($a,$b)=>strnatcasecmp($a['label'],$b['label']));
-    return array_values($groups);
+    return array_merge($canonical,array_values($groups));
 }
 
 function ierb_group_live_admin(PDO $pdo, array $actor): array
@@ -86,6 +94,7 @@ function ierb_group_rows(PDO $pdo, array $identity): array
 /** The existing eligibility gate also locks live login ownership and lifecycle state. */
 function ierb_group_inspect(PDO $pdo, array $actor, array $identity): array
 {
+    if (isset($identity['project_id'])) return research_project_group_inspect($pdo,$actor,(int)$identity['project_id']);
     $rows=ierb_group_rows($pdo,$identity); $members=[]; $fingerprints=[]; $reasons=[];
     if (!research_group_is_standard($identity)) $reasons[]='Choose a valid standardized research group. Legacy or inconsistent academic identifiers require record review.';
     if (count($rows)<2) $reasons[]='At least two eligible Students are required for Research Group Advancement.';
@@ -160,7 +169,7 @@ function ierb_group_preview(PDO $pdo, array $actor, mixed $key): array
             'expires'=>$expires,'identity'=>$preview['identity'],'fingerprints'=>$preview['fingerprints']];
         while (count($_SESSION['ierb_group_confirmations'])>8) array_shift($_SESSION['ierb_group_confirmations']);
     }
-    unset($preview['fingerprints']);
+    unset($preview['fingerprints'],$preview['workflow'],$preview['evidence']);
     return ['ok'=>true]+$preview+['confirmationToken'=>$token,'expiresAt'=>$token===null ? null : $expires];
 }
 
@@ -210,6 +219,12 @@ function ierb_group_advance(PDO $pdo, array $actor, array $data): array
         $preview=ierb_group_inspect($pdo,$actor,$item['identity']);
         if (!$preview['eligible'] || $preview['fingerprints']!==$item['fingerprints']) throw new AccountLifecycleConflict(IERB_GROUP_CHANGED);
         $live=ierb_group_live_admin($pdo,$actor);
+        if (isset($item['identity']['project_id'])) {
+            [$result,$ids]=research_project_group_advance($pdo,$live,$preview,$reason,$correlation);
+            $pdo->commit();
+            document_workflow_deliver($pdo,$ids);
+            return $result;
+        }
         $stage=$preview['nextStage']; $advisers=[];
         foreach ($preview['members'] as $member) {
             $id=$member['id']; $status=$member['status'];

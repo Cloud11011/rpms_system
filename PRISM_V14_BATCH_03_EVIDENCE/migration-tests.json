@@ -1,0 +1,20 @@
+{
+  "status": "PASS",
+  "assertions": 14,
+  "cases": [
+    "Project migration requires explicit operator opt-in",
+    "Project migration rejects the wrong database binding",
+    "Project migration refuses an open transaction",
+    "Project migration requires foreign-key enforcement",
+    "Default project dry run changes no schema or retained rows",
+    "Additive project migration preserves existing V14 enrollment and all legacy records",
+    "Project migration infers zero memberships from titles or labels",
+    "Project migration replay is idempotent",
+    "Project schema drift fails closed",
+    "Permanent deletion rejects project schema drift",
+    "Published project schema with a missing table is not silently recreated",
+    "Empty project rollback restores the exact schema 12 contract and retained records",
+    "Interrupted project apply resumes without data rewriting",
+    "Interrupted project rollback resumes safely"
+  ]
+}

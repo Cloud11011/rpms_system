@@ -78,6 +78,8 @@ function ierb_v14_upload_stage(PDO $pdo, int $studentId, string $type, string $f
 function ierb_v14_read_summary(PDO $pdo, int $studentId): ?array
 {
     if (!ierb_v14_schema_available($pdo)) return null;
+    $project = research_project_for_student($pdo,$studentId);
+    if ($project) $studentId = (int)$project['submission_holder_id'];
     $q = $pdo->prepare('SELECT w.*,c.interrupted_stage FROM ierb_workflows w LEFT JOIN ierb_correction_cases c
         ON c.workflow_id=w.id AND c.resolved_at IS NULL WHERE w.student_id=?'); $q->execute([$studentId]);
     $w = $q->fetch(PDO::FETCH_ASSOC);
@@ -203,18 +205,13 @@ function ierb_v14_accept_requirement(PDO $pdo, array $actor, int $studentId, str
         $pdo->prepare('UPDATE ierb_workflows SET revision=revision+1,updated_at=NOW(6) WHERE id=?')->execute([$workflow['id']]);
         $result = ierb_v14_event($pdo, $live, $workflow, $decisionEvent, $workflow['stage_key'], $workflow['stage_key'],
             $requestKey, $digest, $reason, $case ? (int)$case['id'] : null, $evidence);
-        if ($workflow['stage_key'] === IerbStage::INITIAL) {
-            $ready = true;
-            try { ierb_v14_initial_evidence($pdo, $workflow); }
-            catch (AccountLifecycleConflict $e) { $ready = false; }
-            if ($ready) $result = ierb_v14_document_event($pdo, $live, $studentId, 'initial_requirements_accepted', $id);
-        }
+        // Acceptance establishes eligibility. Only a reviewed Admin group decision advances.
         // Store the complete original response, including any resulting forward transition.
         $pdo->prepare('UPDATE ierb_workflow_events SET result_json=? WHERE workflow_id=? AND request_key=?')
             ->execute([json_encode($result, JSON_THROW_ON_ERROR), $workflow['id'], $requestKey]);
         $student = current_workflow_student($pdo, $studentId, $live);
-        $ids = document_workflow_notifications($pdo, $live, $student, [], 'PRISM requirement accepted',
-            'RPMS accepted '.$definition[0].' version '.$evidence['versionNo'].'.', false);
+        $ids = array_merge($result['projectNotificationIds'] ?? [], document_workflow_notifications($pdo, $live, $student, [], 'PRISM requirement accepted',
+            'RPMS accepted '.$definition[0].' version '.$evidence['versionNo'].'.', false));
         $pdo->commit();
         document_workflow_deliver($pdo, $ids);
         return $result;
@@ -227,13 +224,19 @@ function ierb_v14_apply_document_event(PDO $pdo, array $actor, int $studentId, s
     if (!$pdo->inTransaction()) throw new LogicException('Document events require their authoritative transaction.');
     if (!ierb_v14_schema_available($pdo)) return null;
     [, $live, $workflow] = ierb_v14_lock($pdo, $actor, $studentId, $event !== 'final_report_submitted');
-    if (!$workflow) return null;
-    if (!in_array($event, ['initial_requirements_accepted', 'final_report_submitted'], true)) throw new AccountLifecycleValidation('Unsupported document event.');
+    if (!$workflow) {
+        if (research_project_for_student($pdo,$studentId,true)) throw new AccountLifecycleConflict('Only the designated submission holder may formally submit the project Final Report.');
+        return null;
+    }
+    if (!in_array($event, ['final_report_submitted'], true)) throw new AccountLifecycleValidation('Unsupported document event.');
     if ($event === 'final_report_submitted' && !in_array($live['role'], ['adviser','admin'], true)) throw new AccountLifecycleForbidden('Only an authorized formal submission may complete IERB.');
     $key = 'document-'.$event.'-'.$documentId;
     $digest = hash('sha256', json_encode([$event, $studentId, $documentId], JSON_THROW_ON_ERROR));
     if ($result = ierb_v14_replay($pdo, $workflow, $key, $digest)) return $result;
     if (ierb_v14_case($pdo, (int)$workflow['id'])) throw new AccountLifecycleConflict('Resolve the correction case before forward progress.');
+    $project = research_project_for_student($pdo,$studentId,true);
+    if (research_projects_available($pdo) && (!$project || (int)$project['submission_holder_id'] !== $studentId)) throw new AccountLifecycleConflict('Canonical project identity and designated submission authority require administrative reconciliation.');
+    if ($project) research_project_validate($pdo,$project,$live);
     $evidence = ['initialRequirements'=>ierb_v14_initial_evidence($pdo, $workflow)];
     if ($event === 'final_report_submitted') {
         $evidence['institutionalApproval'] = ierb_v14_accepted_evidence($pdo, $workflow, 'form33');
@@ -284,7 +287,7 @@ function ierb_v14_resolve_correction(PDO $pdo, array $actor, int $studentId, int
         $pdo->prepare('UPDATE ierb_workflows SET stage_key=?,revision=revision+1,updated_at=NOW(6) WHERE id=?')->execute([$to, $workflow['id']]);
         $result = ierb_v14_event($pdo, $live, $workflow, 'resolve_correction', $workflow['stage_key'], $to, $key, $digest, $reason, (int)$case['id'], $evidence);
         // Resolution resumes its interrupted context; it never grants forward progress.
-        $pdo->commit(); return $result;
+        $pdo->commit(); document_workflow_deliver($pdo,$result['projectNotificationIds'] ?? []); return $result;
     } catch (Throwable $e) { if ($pdo->inTransaction()) $pdo->rollBack(); throw $e; }
     finally { $pdo->query("SELECT RELEASE_LOCK('prism_migrate')"); }
 }
@@ -303,7 +306,13 @@ function ierb_v14_checklist(PDO $pdo, array $actor, int $studentId): array
     $pdo->beginTransaction();
     try {
         if (!ierb_v14_schema_available($pdo)) { $pdo->commit(); return ['ok'=>true, 'enrolled'=>false]; }
-        [, $live, $workflow] = ierb_v14_lock($pdo, $actor, $studentId, false);
+        current_workflow_student($pdo,$studentId,$actor);
+        $viewerStudentId = $studentId;
+        $project = research_project_for_student($pdo,$studentId,true);
+        if ($project) $studentId = (int)$project['submission_holder_id'];
+        $live = current_workflow_actor($pdo,$actor);
+        $q = $pdo->prepare('SELECT * FROM ierb_workflows WHERE student_id=? FOR UPDATE'); $q->execute([$studentId]);
+        $workflow = $q->fetch(PDO::FETCH_ASSOC);
         if (!$workflow) { $pdo->commit(); return ['ok'=>true, 'enrolled'=>false]; }
         $case = ierb_v14_case($pdo, (int)$workflow['id']);
         $q = $pdo->prepare('SELECT * FROM documents WHERE student_id=? AND is_current=1 ORDER BY uploaded_at DESC,version_no DESC,id DESC FOR UPDATE');
@@ -326,7 +335,7 @@ function ierb_v14_checklist(PDO $pdo, array $actor, int $studentId): array
                 if ($accepted) $state = 'Accepted';
             }
             $rows[] = ['key'=>$key, 'label'=>$r[0], 'stage'=>$r[1], 'state'=>$state,
-                'documentId'=>$doc['id'] ?? null, 'documentType'=>$doc['document_type'] ?? null,
+                'documentId'=>$viewerStudentId === $studentId || $live['role'] !== 'student' ? ($doc['id'] ?? null) : null, 'documentType'=>$doc['document_type'] ?? null,
                 'versionNo'=>$doc ? (int)$doc['version_no'] : null, 'reviewStatus'=>$doc['review_status'] ?? null,
                 'acceptedAt'=>$accepted['acceptedAt'] ?? null, 'acceptanceEventId'=>$accepted['acceptanceEventId'] ?? null,
                 'canAccept'=>$live['role'] === 'admin' && $key !== 'final_report' && ($state === 'Formally Submitted to RPMS'
@@ -340,6 +349,6 @@ function ierb_v14_checklist(PDO $pdo, array $actor, int $studentId): array
             'requiresAmendment'=>(bool)$case['requires_amendment'], 'openedAt'=>$case['opened_at']] : null;
         $pdo->commit();
         return ['ok'=>true, 'enrolled'=>true, 'submissionScope'=>['kind'=>'project_submission_holder', 'studentId'=>$studentId,
-            'groupSynchronization'=>'deferred'], 'workflow'=>$snapshot, 'requirements'=>$rows];
+            'groupSynchronization'=>$project ? 'canonical' : 'requires_reconciliation', 'projectId'=>$project ? (int)$project['id'] : null, 'identifier'=>$project['public_identifier'] ?? null], 'workflow'=>$snapshot, 'requirements'=>$rows];
     } catch (Throwable $e) { if ($pdo->inTransaction()) $pdo->rollBack(); throw $e; }
 }

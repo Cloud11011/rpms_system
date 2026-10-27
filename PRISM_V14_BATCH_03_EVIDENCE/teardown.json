@@ -1,0 +1,8 @@
+﻿{
+    "status":  "PASS",
+    "schemaRestoredTo":  "11",
+    "syntheticServerStopped":  true,
+    "productionDatabaseAccessed":  false,
+    "productionMigrated":  false,
+    "deployed":  false
+}

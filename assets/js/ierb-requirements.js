@@ -11,7 +11,7 @@
       if (!data.enrolled) return;
       const title = document.createElement('h2'); title.textContent = 'Research project requirements';
       const stage = document.createElement('p'); stage.textContent = `${data.workflow.stageLabel} (${data.workflow.progress}%)`;
-      const scope = document.createElement('p'); scope.textContent = 'Evidence for the designated submission holder. Group membership and completion are managed separately.';
+      const scope = document.createElement('p'); scope.textContent = 'Project requirements are shared through the designated submission holder. RPMS advances eligible groups; Final Report formal submission completes the project automatically.';
       const refresh = document.createElement('button'); refresh.type = 'button'; refresh.className = 'prism-btn is-secondary'; refresh.textContent = 'Refresh requirements';
       refresh.onclick = () => load(studentId, host); host.append(title, stage, scope, refresh);
       if (data.workflow.correctionCase) {
@@ -37,7 +37,7 @@
             if (!answer) return;
             const release = PrismUI.busy(button, 'Accepting...'); if (!release) return;
             try {
-              await request('accept_requirement', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ studentId: Number(studentId), requirementKey: row.key,
+              await request('accept_requirement', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ studentId: Number(data.submissionScope.studentId), requirementKey: row.key,
                 documentId: row.documentId, revision: data.workflow.revision, reason: answer.reason, requestKey: crypto.randomUUID(),
                 institutionalApprovalReference: answer.values?.reference || '' }) });
               await load(studentId, host);

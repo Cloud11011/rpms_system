@@ -198,11 +198,11 @@
 
         rows.forEach(record => {
             const tr = document.createElement('tr');
-            const progress = Math.max(0, Math.min(100, Number(record.progress) || 0));
+            const progress = Math.max(0, Math.min(100, Number(record.v14?.progress ?? record.progress) || 0));
             const statusClass = record.status === 'Delayed' ? 'is-delayed' : (record.status === 'On Track' ? 'is-on-track' : 'is-pending');
             tr.innerHTML = `
                 <td>${PrismUI.progressIdentityHtml(record)}</td>
-                <td><span class="stage-tag" title="${escapeHtml(record.stage)}">${escapeHtml(record.stageLabel || labelForStage(record.stage))}</span>${PrismUI.docMini(record.docs)}</td>
+                <td><span class="stage-tag" title="${escapeHtml(record.v14?.stageLabel || record.stage)}">${escapeHtml(record.v14?.stageLabel || record.stageLabel || labelForStage(record.stage))}</span>${PrismUI.docMini(record.docs)}</td>
                 <td><div class="ierb-card-progress"><div><span>Overall progress</span><strong>${progress}%</strong></div><span class="ierb-progress-track" role="progressbar" aria-label="Overall progress" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${progress}"><span style="width:${progress}%"></span></span></div></td>
                 <td>${escapeHtml(record.requirements || 'None')}</td>
                 <td>${escapeHtml(record.lastSubmissionDate || 'N/A')}</td>
@@ -241,6 +241,7 @@
                     const button=document.createElement('button');button.className='icon-btn';button.title=title;button.setAttribute('aria-label',title);
                     button.innerHTML='<i class="fa-solid '+icon+'" aria-hidden="true"></i>';
                     if(operation==='advance' && record.stage==='Completed')button.disabled=true;
+                    if(record.v14){button.disabled=true;button.title='Project progress uses validated Research Group Advancement and automatic Final Report completion.';}
                     button.addEventListener('click',event=>PrismUI.runAction(event.currentTarget,'Saving...',async()=>{if(await PrismUI.changeStudentProgress(record,operation))await loadRecords();}));
                     actions.appendChild(button);
                 });
@@ -265,7 +266,9 @@
                 PrismUI.actionMenu(actions);
             }
             tableBody.appendChild(tr);
-            const card = PrismUI.compactProgressRecord(tr,record,0,5,6,[1,2,3,4],STAGES);
+            const displayRecord=record.v14 ? {...record,stage:record.v14.stage} : record;
+            const sequence=record.v14 ? Object.keys(record.v14.labels) : STAGES;
+            const card = PrismUI.compactProgressRecord(tr,displayRecord,0,5,6,[1,2,3,4],sequence);
             if (card) {
                 card.classList.add('ierb-progress-card', statusClass);
                 if(isAdmin) {

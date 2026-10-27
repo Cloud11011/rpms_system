@@ -1,5 +1,6 @@
 <?php
 require_once __DIR__.'/../security.php';
+require_once __DIR__.'/research_projects.php';
 /** Student/Adviser retention only. Admin self-lifecycle stays in account_lifecycle.php. */
 require_once __DIR__.'/account_purge_files.php';
 
@@ -219,9 +220,13 @@ function retention_notifications(PDO $pdo,array $r,string $type,array &$mutexes)
 function retention_purge_plan(PDO $pdo,array $r,string $type,?array $login,array &$mutexes): array
 {
     $id=(int)$r['id']; $docs=[]; $reports=[]; $files=[];
-    if ($type==='student' && (string)$pdo->query("SELECT v FROM schema_meta WHERE k='schema_version'")->fetchColumn()==='12') {
+    if ($type==='student' && in_array((string)$pdo->query("SELECT v FROM schema_meta WHERE k='schema_version'")->fetchColumn(),['12','13'],true)) {
         $q=$pdo->prepare('SELECT id FROM ierb_workflows WHERE student_id=? FOR UPDATE'); $q->execute([$id]);
         if ($q->fetchColumn()) throw new AccountLifecycleConflict('Retained V14 workflow history prevents permanent deletion. Retain the account using Archive.');
+    }
+    if (research_projects_available($pdo)) {
+        $q=$pdo->prepare($type==='student' ? 'SELECT project_id FROM research_project_members WHERE student_id=? FOR UPDATE' : 'SELECT id FROM research_projects WHERE adviser_id=? FOR UPDATE'); $q->execute([$id]);
+        if ($q->fetchColumn()) throw new AccountLifecycleConflict('Retained canonical project membership prevents permanent deletion. Retain using Archive.');
     }
     $notices=retention_notifications($pdo,$r,$type,$mutexes);
     if ($login) {

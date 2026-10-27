@@ -331,6 +331,7 @@ function upload_document_file(PDO $pdo, array $user, ?int $viewerAdviserId, arra
     try {
         $pdo->beginTransaction();
         // Lock the student before selecting a version. Two first uploads must also serialize.
+        research_project_fence($pdo);
         $studentLock = $pdo->prepare('SELECT * FROM students WHERE id = :id FOR UPDATE');
         $studentLock->execute([':id' => $studentDbId]);
         try { current_workflow_student($pdo,(int)$studentDbId,$user); }

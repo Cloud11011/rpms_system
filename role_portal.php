@@ -126,17 +126,14 @@ $identityKey = hash('sha256', $portalRole . '|' . $userId);
   <div class="submission-layout">
     <div class="submission-main">
       <form id="submissionForm" class="panel submission-card">
-        <div class="submission-form-heading"><h2>Submit a document</h2><p>Three quick steps. Your research details are filled in for you.</p></div>
-        <section class="submission-step is-active" id="submissionStepType">
-          <span class="submission-step-number" aria-hidden="true">1</span><div class="submission-step-body"><h3><label for="documentType">Choose the document type</label></h3><p>Pick the requirement you are uploading.</p><select id="documentType" required><option value="">Select a document type</option></select><div class="submission-version-note" id="submissionVersionNote" hidden></div></div>
-        </section>
+        <div class="submission-form-heading"><h2>Submit documents</h2><p>Add your documents and choose a type for each file. You can add more files before submitting.</p></div>
         <section class="submission-step" id="submissionStepFile">
-          <span class="submission-step-number" aria-hidden="true">2</span><div class="submission-step-body"><h3>Upload your file</h3><p>PDF or DOCX only, up to 20 MB per file.</p><button class="submission-dropzone" id="submissionDropzone" type="button" aria-describedby="uploadSelection uploadResults"><i class="fa-solid fa-cloud-arrow-up" aria-hidden="true"></i><strong>Drag &amp; drop your file here</strong><span>or <u>browse from your computer</u></span></button><input class="submission-file-input" aria-label="Choose files" aria-describedby="uploadSelection uploadResults" id="documentFile" type="file" multiple accept=".pdf,.docx,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document" required><div id="uploadSelection" class="submission-file-selection" role="status"></div><div id="uploadResults" class="submission-upload-results" role="status" aria-live="polite" tabindex="-1"></div></div>
+          <span class="submission-step-number" aria-hidden="true">1</span><div class="submission-step-body"><h3>Upload your documents</h3><p>PDF or DOCX only, up to 20 MB per file.</p><button class="submission-dropzone" id="submissionDropzone" type="button" aria-describedby="uploadSelection uploadResults"><i class="fa-solid fa-cloud-arrow-up" aria-hidden="true"></i><strong>Drag &amp; drop your documents here</strong><span>or <u>browse from your computer</u></span></button><input class="submission-file-input" aria-label="Choose files" aria-describedby="uploadSelection uploadResults" id="documentFile" type="file" multiple accept=".pdf,.docx,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document"><div id="uploadSelection" class="submission-file-selection" role="status"></div><div id="uploadResults" class="submission-upload-results" role="status" aria-live="polite" tabindex="-1"></div></div>
         </section>
         <section class="submission-step" id="submissionStepNotes">
-          <span class="submission-step-number" aria-hidden="true">3</span><div class="submission-step-body"><h3><label for="documentNotes">Notes for the reviewer <span>(optional)</span></label></h3><p>Anything the reviewer should know about this submission.</p><textarea id="documentNotes" maxlength="500" rows="4" placeholder="e.g. Updated the methodology section based on feedback."></textarea><div class="submission-character-count"><span id="submissionNotesCount">0 / 500</span></div></div>
+          <span class="submission-step-number" aria-hidden="true">2</span><div class="submission-step-body"><h3><label for="documentNotes">Notes for the reviewer <span>(optional)</span></label></h3><p>Anything the reviewer should know about this submission.</p><textarea id="documentNotes" maxlength="500" rows="4" placeholder="e.g. Updated the methodology section based on feedback."></textarea><div class="submission-character-count"><span id="submissionNotesCount">0 / 500</span></div></div>
         </section>
-        <button class="submission-submit" type="submit" disabled><i class="fa-solid fa-paper-plane" aria-hidden="true"></i> Submit for review</button><p class="submission-submit-hint" id="submissionSubmitHint">Choose a document type and upload a file to continue.</p>
+        <button class="submission-submit" type="submit" disabled><i class="fa-solid fa-paper-plane" aria-hidden="true"></i> Submit for review</button><p class="submission-submit-hint" id="submissionSubmitHint">Add documents, then choose a type for every file.</p>
       </form>
     </div>
     <aside class="submission-side">
@@ -148,7 +145,7 @@ $identityKey = hash('sha256', $portalRole . '|' . $userId);
         <div><dt>Student ID</dt><dd id="submissionStudentId">Not recorded</dd></div>
         <div><dt>Protocol code</dt><dd id="submissionProtocol">No protocol code yet.</dd></div>
       </dl><p class="submission-record-note"><i class="fa-solid fa-lock" aria-hidden="true"></i> Taken from your student record. Contact your adviser if something is wrong.</p></section>
-      <section class="panel submission-ready-card" aria-labelledby="submissionReadyHeading"><h2 id="submissionReadyHeading">Ready to submit?</h2><ul><li id="submissionTypeReady"><i aria-hidden="true"></i><span>Document type chosen</span></li><li id="submissionFileReady"><i aria-hidden="true"></i><span>File uploaded</span></li></ul></section>
+      <section class="panel submission-ready-card" aria-labelledby="submissionReadyHeading"><h2 id="submissionReadyHeading">Ready to submit?</h2><ul><li id="submissionTypeReady"><i aria-hidden="true"></i><span>Every file has a document type</span></li><li id="submissionFileReady"><i aria-hidden="true"></i><span>Documents ready</span></li></ul></section>
     </aside>
   </div>
 </div>

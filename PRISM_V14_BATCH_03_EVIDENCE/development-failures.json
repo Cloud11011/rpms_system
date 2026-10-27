@@ -1,0 +1,55 @@
+{
+  "scope": "Exploratory failures retained separately from final acceptance; no acceptance push while any required test fails",
+  "runs": [
+    {
+      "run": "Synthetic fixture startup",
+      "cause": "Initial background MariaDB process ended during fixture initialization.",
+      "resolution": "Verified the disposable datadir, removed only the partial synthetic database, and ran MariaDB in a managed foreground session."
+    },
+    {
+      "run": "documents-development.log",
+      "cause": "New project audit context omitted its nullable Student ID, causing a PHP warning.",
+      "resolution": "Set student_id explicitly to null for project audits."
+    },
+    {
+      "run": "documents-development2.log",
+      "cause": "Concurrent replay observed a stale repeatable-read snapshot after waiting for the Student fence.",
+      "resolution": "Use current locking reads for schema availability inside transactions; retain durable replay validation."
+    },
+    {
+      "run": "documents-development3.log",
+      "cause": "The UI success fixture attempted to replace an already locked submitted supporting document.",
+      "resolution": "Use a separate Student with an editable supporting-document chain, preserving the lock rejection."
+    },
+    {
+      "run": "documents-development4.log",
+      "cause": "The separate Student tour overlay was not acknowledged by the browser fixture.",
+      "resolution": "Acknowledge that specific synthetic Student tour before interaction."
+    },
+    {
+      "run": "acceptance-v12-and-projects.log",
+      "cause": "Repeated fixture execution assigned an unchanged title in the stale-snapshot test.",
+      "resolution": "Make the fixture mutation guaranteed to change the reviewed row."
+    },
+    {
+      "run": "acceptance-full.log",
+      "cause": "A newly added historical-download assertion used action=download instead of the actual action=file&download=1 route.",
+      "resolution": "Exercise the real authorized file endpoint and compare the original bytes."
+    },
+    {
+      "run": "focused-final.log",
+      "cause": "Notification-count assertion included successful completion notices retained from earlier synthetic runs.",
+      "resolution": "Assert the exact notice count after the current run’s notification baseline, retaining earlier evidence."
+    },
+    {
+      "run": "focused-final2.log",
+      "cause": "The RPMS completion browser check assumed the member was on the first ten-row page.",
+      "resolution": "Search for the specific synthetic member before asserting its current stage."
+    },
+    {
+      "run": "Reused-fixture full run",
+      "cause": "The Node default child-process output buffer overflowed while transferring accumulated rollback snapshots (ENOBUFS).",
+      "resolution": "Compute complete rollback digests inside the guarded PHP fixture and perform final acceptance on a freshly initialized disposable database."
+    }
+  ]
+}

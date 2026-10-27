@@ -1,0 +1,477 @@
+{
+  "project": {
+    "id": 1,
+    "public_identifier": "prism-administrator-updated-title",
+    "research_title": "PRISM: Administrator Updated Title",
+    "adviser_id": 2,
+    "submission_holder_id": 4,
+    "workflow_id": 1,
+    "revision": 42,
+    "completed_at": "2026-10-28 02:25:59.183201",
+    "completion_document_id": "f28d7d12cfb8b8af9a387e6e",
+    "created_at": "2026-10-28 02:24:27.902345"
+  },
+  "members": [
+    {
+      "project_id": 1,
+      "student_id": 4,
+      "legacy_identity_json": "{\"id\":4,\"student_id\":\"S4\",\"full_name\":\"Synthetic Student 4\",\"email\":\"student4@example.test\",\"research_title\":null,\"research_group\":\"AMT-BSIT-Y4-2627-G97\",\"course\":\"BS in Information Technology\",\"adviser_id\":2,\"stage\":\"Stage 1\",\"status\":\"On Track\",\"requirements\":null,\"protocol_code\":null,\"is_principal_investigator\":0,\"last_submission_date\":\"2026-10-28\",\"user_id\":4,\"created_at\":\"2026-01-01 00:00:00\",\"updated_at\":\"2026-10-28 02:24:20\",\"academic_unit_key\":\"amt\",\"program_key\":\"bsit\",\"year_level\":\"4th Year\",\"academic_year\":\"2026-2027\",\"archived_at\":null,\"retention_hold\":0,\"retention_hold_at\":null,\"retention_hold_by\":null,\"retention_hold_reason\":null,\"purge_postponed_at\":null,\"purge_postponed_reason\":null,\"restored_at\":null,\"profile_completed_at\":\"2026-01-01 00:00:00\"}",
+      "stage_key": "ierb_completed",
+      "workflow_revision": 37,
+      "joined_at": "2026-10-28 02:24:27.902647"
+    },
+    {
+      "project_id": 1,
+      "student_id": 6,
+      "legacy_identity_json": "{\"id\":6,\"student_id\":\"S6\",\"full_name\":\"Synthetic Student 6\",\"email\":\"student6@example.test\",\"research_title\":\" changed\",\"research_group\":\"AMT-BSIT-Y4-2627-G97\",\"course\":\"BS in Information Technology\",\"adviser_id\":2,\"stage\":\"Stage 1\",\"status\":\"Delayed\",\"requirements\":null,\"protocol_code\":null,\"is_principal_investigator\":0,\"last_submission_date\":null,\"user_id\":6,\"created_at\":\"2026-01-01 00:00:00\",\"updated_at\":\"2026-10-28 02:24:21\",\"academic_unit_key\":\"amt\",\"program_key\":\"bsit\",\"year_level\":\"4th Year\",\"academic_year\":\"2026-2027\",\"archived_at\":null,\"retention_hold\":0,\"retention_hold_at\":null,\"retention_hold_by\":null,\"retention_hold_reason\":null,\"purge_postponed_at\":null,\"purge_postponed_reason\":null,\"restored_at\":null,\"profile_completed_at\":\"2026-01-01 00:00:00\"}",
+      "stage_key": "ierb_completed",
+      "workflow_revision": 37,
+      "joined_at": "2026-10-28 02:24:27.902973"
+    }
+  ],
+  "individualHistories": [
+    {
+      "id": 78,
+      "project_event_id": 46,
+      "project_id": 1,
+      "student_id": 4,
+      "from_stage": "approval_data_gathering",
+      "to_stage": "ierb_completed",
+      "workflow_revision": 37,
+      "created_at": "2026-10-28 02:25:59.184159"
+    },
+    {
+      "id": 79,
+      "project_event_id": 46,
+      "project_id": 1,
+      "student_id": 6,
+      "from_stage": "approval_data_gathering",
+      "to_stage": "ierb_completed",
+      "workflow_revision": 37,
+      "created_at": "2026-10-28 02:25:59.186365"
+    }
+  ],
+  "events": [
+    {
+      "id": 1,
+      "project_id": 1,
+      "revision": 1,
+      "event_key": "membership_reconciled",
+      "actor_user_id": 1,
+      "reason": "Explicit canonical mapping for Batch2 regression and Batch3 group verification",
+      "evidence_json": "{\"verifiedMembers\":[{\"id\":4,\"student_id\":\"S4\",\"full_name\":\"Synthetic Student 4\",\"email\":\"student4@example.test\",\"research_title\":null,\"research_group\":\"AMT-BSIT-Y4-2627-G97\",\"course\":\"BS in Information Technology\",\"adviser_id\":2,\"stage\":\"Stage 1\",\"status\":\"On Track\",\"requirements\":null,\"protocol_code\":null,\"is_principal_investigator\":0,\"last_submission_date\":\"2026-10-28\",\"user_id\":4,\"created_at\":\"2026-01-01 00:00:00\",\"updated_at\":\"2026-10-28 02:24:20\",\"academic_unit_key\":\"amt\",\"program_key\":\"bsit\",\"year_level\":\"4th Year\",\"academic_year\":\"2026-2027\",\"archived_at\":null,\"retention_hold\":0,\"retention_hold_at\":null,\"retention_hold_by\":null,\"retention_hold_reason\":null,\"purge_postponed_at\":null,\"purge_postponed_reason\":null,\"restored_at\":null,\"profile_completed_at\":\"2026-01-01 00:00:00\"},{\"id\":6,\"student_id\":\"S6\",\"full_name\":\"Synthetic Student 6\",\"email\":\"student6@example.test\",\"research_title\":\" changed\",\"research_group\":\"AMT-BSIT-Y4-2627-G97\",\"course\":\"BS in Information Technology\",\"adviser_id\":2,\"stage\":\"Stage 1\",\"status\":\"Delayed\",\"requirements\":null,\"protocol_code\":null,\"is_principal_investigator\":0,\"last_submission_date\":null,\"user_id\":6,\"created_at\":\"2026-01-01 00:00:00\",\"updated_at\":\"2026-10-28 02:24:21\",\"academic_unit_key\":\"amt\",\"program_key\":\"bsit\",\"year_level\":\"4th Year\",\"academic_year\":\"2026-2027\",\"archived_at\":null,\"retention_hold\":0,\"retention_hold_at\":null,\"retention_hold_by\":null,\"retention_hold_reason\":null,\"purge_postponed_at\":null,\"purge_postponed_reason\":null,\"restored_at\":null,\"profile_completed_at\":\"2026-01-01 00:00:00\"}],\"holderId\":4,\"adviserId\":2,\"workflowId\":1,\"historicalCompletionEventId\":null,\"historicalCompletionReference\":\"\"}",
+      "created_at": "2026-10-28 02:24:27.911861"
+    },
+    {
+      "id": 3,
+      "project_id": 1,
+      "revision": 2,
+      "event_key": "title_changed",
+      "actor_user_id": 1,
+      "reason": "Synthetic administrator approved shared research title update.",
+      "evidence_json": "{\"previousTitle\":\"PRISM: RPMS Workload Assistant\",\"previousIdentifier\":\"prism-rpms-workload-assistant\",\"title\":\"PRISM: Revised Workload Assistant\",\"identifier\":\"prism-revised-workload-assistant\"}",
+      "created_at": "2026-10-28 02:24:33.113574"
+    },
+    {
+      "id": 4,
+      "project_id": 1,
+      "revision": 3,
+      "event_key": "title_changed",
+      "actor_user_id": 1,
+      "reason": "Synthetic administrator approved shared research title update.",
+      "evidence_json": "{\"previousTitle\":\"PRISM: Revised Workload Assistant\",\"previousIdentifier\":\"prism-revised-workload-assistant\",\"title\":\"PRISM: RPMS Workload Assistant\",\"identifier\":\"prism-rpms-workload-assistant\"}",
+      "created_at": "2026-10-28 02:24:34.021609"
+    },
+    {
+      "id": 5,
+      "project_id": 1,
+      "revision": 4,
+      "event_key": "adviser_reassigned",
+      "actor_user_id": 1,
+      "reason": "Synthetic administrator verified the shared Adviser assignment.",
+      "evidence_json": "{\"previousAdviserId\":2,\"adviserId\":3,\"previousMemberAssignments\":[{\"studentId\":4,\"adviserId\":2},{\"studentId\":6,\"adviserId\":2}]}",
+      "created_at": "2026-10-28 02:24:34.544963"
+    },
+    {
+      "id": 6,
+      "project_id": 1,
+      "revision": 5,
+      "event_key": "adviser_reassigned",
+      "actor_user_id": 1,
+      "reason": "Synthetic administrator verified the shared Adviser assignment.",
+      "evidence_json": "{\"previousAdviserId\":3,\"adviserId\":2,\"previousMemberAssignments\":[{\"studentId\":4,\"adviserId\":3},{\"studentId\":6,\"adviserId\":3}]}",
+      "created_at": "2026-10-28 02:24:35.035449"
+    },
+    {
+      "id": 8,
+      "project_id": 1,
+      "revision": 6,
+      "event_key": "requirement_accepted",
+      "actor_user_id": 1,
+      "reason": "Authoritative workflow event 4",
+      "evidence_json": "{\"workflowEventId\":4,\"workflowId\":1,\"workflowRevision\":2,\"memberIds\":[4,6]}",
+      "created_at": "2026-10-28 02:24:43.391166"
+    },
+    {
+      "id": 9,
+      "project_id": 1,
+      "revision": 7,
+      "event_key": "requirement_accepted",
+      "actor_user_id": 1,
+      "reason": "Authoritative workflow event 5",
+      "evidence_json": "{\"workflowEventId\":5,\"workflowId\":1,\"workflowRevision\":3,\"memberIds\":[4,6]}",
+      "created_at": "2026-10-28 02:24:43.993804"
+    },
+    {
+      "id": 10,
+      "project_id": 1,
+      "revision": 8,
+      "event_key": "requirement_accepted",
+      "actor_user_id": 1,
+      "reason": "Authoritative workflow event 6",
+      "evidence_json": "{\"workflowEventId\":6,\"workflowId\":1,\"workflowRevision\":4,\"memberIds\":[4,6]}",
+      "created_at": "2026-10-28 02:24:44.863765"
+    },
+    {
+      "id": 11,
+      "project_id": 1,
+      "revision": 9,
+      "event_key": "requirement_accepted",
+      "actor_user_id": 1,
+      "reason": "Authoritative workflow event 7",
+      "evidence_json": "{\"workflowEventId\":7,\"workflowId\":1,\"workflowRevision\":5,\"memberIds\":[4,6]}",
+      "created_at": "2026-10-28 02:24:45.739365"
+    },
+    {
+      "id": 12,
+      "project_id": 1,
+      "revision": 10,
+      "event_key": "requirement_accepted",
+      "actor_user_id": 1,
+      "reason": "Authoritative workflow event 8",
+      "evidence_json": "{\"workflowEventId\":8,\"workflowId\":1,\"workflowRevision\":6,\"memberIds\":[4,6]}",
+      "created_at": "2026-10-28 02:24:46.383761"
+    },
+    {
+      "id": 13,
+      "project_id": 1,
+      "revision": 11,
+      "event_key": "requirement_accepted",
+      "actor_user_id": 1,
+      "reason": "Authoritative workflow event 9",
+      "evidence_json": "{\"workflowEventId\":9,\"workflowId\":1,\"workflowRevision\":7,\"memberIds\":[4,6]}",
+      "created_at": "2026-10-28 02:24:47.054744"
+    },
+    {
+      "id": 14,
+      "project_id": 1,
+      "revision": 12,
+      "event_key": "requirement_accepted",
+      "actor_user_id": 1,
+      "reason": "Authoritative workflow event 10",
+      "evidence_json": "{\"workflowEventId\":10,\"workflowId\":1,\"workflowRevision\":8,\"memberIds\":[4,6]}",
+      "created_at": "2026-10-28 02:24:47.786170"
+    },
+    {
+      "id": 15,
+      "project_id": 1,
+      "revision": 13,
+      "event_key": "requirement_accepted",
+      "actor_user_id": 1,
+      "reason": "Authoritative workflow event 11",
+      "evidence_json": "{\"workflowEventId\":11,\"workflowId\":1,\"workflowRevision\":9,\"memberIds\":[4,6]}",
+      "created_at": "2026-10-28 02:24:48.471917"
+    },
+    {
+      "id": 16,
+      "project_id": 1,
+      "revision": 14,
+      "event_key": "requirement_accepted",
+      "actor_user_id": 1,
+      "reason": "Authoritative workflow event 12",
+      "evidence_json": "{\"workflowEventId\":12,\"workflowId\":1,\"workflowRevision\":10,\"memberIds\":[4,6]}",
+      "created_at": "2026-10-28 02:24:49.215482"
+    },
+    {
+      "id": 17,
+      "project_id": 1,
+      "revision": 15,
+      "event_key": "requirement_accepted",
+      "actor_user_id": 1,
+      "reason": "Authoritative workflow event 13",
+      "evidence_json": "{\"workflowEventId\":13,\"workflowId\":1,\"workflowRevision\":11,\"memberIds\":[4,6]}",
+      "created_at": "2026-10-28 02:24:49.916834"
+    },
+    {
+      "id": 18,
+      "project_id": 1,
+      "revision": 16,
+      "event_key": "requirement_accepted",
+      "actor_user_id": 1,
+      "reason": "Authoritative workflow event 14",
+      "evidence_json": "{\"workflowEventId\":14,\"workflowId\":1,\"workflowRevision\":12,\"memberIds\":[4,6]}",
+      "created_at": "2026-10-28 02:24:50.865236"
+    },
+    {
+      "id": 19,
+      "project_id": 1,
+      "revision": 17,
+      "event_key": "requirement_accepted",
+      "actor_user_id": 1,
+      "reason": "Authoritative workflow event 15",
+      "evidence_json": "{\"workflowEventId\":15,\"workflowId\":1,\"workflowRevision\":13,\"memberIds\":[4,6]}",
+      "created_at": "2026-10-28 02:24:51.775263"
+    },
+    {
+      "id": 20,
+      "project_id": 1,
+      "revision": 18,
+      "event_key": "open_correction",
+      "actor_user_id": 1,
+      "reason": "Authoritative workflow event 16",
+      "evidence_json": "{\"workflowEventId\":16,\"workflowId\":1,\"workflowRevision\":14,\"memberIds\":[4,6]}",
+      "created_at": "2026-10-28 02:24:53.984158"
+    },
+    {
+      "id": 21,
+      "project_id": 1,
+      "revision": 19,
+      "event_key": "requirement_accepted",
+      "actor_user_id": 1,
+      "reason": "Authoritative workflow event 17",
+      "evidence_json": "{\"workflowEventId\":17,\"workflowId\":1,\"workflowRevision\":15,\"memberIds\":[4,6]}",
+      "created_at": "2026-10-28 02:24:54.438223"
+    },
+    {
+      "id": 22,
+      "project_id": 1,
+      "revision": 20,
+      "event_key": "resolve_correction",
+      "actor_user_id": 1,
+      "reason": "Authoritative workflow event 18",
+      "evidence_json": "{\"workflowEventId\":18,\"workflowId\":1,\"workflowRevision\":16,\"memberIds\":[4,6]}",
+      "created_at": "2026-10-28 02:24:54.858520"
+    },
+    {
+      "id": 23,
+      "project_id": 1,
+      "revision": 21,
+      "event_key": "requirement_reconfirmed",
+      "actor_user_id": 1,
+      "reason": "Authoritative workflow event 19",
+      "evidence_json": "{\"workflowEventId\":19,\"workflowId\":1,\"workflowRevision\":17,\"memberIds\":[4,6]}",
+      "created_at": "2026-10-28 02:24:56.110272"
+    },
+    {
+      "id": 24,
+      "project_id": 1,
+      "revision": 22,
+      "event_key": "title_changed",
+      "actor_user_id": 1,
+      "reason": "Synthetic administrator approved shared research title update.",
+      "evidence_json": "{\"previousTitle\":\"PRISM: RPMS Workload Assistant\",\"previousIdentifier\":\"prism-rpms-workload-assistant\",\"title\":\"PRISM: Administrator Updated Title\",\"identifier\":\"prism-administrator-updated-title\"}",
+      "created_at": "2026-10-28 02:24:57.866089"
+    },
+    {
+      "id": 26,
+      "project_id": 1,
+      "revision": 23,
+      "event_key": "initial_requirements_accepted",
+      "actor_user_id": 1,
+      "reason": "Authoritative workflow event 21",
+      "evidence_json": "{\"workflowEventId\":21,\"workflowId\":1,\"workflowRevision\":18,\"memberIds\":[4,6]}",
+      "created_at": "2026-10-28 02:25:01.123614"
+    },
+    {
+      "id": 27,
+      "project_id": 1,
+      "revision": 24,
+      "event_key": "open_correction",
+      "actor_user_id": 1,
+      "reason": "Authoritative workflow event 22",
+      "evidence_json": "{\"workflowEventId\":22,\"workflowId\":1,\"workflowRevision\":19,\"memberIds\":[4,6]}",
+      "created_at": "2026-10-28 02:25:03.061016"
+    },
+    {
+      "id": 28,
+      "project_id": 1,
+      "revision": 25,
+      "event_key": "requirement_accepted",
+      "actor_user_id": 1,
+      "reason": "Authoritative workflow event 23",
+      "evidence_json": "{\"workflowEventId\":23,\"workflowId\":1,\"workflowRevision\":20,\"memberIds\":[4,6]}",
+      "created_at": "2026-10-28 02:25:04.142977"
+    },
+    {
+      "id": 29,
+      "project_id": 1,
+      "revision": 26,
+      "event_key": "resolve_correction",
+      "actor_user_id": 1,
+      "reason": "Authoritative workflow event 24",
+      "evidence_json": "{\"workflowEventId\":24,\"workflowId\":1,\"workflowRevision\":21,\"memberIds\":[4,6]}",
+      "created_at": "2026-10-28 02:25:04.523389"
+    },
+    {
+      "id": 30,
+      "project_id": 1,
+      "revision": 27,
+      "event_key": "open_correction",
+      "actor_user_id": 1,
+      "reason": "Authoritative workflow event 25",
+      "evidence_json": "{\"workflowEventId\":25,\"workflowId\":1,\"workflowRevision\":22,\"memberIds\":[4,6]}",
+      "created_at": "2026-10-28 02:25:05.020804"
+    },
+    {
+      "id": 31,
+      "project_id": 1,
+      "revision": 28,
+      "event_key": "requirement_accepted",
+      "actor_user_id": 1,
+      "reason": "Authoritative workflow event 26",
+      "evidence_json": "{\"workflowEventId\":26,\"workflowId\":1,\"workflowRevision\":23,\"memberIds\":[4,6]}",
+      "created_at": "2026-10-28 02:25:06.226777"
+    },
+    {
+      "id": 32,
+      "project_id": 1,
+      "revision": 29,
+      "event_key": "requirement_accepted",
+      "actor_user_id": 1,
+      "reason": "Authoritative workflow event 27",
+      "evidence_json": "{\"workflowEventId\":27,\"workflowId\":1,\"workflowRevision\":24,\"memberIds\":[4,6]}",
+      "created_at": "2026-10-28 02:25:06.967854"
+    },
+    {
+      "id": 33,
+      "project_id": 1,
+      "revision": 30,
+      "event_key": "resolve_correction",
+      "actor_user_id": 1,
+      "reason": "Authoritative workflow event 28",
+      "evidence_json": "{\"workflowEventId\":28,\"workflowId\":1,\"workflowRevision\":25,\"memberIds\":[4,6]}",
+      "created_at": "2026-10-28 02:25:07.314645"
+    },
+    {
+      "id": 34,
+      "project_id": 1,
+      "revision": 31,
+      "event_key": "open_correction",
+      "actor_user_id": 1,
+      "reason": "Authoritative workflow event 29",
+      "evidence_json": "{\"workflowEventId\":29,\"workflowId\":1,\"workflowRevision\":26,\"memberIds\":[4,6]}",
+      "created_at": "2026-10-28 02:25:07.761696"
+    },
+    {
+      "id": 35,
+      "project_id": 1,
+      "revision": 32,
+      "event_key": "requirement_accepted",
+      "actor_user_id": 1,
+      "reason": "Authoritative workflow event 30",
+      "evidence_json": "{\"workflowEventId\":30,\"workflowId\":1,\"workflowRevision\":27,\"memberIds\":[4,6]}",
+      "created_at": "2026-10-28 02:25:08.823875"
+    },
+    {
+      "id": 36,
+      "project_id": 1,
+      "revision": 33,
+      "event_key": "requirement_accepted",
+      "actor_user_id": 1,
+      "reason": "Authoritative workflow event 31",
+      "evidence_json": "{\"workflowEventId\":31,\"workflowId\":1,\"workflowRevision\":28,\"memberIds\":[4,6]}",
+      "created_at": "2026-10-28 02:25:09.709892"
+    },
+    {
+      "id": 37,
+      "project_id": 1,
+      "revision": 34,
+      "event_key": "resolve_correction",
+      "actor_user_id": 1,
+      "reason": "Authoritative workflow event 32",
+      "evidence_json": "{\"workflowEventId\":32,\"workflowId\":1,\"workflowRevision\":29,\"memberIds\":[4,6]}",
+      "created_at": "2026-10-28 02:25:10.031063"
+    },
+    {
+      "id": 38,
+      "project_id": 1,
+      "revision": 35,
+      "event_key": "open_correction",
+      "actor_user_id": 1,
+      "reason": "Authoritative workflow event 33",
+      "evidence_json": "{\"workflowEventId\":33,\"workflowId\":1,\"workflowRevision\":30,\"memberIds\":[4,6]}",
+      "created_at": "2026-10-28 02:25:10.485481"
+    },
+    {
+      "id": 39,
+      "project_id": 1,
+      "revision": 36,
+      "event_key": "requirement_accepted",
+      "actor_user_id": 1,
+      "reason": "Authoritative workflow event 34",
+      "evidence_json": "{\"workflowEventId\":34,\"workflowId\":1,\"workflowRevision\":31,\"memberIds\":[4,6]}",
+      "created_at": "2026-10-28 02:25:11.536488"
+    },
+    {
+      "id": 40,
+      "project_id": 1,
+      "revision": 37,
+      "event_key": "resolve_correction",
+      "actor_user_id": 1,
+      "reason": "Authoritative workflow event 35",
+      "evidence_json": "{\"workflowEventId\":35,\"workflowId\":1,\"workflowRevision\":32,\"memberIds\":[4,6]}",
+      "created_at": "2026-10-28 02:25:11.908933"
+    },
+    {
+      "id": 41,
+      "project_id": 1,
+      "revision": 38,
+      "event_key": "open_correction",
+      "actor_user_id": 1,
+      "reason": "Authoritative workflow event 36",
+      "evidence_json": "{\"workflowEventId\":36,\"workflowId\":1,\"workflowRevision\":33,\"memberIds\":[4,6]}",
+      "created_at": "2026-10-28 02:25:12.746871"
+    },
+    {
+      "id": 42,
+      "project_id": 1,
+      "revision": 39,
+      "event_key": "requirement_accepted",
+      "actor_user_id": 1,
+      "reason": "Authoritative workflow event 37",
+      "evidence_json": "{\"workflowEventId\":37,\"workflowId\":1,\"workflowRevision\":34,\"memberIds\":[4,6]}",
+      "created_at": "2026-10-28 02:25:13.218676"
+    },
+    {
+      "id": 43,
+      "project_id": 1,
+      "revision": 40,
+      "event_key": "resolve_correction",
+      "actor_user_id": 1,
+      "reason": "Authoritative workflow event 38",
+      "evidence_json": "{\"workflowEventId\":38,\"workflowId\":1,\"workflowRevision\":35,\"memberIds\":[4,6]}",
+      "created_at": "2026-10-28 02:25:13.541925"
+    },
+    {
+      "id": 44,
+      "project_id": 1,
+      "revision": 41,
+      "event_key": "requirement_accepted",
+      "actor_user_id": 1,
+      "reason": "Authoritative workflow event 39",
+      "evidence_json": "{\"workflowEventId\":39,\"workflowId\":1,\"workflowRevision\":36,\"memberIds\":[4,6]}",
+      "created_at": "2026-10-28 02:25:17.113132"
+    },
+    {
+      "id": 46,
+      "project_id": 1,
+      "revision": 42,
+      "event_key": "final_report_submitted",
+      "actor_user_id": 2,
+      "reason": "Authoritative workflow event 41",
+      "evidence_json": "{\"workflowEventId\":41,\"workflowId\":1,\"workflowRevision\":37,\"memberIds\":[4,6]}",
+      "created_at": "2026-10-28 02:25:59.183669"
+    }
+  ],
+  "privateFilesDuplicated": false
+}

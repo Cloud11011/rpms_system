@@ -30,7 +30,7 @@ function lifecycle_manifest_file(?PDO $pdo = null): string
     if (defined('PRISM_LIFECYCLE_MANIFEST_FILE')) return PRISM_LIFECYCLE_MANIFEST_FILE;
     $version=$pdo?(string)$pdo->query("SELECT v FROM schema_meta WHERE k='schema_version'")->fetchColumn():'10';
     // Schema 12 composes the frozen v11 inventory with its separately pinned extension definitions.
-    return __DIR__.(in_array($version,['11','12'],true)?'/account_lifecycle_schema_v11.json':'/account_lifecycle_schema.json');
+    return __DIR__.(in_array($version,['11','12','13'],true)?'/account_lifecycle_schema_v11.json':'/account_lifecycle_schema.json');
 }
 
 function lifecycle_manifest_hash(?PDO $pdo = null): string
@@ -46,6 +46,12 @@ function lifecycle_database_binding(PDO $pdo): array
 
 function lifecycle_compare_schema(PDO $pdo): void
 {
+    if ((string)$pdo->query("SELECT v FROM schema_meta WHERE k='schema_version'")->fetchColumn()==='13') {
+        require_once __DIR__.'/schema_v13.php';
+        try { schema_v13_verify($pdo); }
+        catch (RuntimeException $e) { throw new AccountLifecycleConflict('Permanent deletion unavailable: project schema differs from its reviewed contract. Retain using Archive.',0,$e); }
+        return;
+    }
     if ((string)$pdo->query("SELECT v FROM schema_meta WHERE k='schema_version'")->fetchColumn()==='12') {
         require_once __DIR__.'/schema_v12.php';
         try { schema_v12_verify($pdo); }
@@ -149,6 +155,10 @@ function lifecycle_verification_contract_hash(?PDO $pdo = null): string
     $files=[__FILE__];
     if ($pdo && (string)$pdo->query("SELECT v FROM schema_meta WHERE k='schema_version'")->fetchColumn()==='12') {
         $files[]=__DIR__.'/schema_v12.php'; $files[]=__DIR__.'/ierb_schema_v12.json';
+    }
+    if ($pdo && (string)$pdo->query("SELECT v FROM schema_meta WHERE k='schema_version'")->fetchColumn()==='13') {
+        $files[]=__DIR__.'/schema_v12.php'; $files[]=__DIR__.'/ierb_schema_v12.json';
+        $files[]=__DIR__.'/schema_v13.php'; $files[]=__DIR__.'/research_schema_v13.json';
     }
     $manifest=json_decode(file_get_contents(lifecycle_manifest_file($pdo)),true,512,JSON_THROW_ON_ERROR);
     if(in_array($manifest['schema_version']??null,['10','11'],true)) {

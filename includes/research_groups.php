@@ -1,5 +1,6 @@
 <?php
 require_once __DIR__ . '/academic_catalog.php';
+require_once __DIR__ . '/research_projects.php';
 
 /** Canonical prefix, derived only from validated catalog keys. */
 function research_group_prefix(array $academic): string
@@ -89,6 +90,16 @@ function research_group_assignment(PDO $pdo, array $user, array $data, array $ac
     if (!is_string($selection)) throw new InvalidArgumentException('Choose a research group from the list.');
     $selection = trim($selection);
     $old = (string)($existing['research_group'] ?? '');
+    if (research_projects_available($pdo)) {
+        $project = $existing ? research_project_for_student($pdo,(int)$existing['id'],true) : null;
+        if ($project) {
+            if (!in_array($selection,['','__keep__',$old],true)) throw new InvalidArgumentException('Use explicit canonical project reconciliation to change membership.');
+            return $old;
+        }
+        if ($selection==='__create__') throw new InvalidArgumentException('Create title-based projects through the reviewed administrative membership mapping.');
+        $q=$pdo->prepare('SELECT id FROM research_projects WHERE public_identifier=?'); $q->execute([$selection]);
+        if ($q->fetchColumn()) throw new InvalidArgumentException('Canonical project membership requires an explicit verified administrative mapping.');
+    }
     // Only a stored legacy value can establish this exception. No client legacy flag.
     if ($existing && !research_group_is_standard($existing)
         && ($selection === '' || $selection === '__keep__' || $selection === trim($old))) return $old;

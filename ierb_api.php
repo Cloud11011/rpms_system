@@ -148,6 +148,24 @@ if ($action === 'history') {
     } elseif (!adviser_may_access_student($pdo, $user, $studentId)) {
         json_out(['ok' => false, 'message' => 'This student is assigned to another adviser.'], 403);
     }
+    if (research_project_for_student($pdo,$studentId)) {
+        // Combine retained observations and the member's public canonical timeline.
+        $private=$user['role']==='student' ? 'NULL AS note,NULL AS actor' : 'h.note,h.actor';
+        $legacy='SELECT h.stage,h.status,h.submission_date,h.created_at,'.$private.' FROM ierb_history h WHERE h.student_id=:legacy_id';
+        if ($user['role']==='student') $legacy.=' AND NOT EXISTS (SELECT 1 FROM ierb_history previous WHERE previous.id=(SELECT MAX(prior.id) FROM ierb_history prior WHERE prior.student_id=h.student_id AND prior.id<h.id) AND previous.stage <=> h.stage AND previous.status <=> h.status)';
+        $canonical="SELECT mh.to_stage AS stage,'Project progress' AS status,NULL AS submission_date,mh.created_at,
+            'Canonical research project progress' AS note,'Project workflow' AS actor FROM research_project_member_history mh
+            WHERE mh.student_id=:member_id AND (mh.from_stage IS NULL OR mh.from_stage<>mh.to_stage)";
+        $scope='FROM ('.$legacy.' UNION ALL '.$canonical.') timeline WHERE 1=1';
+        $params=[':legacy_id'=>$studentId,':member_id'=>$studentId];
+        $search=prism_record_search($_GET);
+        if ($search!=='') $scope.=' AND '.prism_search_clause(['timeline.stage','timeline.status','timeline.created_at'],$search,$params);
+        $page=prism_page_query($pdo,'SELECT *',$scope,$params,'created_at DESC,stage ASC',$_GET);
+        $rows=$page['rows']; unset($page['rows']);
+        foreach ($rows as &$row) $row['stageLabel']=IerbStage::LABELS[$row['stage']] ?? stage_label($row['stage']);
+        unset($row);
+        json_out(['ok'=>true,'history'=>$rows]+$page);
+    }
     // Historical free-text annotations have no reliable Student-facing classification.
     // Keep official progress/dates; reviewer instructions remain in owned document feedback.
     $select = 'SELECT *';

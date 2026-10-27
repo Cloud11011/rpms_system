@@ -50,5 +50,40 @@
       document.getElementById('uploadResults').replaceChildren();
     });
   });
-  window.PrismUpload = {render, prepare, typeControl, selectedTypes};
+  // Queue IDs exist only in this browser session. File metadata is a duplicate-selection
+  // hint, never a persisted document identity (the server owns those identities).
+  function createQueue() {
+    let entries = [];
+    return {
+      get entries() { return entries; },
+      add(files, revisionType = null) {
+        if (revisionType && (entries.length + files.length > 1)) return 'A revision accepts one file. Remove the queued file before choosing its replacement.';
+        for (const file of files) {
+          if (entries.some(e => e.file.name === file.name && e.file.size === file.size && e.file.lastModified === file.lastModified && e.file.type === file.type)) continue;
+          entries.push({id: crypto.randomUUID(), file, type: revisionType || '', error: '', uncertain: false});
+        }
+        return '';
+      },
+      remove(id) { entries = entries.filter(e => e.id !== id); },
+      clear() { entries = []; },
+      settle(sent, data) {
+        if (!Array.isArray(data?.results) || data.results.length !== sent.length) {
+          sent.forEach(e => { e.uncertain = true; e.error = 'Outcome unknown. Check My Documents before retrying this file.'; });
+          return;
+        }
+        data.results.forEach((r, i) => {
+          if (r.ok) this.remove(sent[i].id);
+          else { sent[i].error = r.message; sent[i].uncertain = Number(r.status) >= 500; }
+        });
+      },
+      payload(fields) {
+        const data = new FormData();
+        data.set('requestId', crypto.randomUUID()); data.set('fileCount', String(entries.length));
+        entries.forEach(e => { data.append('document[]', e.file); data.append('documentTypes[]', e.type); });
+        Object.entries(fields).forEach(([key, value]) => data.set(key, value));
+        return data;
+      }
+    };
+  }
+  window.PrismUpload = {render, prepare, typeControl, selectedTypes, createQueue};
 })();

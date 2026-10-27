@@ -1,0 +1,54 @@
+{
+  "status": "PASS",
+  "reviewDate": "2026-10-28",
+  "timezone": "Asia/Manila",
+  "criticalFailures": 0,
+  "startingSha": "6e1ee3058f038a2783c00ebcbbd9e863dd03d260",
+  "suites": {
+    "full-regression-v12.json": {
+      "status": "PASS",
+      "assertions": 724
+    },
+    "singleton-regression.json": {
+      "status": "PASS",
+      "assertions": 330
+    },
+    "legacy-v11.json": {
+      "status": "PASS",
+      "assertions": 310
+    },
+    "foundation-tests.json": {
+      "status": "PASS",
+      "assertions": 99
+    },
+    "project-tests.json": {
+      "status": "PASS",
+      "assertions": 96
+    },
+    "upload-tests.json": {
+      "status": "PASS",
+      "assertions": 96
+    },
+    "migration-tests.json": {
+      "status": "PASS",
+      "assertions": 14
+    },
+    "php-syntax.json": {
+      "status": "PASS",
+      "count": 140
+    },
+    "javascript-syntax.json": {
+      "status": "PASS",
+      "count": 9
+    },
+    "teardown.json": {
+      "status": "PASS"
+    }
+  },
+  "newProjectAssertions": 96,
+  "newUploadAssertions": 96,
+  "migrationAssertionsIncludedInProjectSuite": 14,
+  "productionActivated": false,
+  "productionMigrated": false,
+  "deployed": false
+}

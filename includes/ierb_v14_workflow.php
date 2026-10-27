@@ -5,7 +5,7 @@ require_once __DIR__.'/current_workflow_eligibility.php';
 
 function ierb_v14_schema_available(PDO $pdo): bool
 {
-    return (string)$pdo->query("SELECT v FROM schema_meta WHERE k='schema_version'")->fetchColumn() === '12';
+    return in_array((string)$pdo->query("SELECT v FROM schema_meta WHERE k='schema_version'".($pdo->inTransaction() ? ' LOCK IN SHARE MODE' : ''))->fetchColumn(), ['12','13'], true);
 }
 
 function ierb_v14_gate(PDO $pdo): void
@@ -29,6 +29,7 @@ function ierb_v14_begin(PDO $pdo): void
 function ierb_v14_guard_legacy_write(PDO $pdo, int $studentId): void
 {
     if (!ierb_v14_schema_available($pdo)) return;
+    if (research_project_for_student($pdo,$studentId,true)) throw new AccountLifecycleConflict('Canonical project progress must use validated Group Advancement.');
     $q = $pdo->prepare('SELECT id FROM ierb_workflows WHERE student_id=? FOR UPDATE');
     $q->execute([$studentId]);
     if ($q->fetchColumn()) throw new AccountLifecycleConflict('This Student has an explicitly enrolled V14 workflow. Legacy stage decisions cannot change it.');
@@ -100,6 +101,9 @@ function ierb_v14_event(PDO $pdo, array $actor, array $workflow, string $event, 
         actor_user_id,reason,evidence_json,request_key,request_sha256,result_json) VALUES (?,?,?,?,?,?,?,?,?,?,?,?)')
         ->execute([$workflow['id'], $result['revision'], $event, $from, $to, $caseId, $actor['id'], $reason,
             json_encode($evidence, JSON_THROW_ON_ERROR), $key, $digest, json_encode($result, JSON_THROW_ON_ERROR)]);
+    $workflowEventId = (int)$pdo->lastInsertId();
+    $result['projectNotificationIds'] = research_project_sync($pdo,$actor,$workflow,$event,$workflowEventId,$evidence);
+    $pdo->prepare('UPDATE ierb_workflow_events SET result_json=? WHERE id=?')->execute([json_encode($result,JSON_THROW_ON_ERROR),$workflowEventId]);
     document_workflow_audit($pdo, $actor, 'ierb_v14_'.$event, ['entity_type' => 'student',
         'entity_id' => $workflow['student_id'], 'student_id' => $workflow['student_id'], 'reason' => $reason,
         'before' => $from, 'after' => $to, 'details' => 'V14 workflow '.$workflow['id'].'; revision '.$result['revision'].'; correction case '.($caseId ?? 'none')]);
@@ -117,6 +121,8 @@ function ierb_v14_enroll(PDO $pdo, array $actor, int $studentId, string $stage, 
     ierb_v14_begin($pdo);
     try {
         [$student, $live, $workflow] = ierb_v14_lock($pdo, $actor, $studentId);
+        $project = research_project_for_student($pdo,$studentId,true);
+        if ($project && (int)$project['submission_holder_id'] !== $studentId) throw new AccountLifecycleConflict('Only the designated submission holder owns project evidence.');
         if ($workflow) {
             $result = ierb_v14_replay($pdo, $workflow, $key, $digest);
             if (!$result) throw new AccountLifecycleConflict('This Student already has a V14 workflow.');
@@ -126,7 +132,7 @@ function ierb_v14_enroll(PDO $pdo, array $actor, int $studentId, string $stage, 
             $workflow = ['id' => (int)$pdo->lastInsertId(), 'student_id' => $studentId];
             $result = ierb_v14_event($pdo, $live, $workflow, 'enrolled', $student['stage'], $stage, $key, $digest, $reason, null, ['reviewEvidence' => $evidence]);
         }
-        $pdo->commit(); return $result;
+        $pdo->commit(); document_workflow_deliver($pdo,$result['projectNotificationIds'] ?? []); return $result;
     } catch (Throwable $e) { if ($pdo->inTransaction()) $pdo->rollBack(); throw $e; }
     finally { $pdo->query("SELECT RELEASE_LOCK('prism_migrate')"); }
 }
@@ -172,7 +178,7 @@ function ierb_v14_open_correction(PDO $pdo, array $actor, int $studentId, int $e
         $pdo->prepare('UPDATE ierb_workflows SET stage_key=?,revision=revision+1,updated_at=NOW(6) WHERE id=?')->execute([$to, $workflow['id']]);
         $result = ierb_v14_event($pdo, $live, $workflow, 'open_correction', $workflow['stage_key'], $to, $key, $digest, $reason, $caseId,
             ['affectedDocuments' => $affected, 'requiresAmendment' => $requiresAmendment]);
-        $pdo->commit(); return $result;
+        $pdo->commit(); document_workflow_deliver($pdo,$result['projectNotificationIds'] ?? []); return $result;
     } catch (Throwable $e) { if ($pdo->inTransaction()) $pdo->rollBack(); throw $e; }
     finally { $pdo->query("SELECT RELEASE_LOCK('prism_migrate')"); }
 }

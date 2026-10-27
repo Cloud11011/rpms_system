@@ -1,6 +1,7 @@
 <?php
 /** Current mutations only. Retained reads and explicit lifecycle operations do not call this gate. */
 require_once __DIR__.'/account_identity.php';
+require_once __DIR__.'/research_projects.php';
 require_once __DIR__.'/account_purge_files.php';
 
 function current_workflow_no_recovery(PDO $pdo, string $type, int $id): void
@@ -32,6 +33,7 @@ function current_workflow_actor(PDO $pdo, array $actor, bool $credentialChange =
 function current_workflow_student(PDO $pdo, int $id, array $actor): array
 {
     if (!$pdo->inTransaction()) throw new LogicException('Student eligibility requires a transaction.');
+    research_project_fence($pdo);
     $rows=lifecycle_rows($pdo,'SELECT * FROM students WHERE id=? FOR UPDATE',[$id]);
     $row=$rows[0]??null;
     if (!$row || !empty($row['archived_at']) || empty($row['profile_completed_at'])) {

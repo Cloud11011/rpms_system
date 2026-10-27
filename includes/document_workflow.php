@@ -107,6 +107,7 @@ function document_workflow_change(PDO $pdo, array $actor, string $id, string $op
     if (!$sid) throw new DocumentWorkflowError('Document has no eligible Student record.',409);
     $pdo->beginTransaction();
     try {
+        research_project_fence($pdo);
         $q=$pdo->prepare('SELECT * FROM students WHERE id=? FOR UPDATE'); $q->execute([$sid]); $student=$q->fetch(PDO::FETCH_ASSOC);
         try { $student=current_workflow_student($pdo,(int)$sid,$actor); }
         catch (AccountLifecycleForbidden $e) { throw new DocumentWorkflowError($e->getMessage(),403); }
@@ -266,6 +267,7 @@ function document_formal_submission(PDO $pdo, array $actor, array $student, arra
     $message.=' "'.$doc['original_name'].'" (version '.$doc['version_no'].').';
     if (!$override && $audit['reason']!=='') $message.=' Remarks: '.$audit['reason'];
     $ids=document_workflow_notifications($pdo,$actor,$student,[],'PRISM Formal RPMS Submission Confirmation',$message,false);
+    $ids=array_merge($ids,$completion['projectNotificationIds'] ?? []);
     // Staff receive an accurate queue notice, separate from Student wording and private override evidence.
     $q=$pdo->query("SELECT id,email,full_name FROM users WHERE role='admin' AND status='Active' ORDER BY id FOR UPDATE");
     $staffMessage='A new formally submitted document is available for RPMS review: "'.$doc['original_name'].'" v'.$doc['version_no'].($override?'; authorized Admin Override.':' after Adviser approval.');

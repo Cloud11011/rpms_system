@@ -1,6 +1,6 @@
 const cp = require('node:child_process'), fs = require('node:fs'), path = require('node:path'), assert = require('node:assert/strict');
 const root = path.resolve(__dirname, '../..'), php = process.env.PRISM_TEST_PHP || 'C:/xampp/php/php.exe';
-const evidence = path.join(root, 'PRISM_V14_BATCH_01_EVIDENCE'); fs.mkdirSync(evidence, { recursive: true });
+const evidence = path.resolve(process.env.PRISM_TEST_EVIDENCE_DIR || path.join(root, 'PRISM_V14_BATCH_01_EVIDENCE')); fs.mkdirSync(evidence, { recursive: true });
 const cases = [], file = path.join(__dirname, 'cases.php');
 const run = phase => JSON.parse(cp.execFileSync(php, [file, phase], { encoding: 'utf8', windowsHide: true }));
 function worker(phase, key) {

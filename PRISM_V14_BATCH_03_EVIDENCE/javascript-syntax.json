@@ -1,0 +1,42 @@
+{
+  "status": "PASS",
+  "count": 9,
+  "files": [
+    {
+      "file": "assets/js/document-upload.js",
+      "ok": true
+    },
+    {
+      "file": "assets/js/role-portal.js",
+      "ok": true
+    },
+    {
+      "file": "assets/js/ierb-requirements.js",
+      "ok": true
+    },
+    {
+      "file": "assets/js/ierbprog.js",
+      "ok": true
+    },
+    {
+      "file": "assets/js/prism-ui.js",
+      "ok": true
+    },
+    {
+      "file": "maintenance/ierb-v14-tests/documents.cjs",
+      "ok": true
+    },
+    {
+      "file": "maintenance/ierb-v14-tests/run.cjs",
+      "ok": true
+    },
+    {
+      "file": "maintenance\\ierb-project-tests\\projects.cjs",
+      "ok": true
+    },
+    {
+      "file": "maintenance\\ierb-project-tests\\uploads.cjs",
+      "ok": true
+    }
+  ]
+}

@@ -1209,3 +1209,7 @@ input[type="radio"] { accent-color: var(--accent-purple, #A21368); }
 .v14-requirements small{display:block}
 .v14-requirements button{margin:.4rem}
 .dark-theme .v14-checklist-dialog{background:#172233;color:#edf2ff}
+.upload-file-feedback{flex-basis:100%;margin:.25rem 0;overflow-wrap:anywhere;color:var(--text-color,inherit)}
+.submission-file-card .upload-file-type{min-width:0;overflow-wrap:anywhere}
+.submission-file-card .action-btn{max-width:100%;white-space:normal;text-align:left}
+.submission-file-card .submission-file-meta strong{white-space:normal;overflow-wrap:anywhere}

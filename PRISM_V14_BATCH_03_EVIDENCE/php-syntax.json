@@ -1,0 +1,566 @@
+{
+  "status": "PASS",
+  "count": 140,
+  "files": [
+    {
+      "file": "account.php",
+      "ok": true
+    },
+    {
+      "file": "account_invitation_api.php",
+      "ok": true
+    },
+    {
+      "file": "account_lifecycle_api.php",
+      "ok": true
+    },
+    {
+      "file": "account_setup.php",
+      "ok": true
+    },
+    {
+      "file": "admin_advisers.php",
+      "ok": true
+    },
+    {
+      "file": "admin_ai.php",
+      "ok": true
+    },
+    {
+      "file": "admin_archived_accounts.php",
+      "ok": true
+    },
+    {
+      "file": "admin_legal_policies.php",
+      "ok": true
+    },
+    {
+      "file": "admin_notifications.php",
+      "ok": true
+    },
+    {
+      "file": "admin_people.php",
+      "ok": true
+    },
+    {
+      "file": "admin_students.php",
+      "ok": true
+    },
+    {
+      "file": "advisers_api.php",
+      "ok": true
+    },
+    {
+      "file": "ai_helpers.php",
+      "ok": true
+    },
+    {
+      "file": "audit_api.php",
+      "ok": true
+    },
+    {
+      "file": "auth_rate_limit.php",
+      "ok": true
+    },
+    {
+      "file": "calendar.php",
+      "ok": true
+    },
+    {
+      "file": "calendar_deadlines_api.php",
+      "ok": true
+    },
+    {
+      "file": "change_password_required.php",
+      "ok": true
+    },
+    {
+      "file": "complete_profile.php",
+      "ok": true
+    },
+    {
+      "file": "config.php",
+      "ok": true
+    },
+    {
+      "file": "dashboard.php",
+      "ok": true
+    },
+    {
+      "file": "data_export.php",
+      "ok": true
+    },
+    {
+      "file": "data_exports_api.php",
+      "ok": true
+    },
+    {
+      "file": "document_preview.php",
+      "ok": true
+    },
+    {
+      "file": "documents.php",
+      "ok": true
+    },
+    {
+      "file": "documents_api.php",
+      "ok": true
+    },
+    {
+      "file": "forgot_password.php",
+      "ok": true
+    },
+    {
+      "file": "forgot_password_process.php",
+      "ok": true
+    },
+    {
+      "file": "help_support.php",
+      "ok": true
+    },
+    {
+      "file": "help_support_api.php",
+      "ok": true
+    },
+    {
+      "file": "ierb_api.php",
+      "ok": true
+    },
+    {
+      "file": "ierbprog.php",
+      "ok": true
+    },
+    {
+      "file": "includes/academic_catalog.php",
+      "ok": true
+    },
+    {
+      "file": "includes/account_identity.php",
+      "ok": true
+    },
+    {
+      "file": "includes/account_lifecycle.php",
+      "ok": true
+    },
+    {
+      "file": "includes/account_lifecycle_schema.php",
+      "ok": true
+    },
+    {
+      "file": "includes/account_onboarding.php",
+      "ok": true
+    },
+    {
+      "file": "includes/account_purge_files.php",
+      "ok": true
+    },
+    {
+      "file": "includes/account_retention.php",
+      "ok": true
+    },
+    {
+      "file": "includes/account_retention_bulk.php",
+      "ok": true
+    },
+    {
+      "file": "includes/assets.php",
+      "ok": true
+    },
+    {
+      "file": "includes/calendar_deadlines.php",
+      "ok": true
+    },
+    {
+      "file": "includes/ceu_footer.php",
+      "ok": true
+    },
+    {
+      "file": "includes/csv_export.php",
+      "ok": true
+    },
+    {
+      "file": "includes/current_workflow_eligibility.php",
+      "ok": true
+    },
+    {
+      "file": "includes/document_catalog.php",
+      "ok": true
+    },
+    {
+      "file": "includes/document_catalog_client.php",
+      "ok": true
+    },
+    {
+      "file": "includes/document_management.php",
+      "ok": true
+    },
+    {
+      "file": "includes/document_management_actions.php",
+      "ok": true
+    },
+    {
+      "file": "includes/document_summary.php",
+      "ok": true
+    },
+    {
+      "file": "includes/document_summary_actions.php",
+      "ok": true
+    },
+    {
+      "file": "includes/document_summary_ai.php",
+      "ok": true
+    },
+    {
+      "file": "includes/document_upload.php",
+      "ok": true
+    },
+    {
+      "file": "includes/document_workflow.php",
+      "ok": true
+    },
+    {
+      "file": "includes/email_format.php",
+      "ok": true
+    },
+    {
+      "file": "includes/frontend_styles.php",
+      "ok": true
+    },
+    {
+      "file": "includes/help_support.php",
+      "ok": true
+    },
+    {
+      "file": "includes/help_support_modal.php",
+      "ok": true
+    },
+    {
+      "file": "includes/ierb_group_advancement.php",
+      "ok": true
+    },
+    {
+      "file": "includes/ierb_progress.php",
+      "ok": true
+    },
+    {
+      "file": "includes/ierb_stages.php",
+      "ok": true
+    },
+    {
+      "file": "includes/ierb_v14_requirements.php",
+      "ok": true
+    },
+    {
+      "file": "includes/ierb_v14_workflow.php",
+      "ok": true
+    },
+    {
+      "file": "includes/legal_header.php",
+      "ok": true
+    },
+    {
+      "file": "includes/legal_placeholders.php",
+      "ok": true
+    },
+    {
+      "file": "includes/legal_policy.php",
+      "ok": true
+    },
+    {
+      "file": "includes/notification_delivery.php",
+      "ok": true
+    },
+    {
+      "file": "includes/notification_lifecycle.php",
+      "ok": true
+    },
+    {
+      "file": "includes/notification_worker.php",
+      "ok": true
+    },
+    {
+      "file": "includes/office_container.php",
+      "ok": true
+    },
+    {
+      "file": "includes/pagination.php",
+      "ok": true
+    },
+    {
+      "file": "includes/prism-navigation.php",
+      "ok": true
+    },
+    {
+      "file": "includes/public_landing.php",
+      "ok": true
+    },
+    {
+      "file": "includes/public_legal.php",
+      "ok": true
+    },
+    {
+      "file": "includes/public_urls.php",
+      "ok": true
+    },
+    {
+      "file": "includes/record_filters.php",
+      "ok": true
+    },
+    {
+      "file": "includes/report_lifecycle.php",
+      "ok": true
+    },
+    {
+      "file": "includes/research_groups.php",
+      "ok": true
+    },
+    {
+      "file": "includes/research_project_advancement.php",
+      "ok": true
+    },
+    {
+      "file": "includes/research_projects.php",
+      "ok": true
+    },
+    {
+      "file": "includes/research_resources.php",
+      "ok": true
+    },
+    {
+      "file": "includes/runtime_preflight.php",
+      "ok": true
+    },
+    {
+      "file": "includes/schema_v10.php",
+      "ok": true
+    },
+    {
+      "file": "includes/schema_v11.php",
+      "ok": true
+    },
+    {
+      "file": "includes/schema_v12.php",
+      "ok": true
+    },
+    {
+      "file": "includes/schema_v13.php",
+      "ok": true
+    },
+    {
+      "file": "includes/session_browser.php",
+      "ok": true
+    },
+    {
+      "file": "includes/staff_registration.php",
+      "ok": true
+    },
+    {
+      "file": "includes/staff_registration_card.php",
+      "ok": true
+    },
+    {
+      "file": "includes/stage_configuration.php",
+      "ok": true
+    },
+    {
+      "file": "includes/student_activity.php",
+      "ok": true
+    },
+    {
+      "file": "includes/student_snapshot.php",
+      "ok": true
+    },
+    {
+      "file": "includes/summary_pdf_parser.php",
+      "ok": true
+    },
+    {
+      "file": "index.php",
+      "ok": true
+    },
+    {
+      "file": "legal_consent.php",
+      "ok": true
+    },
+    {
+      "file": "loading.php",
+      "ok": true
+    },
+    {
+      "file": "login.php",
+      "ok": true
+    },
+    {
+      "file": "login_admin.php",
+      "ok": true
+    },
+    {
+      "file": "login_adviser.php",
+      "ok": true
+    },
+    {
+      "file": "login_process.php",
+      "ok": true
+    },
+    {
+      "file": "login_students.php",
+      "ok": true
+    },
+    {
+      "file": "logout.php",
+      "ok": true
+    },
+    {
+      "file": "maintenance/ierb-group-tests/bootstrap.php",
+      "ok": true
+    },
+    {
+      "file": "maintenance/ierb-group-tests/fixture.php",
+      "ok": true
+    },
+    {
+      "file": "maintenance/ierb-group-tests/initialize.php",
+      "ok": true
+    },
+    {
+      "file": "maintenance/ierb-group-tests/mock-curl.php",
+      "ok": true
+    },
+    {
+      "file": "maintenance/ierb-group-tests/runtime.php",
+      "ok": true
+    },
+    {
+      "file": "maintenance/ierb-group-tests/seed.php",
+      "ok": true
+    },
+    {
+      "file": "maintenance/ierb-group-tests/shutdown.php",
+      "ok": true
+    },
+    {
+      "file": "maintenance/ierb-v14-tests/cases.php",
+      "ok": true
+    },
+    {
+      "file": "maintenance/ierb-v14-tests/documents-fixture.php",
+      "ok": true
+    },
+    {
+      "file": "maintenance/ierb-v14-tests/generate-contract.php",
+      "ok": true
+    },
+    {
+      "file": "maintenance/migrate-ierb-v14.php",
+      "ok": true
+    },
+    {
+      "file": "maintenance/migrate-research-projects.php",
+      "ok": true
+    },
+    {
+      "file": "maintenance/migrate-stage-guidance.php",
+      "ok": true
+    },
+    {
+      "file": "maintenance/notification-dispatch.php",
+      "ok": true
+    },
+    {
+      "file": "maintenance/reconcile-research-project.php",
+      "ok": true
+    },
+    {
+      "file": "maintenance/runtime-preflight.php",
+      "ok": true
+    },
+    {
+      "file": "maintenance\\ierb-project-tests\\fixture.php",
+      "ok": true
+    },
+    {
+      "file": "maintenance\\ierb-project-tests\\generate-contract.php",
+      "ok": true
+    },
+    {
+      "file": "maintenance\\ierb-project-tests\\migration-cases.php",
+      "ok": true
+    },
+    {
+      "file": "notifications_api.php",
+      "ok": true
+    },
+    {
+      "file": "privacy.php",
+      "ok": true
+    },
+    {
+      "file": "profile_api.php",
+      "ok": true
+    },
+    {
+      "file": "register.php",
+      "ok": true
+    },
+    {
+      "file": "register_process.php",
+      "ok": true
+    },
+    {
+      "file": "reports.php",
+      "ok": true
+    },
+    {
+      "file": "reports_api.php",
+      "ok": true
+    },
+    {
+      "file": "research_adviser.php",
+      "ok": true
+    },
+    {
+      "file": "reset_password.php",
+      "ok": true
+    },
+    {
+      "file": "role_portal.php",
+      "ok": true
+    },
+    {
+      "file": "security.php",
+      "ok": true
+    },
+    {
+      "file": "send_followup.php",
+      "ok": true
+    },
+    {
+      "file": "staff_registration_manage.php",
+      "ok": true
+    },
+    {
+      "file": "stage_labels_api.php",
+      "ok": true
+    },
+    {
+      "file": "student.php",
+      "ok": true
+    },
+    {
+      "file": "students_api.php",
+      "ok": true
+    },
+    {
+      "file": "terms.php",
+      "ok": true
+    },
+    {
+      "file": "update_password.php",
+      "ok": true
+    },
+    {
+      "file": "workflow.php",
+      "ok": true
+    }
+  ]
+}

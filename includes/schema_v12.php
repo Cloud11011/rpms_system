@@ -80,12 +80,18 @@ function schema_v12_definition(PDO $pdo, string $table): string
 }
 
 /** Validate exact base v11 plus any already-created canonical extension tables (DDL restart). */
-function schema_v12_verify(PDO $pdo, bool $partial = false): void
+function schema_v12_verify(PDO $pdo, bool $partial = false, array $projectTables = []): void
 {
     require_once __DIR__.'/account_lifecycle.php';
     $base = json_decode(file_get_contents(schema_v11_manifest_file()), true, 512, JSON_THROW_ON_ERROR);
     $extension = json_decode(file_get_contents(__DIR__.'/ierb_schema_v12.json'), true, 512, JSON_THROW_ON_ERROR);
     $actual = lifecycle_schema_inventory($pdo);
+    if ($projectTables) {
+        foreach (['tables','columns','indexes','foreign_keys'] as $kind) {
+            $actual[$kind] = array_values(array_filter($actual[$kind], static fn($r) => !in_array($r['TABLE_NAME'], $projectTables, true)));
+        }
+        if ($actual['schema_version'] === '13') $actual['schema_version'] = '12';
+    }
     $names = array_keys(schema_v12_tables());
     $present = array_values(array_intersect(array_column($actual['tables'], 'TABLE_NAME'), $names));
     // Partial DDL is legitimate only while the base is still v11. A published v12
@@ -103,6 +109,7 @@ function schema_v12_verify(PDO $pdo, bool $partial = false): void
     // Retain every frozen constraint check, adapting only exact counts for the reviewed additive tables.
     $checks = schema_v10_plan()['verify'];
     foreach ($checks as &$check) {
+        if ($projectTables && str_starts_with($check['message'], 'Exact v10 ')) $check['sql'] .= " AND TABLE_NAME NOT IN ('".implode("','", $projectTables)."')";
         if ($check['message'] === 'Exact v10 columns') $check['sql'] = str_replace('=240 ', '=241 ', $check['sql']);
         if (str_starts_with($check['message'], 'Exact v10 ')) {
             $check['sql'] .= " AND TABLE_NAME NOT IN ('ierb_workflows','ierb_correction_cases','ierb_workflow_events')";

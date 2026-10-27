@@ -188,6 +188,7 @@ if ($action === 'save') {
     $progressChangeText = '';
     try {
         $pdo->beginTransaction();
+        research_project_fence($pdo);
         if ($id===0) {
             current_workflow_actor($pdo,$user);
             if ($stage!=='Stage 1') throw new AccountLifecycleValidation('New records begin at Stage 1. Use a reasoned IERB correction after creation if needed.');
@@ -233,6 +234,8 @@ if ($action === 'save') {
             try {
                 $academic = academic_validate($data, $before);
                 $group = research_group_assignment($pdo, $user, $data, $academic, $before);
+                $canonical = research_project_for_student($pdo,$id,true);
+                if ($canonical && ($research !== $canonical['research_title'] || (int)$adviserId !== (int)$canonical['adviser_id'])) throw new InvalidArgumentException('Use canonical project administration to update the shared research title or Adviser assignment.');
             } catch (\InvalidArgumentException $e) {
                 $pdo->rollBack();
                 json_out(['ok' => false, 'message' => $e->getMessage()], 422);

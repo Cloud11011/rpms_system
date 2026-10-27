@@ -25,7 +25,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const $ = id => document.getElementById(id);
     const documentUiPreview = (document.body.dataset.prismAllowDemo==='1') && new URLSearchParams(window.location.search).get('ui-preview') === '1';
-    PrismUI.documentTypes.forEach(type => $('documentType').add(new Option(type, type)));
     const esc = v => String(v ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
     const fmt = value => {
         const date = value ? new Date(value) : null;
@@ -545,7 +544,7 @@ document.addEventListener('DOMContentLoaded', () => {
     function renderHistory() {
         if(loadErrors.progress||loadErrors.history)historyPager.error();else historyPager.render(historyState);
         $('progressHistory').innerHTML = loadErrors.progress || loadErrors.history ? empty('Unable to load progress history. Please try again.') : myHistory.length
-            ? myHistory.map(h => `<div class="list-item"><i class="fa-solid fa-circle" aria-hidden="true"></i><div><div class="progress-history-title"><strong>${esc(labelForStage(h.stage))}</strong><span class="progress-history-status ${/delay|pending|revision|return/i.test(h.status || '') ? 'is-attention' : ''}">${esc(h.status || 'On track')}</span></div><span class="progress-history-note">${esc(h.note || 'Updated by RPMS')}</span><span class="progress-history-meta">${esc(fmt(h.created_at))} · ${esc(h.actor || 'System')}</span></div></div>`).join('')
+            ? myHistory.map(h => `<div class="list-item"><i class="fa-solid fa-circle" aria-hidden="true"></i><div><div class="progress-history-title"><strong>${esc(h.stageLabel || labelForStage(h.stage))}</strong><span class="progress-history-status ${/delay|pending|revision|return/i.test(h.status || '') ? 'is-attention' : ''}">${esc(h.status || 'On track')}</span></div><span class="progress-history-note">${esc(h.note || 'Updated by RPMS')}</span><span class="progress-history-meta">${esc(fmt(h.created_at))} · ${esc(h.actor || 'System')}</span></div></div>`).join('')
             : empty('No progress history yet.');
     }
 
@@ -627,7 +626,7 @@ document.addEventListener('DOMContentLoaded', () => {
         $('submissionResearchTitle').textContent = myRecord?.research || 'Not recorded';
         $('submissionResearchGroup').textContent = myRecord?.groupId || 'Not recorded';
         $('submissionStudentId').textContent = myRecord?.studentId || 'Not recorded';
-        $('submissionStage').textContent = myRecord?.stageLabel || myRecord?.stage || 'Not recorded';
+        $('submissionStage').textContent = myRecord?.v14?.stageLabel || myRecord?.stageLabel || myRecord?.stage || 'Not recorded';
         $('submissionAdviser').textContent = myRecord?.adviser || 'Unassigned';
         $('submissionProtocol').textContent = myRecord?.protocolCode || 'No protocol code yet';
     }
@@ -712,134 +711,111 @@ document.addEventListener('DOMContentLoaded', () => {
     const cancelRevision = document.createElement('button'); cancelRevision.type='button'; cancelRevision.textContent='Cancel revision'; cancelRevision.className='action-btn'; cancelRevision.hidden=true;
     revisionNotice.after(cancelRevision);
     const submissionForm = $('submissionForm');
-    const submissionType = $('documentType');
     const submissionFile = $('documentFile');
     const submissionDropzone = $('submissionDropzone');
     const submissionNotes = $('documentNotes');
     const submissionButton = submissionForm.querySelector('[type="submit"]');
-    const maxUploadBytes = 20 * 1024 * 1024;
+    const queue = PrismUpload.createQueue();
+    let uploading = false;
+    const validType = entry => revisionDocument ? entry.type === revisionDocument.documentType : PrismUI.documentTypes.includes(entry.type);
+    const invalidFile = file => !/\.(pdf|docx)$/i.test(file.name) ? `${file.name} is not a PDF or DOCX file.`
+        : file.size > 20 * 1024 * 1024 ? `${file.name} is over the 20 MB file limit.` : file.size === 0 ? `${file.name} is empty.` : '';
 
     function updateSubmissionReadiness() {
-        const hasType = Boolean(submissionType.value);
-        const files = [...submissionFile.files];
-        const invalid = files.find(file => {
-            const extension = file.name.split('.').pop().toLowerCase();
-            return !['pdf', 'docx'].includes(extension) || file.size > maxUploadBytes;
-        });
-        const hasFiles = files.length > 0 && !invalid;
-        const fileSelection = $('uploadSelection');
-        const selectedTypes = PrismUpload.selectedTypes();
-        fileSelection.replaceChildren();
-        files.forEach((file, index) => {
+        const entries = queue.entries;
+        const hasFiles = entries.length > 0 && entries.every(e => !invalidFile(e.file));
+        const hasTypes = entries.length > 0 && entries.every(validType);
+        const uncertain = entries.some(e => e.uncertain);
+        const ready = hasFiles && hasTypes && !uncertain && !uploading;
+        $('submissionTypeReady').classList.toggle('is-ready', hasTypes);
+        $('submissionFileReady').classList.toggle('is-ready', hasFiles);
+        $('submissionStepFile').classList.toggle('is-done', ready);
+        $('submissionStepFile').classList.toggle('is-active', !ready);
+        $('submissionStepNotes').classList.toggle('is-active', ready);
+        submissionButton.disabled = !ready;
+        submissionButton.textContent = entries.length ? `Submit ${entries.length} ${entries.length === 1 ? 'document' : 'documents'} for review` : 'Submit for review';
+        const error = entries.map(e => invalidFile(e.file)).find(Boolean);
+        $('submissionSubmitHint').textContent = uncertain ? 'Check My Documents to reconcile the uncertain upload before retrying.'
+            : error || (!entries.length ? 'Add documents to continue.' : !hasTypes ? 'Choose a document type for every queued file.' : `${entries.length} documents ready for review. Earlier versions stay in history.`);
+        $('submissionSubmitHint').classList.toggle('has-error', Boolean(error || uncertain));
+        submissionDropzone.classList.toggle('has-file', hasFiles);
+        submissionDropzone.disabled = uploading; submissionFile.disabled = uploading; cancelRevision.disabled = uploading;
+        $('submissionNotesCount').textContent = `${submissionNotes.value.length} / 500`;
+    }
+    function renderQueue() {
+        const host = $('uploadSelection'); host.replaceChildren();
+        queue.entries.forEach((entry, index) => {
+            const file = entry.file;
             const card = document.createElement('div'); card.className = 'submission-file-card';
-            const badge = document.createElement('span'); badge.className = 'submission-file-badge';
-            badge.textContent = file.name.split('.').pop().toUpperCase();
+            const badge = document.createElement('span'); badge.className = 'submission-file-badge'; badge.textContent = file.name.split('.').pop().toUpperCase();
             const meta = document.createElement('span'); meta.className = 'submission-file-meta';
             const name = document.createElement('strong'); name.textContent = file.name;
-            const size = document.createElement('small'); size.textContent = file.size < 1024 * 1024
-                ? `${Math.ceil(file.size / 1024)} KB` : `${(file.size / (1024 * 1024)).toFixed(1)} MB`;
+            const size = document.createElement('small'); size.textContent = file.size < 1048576 ? `${Math.ceil(file.size / 1024)} KB` : `${(file.size / 1048576).toFixed(1)} MB`;
             meta.append(name, size);
-            const remove = document.createElement('button'); remove.type = 'button'; remove.className = 'submission-file-remove';
-            remove.setAttribute('aria-label', `Remove ${file.name}`); remove.textContent = 'Remove';
-            remove.addEventListener('click', () => {
-                const remaining = new DataTransfer();
-                [...submissionFile.files].forEach((selected, selectedIndex) => { if (selectedIndex !== index) remaining.items.add(selected); });
-                submissionFile.files = remaining.files;
-                submissionFile.dispatchEvent(new Event('change', { bubbles: true }));
-                submissionDropzone.focus();
-            });
-            const assignedType = selectedTypes.get(`${file.name}:${file.size}:${file.lastModified}`) || submissionType.value;
-            card.append(badge, meta, remove, PrismUpload.typeControl(file, index, assignedType, Boolean(revisionDocument))); fileSelection.append(card);
+            const remove = document.createElement('button'); remove.type = 'button'; remove.className = 'submission-file-remove'; remove.textContent = 'Remove';
+            remove.setAttribute('aria-label', `Remove ${file.name}`); remove.disabled = uploading;
+            remove.addEventListener('click', () => { queue.remove(entry.id); renderQueue(); submissionDropzone.focus(); });
+            const label = PrismUpload.typeControl(file, index, entry.type, Boolean(revisionDocument) || uploading);
+            const select = label.querySelector('select'); select.add(new Option('Select a document type', ''), 0); select.value = entry.type;
+            select.dataset.fileKey = entry.id;
+            select.addEventListener('change', () => { entry.type = select.value; updateSubmissionReadiness(); });
+            card.append(badge, meta, remove, label);
+            const message = invalidFile(file) || entry.error;
+            if (message) { const note = document.createElement('p'); note.className = 'upload-file-feedback'; note.textContent = message; card.append(note); }
+            if (entry.uncertain) {
+                const recover = document.createElement('button'); recover.type = 'button'; recover.className = 'action-btn'; recover.disabled = uploading;
+                recover.textContent = 'I checked My Documents; this file still needs uploading';
+                recover.addEventListener('click', () => { entry.uncertain = false; entry.error = ''; renderQueue(); }); card.append(recover);
+            }
+            host.append(card);
         });
-        $('submissionTypeReady').classList.toggle('is-ready', hasType);
-        $('submissionFileReady').classList.toggle('is-ready', hasFiles);
-        $('submissionStepType').classList.toggle('is-done', hasType);
-        $('submissionStepType').classList.toggle('is-active', !hasType);
-        $('submissionStepFile').classList.toggle('is-done', hasFiles);
-        $('submissionStepFile').classList.toggle('is-active', hasType && !hasFiles);
-        $('submissionStepNotes').classList.toggle('is-active', hasType && hasFiles);
-        submissionButton.disabled = !(hasType && hasFiles);
-
-        const hint = $('submissionSubmitHint');
-        if (invalid) {
-            hint.textContent = invalid.size > maxUploadBytes ? `${invalid.name} is over the 20 MB file limit.` : `${invalid.name} is not a PDF or DOCX file.`;
-            hint.classList.add('has-error');
-            $('uploadResults').textContent = hint.textContent;
-        } else {
-            hint.classList.remove('has-error');
-            hint.textContent = hasType && hasFiles ? 'Everything is ready. Submit your document for review.'
-                : !hasType ? 'Choose a document type to continue.' : 'Upload a file to continue.';
-        }
-
-        const previous = myRecord && hasType ? myDocuments.filter(doc => doc.documentType === submissionType.value && doc.stage === myRecord.stage) : [];
-        const latestVersion = previous.reduce((max, doc) => Math.max(max, Number(doc.versionNo) || 1), 0);
-        const versionNote = $('submissionVersionNote');
-        versionNote.hidden = !previous.length || Boolean(revisionDocument);
-        if (!versionNote.hidden) versionNote.textContent = `You've already submitted this for the current stage. This upload will be saved as version ${latestVersion + 1}; earlier versions stay in your history.`;
-
-        submissionDropzone.classList.toggle('has-file', hasFiles);
-        submissionNotes && ($('submissionNotesCount').textContent = `${submissionNotes.value.length} / 500`);
+        updateSubmissionReadiness();
     }
-
+    function addFiles(files) {
+        if (uploading) return;
+        const message = queue.add(Array.from(files), revisionDocument?.documentType);
+        submissionFile.value = ''; // Allows reselecting the same file after explicit removal.
+        if (message) PrismUpload.render({message});
+        renderQueue();
+    }
     function clearRevision() {
-        submissionType.querySelectorAll('[data-legacy-revision]').forEach(option=>option.remove());
-        revisionDocument=null; revisionNotice.hidden=true; cancelRevision.hidden=true;
-        submissionType.disabled=false; submissionFile.multiple=true; updateSubmissionReadiness();
+        revisionDocument = null; revisionNotice.hidden = true; cancelRevision.hidden = true;
+        submissionFile.multiple = true; queue.clear(); renderQueue();
     }
-    cancelRevision.addEventListener('click',clearRevision);
-    submissionType.addEventListener('change', updateSubmissionReadiness);
-    submissionFile.addEventListener('change', updateSubmissionReadiness);
+    cancelRevision.addEventListener('click', clearRevision);
+    submissionFile.addEventListener('change', () => addFiles(submissionFile.files));
     submissionNotes.addEventListener('input', updateSubmissionReadiness);
     submissionDropzone.addEventListener('click', () => submissionFile.click());
     submissionDropzone.addEventListener('dragover', event => { event.preventDefault(); submissionDropzone.classList.add('is-dragging'); });
     submissionDropzone.addEventListener('dragleave', () => submissionDropzone.classList.remove('is-dragging'));
-    submissionDropzone.addEventListener('drop', event => {
-        event.preventDefault(); submissionDropzone.classList.remove('is-dragging');
-        if (!event.dataTransfer?.files?.length) return;
-        submissionFile.files = event.dataTransfer.files;
-        submissionFile.dispatchEvent(new Event('change', { bubbles: true }));
+    submissionDropzone.addEventListener('drop', event => { event.preventDefault(); submissionDropzone.classList.remove('is-dragging'); addFiles(event.dataTransfer?.files || []); });
+    document.addEventListener('prism:upload-revision', event => {
+        const doc = event.detail; if (!doc?.actions?.uploadRevision || uploading) return;
+        queue.clear(); revisionDocument = doc; submissionFile.multiple = false;
+        revisionNotice.textContent = `Upload one NEW revision of ${doc.originalName} (version ${doc.versionNo}, ${doc.stageLabel || doc.stage}). Its original category is locked. The earlier file and history will be kept. ${doc.rpmsReturnReason || doc.reviewRemarks || ''}`;
+        const guidance = document.createElement('button'); guidance.type = 'button'; guidance.className = 'prism-btn is-secondary'; guidance.textContent = 'Read original-stage guidance';
+        guidance.addEventListener('click', () => PrismUI.showStageGuidance(doc.stage)); revisionNotice.append(document.createElement('br'), guidance);
+        revisionNotice.hidden = false; cancelRevision.hidden = false; renderQueue(); submissionFile.focus();
     });
-    document.addEventListener('prism:upload-revision',event=>{
-        const doc=event.detail; if(!doc?.actions?.uploadRevision)return;
-        submissionType.querySelectorAll('[data-legacy-revision]').forEach(option=>option.remove());
-        if(![...submissionType.options].some(option=>option.value===doc.documentType)){const option=new Option(doc.documentType,doc.documentType);option.dataset.legacyRevision='1';submissionType.add(option);}
-        revisionDocument=doc; $('documentType').value=doc.documentType; $('documentType').disabled=true; $('documentFile').multiple=false;
-        revisionNotice.textContent=`Upload a NEW revision of ${doc.originalName} (version ${doc.versionNo}, ${doc.stageLabel || doc.stage}). The submitted file and history will be kept. ${doc.rpmsReturnReason || doc.reviewRemarks || ''}`;
-        const originalGuidance=document.createElement('button');originalGuidance.type='button';originalGuidance.className='prism-btn is-secondary';originalGuidance.textContent='Read original-stage guidance';originalGuidance.addEventListener('click',()=>PrismUI.showStageGuidance(doc.stage));revisionNotice.append(document.createElement('br'),originalGuidance);
-        revisionNotice.hidden=false; cancelRevision.hidden=false; updateSubmissionReadiness(); $('documentFile').focus();
-    });
-    updateSubmissionReadiness();
-    $('submissionForm').addEventListener('submit', async event => {
-        event.preventDefault();
-        const files = $('documentFile').files;
-        if (!files.length) { toast('Please choose files.'); return; }
-        const formData = new FormData();
-        Array.from(files).forEach(file => formData.append('document[]', file));
-        PrismUpload.prepare(formData, files.length);
-        formData.append('documentType', $('documentType').value);
-        if(revisionDocument)formData.append('revisionOf',revisionDocument.id);
-        formData.append('stage', myRecord?.stage || 'Stage 1');
-        formData.append('notes', $('documentNotes').value.trim());
-
-        const submitBtn = event.target.querySelector('[type="submit"]');
-        const release = PrismUI.busy(submitBtn,'Uploading...');
-        if(!release)return;
+    renderQueue();
+    submissionForm.addEventListener('submit', async event => {
+        event.preventDefault(); updateSubmissionReadiness(); if (submissionButton.disabled) return;
+        const sent = [...queue.entries];
+        const formData = queue.payload({stage: myRecord?.legacyStage || myRecord?.stage || 'Stage 1', notes: submissionNotes.value.trim(), ...(revisionDocument ? {revisionOf: revisionDocument.id} : {})});
+        const release = PrismUI.busy(submissionButton, 'Uploading...'); if (!release) return;
+        uploading = true; renderQueue();
         try {
-            const data = await PrismUI.request('documents_api.php?action=upload', { method: 'POST', body: formData });
-            event.target.reset();
-            clearRevision();
-            await refreshAll();
-            $('uploadSelection').textContent='';
-            PrismUpload.render(data);
+            const data = await PrismUI.request('documents_api.php?action=upload', {method: 'POST', body: formData});
+            queue.settle(sent, data);
+            if (!queue.entries.length) { submissionForm.reset(); clearRevision(); }
+            PrismUpload.render({...data, message: data.message + (queue.entries.length ? ' Successfully uploaded files were removed from the queue. Remaining files keep their document types.' : '')});
             toast(data.message);
         } catch (e) {
-            $('documentFile').value='';$('uploadSelection').textContent='';
-            PrismUpload.render(e.data||{message:e.message+' Check Documents before selecting files again; some uploads may have completed.'});
-            await refreshAll();
+            queue.settle(sent, e.data);
+            PrismUpload.render(e.data || {message: e.message + ' Check My Documents before retrying; the queue has been retained.'});
             toast(e.message);
         } finally {
-            release();
-            updateSubmissionReadiness();
+            uploading = false; release(); renderQueue(); await refreshAll();
         }
     });
 

@@ -7,7 +7,7 @@ function pdf() {
 }
 module.exports = async h => {
   const {sql,check,post,response,expect,generation,sessions:s,base,root,php,playwright}=h;
-  const start=h.checks.length, helper=path.join(__dirname,'documents-fixture.php'), evidence=path.join(root,'PRISM_V14_BATCH_02_EVIDENCE');fs.mkdirSync(evidence,{recursive:true});
+  const start=h.checks.length, helper=path.join(__dirname,'documents-fixture.php'), evidence=path.resolve(process.env.PRISM_TEST_EVIDENCE_DIR||path.join(root,'PRISM_V14_BATCH_02_EVIDENCE'));fs.mkdirSync(evidence,{recursive:true});
   const guideKeys = ['admin.admin|1','student.Student|S4'].map(value=>{
     const dot=value.indexOf('.');return `prismTour.${value.slice(0,dot)}.${crypto.createHash('sha256').update(value.slice(dot+1)).digest('hex')}.v1`;
   });
@@ -28,9 +28,13 @@ module.exports = async h => {
   };
   const review=async id=>expect(post(s.adviser,'review',{id,status:'Approved',remarks:'Synthetic Batch2 Adviser approval'},'documents_api.php'),200,'Adviser approves and automatically submits current '+id);
   const accept=async(key,id,status=200,extra={})=>expect(post(s.admin,'accept_requirement',{studentId:4,requirementKey:key,documentId:id,revision:rev(),reason:'Synthetic RPMS requirement acceptance',requestKey:crypto.randomUUID(),...extra},'documents_api.php'),status,`RPMS acceptance ${key}: expected ${status}`);
+  const projectTests=process.env.PRISM_TEST_PROJECT_GROUP==='1' ? require('../ierb-project-tests/projects.cjs')({...h,cli,worker,state,rev,checklist,pdf}) : async()=>{};
   let browser;
   try {
     check(cli({action:'enroll'}).ok,'Batch2 explicitly enrolls only the selected synthetic submission holder');
+    await projectTests('migration');
+    check(cli({action:'project'}).ok,'Batch3 explicitly maps the regression holder to a canonical singleton project');
+    await projectTests('setup');
     check(initial.length===13,'Exactly the approved 13 Initial Submission requirements');
     let list=await checklist();check(list.body.requirements.filter(r=>r.stage==='initial_submission').every(r=>r.state==='Missing'),'Missing requirements never count as accepted');
     check(!sql('SELECT id FROM ierb_workflows WHERE student_id=5').length,'Project partner is not implicitly enrolled');
@@ -88,7 +92,9 @@ module.exports = async h => {
     const results=racers.map(JSON.parse);check(results.every(r=>r.ok)&&results.some(r=>r.result.replayed),'Concurrent identical RPMS acceptances replay one committed result');
     check(!cli({...payload,key:'batch2-stale-revision-request'}).ok,'Concurrent acceptance with a different request key rejects the stale revision');
     check(!cli({...payload,documentId:docs.cv}).ok,'Acceptance request key cannot be reused for a different document');
-    check(state().stage_key==='approval_data_gathering'&&sql("SELECT id FROM ierb_workflow_events WHERE event_key='initial_requirements_accepted'").length===1,'All 13 accepted requirements advance once and skip conditional Stage 2');
+    check(state().stage_key==='initial_submission'&&sql("SELECT id FROM ierb_workflow_events WHERE event_key='initial_requirements_accepted'").length===0,'All 13 accepted requirements establish eligibility without automatic advancement');
+    if(process.env.PRISM_TEST_PROJECT_GROUP==='1')await projectTests('ready',docs);
+    else check(cli({action:'advance'}).ok && state().stage_key==='approval_data_gathering','Authorized RPMS preview and confirmation advance the eligible project once');
     list=await checklist();check(list.body.requirements.filter(r=>r.stage==='initial_submission').every(r=>r.state==='Accepted'&&r.acceptanceEventId),'Every Accepted checklist state has durable version-bound evidence');
     for(const role of ['student','adviser'])check(JSON.stringify((await checklist(s[role])).body.requirements.map(r=>[r.key,r.state,r.versionNo,r.acceptanceEventId]))===JSON.stringify(list.body.requirements.map(r=>[r.key,r.state,r.versionNo,r.acceptanceEventId])),role+' uses identical authoritative checklist states');
     check(!(await checklist(s.student)).body.requirements.some(r=>r.canAccept),'Student checklist has no acceptance controls');
@@ -175,7 +181,6 @@ module.exports = async h => {
     const page=await studentCtx.newPage();page.on('pageerror',e=>errors.push(String(e)));
     await page.goto(base+'/role_portal.php#submit');
     await page.evaluate(()=>document.querySelectorAll('.prism-tour-dialog').forEach(d=>d.close()));
-    await page.locator('#documentType').selectOption('Other Supporting Document');
     await page.locator('#documentFile').setInputFiles([{name:'first.pdf',mimeType:'application/pdf',buffer:pdf()},{name:'second.pdf',mimeType:'application/pdf',buffer:pdf()}]);
     await page.locator('[data-upload-type]').first().selectOption('Curriculum Vitae');await page.locator('[data-upload-type]').nth(1).selectOption('Payment Receipt');
     check((await page.locator('[data-upload-type]').evaluateAll(nodes=>nodes.map(n=>n.value))).join('|')==='Curriculum Vitae|Payment Receipt','Student UI assigns a different type to every selected file');
@@ -183,7 +188,10 @@ module.exports = async h => {
     check((await page.locator('[data-upload-type]').evaluateAll(nodes=>nodes.map(n=>n.value))).join('|')==='Curriculum Vitae|Payment Receipt','Per-file assignments survive readiness rerenders');
     check((await page.locator('#currentStage').textContent())==='Approval of Data Gathering','Student official stage uses its explicit V14 summary');
     check((await page.locator('.stage-card').nth(1).textContent()).includes('Conditional'),'Student view never presents conditional Stage 2 as a completed progress milestone');
-    await studentCtx.close();check(!errors.length,'New browser checklist and per-file category controls have no JavaScript errors');
+    await studentCtx.close();
+    await require('../ierb-project-tests/uploads.cjs')({...h,browser,pdf,guideKeys});
+    check(!errors.length,'New browser checklist and per-file category controls have no JavaScript errors');
+    await projectTests('beforeCompletion',docs);
     // Fault injection must roll back approval, formal submission, stage, history and queued notices.
     const before=()=>JSON.stringify({workflow:state(),doc:sql('SELECT * FROM documents WHERE id=?',[docs.final_report]),events:sql('SELECT * FROM ierb_workflow_events'),notices:sql('SELECT COUNT(*) n FROM notifications'),history:sql('SELECT COUNT(*) n FROM ierb_history')});
     for(const [trigger,table,condition] of [['batch2_completion_fault','ierb_workflow_events',"NEW.event_key='final_report_submitted'"],['batch2_submission_fault','activity_logs',"NEW.action='document_submitted_to_rpms'"]]){
@@ -204,6 +212,7 @@ module.exports = async h => {
     await expect(post(s.admin,'return_for_revision',{id:docs.form33,reason:'Synthetic attempt to invalidate terminal completion evidence.'},'documents_api.php'),409,'Terminal completion retains its accepted earlier-stage evidence');
     const legacy=sql('SELECT stage FROM students WHERE id=4')[0];check(legacy.stage!=='Completed','V14 completion preserves the legacy stage snapshot and separation');
     check(!sql("SELECT id FROM ierb_workflow_events WHERE event_key='requirement_accepted' AND JSON_UNQUOTE(JSON_EXTRACT(evidence_json,'$.requirementKey'))='final_report'").length,'Final Report completion requires no additional RPMS acceptance event');
+    await projectTests('completed',docs);
     const completion=sql("SELECT workflow_id,revision,event_key,from_stage,to_stage,actor_user_id,evidence_json,request_key,created_at FROM ierb_workflow_events WHERE event_key='final_report_submitted'")[0];
     completion.evidence=JSON.parse(completion.evidence_json);delete completion.evidence_json;
     fs.writeFileSync(path.join(evidence,'final-report-completion.json'),JSON.stringify({scope:'Synthetic fixture only',workflow:state(),
@@ -213,6 +222,7 @@ module.exports = async h => {
     fs.writeFileSync(path.join(evidence,'document-tests.json'),JSON.stringify({status:'PASS',assertions:h.checks.length-start,cases:h.checks.slice(start),scope:'Datadir-verified isolated MariaDB; real PHP HTTP sessions and Chromium; no external delivery'},null,2)+'\n');
   } finally {
     if(browser)await browser.close();fs.writeFileSync(path.join(h.review,'sandbox/provider-scenario.txt'),'success');
+    await projectTests('cleanup');
     check(cli({action:'cleanup'}).ok,'Remove only explicit Batch2 synthetic workflows and document rows after evidence capture');
   }
 };
