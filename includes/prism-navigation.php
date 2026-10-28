@@ -42,6 +42,7 @@ if ($authUser['role'] === 'adviser'):
 </div>
 </nav>
 <div class="portal-nav-right">
+<span class="prism-role-chip" data-prism-role="adviser"><i class="fa-solid fa-chalkboard-user" aria-hidden="true"></i><span class="prism-role-chip-text">Adviser portal</span></span>
 <button class="portal-help" type="button" data-prism-tour aria-label="Quick tour" title="Quick tour"><i class="fa-regular fa-circle-question" aria-hidden="true"></i></button><a class="portal-notification" href="admin_notifications.php" aria-label="Notifications" title="Notifications" <?= ($prismCurrentPage ?? '') === 'admin_notifications.php' ? 'aria-current="page"' : '' ?>><i class="fa-solid fa-bell" aria-hidden="true"></i></a>
 <div class="prism-account-menu">
 <button class="portal-profile-btn" data-prism-account-toggle type="button" aria-expanded="false" aria-controls="prismAccountLinks" aria-label="Adviser account menu"><img src="assets/images/default-avatar.svg" alt=""><span><strong><?= $prismNavEscape($authUser['full_name'] ?? '') ?></strong><small>Research Adviser</small></span><i class="fa-solid fa-chevron-down" aria-hidden="true"></i></button>

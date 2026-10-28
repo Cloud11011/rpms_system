@@ -1,0 +1,107 @@
+{
+  "note": "Exploratory and failed runs are disclosed here and are not counted as acceptance passes.",
+  "failures": [
+    {
+      "n": 1,
+      "category": "environment",
+      "observed": "Fixture MariaDB started through a child PowerShell was terminated when that shell exited; runner reported connection refused.",
+      "resolution": "Restarted the existing verified datadir as a persistent background process. No data loss; schema check passed."
+    },
+    {
+      "n": 2,
+      "category": "test assumption",
+      "observed": "Batch 6 fixture used program key bs_computer_science, which is a seeded legacy value but not in the academic catalog (422).",
+      "resolution": "Use catalog program bsit (unit amt, 4 years)."
+    },
+    {
+      "n": 3,
+      "category": "test assumption",
+      "observed": "IERB entry creation sent group \"\" which overrides groupId; server correctly requires a group for new IERB records.",
+      "resolution": "Send __create__ on schemas 11-12; on 13+ verify Save stays disabled without a group (creation path intentionally unavailable)."
+    },
+    {
+      "n": 4,
+      "category": "test assumption",
+      "observed": "Legacy-ID save used seeded Student 5, whose stored group fails cohort validation independently of the ID rule.",
+      "resolution": "Model a historical record precisely: set an alphanumeric ID on a Batch 6 fixture Student, then verify unchanged-ID save succeeds and a changed alphanumeric ID is rejected."
+    },
+    {
+      "n": 5,
+      "category": "test harness",
+      "observed": "Admin hover sidebar backdrop intercepted clicks.",
+      "resolution": "Dismiss the sidebar like existing suites (pointer move + Escape)."
+    },
+    {
+      "n": 6,
+      "category": "test expectation",
+      "observed": "Blocked-letter message was cleared by the next valid keystroke, by design.",
+      "resolution": "Assert the message immediately after the rejected characters, then assert digits-only result."
+    },
+    {
+      "n": 7,
+      "category": "test harness",
+      "observed": "Page-level selection wait timed out (row checkbox count differed from assumption).",
+      "resolution": "Select the two synthetic documents explicitly and wait for the selected count."
+    },
+    {
+      "n": 8,
+      "category": "test harness",
+      "observed": "Row action menu item intermittently not visible while the list re-rendered after search.",
+      "resolution": "Shared helper waits for the list to settle and retries opening the menu."
+    },
+    {
+      "n": 9,
+      "category": "product defect (fixed)",
+      "observed": "Gate refresh re-ran Student ID validation and cleared the transient blocked-paste/blocked-key notice.",
+      "resolution": "Messages have a kind; validation refresh never clears a notice; the next user edit does."
+    },
+    {
+      "n": 10,
+      "category": "product defect (fixed)",
+      "observed": "Dark-theme navigation rule out-specified the Adviser accent, so Student and Adviser active links matched in dark mode.",
+      "resolution": "Added html.dark-theme scoped role-accent rules."
+    },
+    {
+      "n": 11,
+      "category": "design adjustment",
+      "observed": "Top-border role accent was overridden in dark mode and drew an arc on the pill-shaped navbar.",
+      "resolution": "Removed the border accent; role is conveyed by the active link color, role chip text/icon and hero gradient."
+    },
+    {
+      "n": 12,
+      "category": "environment",
+      "observed": "Repeated exploratory runs exhausted the synthetic sandbox login limiter (60 per 15 min per IP), producing 401 in the base runner.",
+      "resolution": "Cleared counters in the synthetic sandbox storage only before each run; product limiter unchanged."
+    },
+    {
+      "n": 13,
+      "category": "product defect (fixed)",
+      "observed": "Required asterisk rendered on its own line in labels laid out as grid/flex columns (academic selects).",
+      "resolution": "Marker joins a wrapper around the label text that precedes the control."
+    },
+    {
+      "n": 14,
+      "category": "product defect (fixed)",
+      "observed": "Role chip was hidden below 600px and the profile button shows only initials, removing the non-color role cue on phones.",
+      "resolution": "Icon-only chip on phones with distinct icon shapes; text kept for screen readers; asserted at 390px."
+    },
+    {
+      "n": 15,
+      "category": "product defect (fixed)",
+      "observed": "Single-document deletion dialog stretched almost full width on the Documents page at desktop widths.",
+      "resolution": "Constrained to min(560px, 100vw - 32px)."
+    },
+    {
+      "n": 16,
+      "category": "prior-batch harness (fixed)",
+      "observed": "Final chain attempt 1: Batch 5 suite failed (\"Formally submitted but unaccepted document is not counted as Accepted\") because its own earlier run left 12 synthetic document_returned_for_revision audits for batch5-order-a (written 08:12, before this session) and never removed them. Reproduced on an isolated re-run; diagnostic showed state Returned for Revision.",
+      "resolution": "Batch 5 module now removes only its own batch5-order-* synthetic audits before and after use, and honors PRISM_TEST_EVIDENCE_DIR (it previously overwrote PRISM_V14_BATCH_05_EVIDENCE). Chain resumed from the Batch 5 step."
+    },
+    {
+      "n": 17,
+      "category": "test harness",
+      "observed": "The shared documents-fixture cleanup rolls schema 13 back, which would break a schema-15 Batch 6 run.",
+      "resolution": "Batch 6 removes only its own enrollment rows and never changes the fixture schema."
+    }
+  ]
+}

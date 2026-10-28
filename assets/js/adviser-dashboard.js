@@ -115,10 +115,9 @@ document.addEventListener('DOMContentLoaded', () => {
         catch(error){PrismUI.toast(error.message,'error');}
     }
     async function deleteDocument(doc) {
-        const answer=await PrismUI.confirm({title:'Delete document',icon:'fa-trash',tone:'danger',confirmText:'Delete',message:`Delete “${doc.originalName}”? This cannot be undone.`,reasonLabel:'',reasonRequired:false});
-        if(!answer)return;
-        try{const data=await PrismUI.postJson('documents_api.php?action=delete',{id:doc.id,reason:''});await reload();PrismUI.toast(data.message||'Document deleted.','success');}
-        catch(error){PrismUI.toast(error.message,'error');}
+        const data=await PrismUI.confirmDocumentDelete(doc);
+        if(!data)return;
+        await reload();PrismUI.toast(data.message||'Document deleted.','success');
     }
     function renderQueue() {
         if (queueState !== 'ready') return;

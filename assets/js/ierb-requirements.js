@@ -28,7 +28,7 @@
           button.onclick = async () => {
             const pending = PrismUI.confirm({ title: 'Accept RPMS requirement', confirmText: 'Accept current version', reasonLabel: 'RPMS acceptance reason', reasonRequired: true, minReason: 5,
               message: `Accept ${row.label} version ${row.versionNo} for this project submission?`,
-              ...(row.key === 'form33' ? { extraHtml: '<label for="institutionalApprovalReference">Institutional approval reference</label><textarea id="institutionalApprovalReference" required minlength="5" maxlength="1000"></textarea>',
+              ...(row.key === 'form33' ? { extraHtml: '<label for="institutionalApprovalReference">Institutional approval reference</label><textarea id="institutionalApprovalReference" required minlength="5" maxlength="1000" placeholder="Enter the institutional approval reference"></textarea>',
                 collect: dialog => ({ reference: dialog.querySelector('#institutionalApprovalReference').value }),
                 validate: values => values.reference.trim().length < 5 ? 'Provide the institutional approval reference.' : null } : {}) });
             const dialog = host.closest('dialog'); const overlay = document.querySelector('.prism-overlay');

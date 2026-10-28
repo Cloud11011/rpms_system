@@ -1,0 +1,154 @@
+/* PRISM Batch 6: shared form, action-button and role-accent presentation.
+   Loaded after page styles by includes/frontend_styles.php; tokens come from prism-tokens.css. */
+:root {
+  --prism-required: #c62828;
+  --prism-placeholder: #687089;
+  --prism-readonly-bg: #f1f3f8;
+  --prism-readonly-border: #cfd5e1;
+  --prism-disabled-bg: #e9ecf2;
+  --prism-disabled-fg: #5a6275;
+  --prism-disabled-border: #c9cfdb;
+  --prism-role-accent: var(--prism-primary);
+  --prism-role-accent-hover: var(--prism-primary-hover);
+  --prism-role-text: #b5146e;
+  --prism-role-soft: rgba(181, 20, 110, .08);
+}
+html.dark-theme {
+  --prism-required: #ff8a8a;
+  --prism-placeholder: #a3a8bf;
+  --prism-readonly-bg: #23253a;
+  --prism-readonly-border: #45486a;
+  --prism-disabled-bg: #2a2c40;
+  --prism-disabled-fg: #b3b7cb;
+  --prism-disabled-border: #4a4d68;
+  --prism-role-text: #ff8dc3;
+  --prism-role-soft: rgba(246, 82, 150, .12);
+}
+
+/* ------------------------------------------------------------- required markers */
+.prism-required-mark {
+  display: inline; margin-left: .2em; color: var(--prism-required);
+  font-weight: 700; font-style: normal; text-decoration: none;
+}
+.prism-required-legend { margin: 0 0 var(--prism-space-3); color: var(--prism-muted); font-size: var(--prism-font-label); }
+.prism-required-legend .prism-required-mark { margin: 0 .15em 0 0; }
+
+/* ------------------------------------------------------------- field feedback */
+.prism-field-message {
+  display: block; margin: 4px 0 0; color: var(--prism-danger-fg);
+  font-size: var(--prism-font-label); font-weight: 500; line-height: 1.4; white-space: normal; overflow-wrap: anywhere;
+}
+.prism-field-message[hidden] { display: none; }
+.prism-field-message[data-tone=info] { color: var(--prism-muted); }
+.prism-gate-status {
+  flex-basis: 100%; margin: 8px 0 0; color: var(--prism-muted);
+  font-size: var(--prism-font-label); line-height: 1.4; overflow-wrap: anywhere;
+}
+.prism-gate-status[hidden] { display: none; }
+:is(input,textarea)[aria-invalid=true] { border-color: var(--prism-danger-solid) !important; }
+
+/* ------------------------------------------------------------- placeholders and focus */
+body :is(input,textarea)::placeholder { color: var(--prism-placeholder); opacity: 1; }
+body:is(.prism-workspace,.unified-login,.help-support-page,.public-legal-page) :is(input,select,textarea):focus-visible {
+  outline: 2px solid var(--prism-focus); outline-offset: 1px;
+}
+body:is(.prism-workspace,.unified-login,.help-support-page,.public-legal-page) :is(button,[role=button],a.prism-btn):focus-visible {
+  outline: 3px solid var(--prism-focus); outline-offset: 2px;
+}
+
+/* Read-only institutional values look different from editable fields. */
+body.prism-workspace :is(.account-form,.form-grid,.management-form-grid,.ierb-entry-grid) :is(input,textarea)[readonly] {
+  background: var(--prism-readonly-bg) !important; border-style: dashed !important;
+  border-color: var(--prism-readonly-border) !important; color: var(--prism-text); cursor: default;
+}
+.prism-readonly-note { display: block; margin-top: 2px; color: var(--prism-muted); font-size: var(--prism-font-micro); font-weight: 600; letter-spacing: .02em; text-transform: uppercase; }
+
+/* ------------------------------------------------------------- action buttons */
+/* Secondary: Cancel / Close / Back buttons that previously had no class. */
+body.prism-workspace :is(.management-actions,.ierb-modal-actions,.document-modal-actions,.lifecycle-dialog .management-actions) > button:not([class]),
+body.prism-workspace :is(#cancelRecord,#cancelInvite,#cancelPermanentDelete,#cancelBulkDelete) {
+  display: inline-flex; align-items: center; justify-content: center; gap: var(--prism-space-2);
+  min-height: var(--prism-control-height); padding: 10px 16px; box-sizing: border-box;
+  border: 1px solid var(--prism-neutral-border); border-radius: var(--prism-radius-control);
+  background: var(--prism-card); color: var(--prism-text);
+  font: 600 var(--prism-font-body)/1.4 var(--prism-font-family); cursor: pointer;
+}
+body.prism-workspace :is(.management-actions,.ierb-modal-actions,.document-modal-actions) > button:not([class]):hover:not(:disabled) { background: var(--prism-surface-2); }
+
+/* Destructive: one solid treatment for Delete / Permanently Delete confirmations. */
+body.prism-workspace :is(.document-danger,.lifecycle-danger,.prism-btn.is-danger,.prism-btn.prism-btn-danger) {
+  background: var(--prism-danger-solid) !important; border-color: var(--prism-danger-solid) !important; color: #fff !important;
+}
+body.prism-workspace :is(.document-danger,.lifecycle-danger,.prism-btn.is-danger,.prism-btn.prism-btn-danger):hover:not(:disabled) {
+  background: var(--prism-danger-hover) !important; border-color: var(--prism-danger-hover) !important;
+}
+
+/* Disabled actions remain legible but clearly unavailable (not merely faded brand colors). */
+body:is(.prism-workspace,.unified-login,.help-support-page) :is(button,input[type=submit]):disabled:not(.prism-filter-pill):not(.toggle-password):not([class*=icon]):not(.theme-toggle):is(
+  [type=submit],.management-primary,.doc-primary,.ierb-primary,.setup-btn,.primary-btn,.prism-btn.is-primary,.prism-btn.is-danger,.document-danger,.lifecycle-danger,.save-task) {
+  background: var(--prism-disabled-bg) !important; border-color: var(--prism-disabled-border) !important;
+  color: var(--prism-disabled-fg) !important; box-shadow: none !important; opacity: 1 !important; cursor: not-allowed; transform: none !important;
+}
+:is(button,input[type=submit])[aria-busy=true]:disabled { cursor: progress !important; }
+
+/* ------------------------------------------------------------- deletion review */
+.prism-delete-review { display: grid; grid-template-columns: minmax(0, max-content) minmax(0, 1fr); gap: 6px 14px; margin: 12px 0; padding: 12px 14px;
+  border: 1px solid var(--prism-border); border-radius: var(--prism-radius-control); background: var(--prism-surface-2); }
+.prism-delete-review dt { color: var(--prism-muted); font-size: var(--prism-font-label); font-weight: 700; }
+.prism-delete-review dd { margin: 0; min-width: 0; color: var(--prism-text); font-weight: 600; overflow-wrap: anywhere; }
+.prism-delete-warning { margin: 8px 0 0; padding: 10px 12px; border-left: 4px solid var(--prism-danger-solid); border-radius: 6px;
+  background: var(--prism-danger-bg); color: var(--prism-danger-fg); font-weight: 600; }
+.prism-delete-list { max-height: min(42vh, 320px); margin: 8px 0; padding: 0; overflow: auto; list-style: none;
+  border: 1px solid var(--prism-border); border-radius: var(--prism-radius-control); }
+.prism-delete-list:focus-visible { outline: 2px solid var(--prism-focus); outline-offset: 2px; }
+.prism-delete-list li { display: grid; gap: 2px; padding: 8px 12px; border-bottom: 1px solid var(--prism-border); min-width: 0; }
+.prism-delete-list li:last-child { border-bottom: 0; }
+.prism-delete-list strong { overflow-wrap: anywhere; color: var(--prism-text); }
+.prism-delete-list span { color: var(--prism-muted); font-size: var(--prism-font-label); overflow-wrap: anywhere; }
+@media (max-width: 480px) { .prism-delete-review { grid-template-columns: minmax(0, 1fr); } .prism-delete-review dd { margin-bottom: 4px; } }
+
+/* ------------------------------------------------------------- Student / Adviser accents */
+body.portal-shell.student-page {
+  --prism-role-accent: #b5146e; --prism-role-accent-hover: #97105b; --prism-role-text: #b5146e; --prism-role-soft: rgba(181, 20, 110, .08);
+}
+body.portal-shell.adviser-page {
+  --prism-role-accent: #3d3a9c; --prism-role-accent-hover: #312e82; --prism-role-text: #3d3a9c; --prism-role-soft: rgba(61, 58, 156, .09);
+}
+html.dark-theme body.portal-shell.adviser-page { --prism-role-accent: #4b47b8; --prism-role-accent-hover: #403ca3; --prism-role-text: #b9b5ff; --prism-role-soft: rgba(146, 140, 255, .14); }
+html.dark-theme body.portal-shell.student-page { --prism-role-text: #ff8dc3; --prism-role-soft: rgba(246, 82, 150, .12); }
+
+body.portal-shell.adviser-page .portal-nav-links > a[aria-current=page],
+body.portal-shell.adviser-page .portal-nav-links .portal-dropdown-toggle[aria-current=page],
+body.portal-shell.student-page .portal-nav-links > li.active > button,
+html.dark-theme body.portal-shell.adviser-page .portal-nav-links > a[aria-current=page],
+html.dark-theme body.portal-shell.adviser-page .portal-nav-links .portal-dropdown-toggle[aria-current=page],
+html.dark-theme body.portal-shell.student-page .portal-nav-links > li.active > button {
+  background: var(--prism-role-accent) !important; box-shadow: 0 2px 10px color-mix(in srgb, var(--prism-role-accent) 40%, transparent) !important;
+}
+body.portal-shell.adviser-page .portal-nav-links > :is(a,button):hover,
+body.portal-shell.adviser-page .portal-nav-links .portal-dropdown-toggle:hover,
+html.dark-theme body.portal-shell.adviser-page .portal-nav-links > :is(a,button):hover,
+html.dark-theme body.portal-shell.adviser-page .portal-nav-links .portal-dropdown-toggle:hover {
+  color: var(--prism-role-text); background: var(--prism-role-soft);
+}
+body.portal-shell.adviser-page .prism-workspace-hero {
+  background: linear-gradient(110deg, #10133a, #1d2466, #33308f, #4b47b8, #33308f, #1d2466, #10133a) !important; background-size: 300% 100% !important;
+}
+body.portal-shell.adviser-page .prism-workspace-hero::before { background: rgba(130, 124, 255, .34) !important; }
+body.portal-shell :is(.portal-profile-btn) small { color: var(--prism-role-text); font-weight: 700; }
+
+.prism-role-chip {
+  display: inline-flex; align-items: center; gap: 6px; flex: 0 0 auto; min-height: 28px; padding: 3px 10px;
+  border: 1px solid color-mix(in srgb, var(--prism-role-accent) 45%, transparent); border-radius: 999px;
+  background: var(--prism-role-soft); color: var(--prism-role-text);
+  font: 700 11.5px/1.2 var(--prism-font-family); letter-spacing: .02em; white-space: nowrap;
+}
+.prism-role-chip i { font-size: 12px; }
+@media (max-width: 600px) {
+  /* Icon-only on phones: distinct icon shapes keep a non-color cue; the text stays available to screen readers. */
+  .prism-role-chip { justify-content: center; width: 30px; min-width: 30px; height: 30px; min-height: 30px; padding: 0; gap: 0; }
+  .prism-role-chip-text { position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
+}
+@media (prefers-reduced-motion: reduce) { .prism-required-mark, .prism-role-chip { transition: none; } }
+/* Single-document deletion stays a compact confirmation on wide screens. */
+body .prism-dialog.prism-document-delete-dialog { width: min(560px, calc(100vw - 32px)) !important; max-width: 560px !important; }

@@ -52,7 +52,7 @@ unset($_SESSION['error'], $_SESSION['success']);
 <?php if ($loginError): ?><div class="error-message<?= $loginError === 'Your session expired due to inactivity. Please sign in again.' ? ' session-expiry-notice' : '' ?>"><?php echo htmlspecialchars($loginError, ENT_QUOTES, 'UTF-8'); ?></div><?php endif; ?>
         <?php if ($loginSuccess): ?><div class="success-message"><?php echo htmlspecialchars($loginSuccess, ENT_QUOTES, 'UTF-8'); ?></div><?php endif; ?>
 
-        <form action="login_process.php" method="POST">
+        <form action="login_process.php" method="POST" data-prism-submit-once>
 
             <div class="input-group">
                 <label class="login-field-label" for="loginEmail">Email</label>
@@ -71,7 +71,7 @@ unset($_SESSION['error'], $_SESSION['success']);
                 <a href="forgot_password.php">Forgot Password?</a>
             </div>
 
-            <button type="submit">Log in</button>
+            <button type="submit" data-busy-label="Signing in...">Log in</button>
 
             <p class="login-account-note"><button class="login-access-info" type="button" aria-haspopup="dialog">Why is there no registration form?</button></p>
 

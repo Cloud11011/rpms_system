@@ -614,11 +614,73 @@ if ($action === 'versions') {
 }
 
 // ---------------------------------------------------------------------
+// delete_preview (admin/adviser, read-only): the authoritative record shown in the
+// deletion confirmation. It grants no deletion capability; `delete` revalidates everything.
+// ---------------------------------------------------------------------
+if ($action === 'delete_preview') {
+    api_require_login(['admin', 'adviser']);
+    if (!can_review_doc($user, $viewerAdviserId, $doc)) {
+        json_out(['ok' => false, 'message' => 'This student is assigned to another adviser. Only the assigned adviser or an RPMS administrator can delete this document.'], 403);
+    }
+    $protected = null;
+    try {
+        $pdo->beginTransaction();
+        try { ierb_v14_guard_document_delete($pdo, $doc); }
+        catch (DocumentWorkflowError $e) { $protected = $e->getMessage(); }
+        $pdo->commit();
+    } catch (Throwable $e) {
+        if ($pdo->inTransaction()) $pdo->rollBack();
+        log_api_error('document_delete_preview', $e->getMessage());
+        json_out(['ok' => false, 'message' => 'The deletion details could not be loaded. Refresh and try again.'], 500);
+    }
+    $record = null;
+    if (!empty($doc['student_id'])) {
+        $q = $pdo->prepare('SELECT full_name, research_title, protocol_code FROM students WHERE id = ?');
+        $q->execute([(int)$doc['student_id']]);
+        $record = $q->fetch(PDO::FETCH_ASSOC) ?: null;
+        $project = function_exists('research_project_for_student') ? research_project_for_student($pdo, (int)$doc['student_id']) : null;
+        if ($record && $project) {
+            $record['research_title'] = $project['research_title'];
+            $record['project_identifier'] = $project['public_identifier'] ?? null;
+        }
+    }
+    $restoresPrevious = $isCurrent && !empty($doc['supersedes_id']);
+    $blocked = $protected ?? (!empty($doc['archived_at']) ? 'Documents of archived Student records are retained.'
+        : ($locked && $user['role'] !== 'admin' ? 'Documents formally submitted to RPMS can only be deleted by an RPMS administrator.' : null));
+    json_out(['ok' => true, 'document' => [
+        'id' => $doc['id'],
+        'originalName' => (string)$doc['original_name'],
+        'documentType' => (string)$doc['document_type'],
+        'stageLabel' => stage_label($doc['stage']),
+        'versionNo' => (int)($doc['version_no'] ?? 1),
+        'isCurrent' => $isCurrent,
+        'uploadedBy' => trim((string)($doc['uploaded_by'] ?? '')) !== '' ? (string)$doc['uploaded_by'] : null,
+        'uploaderRole' => $doc['uploaded_by_role'] ?? null,
+        'uploadedAt' => $doc['uploaded_at'] ?? null,
+        'studentName' => $record['full_name'] ?? ($doc['student_name'] ?? null),
+        'researchTitle' => $record['research_title'] ?? null,
+        'projectIdentifier' => $record['project_identifier'] ?? null,
+        'protocolCode' => $record['protocol_code'] ?? null,
+        'locked' => $locked,
+        'requiresReason' => $locked,
+        'minReason' => (int)OVERRIDE_MIN_REASON_LENGTH,
+        'restoresPrevious' => $restoresPrevious,
+        'canDelete' => $blocked === null,
+        'blockedReason' => $blocked,
+        'expectedVersion' => document_selection_fingerprint($doc),
+    ]]);
+}
+
+// ---------------------------------------------------------------------
 // delete (admin/adviser). Formally submitted documents: admin only, with a reason.
 // ---------------------------------------------------------------------
 if ($action === 'delete') {
     api_require_login(['admin', 'adviser']);
     $reason = trim((string)($payload['reason'] ?? ''));
+    $expectedVersion = $payload['expectedVersion'] ?? null;
+    if ($expectedVersion !== null && (!is_string($expectedVersion) || !preg_match('/\A[a-f0-9]{64}\z/', $expectedVersion))) {
+        json_out(['ok' => false, 'message' => 'Refresh the document list and review the deletion again.'], 422);
+    }
     if (!can_review_doc($user, $viewerAdviserId, $doc)) {
         json_out(['ok' => false, 'message' => 'This student is assigned to another adviser. Only the assigned adviser or an RPMS administrator can delete this document.'], 403);
     }
@@ -634,6 +696,13 @@ if ($action === 'delete') {
     $restoredId = null;
     try {
         begin_document_write($pdo, $doc);
+        if ($expectedVersion !== null) {
+            // The confirmation must describe the exact record being deleted.
+            $reviewed = fetch_doc($pdo, (string)$id, true);
+            if (!$reviewed || !hash_equals($expectedVersion, document_selection_fingerprint($reviewed))) {
+                throw new DocumentWriteConflict('This document changed after you reviewed it. Nothing was deleted; review the current details and try again.');
+            }
+        }
         try { ierb_v14_guard_document_delete($pdo, $doc); }
         catch (DocumentWorkflowError $e) { throw new DocumentWriteConflict($e->getMessage()); }
         if (!empty($doc['supersedes_id'])) {

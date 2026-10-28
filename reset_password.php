@@ -78,7 +78,7 @@ if (!$tokenValid) {
 
         ?>
 
-        <form action="update_password.php" method="POST" <?php echo $tokenValid ? '' : 'style="display:none"'; ?>>
+        <form action="update_password.php" method="POST" data-prism-submit-once <?php echo $tokenValid ? '' : 'style="display:none"'; ?>>
 
             <input type="hidden" name="token" value="<?php echo htmlspecialchars($token, ENT_QUOTES, 'UTF-8'); ?>">
 

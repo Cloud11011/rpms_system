@@ -42,7 +42,7 @@ require_once __DIR__.'/includes/help_support.php';
                 <form id="notificationForm" class="notification-form-grid">
                     <input id="noticeSupportToken" type="hidden" value="<?= htmlspecialchars(support_token(),ENT_QUOTES,'UTF-8') ?>">
                     <p id="noticeSupportContext" class="notification-recipient-preview" hidden role="status"></p>
-                    <label id="noticeSupportSubjectLabel" hidden>Support response subject<input id="noticeSupportSubject" maxlength="255"></label>
+                    <label id="noticeSupportSubjectLabel" hidden>Support response subject<input id="noticeSupportSubject" maxlength="255" placeholder="Enter the response subject"></label>
                     <button id="noticeSupportExit" type="button" class="notification-secondary" hidden>Cancel Support Response</button>
                     <label id="noticeAudienceLabel">Recipients
                         <select id="noticeAudience">
@@ -66,7 +66,7 @@ require_once __DIR__.'/includes/help_support.php';
                     </label>
                     <label id="groupLabel" hidden>Research group<select id="noticeGroup" disabled><option value="">Loading research groups...</option></select></label>
                     <p id="noticeRecipientPreview" class="notification-recipient-preview" role="status" aria-live="polite">Checking recipients...</p>
-                    <label class="notification-message-field">Message<textarea id="noticeMessage" rows="5" maxlength="600" aria-describedby="noticeMessageCount" required></textarea><span id="noticeMessageCount" class="notification-message-count">0 / 600 characters</span></label>
+                    <label class="notification-message-field">Message<textarea id="noticeMessage" rows="5" maxlength="600" aria-describedby="noticeMessageCount" placeholder="Write the notification message" required></textarea><span id="noticeMessageCount" class="notification-message-count">0 / 600 characters</span></label>
                     <div class="notification-quick-fill" aria-label="Message templates"><span>Quick fill:</span><button type="button" data-notice-template="Reminder: please upload your pending IERB requirements before the deadline.">Deadline reminder</button><button type="button" data-notice-template="Your IERB submission status has been updated. Open PRISM to view the details.">Status changed</button></div>
                     <div class="notification-schedule-row">
                         <label class="check-label"><input id="automatedNotice" type="checkbox"><span><strong>Schedule for later</strong><small>Off means it sends right away.</small></span></label>

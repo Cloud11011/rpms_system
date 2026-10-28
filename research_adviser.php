@@ -82,7 +82,7 @@ $authUser = require_login('adviser');
 <form id="adviserReviewForm">
 <h2 id="adviserReviewTitle">Review document</h2><p id="adviserReviewHelp">Choose a review outcome and add feedback for the student.</p>
 <label for="adviserReviewStatus">Review status<select id="adviserReviewStatus" required><option>Under Review</option><option>Received</option><option>Verified</option><option value="Resubmission Requested">Request Revision / Resubmission</option><option>Approved</option><option>Denied</option></select></label>
-<label for="adviserReviewRemarks">Reviewer remarks<textarea id="adviserReviewRemarks" rows="6" maxlength="5000" aria-describedby="adviserReviewRemarksHint"></textarea></label><p id="adviserReviewRemarksHint">Required when denying a document or requesting resubmission. Up to 5,000 characters.</p>
+<label for="adviserReviewRemarks">Reviewer remarks<textarea id="adviserReviewRemarks" rows="6" maxlength="5000" aria-describedby="adviserReviewRemarksHint" placeholder="Enter notes for the student (required when denying or requesting resubmission)"></textarea></label><p id="adviserReviewRemarksHint">Required when denying a document or requesting resubmission. Up to 5,000 characters.</p>
 <p id="adviserReviewError" class="adviser-review-error" role="alert"></p>
 <div class="adviser-dialog-actions"><button id="adviserReviewCancel" class="adviser-button" type="button">Cancel</button><button id="adviserReviewSave" class="adviser-button is-primary" type="submit">Save review</button></div>
 </form>

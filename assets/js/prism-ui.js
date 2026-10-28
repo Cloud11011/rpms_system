@@ -192,7 +192,7 @@
       if (previous && previous.focus) previous.focus();
     }
     function onKey(e) {
-      if (e.key === 'Escape') { e.stopPropagation(); if (api.onCancel) api.onCancel(); close(); return; }
+      if (e.key === 'Escape') { e.stopPropagation(); if (api.locked) { e.preventDefault(); return; } if (api.onCancel) api.onCancel(); close(); return; }
       if (e.key === 'Tab') {
         const f = [...dlg.querySelectorAll('button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])')].filter(control => !control.disabled && control.tabIndex >= 0 && control.getClientRects().length);
         if (!f.length) return;
@@ -202,15 +202,17 @@
       }
     }
     document.addEventListener('keydown', onKey, true);
-    const api = { overlay: overlay, dialog: dlg, close: close, onCancel: null };
-    overlay.addEventListener('mousedown', function (e) { if (e.target === overlay) { if (api.onCancel) api.onCancel(); close(); } });
+    const api = { overlay: overlay, dialog: dlg, close: close, onCancel: null, locked: false };
+    overlay.addEventListener('mousedown', function (e) { if (e.target === overlay && !api.locked) { if (api.onCancel) api.onCancel(); close(); } });
     return api;
   }
 
   /**
    * Confirmation dialog. Resolves to null when cancelled, else { reason, values }.
    * o: title, icon, message (plain text), tone (primary|danger|override), confirmText,
-   *    reasonLabel + reasonRequired + minReason, overlayClass, dialogClass, extraHtml (trusted markup), collect(dialog), validate(values)
+   *    reasonLabel + reasonRequired + minReason + reasonPlaceholder, overlayClass, dialogClass, extraHtml (trusted markup), collect(dialog), validate(values),
+   *    busyText + onConfirm(result): optional async action run while the dialog stays open; a thrown error is shown in the dialog
+   *    and the user may retry or cancel. The dialog resolves only after onConfirm succeeds, with { reason, values, result }.
    */
   function confirmDialog(o) {
     return new Promise(function (resolve) {
@@ -219,7 +221,8 @@
         '<h3 id="prismDlgTitle">' + (o.icon ? '<i class="fa-solid ' + esc(o.icon) + '" aria-hidden="true"></i>' : '') + esc(o.title) + '</h3>' +
         (o.message ? '<p>' + esc(o.message) + '</p>' : '') +
         (o.extraHtml || '') +
-        (o.reasonLabel ? '<label for="prismReason">' + esc(o.reasonLabel) + '</label><textarea id="prismReason" maxlength="' + (o.maxReason || 500) + '"></textarea>' : '') +
+        (o.reasonLabel ? '<label for="prismReason">' + esc(o.reasonLabel) + '</label><textarea id="prismReason" maxlength="' + (o.maxReason || 500) + '"' +
+          (o.reasonRequired ? ' required aria-required="true"' : '') + ' placeholder="' + esc(o.reasonPlaceholder || (o.reasonRequired ? 'Explain the reason for this action' : 'Add remarks (optional)')) + '"></textarea>' : '') +
         '<div class="prism-field-error" role="alert"></div>' +
         '<div class="prism-dialog-actions"><button type="button" class="prism-btn is-secondary" data-act="cancel">' + esc(o.cancelText || 'Cancel') + '</button>' +
         '<button type="button" class="prism-btn is-' + tone + '" data-act="ok">' + esc(o.confirmText || 'Confirm') + '</button></div>'
@@ -243,7 +246,11 @@
       m.close = () => { dirty.clean(); dirty.dispose(); close(); };
       m.onCancel = function () { dirty.clean(); dirty.dispose(); resolve(null); };
       m.dialog.querySelector('[data-act="cancel"]').addEventListener('click', function () { m.close(); resolve(null); });
-      m.dialog.querySelector('[data-act="ok"]').addEventListener('click', function () {
+      const okButton = m.dialog.querySelector('[data-act="ok"]'), cancelButton = m.dialog.querySelector('[data-act="cancel"]');
+      if (o.confirmDisabled) okButton.disabled = true;
+      let pending = false;
+      okButton.addEventListener('click', async function () {
+        if (pending) return;
         const reason = reasonBox ? reasonBox.value.trim() : '';
         if (o.reasonRequired && reason.length < (o.minReason || 5)) {
           err.textContent = 'Add a reason (at least ' + (o.minReason || 5) + ' characters).';
@@ -253,10 +260,34 @@
         const values = o.collect ? o.collect(m.dialog) : {};
         const problem = o.validate ? o.validate(values, reason) : null;
         if (problem) { err.textContent = problem; return; }
-        m.close();
-        resolve({ reason: reason, values: values });
+        if (typeof o.onConfirm !== 'function') {
+          m.close();
+          resolve({ reason: reason, values: values });
+          return;
+        }
+        // Keep the dialog open, prevent duplicate requests, and report failures in place.
+        pending = true; m.locked = true; err.textContent = '';
+        const label = okButton.innerHTML;
+        okButton.disabled = true; cancelButton.disabled = true; okButton.setAttribute('aria-busy', 'true');
+        okButton.textContent = o.busyText || 'Working...';
+        if (reasonBox) reasonBox.readOnly = true;
+        try {
+          const result = await o.onConfirm({ reason: reason, values: values });
+          m.locked = false;
+          m.close();
+          resolve({ reason: reason, values: values, result: result });
+        } catch (error) {
+          pending = false; m.locked = false;
+          okButton.innerHTML = label; okButton.disabled = false; cancelButton.disabled = false; okButton.removeAttribute('aria-busy');
+          if (reasonBox) reasonBox.readOnly = false;
+          err.textContent = (error && error.message) || 'The action could not be completed. Nothing was changed.';
+          (error && error.retryable === false ? cancelButton : okButton).focus();
+          if (error && error.retryable === false) okButton.disabled = true;
+        }
       });
-      (reasonBox || m.dialog.querySelector('select') || m.dialog.querySelector(o.focusCancel ? '[data-act="cancel"]' : '[data-act="ok"]')).focus();
+      const initialFocus = o.confirmDisabled ? cancelButton
+        : reasonBox || m.dialog.querySelector('select') || (o.focusCancel ? cancelButton : okButton);
+      initialFocus.focus();
     });
   }
 
@@ -283,7 +314,7 @@
     if (!data) throw new Error('The server sent an unexpected response. Refresh the page and try again.');
     if (!res.ok || !data.ok) {
       const e = new Error(data.message || 'Something went wrong. Please try again.');
-      e.data = data;
+      e.data = data; e.status = res.status;
       throw e;
     }
     return data;
@@ -298,6 +329,49 @@
   }
 
   // ------------------------------------------------------------------ critical actions
+  const UPLOADER_ROLES = { student: 'Student', adviser: 'Research Adviser', admin: 'RPMS Administrator' };
+  function dateTimeText(value) {
+    const date = value ? new Date(String(value).replace(' ', 'T')) : null;
+    return date && !Number.isNaN(date.getTime()) ? date.toLocaleString('en-PH', { dateStyle: 'medium', timeStyle: 'short' }) : 'Not recorded';
+  }
+
+  /**
+   * Permanent single-document deletion. The dialog shows the authoritative server record
+   * (never the possibly stale list row), and the delete request is bound to that exact version.
+   * Resolves to the API result after a confirmed deletion, or null when cancelled/unavailable.
+   */
+  async function confirmDocumentDelete(doc) {
+    let data;
+    try { data = (await request('documents_api.php?action=delete_preview&id=' + encodeURIComponent(doc.id))).document; }
+    catch (e) { toast(e.message, 'error'); return null; }
+    const uploader = data.uploadedBy ? data.uploadedBy + (UPLOADER_ROLES[data.uploaderRole] ? ' (' + UPLOADER_ROLES[data.uploaderRole] + ')' : '') : 'Not recorded';
+    const rows = [
+      ['Filename', data.originalName], ['Uploaded by', uploader], ['Uploaded on', dateTimeText(data.uploadedAt)],
+      ['Document type', data.documentType || 'Not recorded'],
+      ['Version', 'Version ' + data.versionNo + (data.isCurrent ? ' (current version)' : ' (previous version)')],
+      ['Student record', data.studentName || 'Not recorded'],
+    ];
+    if (data.researchTitle) rows.push(['Research title', data.researchTitle + (data.projectIdentifier ? ' (' + data.projectIdentifier + ')' : '')]);
+    const notes = [];
+    if (data.locked) notes.push('This document was formally submitted to RPMS. The reason and your identity are recorded in the audit trail.');
+    if (data.restoresPrevious) notes.push('The previous version will become the current version again.');
+    const extraHtml = '<dl class="prism-delete-review">' + rows.map(([label, value]) => '<dt>' + esc(label) + '</dt><dd>' + esc(value) + '</dd>').join('') + '</dl>' +
+      notes.map(text => '<p class="prism-sub">' + esc(text) + '</p>').join('') +
+      (data.canDelete ? '<p class="prism-delete-warning">This action cannot be undone. The record and its stored file will be permanently deleted.</p>'
+        : '<p class="prism-delete-warning">' + esc(data.blockedReason || 'This document cannot be deleted.') + '</p>');
+    const answer = await confirmDialog({
+      title: 'Delete Document?', icon: 'fa-trash', tone: 'danger', confirmText: 'Delete Document', busyText: 'Deleting...',
+      extraHtml: extraHtml, focusCancel: true, confirmDisabled: !data.canDelete, dialogClass: 'prism-document-delete-dialog',
+      reasonLabel: data.canDelete && data.requiresReason ? 'Reason for deleting this submitted document' : '',
+      reasonRequired: data.canDelete && data.requiresReason, minReason: data.minReason || 5, maxReason: 5000,
+      onConfirm: async ({ reason }) => {
+        try { return await postJson('documents_api.php?action=delete', { id: data.id, reason: reason || '', expectedVersion: data.expectedVersion }); }
+        catch (e) { if (e.status === 409 || e.status === 403 || e.status === 404) e.retryable = false; throw e; }
+      }
+    });
+    return answer ? answer.result : null;
+  }
+
   /** Existing Admin submission/override tool, retained for B11 compatibility. Students are denied by the API. */
   async function submitToRpms(doc) {
     const res = await confirmDialog({
@@ -369,7 +443,7 @@
     let data;
     try { data = await request('stage_labels_api.php?action=list'); }
     catch (error) { toast(error.message,'error'); return; }
-    const m = modal('<h3 id="prismManageStagesTitle">Manage IERB Stages</h3><p>Edit office-wide display names and optional guidance. Internal keys and ordering stay fixed. Saving here does not change official student progress.</p><form><label for="prismStageKey">Fixed stage key</label><select id="prismStageKey">' + data.stages.map(stage => '<option>' + esc(stage.key) + '</option>').join('') + '</select><label for="prismStageName">Display name</label><input id="prismStageName" maxlength="190" required><label for="prismStageGuidance">Guidance from RPMS (optional)</label><textarea id="prismStageGuidance" rows="6" maxlength="4000" aria-describedby="prismStageGuidanceHelp"></textarea><p id="prismStageGuidanceHelp">Plain text, up to 4,000 characters. Students and Advisers can read this guidance. Clear it to remove guidance for this stage.</p><div class="prism-field-error" role="status" aria-live="polite"></div><div class="prism-dialog-actions"><button type="button" class="prism-btn is-secondary" data-close-stages>Close</button><button type="submit" class="prism-btn is-primary">Save stage</button></div></form>', returnFocus);
+    const m = modal('<h3 id="prismManageStagesTitle">Manage IERB Stages</h3><p>Edit office-wide display names and optional guidance. Internal keys and ordering stay fixed. Saving here does not change official student progress.</p><form><label for="prismStageKey">Fixed stage key</label><select id="prismStageKey">' + data.stages.map(stage => '<option>' + esc(stage.key) + '</option>').join('') + '</select><label for="prismStageName">Display name</label><input id="prismStageName" maxlength="190" placeholder="Enter the stage display name" required><label for="prismStageGuidance">Guidance from RPMS (optional)</label><textarea id="prismStageGuidance" rows="6" maxlength="4000" aria-describedby="prismStageGuidanceHelp" placeholder="Enter guidance for Students and Advisers (optional)"></textarea><p id="prismStageGuidanceHelp">Plain text, up to 4,000 characters. Students and Advisers can read this guidance. Clear it to remove guidance for this stage.</p><div class="prism-field-error" role="status" aria-live="polite"></div><div class="prism-dialog-actions"><button type="button" class="prism-btn is-secondary" data-close-stages>Close</button><button type="submit" class="prism-btn is-primary">Save stage</button></div></form>', returnFocus);
     m.dialog.classList.add('prism-stage-management');
     m.dialog.setAttribute('aria-labelledby','prismManageStagesTitle');
     const form=m.dialog.querySelector('form'), key=m.dialog.querySelector('select'), name=m.dialog.querySelector('input'), guidance=m.dialog.querySelector('textarea'), feedback=m.dialog.querySelector('.prism-field-error'), save=form.querySelector('[type=submit]');
@@ -1059,12 +1133,16 @@
     if (!control || control.disabled) return null;
     const original = labelElement.innerHTML;
     control.disabled = true;
+    control.setAttribute('aria-busy', 'true');
     if(control.classList.contains('prism-invitation-action')) {
       labelElement.innerHTML='<i class="fa-solid fa-spinner fa-spin" aria-hidden="true"></i>';
       if(control.classList.contains('prism-action-item')) labelElement.append(document.createTextNode(label));
     }
     else labelElement.textContent = label;
-    return () => { labelElement.innerHTML = original; control.disabled = false; };
+    return () => {
+      labelElement.innerHTML = original; control.disabled = false; control.removeAttribute('aria-busy');
+      if (control.form) root.PrismForms?.refresh(control.form); // Re-apply validity/changed gating.
+    };
   }
 
   async function runAction(control, label, action) {
@@ -1077,7 +1155,10 @@
     const fields = () => [...form.querySelectorAll('input,select,textarea')].filter(field => !field.disabled && !field.readOnly && field.type !== 'hidden' && !field.hasAttribute('data-prism-ignore-dirty'));
     const value = field => field.type === 'checkbox' || field.type === 'radio' ? field.checked : field.value;
     let changed = false, baseline;
-    const clean = () => { changed = false; baseline = new Map(fields().map(field => [field,value(field)])); };
+    const clean = () => {
+      changed = false; baseline = new Map(fields().map(field => [field,value(field)]));
+      if (form.tagName === 'FORM') form.dispatchEvent(new Event('prism:form-clean'));
+    };
     const mark = () => { changed = fields().some(field => baseline.has(field) && baseline.get(field) !== value(field)); };
     clean();
     form.addEventListener('input', mark);
@@ -1300,6 +1381,7 @@
     documentTypes: DOCUMENT_TYPES, actionMenu: actionMenu, compactRecord: compactRecord, statusPills: statusPills,
     actionOrigin: control => control?.closest('.prism-action-menu')?.querySelector('.prism-action-trigger') || control,
     modal: modal, confirm: confirmDialog, request: request, handleSessionExpiry: handleSessionExpiry, debounce: debounce, recordFilters: recordFilters, filtersDisclosure: filtersDisclosure, postJson: postJson, esc: esc, pagination: pagination, pageSizeControl: pageSizeControl, clientPager: clientPager, menuDisclosure: menuDisclosure, paginationWindow: paginationWindow, busy: busy, runAction: runAction, dirtyForm: dirtyForm, recordPager: recordPager, clearFilters: clearFilters,
+    confirmDocumentDelete: confirmDocumentDelete,
     changeStudentProgress: changeStudentProgress, manageStages: manageStages, showStageGuidance: showStageGuidance, submitToRpms: submitToRpms, uploadRevision: uploadRevision, overrideStudent: overrideStudent, overrideDocument: overrideDocument, showVersions: showVersions,
     enhanceTable: enhanceTable, tableFilter: tableFilter, hint: hint,
     mountStudentWorkflow: mountStudentWorkflow, mountNeedsAttention: mountNeedsAttention, init: init,

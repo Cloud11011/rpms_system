@@ -192,6 +192,7 @@ if ($action === 'save') {
         if ($id===0) {
             current_workflow_actor($pdo,$user);
             if ($stage!=='Stage 1') throw new AccountLifecycleValidation('New records begin at Stage 1. Use a reasoned IERB correction after creation if needed.');
+            onboarding_student_id($studentId);
             onboarding_email_available($pdo,$email);
             onboarding_id_available($pdo,$studentId,'student',0,0);
         }
@@ -219,6 +220,7 @@ if ($action === 'save') {
             }
             purge_require_no_pending($pdo,'student',$id);
             $identityBefore = lifecycle_identity_capture($pdo,$before,'student');
+            if (!$adviserEdit) onboarding_student_id($studentId, (string)$before['student_id']);
             if ($adviserEdit) {
                 $studentId = (string)$before['student_id'];
                 $name = (string)$before['full_name'];

@@ -36,16 +36,16 @@ if (isset($_SESSION['error'])) {
 }
 ?>
 <noscript><p role="alert" class="setup-error">JavaScript is required to complete registration. Enable it and reload this page.</p></noscript>
-<form action="register_process.php" method="POST" id="registerForm" data-steps="2">
+<form action="register_process.php" method="POST" id="registerForm" data-steps="2" data-prism-submit-once>
 <section class="wiz-panel" data-step="1">
 <label for="registration_code">Staff registration code</label>
 <div class="reg-field"><i class="fa-solid fa-key" aria-hidden="true"></i><input id="registration_code" type="text" name="registration_code" maxlength="100" placeholder="Enter the private code" autocomplete="off" required></div>
 <p class="reg-hint">Ask the Research Planning and Monitoring Section if you do not have one.</p>
 <label for="employee_id">Employee ID</label>
-<div class="reg-field"><i class="fa-solid fa-id-badge" aria-hidden="true"></i><input id="employee_id" type="text" name="employee_id" maxlength="100" placeholder="Employee ID" aria-describedby="empHint" required></div>
+<div class="reg-field"><i class="fa-solid fa-id-badge" aria-hidden="true"></i><input id="employee_id" type="text" name="employee_id" maxlength="100" placeholder="Enter Employee ID" aria-describedby="empHint" required></div>
 <p class="reg-hint" id="empHint">Your Employee ID is used as your username.</p>
 <label for="fullname">Full name</label>
-<div class="reg-field"><i class="fa-solid fa-user" aria-hidden="true"></i><input id="fullname" type="text" name="fullname" maxlength="190" placeholder="Your full name" autocomplete="name" required></div>
+<div class="reg-field"><i class="fa-solid fa-user" aria-hidden="true"></i><input id="fullname" type="text" name="fullname" maxlength="190" placeholder="Enter full name" autocomplete="name" required></div>
 </section>
 <section class="wiz-panel" data-step="2" hidden>
 <label for="email" class="first">Institutional email</label>
@@ -54,13 +54,13 @@ if (isset($_SESSION['error'])) {
 <div class="reg-field"><i class="fa-solid fa-lock" aria-hidden="true"></i><input type="password" name="password" id="password" placeholder="At least 12 characters" minlength="12" maxlength="200" autocomplete="new-password" aria-describedby="regLen" required><button type="button" class="toggle-password" aria-label="Show password" aria-controls="password" aria-pressed="false"><i class="fa-solid fa-eye" id="togglePassword" aria-hidden="true"></i></button></div>
 <p class="setup-rule" id="regLen"><span class="setup-dot" aria-hidden="true"></span><span>At least 12 characters, at most 200 bytes (<span id="regCount">0</span> so far)</span></p>
 <label for="confirmPassword">Confirm password</label>
-<div class="reg-field"><i class="fa-solid fa-lock" aria-hidden="true"></i><input type="password" name="confirm_password" id="confirmPassword" placeholder="Type it again" minlength="12" maxlength="200" autocomplete="new-password" aria-describedby="regMatch" required><button type="button" class="toggle-password" aria-label="Show confirm password" aria-controls="confirmPassword" aria-pressed="false"><i class="fa-solid fa-eye" id="toggleConfirmPassword" aria-hidden="true"></i></button></div>
+<div class="reg-field"><i class="fa-solid fa-lock" aria-hidden="true"></i><input type="password" name="confirm_password" id="confirmPassword" placeholder="Re-enter the new password" minlength="12" maxlength="200" autocomplete="new-password" aria-describedby="regMatch" required><button type="button" class="toggle-password" aria-label="Show confirm password" aria-controls="confirmPassword" aria-pressed="false"><i class="fa-solid fa-eye" id="toggleConfirmPassword" aria-hidden="true"></i></button></div>
 <p class="setup-rule" id="regMatch" hidden><span class="setup-dot" aria-hidden="true"></span><span id="regMatchText"></span></p>
 </section>
 <div class="wiz-actions">
 <button type="button" class="setup-btn setup-btn-ghost" id="wizBack" hidden>Back</button>
 <button type="button" class="setup-btn" id="wizNext">Continue</button>
-<button type="submit" class="setup-btn" id="wizSubmit" hidden>Register</button>
+<button type="submit" class="setup-btn" id="wizSubmit" data-busy-label="Registering..." hidden>Register</button>
 </div>
 </form>
 <p class="setup-help">Already have an account? <a href="login.php">Log in</a></p>

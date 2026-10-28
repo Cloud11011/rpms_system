@@ -1,0 +1,33 @@
+{
+  "recordedAt": "2026-10-28T02:48:33.952Z",
+  "repository": "Cloud11011/rpms_system",
+  "branch": "feature/prism-v14-major-revisions",
+  "requiredStartingCommit": "ee4d561637c9cd2c56680aa2905c782601121536",
+  "localHeadAtStart": "ee4d561637c9cd2c56680aa2905c782601121536",
+  "fetchedOriginHead": "ee4d561637c9cd2c56680aa2905c782601121536",
+  "lsRemoteHead": "ee4d561637c9cd2c56680aa2905c782601121536",
+  "worktree": ".batch05-worktree (already attached to the required branch at the required commit; no tracked modifications at start)",
+  "preservedUntrackedAtStart": [
+    "PRISM_V13_GROUP_ADVANCEMENT_REVIEW/ (disposable fixture sandbox; never staged)",
+    "PRISM_V14_BATCH_05_EVIDENCE/dashboard-overflow-diagnostic.png (Batch 5 exploratory artifact; not staged)",
+    "PRISM_V14_BATCH_05_EVIDENCE/push-verification.json (Batch 5 post-push receipt; not staged)"
+  ],
+  "originalCheckout": "C:/PRISM_Workspaces/prism-v13-release-clean on feature/prism-v13-group-stage-advancement-v1 with unrelated untracked work; not modified",
+  "priorReports": {
+    "PRISM_V14_BATCH_01_REVIEW.md": "96a87be4649e41f2b15afa0e7a93d80a074fcc51c4dc7461131fe714f8a4d1b1",
+    "PRISM_V14_BATCH_02_REVIEW.md": "c6a55aa2c9f0181294bed27e7aa7dfefba09c7e5b94321a1c5ed1cb7581da072",
+    "PRISM_V14_BATCH_03_REVIEW.md": "a2e8d22128c44917f5ab02a8412e6b9ddf73dbce08b6862b5d43add825174d8d",
+    "PRISM_V14_BATCH_04_REVIEW.md": "bb1ce4e2e1d47f4ca89fa1e58dfe9cbfcadc909d31ca9bd2c6cc06a8563cc0fb",
+    "PRISM_V14_BATCH_05_REVIEW.md": "8c565b345f052c7e493bb5b0c4f98f8710142ef7806f3266dcd5fae3e41aa70f"
+  },
+  "notPerformed": [
+    "main merge/rebase",
+    "force push",
+    "history rewrite",
+    "production or Hostinger database access",
+    "production migration",
+    "V14 enrollment/activation",
+    "manual deployment",
+    "Batch 7"
+  ]
+}

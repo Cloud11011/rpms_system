@@ -1,0 +1,189 @@
+{
+  "rule": "Asterisks are rendered by assets/js/prism-forms.js from the live required/aria-required state of enabled, editable controls. Read-only, disabled and hidden-input controls are never marked. Optional fields were not made mandatory.",
+  "forms": [
+    {
+      "form": "Profile completion (Student)",
+      "page": "complete_profile.php",
+      "required": "Full name; Student ID (digits only); Academic unit, program, year level, academic year",
+      "optional": "Research title",
+      "backend": "onboarding_finish(): name/ID required, onboarding_student_id(), academic_validate()",
+      "comparison": "Match"
+    },
+    {
+      "form": "Profile completion (Adviser)",
+      "page": "complete_profile.php",
+      "required": "Full name; Employee ID; Department",
+      "optional": "—",
+      "backend": "onboarding_finish(): name, ID, department from catalog",
+      "comparison": "Match"
+    },
+    {
+      "form": "Account profile (Admin/Adviser)",
+      "page": "account.php",
+      "required": "Full name",
+      "optional": "Email, Role, Account ID are read only (never marked)",
+      "backend": "profile_api.php update_profile: name non-empty, <=190",
+      "comparison": "Match"
+    },
+    {
+      "form": "Account password (all roles)",
+      "page": "account.php, role_portal.php",
+      "required": "Current, new, confirm password",
+      "optional": "—",
+      "backend": "profile_api.php change_password: current + new (>=12 chars); confirm is a client-only match check",
+      "comparison": "Match (confirm is client-side by design)"
+    },
+    {
+      "form": "Student portal profile",
+      "page": "role_portal.php",
+      "required": "Full name",
+      "optional": "Email, Role, Student ID read only",
+      "backend": "profile_api.php update_profile",
+      "comparison": "Match"
+    },
+    {
+      "form": "Student Records add/edit",
+      "page": "admin_people.php + admin-management.js",
+      "required": "Full name; Student ID (digits for new/changed); Email; Academic fields (dynamic)",
+      "optional": "Research title, group, adviser, requirements, protocol code",
+      "backend": "students_api.php save: ID, name, valid email; onboarding_student_id(); academic_validate()",
+      "comparison": "Match"
+    },
+    {
+      "form": "Adviser Records add/edit",
+      "page": "admin_people.php",
+      "required": "Full name; Employee ID; Email; Department (new only)",
+      "optional": "Account status",
+      "backend": "advisers_api.php save: employee ID, name, email; department on create",
+      "comparison": "Match"
+    },
+    {
+      "form": "Invite account",
+      "page": "admin_people.php",
+      "required": "Institutional email",
+      "optional": "Adviser",
+      "backend": "account_invitation_api: email and domain",
+      "comparison": "Match"
+    },
+    {
+      "form": "Permanent account deletion",
+      "page": "admin_people.php",
+      "required": "Admin password; typed confirmation; acknowledgement",
+      "optional": "Reason (required only when override applies; set dynamically)",
+      "backend": "account_lifecycle_api",
+      "comparison": "Match"
+    },
+    {
+      "form": "IERB entry",
+      "page": "ierbprog.php",
+      "required": "Student name; Student ID (digits for new/changed); Email; Academic fields; Research group (new only); Research title",
+      "optional": "Pending requirements; Latest submission date",
+      "backend": "ierb_api.php save: ID, name, email; onboarding_student_id(); research title required on create (added Batch 6); group required for new",
+      "comparison": "Partial: research title is UI-required on edit but the server still accepts a blank title on edit (legacy compatibility; Batch 7 decision)"
+    },
+    {
+      "form": "IERB internal note",
+      "page": "ierbprog.php",
+      "required": "Note",
+      "optional": "—",
+      "backend": "ierb_api.php note: non-empty",
+      "comparison": "Match"
+    },
+    {
+      "form": "Single document deletion (submitted document)",
+      "page": "PrismUI.confirmDocumentDelete",
+      "required": "Reason (only when the document is formally submitted)",
+      "optional": "—",
+      "backend": "documents_api.php delete: override_reason_valid() when locked",
+      "comparison": "Match"
+    },
+    {
+      "form": "Bulk document deletion",
+      "page": "documents.php",
+      "required": "Administrative reason",
+      "optional": "—",
+      "backend": "document_bulk_delete(): override_reason_valid()",
+      "comparison": "Match"
+    },
+    {
+      "form": "Help & Support page",
+      "page": "help_support.php",
+      "required": "Category, subject, message",
+      "optional": "—",
+      "backend": "help_support validation: required, length",
+      "comparison": "Match"
+    },
+    {
+      "form": "Notification compose",
+      "page": "admin_notifications.php",
+      "required": "Message (subject only for support responses, set dynamically)",
+      "optional": "—",
+      "backend": "notifications_api send",
+      "comparison": "Match"
+    },
+    {
+      "form": "Staff registration",
+      "page": "register.php",
+      "required": "Code, Employee ID, name, email, password, confirm",
+      "optional": "—",
+      "backend": "staff_register(): all fields; Employee ID may contain letters (unchanged)",
+      "comparison": "Match"
+    },
+    {
+      "form": "Login / forgot / reset / forced password / account setup",
+      "page": "login.php etc.",
+      "required": "Credential fields",
+      "optional": "—",
+      "backend": "Existing processors",
+      "comparison": "Match"
+    },
+    {
+      "form": "Legal policy draft/review",
+      "page": "admin_legal_policies.php",
+      "required": "Title, content; reject reason; approve password",
+      "optional": "Change summary (required only at submission, enforced server-side)",
+      "backend": "legal_policy services",
+      "comparison": "Match (summary not marked because it is conditional)"
+    },
+    {
+      "form": "Stage guidance",
+      "page": "PrismUI.manageStages",
+      "required": "Display name",
+      "optional": "Guidance",
+      "backend": "stage_labels_api save",
+      "comparison": "Match"
+    },
+    {
+      "form": "Form 33 acceptance",
+      "page": "ierb-requirements.js",
+      "required": "Institutional approval reference",
+      "optional": "—",
+      "backend": "ierb_v14_accept_requirement reference",
+      "comparison": "Match"
+    },
+    {
+      "form": "Adviser review",
+      "page": "research_adviser.php",
+      "required": "Remarks only when denying/requesting resubmission (toggled)",
+      "optional": "Remarks otherwise",
+      "backend": "document_workflow_change",
+      "comparison": "Match"
+    },
+    {
+      "form": "Calendar reminders / official deadlines",
+      "page": "calendar.php, role_portal.php, calendar-deadlines.js",
+      "required": "Title; date",
+      "optional": "Notes / description",
+      "backend": "calendar APIs",
+      "comparison": "Match"
+    },
+    {
+      "form": "Academic year add",
+      "page": "academic_year_manager.php",
+      "required": "Academic year",
+      "optional": "—",
+      "backend": "academic_year_add(): YYYY-YYYY consecutive",
+      "comparison": "Match"
+    }
+  ]
+}

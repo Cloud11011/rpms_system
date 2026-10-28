@@ -257,6 +257,15 @@ function document_bulk_preview(PDO $pdo, array $actor, array $payload): array
     $current=count(array_filter($rows,static fn($r)=>(int)$r['is_current']===1));
     $result=['count'=>count($versions),'currentVersions'=>$current,'historicalVersions'=>count($rows)-$current,
         'submitted'=>count(array_filter($rows,'document_is_locked')),'ineligible'=>$ineligible,'canDelete'=>!$ineligible,'expiresIn'=>DOCUMENT_SELECTION_SECONDS];
+    // Exact review list of the server-resolved targets (Admin-only endpoint); values are rendered as text.
+    $result['records']=[];
+    foreach (array_keys($versions) as $id) {
+        $row=$rows[$id]??null;
+        $result['records'][]=$row ? ['id'=>$id,'originalName'=>(string)$row['original_name'],'documentType'=>(string)$row['document_type'],
+            'versionNo'=>(int)($row['version_no']??1),'isCurrent'=>(int)$row['is_current']===1,'locked'=>document_is_locked($row),
+            'uploadedBy'=>trim((string)($row['uploaded_by']??''))!=='' ? (string)$row['uploaded_by'] : null,'uploaderRole'=>$row['uploaded_by_role']??null,
+            'studentName'=>$row['student_name']??null] : ['id'=>$id,'missing'=>true];
+    }
     if (!$ineligible) $result['confirmationToken']=document_management_store($actor,'confirmation',['versions'=>$versions,'chains'=>$chains]);
     return $result;
 }

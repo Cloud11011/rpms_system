@@ -87,11 +87,11 @@ $profile_img = 'assets/images/default-avatar.svg';
 <div class="ierb-modal" id="ierbEntryModal" aria-hidden="true">
     <div class="ierb-modal-dialog ierb-entry-dialog" role="dialog" aria-modal="true" aria-labelledby="ierbEntryTitle">
         <div class="ierb-modal-heading"><div><span>IERB monitoring record</span><h2 id="ierbEntryTitle">Add IERB Entry</h2></div><button type="button" id="closeIerbEntry" aria-label="Close"><i class="fa-solid fa-xmark"></i></button></div>
-        <form id="ierbEntryForm"><p class="prism-sub">New entries begin at Stage 1. Use the separate stage and status actions in Detailed Progress for official decisions.</p>
+        <form id="ierbEntryForm" data-prism-gate="valid"><p class="prism-sub">New entries begin at Stage 1. Use the separate stage and status actions in Detailed Progress for official decisions.</p><p class="prism-required-legend"><span class="prism-required-mark" aria-hidden="true">*</span>Required field</p>
             <div class="ierb-entry-grid">
-                <div><label for="entryStudentName">Student name</label><input id="entryStudentName" maxlength="120" required></div>
-                <div><label for="entryStudentId">Student ID</label><input id="entryStudentId" maxlength="40" required></div>
-                <div><label for="entryEmail">Email address</label><input id="entryEmail" type="email" maxlength="150" required></div>
+                <div><label for="entryStudentName">Student name</label><input id="entryStudentName" maxlength="190" placeholder="Enter full name" autocomplete="off" required></div>
+                <div><label for="entryStudentId">Student ID</label><input id="entryStudentId" type="text" maxlength="100" placeholder="Enter Student ID (numbers only)" data-prism-student-id required></div>
+                <div><label for="entryEmail">Email address</label><input id="entryEmail" type="email" maxlength="190" placeholder="<?php echo htmlspecialchars('example@' . (onboarding_invitation_domains()[0] ?? 'example.edu.ph'), ENT_QUOTES, 'UTF-8'); ?>" required></div>
                 <fieldset class="academic-fields" id="entryAcademicFields">
                     <legend>Academic information</legend>
                     <div class="academic-fields-grid">
@@ -106,8 +106,8 @@ $profile_img = 'assets/images/default-avatar.svg';
                 </fieldset>
                 <div><label for="entryGroupId">Research group</label><select id="entryGroupId" data-research-group required><option value="">Select academic information first</option></select></div>
                 <div><label for="entryStage">Official IERB stage (read only)</label><select id="entryStage" disabled><option value="Stage 1">Stage 1</option><option value="Stage 2">Stage 2</option><option value="Stage 3">Stage 3</option><option value="Stage 4">Stage 4</option><option value="Stage 5">Stage 5</option><option value="Completed">Completed</option></select></div>
-                <div class="ierb-entry-wide"><label for="entryResearchTitle">Research title</label><input id="entryResearchTitle" maxlength="250" required></div>
-                <div><label for="entryRequirements">Pending requirements</label><input id="entryRequirements" maxlength="180" placeholder="e.g. Missing Ethics Consent Form"></div>
+                <div class="ierb-entry-wide"><label for="entryResearchTitle">Research title</label><input id="entryResearchTitle" maxlength="250" placeholder="Enter the complete research title" required></div>
+                <div><label for="entryRequirements">Pending requirements</label><input id="entryRequirements" maxlength="180" placeholder="List pending requirements (optional)"></div>
                 <div><label for="entrySubmissionDate">Latest submission date</label><input id="entrySubmissionDate" type="date"></div>
                 <div><label for="entryStatus">Delay status</label><select id="entryStatus" disabled><option>On Track</option><option>Pending</option><option>Delayed</option></select></div>
             </div>
@@ -119,7 +119,7 @@ $profile_img = 'assets/images/default-avatar.svg';
 <div class="ierb-modal" id="ierbActionModal" aria-hidden="true">
     <div class="ierb-modal-dialog" role="dialog" aria-modal="true" aria-labelledby="ierbActionTitle">
         <div class="ierb-modal-heading"><div><span id="ierbActionEyebrow">Update record</span><h2 id="ierbActionTitle">Add Note</h2></div><button type="button" id="closeIerbModal" aria-label="Close"><i class="fa-solid fa-xmark"></i></button></div>
-        <form id="ierbActionForm"><label for="ierbActionText" id="ierbActionLabel">Internal note</label><textarea id="ierbActionText" rows="4" maxlength="500" required></textarea><div class="ierb-modal-actions"><button type="button" class="ierb-secondary" id="cancelIerbAction">Cancel</button><button type="submit" class="ierb-primary"><i class="fa-solid fa-floppy-disk"></i> Save</button></div></form>
+        <form id="ierbActionForm" data-prism-gate="valid"><label for="ierbActionText" id="ierbActionLabel">Internal note</label><textarea id="ierbActionText" rows="4" maxlength="500" placeholder="Enter an internal note for this record" required></textarea><div class="ierb-modal-actions"><button type="button" class="ierb-secondary" id="cancelIerbAction">Cancel</button><button type="submit" class="ierb-primary"><i class="fa-solid fa-floppy-disk"></i> Save</button></div></form>
     </div>
 </div>
 <script src="<?php echo htmlspecialchars(asset_url('assets/js/prism-ui.js'), ENT_QUOTES, 'UTF-8'); ?>"></script>

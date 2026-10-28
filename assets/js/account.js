@@ -73,7 +73,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if(!release)return;
         try {
             await PrismUI.postJson('profile_api.php?action=change_password', { currentPassword, newPassword });
-            form.reset(); passwordDirty.clean();
+            form.reset(); window.PrismLifecycleForms?.resetPassword(form); passwordDirty.clean();
             PrismUI.toast('Password changed successfully.', 'success');
         } catch (err) {
             PrismUI.toast(err.message, 'error');

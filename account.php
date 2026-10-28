@@ -46,20 +46,21 @@ if ($isAdmin && legal_admin_eligible($authUser)) {
 <header class="topbar"><div><h1>Account & Activity</h1><p>Manage your PRISM account and review the audit activity available to your role.</p></div><div class="top-controls"><button type="button" class="theme-toggle" id="themeToggle" title="Toggle light or dark theme" aria-label="Toggle light or dark theme"><i class="fa-solid fa-sun light-icon" aria-hidden="true"></i><i class="fa-solid fa-moon dark-icon" aria-hidden="true"></i></button></div></header>
 <div class="account-grid">
 <section class="management-card account-card" id="profile"><div class="management-card-head"><div><h2>Profile</h2><p>Your account identity in PRISM.</p></div></div>
-<form id="accountProfileForm" class="account-form">
-<label>Full name<input id="accountName" maxlength="190" required></label>
-<label>Email<input id="accountEmail" type="email" readonly></label>
-<label>Role<input id="accountRole" readonly></label>
-<label>Account ID<input id="accountRef" readonly></label>
-<button class="management-primary" type="submit"><i class="fa-solid fa-floppy-disk"></i> Save name</button>
+<form id="accountProfileForm" class="account-form" data-prism-gate="dirty" data-prism-gate-unchanged="Edit your name to enable saving.">
+<p class="prism-required-legend"><span class="prism-required-mark" aria-hidden="true">*</span>Required field. Fields marked read only are managed by PRISM and RPMS.</p>
+<label>Full name<input id="accountName" maxlength="190" placeholder="Enter full name" autocomplete="name" required></label>
+<label>Email<input id="accountEmail" type="email" readonly aria-describedby="accountEmailNote"><span class="prism-readonly-note" id="accountEmailNote">Read only &middot; institutional sign-in email</span></label>
+<label>Role<input id="accountRole" readonly aria-describedby="accountRoleNote"><span class="prism-readonly-note" id="accountRoleNote">Read only &middot; assigned by RPMS</span></label>
+<label>Account ID<input id="accountRef" readonly aria-describedby="accountRefNote"><span class="prism-readonly-note" id="accountRefNote">Read only &middot; corrections require RPMS review</span></label>
+<button class="management-primary" type="submit"><i class="fa-solid fa-floppy-disk" aria-hidden="true"></i> Save name</button>
 </form></section>
 <section class="management-card account-card" id="security"><div class="management-card-head"><div><h2>Security</h2><p>Change your password.</p></div></div>
-<form id="accountPasswordForm" class="account-form">
-<label>Current password<input id="accountCurrentPassword" type="password" autocomplete="current-password" required></label>
-<label>New password<input id="accountNewPassword" type="password" minlength="12" maxlength="200" autocomplete="new-password" required></label>
-<label>Confirm new password<input id="accountConfirmPassword" type="password" minlength="12" maxlength="200" autocomplete="new-password" required></label>
-<button class="management-primary" type="submit"><i class="fa-solid fa-key"></i> Change password</button>
-</form><p class="account-note">Use at least 12 characters and choose a password different from your current one.</p></section>
+<form id="accountPasswordForm" class="account-form" data-prism-gate="valid">
+<div class="lifecycle-form-group"><label for="accountCurrentPassword">Current password</label><div class="lifecycle-password"><input id="accountCurrentPassword" type="password" autocomplete="current-password" maxlength="200" placeholder="Enter your current password" required><button type="button" class="toggle-password lifecycle-password-toggle" data-lifecycle-password aria-label="Show current password" aria-controls="accountCurrentPassword" aria-pressed="false"><i id="accountCurrentPasswordEye" class="fa-solid fa-eye" aria-hidden="true"></i></button></div></div>
+<div class="lifecycle-form-group"><label for="accountNewPassword">New password</label><div class="lifecycle-password"><input id="accountNewPassword" type="password" minlength="12" maxlength="200" autocomplete="new-password" placeholder="At least 12 characters" aria-describedby="accountPasswordRule" required><button type="button" class="toggle-password lifecycle-password-toggle" data-lifecycle-password aria-label="Show new password" aria-controls="accountNewPassword" aria-pressed="false"><i id="accountNewPasswordEye" class="fa-solid fa-eye" aria-hidden="true"></i></button></div></div>
+<div class="lifecycle-form-group"><label for="accountConfirmPassword">Confirm new password</label><div class="lifecycle-password"><input id="accountConfirmPassword" type="password" minlength="12" maxlength="200" autocomplete="new-password" placeholder="Re-enter the new password" data-prism-match="#accountNewPassword" data-prism-match-message="New passwords do not match." required><button type="button" class="toggle-password lifecycle-password-toggle" data-lifecycle-password aria-label="Show confirm password" aria-controls="accountConfirmPassword" aria-pressed="false"><i id="accountConfirmPasswordEye" class="fa-solid fa-eye" aria-hidden="true"></i></button></div></div>
+<button class="management-primary" type="submit"><i class="fa-solid fa-key" aria-hidden="true"></i> Change password</button>
+</form><p class="account-note" id="accountPasswordRule">Use at least 12 characters and choose a password different from your current one.</p></section>
 </div>
 <?php if ($showStaffRegistration): ?>
 <?php $staffEntryOnly = true; require __DIR__ . '/includes/staff_registration_card.php'; ?>
@@ -69,15 +70,15 @@ if ($isAdmin && legal_admin_eligible($authUser)) {
 <div class="management-card-head"><div><h2>My account lifecycle</h2><p>Archive is the recommended option. Another active Admin must remain.</p></div></div>
 <form id="adminArchiveForm" class="account-form lifecycle-form">
 <h3>Archive my Admin account</h3><p>Your login will be deactivated and you will be signed out. Institutional records and your historical attribution will remain.</p>
-<div class="lifecycle-form-group"><label for="adminArchivePassword">Current password</label><div class="lifecycle-password"><input id="adminArchivePassword" name="currentPassword" type="password" autocomplete="current-password" maxlength="200" required><button type="button" class="toggle-password lifecycle-password-toggle" data-lifecycle-password aria-label="Show password" aria-controls="adminArchivePassword" aria-pressed="false"><i id="adminArchivePasswordEye" class="fa-solid fa-eye" aria-hidden="true"></i></button></div></div>
+<div class="lifecycle-form-group"><label for="adminArchivePassword">Current password</label><div class="lifecycle-password"><input id="adminArchivePassword" name="currentPassword" type="password" autocomplete="current-password" maxlength="200" placeholder="Enter your current password" required><button type="button" class="toggle-password lifecycle-password-toggle" data-lifecycle-password aria-label="Show password" aria-controls="adminArchivePassword" aria-pressed="false"><i id="adminArchivePasswordEye" class="fa-solid fa-eye" aria-hidden="true"></i></button></div></div>
 <label class="lifecycle-check"><input name="confirmed" type="checkbox" required><span>I confirm that I want to archive my own Admin account.</span></label>
 <p data-lifecycle-result role="alert" aria-live="polite"></p><button type="submit" class="management-primary"><i class="fa-solid fa-box-archive" aria-hidden="true"></i> Archive my account</button>
 </form>
 <details class="lifecycle-destructive"><summary>Permanently delete my Admin account</summary>
 <form id="adminDeleteForm" class="account-form lifecycle-form"><p><strong>This cannot be undone.</strong> Your own login and password reset/setup tokens will be removed. Institutional history and audit evidence remain. Accounts needed by official deadlines cannot be deleted; use Archive.</p>
 <p id="adminDeleteAvailability" role="status">Checking permanent-deletion availability...</p>
-<div class="lifecycle-form-group"><label for="adminDeletePassword">Current password</label><div class="lifecycle-password"><input id="adminDeletePassword" name="currentPassword" type="password" autocomplete="current-password" maxlength="200" required><button type="button" class="toggle-password lifecycle-password-toggle" data-lifecycle-password aria-label="Show password" aria-controls="adminDeletePassword" aria-pressed="false"><i id="adminDeletePasswordEye" class="fa-solid fa-eye" aria-hidden="true"></i></button></div></div>
-<div class="lifecycle-form-group"><label for="adminDeleteConfirmation">Type DELETE to confirm</label><input id="adminDeleteConfirmation" name="confirmation" autocomplete="off" maxlength="100" required></div>
+<div class="lifecycle-form-group"><label for="adminDeletePassword">Current password</label><div class="lifecycle-password"><input id="adminDeletePassword" name="currentPassword" type="password" autocomplete="current-password" maxlength="200" placeholder="Enter your current password" required><button type="button" class="toggle-password lifecycle-password-toggle" data-lifecycle-password aria-label="Show password" aria-controls="adminDeletePassword" aria-pressed="false"><i id="adminDeletePasswordEye" class="fa-solid fa-eye" aria-hidden="true"></i></button></div></div>
+<div class="lifecycle-form-group"><label for="adminDeleteConfirmation">Type DELETE to confirm</label><input id="adminDeleteConfirmation" name="confirmation" autocomplete="off" maxlength="100" placeholder="Type DELETE" required></div>
 <label class="lifecycle-check"><input name="confirmed" type="checkbox" required><span>I understand that permanent deletion cannot be undone.</span></label>
 <p data-lifecycle-result role="alert" aria-live="polite"></p><button type="submit" class="lifecycle-danger" disabled>Permanently delete my account</button></form>
 </details><p id="adminLifecycleResult" role="status" aria-live="polite"></p>

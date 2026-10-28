@@ -20,10 +20,10 @@ $escape=static fn($value)=>htmlspecialchars((string)$value,ENT_QUOTES,'UTF-8');
 <main><h1>Help &amp; Support</h1><p>Send a private request to the currently active RPMS Administrators. Requests and responses are available in PRISM only.</p>
 <?php if ($pending): ?><p class="legal-notice">You can use Support now. Complete your profile before using the research workspace.</p><?php endif; ?>
 <section class="legal-card" aria-labelledby="supportFormTitle"><h2 id="supportFormTitle">Send to RPMS</h2>
-<form id="supportForm"><input id="supportToken" type="hidden" value="<?= $escape(support_token()) ?>">
+<form id="supportForm" data-prism-gate="valid"><input id="supportToken" type="hidden" value="<?= $escape(support_token()) ?>">
 <label for="supportCategory">Category</label><select id="supportCategory" required><option value="">Choose a category</option><?php foreach (support_categories() as $category): ?><option><?= $escape($category) ?></option><?php endforeach; ?></select>
-<label for="supportSubject">Subject</label><input id="supportSubject" required maxlength="255">
-<label for="supportMessage">Message</label><textarea id="supportMessage" required rows="5" maxlength="600" aria-describedby="supportMessageHint"></textarea><p id="supportMessageHint">Up to 600 characters. Do not include passwords or unnecessary personal information.</p>
+<label for="supportSubject">Subject</label><input id="supportSubject" required maxlength="255" placeholder="Briefly describe your concern">
+<label for="supportMessage">Message</label><textarea id="supportMessage" required rows="5" maxlength="600" aria-describedby="supportMessageHint" placeholder="Describe what happened and what you need help with"></textarea><p id="supportMessageHint">Up to 600 characters. Do not include passwords or unnecessary personal information.</p>
 <p id="supportResult" role="status" aria-live="polite"></p><button type="submit">Send to RPMS</button></form><noscript>Enable JavaScript to send a request and view Support history.</noscript></section>
 <section class="legal-card" aria-labelledby="supportHistoryTitle"><h2 id="supportHistoryTitle">My Requests &amp; Support Responses</h2><p id="supportCount" aria-live="polite"></p><div id="supportHistory"></div><nav id="supportPagination" aria-label="Support history pages"></nav></section>
 </main><footer><a href="privacy.php">Privacy Policy</a> · <a href="terms.php">Terms of Service</a></footer></div>

@@ -62,6 +62,7 @@ function prepareApp() {
     if (process.env.PRISM_TEST_V14_DOCUMENTS === '1') await require('../ierb-v14-tests/documents.cjs')(h);
     if (process.env.PRISM_TEST_BATCH5 === '1') await require('../ierb-monitor-tests/integration.cjs')(h);
     if (process.env.PRISM_TEST_BATCH4 === '1') await require('../ierb-report-tests/integration.cjs')(h);
+    if (process.env.PRISM_TEST_BATCH6 === '1') await require('../ierb-ui-tests/integration.cjs')(h);
     check(fixture({ action: 'schema' }).schemaVersion === expectedSchema, 'Full schema v' + expectedSchema + ' and version remain unchanged after all tests');
     const result = { status: 'PASS', assertions: checks.length, cases: checks, scope: 'Isolated synthetic MariaDB 10.4, actual PHP HTTP sessions and Chromium; no production data or external delivery' };
     fs.writeFileSync(path.join(review, phase === 'all' ? 'test-results.json' : `test-results-${phase}.json`), JSON.stringify(result, null, 2)); console.log(JSON.stringify({ status: 'PASS', assertions: checks.length }));

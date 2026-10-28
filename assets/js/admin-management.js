@@ -617,6 +617,9 @@
             }
             department.value=value;department.required=!record;
         }
+        // New records need valid required fields; edits additionally need an actual change.
+        form.dataset.prismGate = record ? 'dirty' : 'valid';
+        if (!isAdviser) window.PrismForms?.setLegacyValue(accountIdField, record ? record.studentId : null);
         dirty.clean();
         if(studentRecordsView){
             const displayName=nameField.value.trim();

@@ -311,6 +311,9 @@
             document.getElementById('entrySubmissionDate').value = record.lastSubmissionDate || '';
             document.getElementById('entryStatus').value = record.status || 'On Track';
         }
+        // New entries need valid required fields; edits also need an actual change. An unchanged legacy ID stays valid.
+        entryForm.dataset.prismGate = record ? 'dirty' : 'valid';
+        window.PrismForms?.setLegacyValue(document.getElementById('entryStudentId'), record ? record.studentId : null);
         entryDirty.clean();
         entryModal.setAttribute('aria-hidden', 'false');
         entryModal.style.display = 'flex';

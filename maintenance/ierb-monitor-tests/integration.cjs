@@ -2,7 +2,7 @@ const fs=require('node:fs'),path=require('node:path'),cp=require('node:child_pro
 module.exports=async h=>{
   const {root,php,post,response,expect,check,sessions:s,playwright,base}=h;
   const sql=(...args)=>{const value=h.sql(...args);if(value.status>=400)throw Error('Fixture SQL failed: '+JSON.stringify(value));return value;};
-  const evidence=path.join(root,'PRISM_V14_BATCH_05_EVIDENCE');fs.mkdirSync(evidence,{recursive:true});
+  const evidence=path.resolve(process.env.PRISM_TEST_EVIDENCE_DIR||path.join(root,'PRISM_V14_BATCH_05_EVIDENCE'));fs.mkdirSync(evidence,{recursive:true});
   const start=h.checks.length,helper=path.join(__dirname,'fixture.php');
   const cli=data=>{const r=JSON.parse(cp.execFileSync(php,[helper],{input:JSON.stringify(data),encoding:'utf8',windowsHide:true}));if(!r.ok)throw Error(JSON.stringify(r));return r.result;};
   const reportCli=data=>JSON.parse(cp.execFileSync(php,[path.join(root,'maintenance/ierb-report-tests/fixture.php')],{input:JSON.stringify(data),encoding:'utf8',windowsHide:true})).result;
@@ -47,6 +47,8 @@ module.exports=async h=>{
     await expect(saveYear('2001-2002'),200,'Historical catalog year remains a valid explicit individual assignment');
     const project=reportCli({action:'project'}), key='project:'+project.projectId;
     // Audited synthetic formal events isolate ordering from uploaded_at/updated_at.
+    // Synthetic audits left by an earlier run would make these fixture documents look returned; remove only them.
+    sql("DELETE FROM activity_logs WHERE entity_id LIKE 'batch5-order-%'");
     for(const [id,sid,date]of [['batch5-order-a',4,'2026-10-01 09:00:00'],['batch5-order-b',5,'2026-10-02 10:00:00']]){
       sql("INSERT INTO documents(id,student_id,stage,document_type,original_name,stored_name,mime,size,version_no,is_current,review_status,rpms_submitted_at) VALUES (?,?,'Stage 1','Study Protocol','Synthetic Batch5 ordering.pdf','fixture.pdf','application/pdf',12,1,1,'Approved',?)",[id,sid,date]);
       sql("INSERT INTO activity_logs(user_email,action,details,actor_name,actor_role,entity_type,entity_id,student_id,after_value,created_at) VALUES ('adviser2@example.test','document_submitted_to_rpms','Synthetic Batch5 evidence','Synthetic Adviser','adviser','document',?,?,'Submitted to RPMS',?)",[id,sid,date]);
@@ -159,6 +161,7 @@ module.exports=async h=>{
     sql("DELETE FROM activity_logs WHERE action='academic_year_added'");
     sql("DELETE FROM students WHERE id BETWEEN 10019 AND 10031 AND student_id LIKE 'B5-%'");
     sql("DELETE FROM documents WHERE id LIKE 'batch5-order-%'");
+    sql("DELETE FROM activity_logs WHERE entity_id LIKE 'batch5-order-%'");
     if(sql("SELECT v FROM schema_meta WHERE k='schema_version'")[0].v==='15')cli({action:'cleanup'});
     cp.execFileSync(php,[path.join(root,'maintenance/ierb-v14-tests/documents-fixture.php')],{input:JSON.stringify({action:'cleanup'}),encoding:'utf8',windowsHide:true});
     sql('UPDATE students SET academic_year=? WHERE id=5',[historical]);

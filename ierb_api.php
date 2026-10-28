@@ -377,6 +377,8 @@ if ($action === 'save') {
         if ($id===0) {
             current_workflow_actor($pdo,$user);
             if ($stage!=='Stage 1') throw new AccountLifecycleValidation('New records begin at Stage 1. Use a reasoned IERB correction after creation if needed.');
+            onboarding_student_id($studentIdCode);
+            if ($research === '') throw new AccountLifecycleValidation('Research title is required for a new IERB entry.');
             onboarding_email_available($pdo,$email);
             onboarding_id_available($pdo,$studentIdCode,'student',0,0);
         }
@@ -389,6 +391,7 @@ if ($action === 'save') {
                 json_out(['ok' => false, 'message' => 'Student record not found.'], 404);
             }
             if (array_key_exists('profile_completed_at',$oldRow) && $oldRow['profile_completed_at']===null) throw new AccountLifecycleConflict('Pending identities must complete secure onboarding before record editing.');
+            onboarding_student_id($studentIdCode, (string)$oldRow['student_id']);
             current_workflow_student($pdo,$id,$user);
             $stage=$data['stage']??$oldRow['stage'];
             $status=$data['status']??$oldRow['status'];

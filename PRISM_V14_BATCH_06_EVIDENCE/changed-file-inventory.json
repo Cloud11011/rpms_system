@@ -1,0 +1,443 @@
+{
+  "startingCommit": "ee4d561637c9cd2c56680aa2905c782601121536",
+  "files": [
+    {
+      "status": "added",
+      "file": "PRISM_V14_BATCH_06_EVIDENCE/acceptance-summary.json"
+    },
+    {
+      "status": "added",
+      "file": "PRISM_V14_BATCH_06_EVIDENCE/account-adviser-1440-dark.png"
+    },
+    {
+      "status": "added",
+      "file": "PRISM_V14_BATCH_06_EVIDENCE/account-adviser-1440-light.png"
+    },
+    {
+      "status": "added",
+      "file": "PRISM_V14_BATCH_06_EVIDENCE/account-adviser-390-dark.png"
+    },
+    {
+      "status": "added",
+      "file": "PRISM_V14_BATCH_06_EVIDENCE/account-adviser-390-light.png"
+    },
+    {
+      "status": "added",
+      "file": "PRISM_V14_BATCH_06_EVIDENCE/adviser-dashboard-1440-dark.png"
+    },
+    {
+      "status": "added",
+      "file": "PRISM_V14_BATCH_06_EVIDENCE/adviser-dashboard-1440-light.png"
+    },
+    {
+      "status": "added",
+      "file": "PRISM_V14_BATCH_06_EVIDENCE/batch6-integration-schema11.json"
+    },
+    {
+      "status": "added",
+      "file": "PRISM_V14_BATCH_06_EVIDENCE/batch6-integration-schema15.json"
+    },
+    {
+      "status": "added",
+      "file": "PRISM_V14_BATCH_06_EVIDENCE/delete-dialog-1024-dark.png"
+    },
+    {
+      "status": "added",
+      "file": "PRISM_V14_BATCH_06_EVIDENCE/delete-dialog-1024-light.png"
+    },
+    {
+      "status": "added",
+      "file": "PRISM_V14_BATCH_06_EVIDENCE/delete-dialog-1440-dark.png"
+    },
+    {
+      "status": "added",
+      "file": "PRISM_V14_BATCH_06_EVIDENCE/delete-dialog-1440-light.png"
+    },
+    {
+      "status": "added",
+      "file": "PRISM_V14_BATCH_06_EVIDENCE/delete-dialog-1920-dark.png"
+    },
+    {
+      "status": "added",
+      "file": "PRISM_V14_BATCH_06_EVIDENCE/delete-dialog-1920-light.png"
+    },
+    {
+      "status": "added",
+      "file": "PRISM_V14_BATCH_06_EVIDENCE/delete-dialog-390-dark.png"
+    },
+    {
+      "status": "added",
+      "file": "PRISM_V14_BATCH_06_EVIDENCE/delete-dialog-390-light.png"
+    },
+    {
+      "status": "added",
+      "file": "PRISM_V14_BATCH_06_EVIDENCE/delete-dialog-768-dark.png"
+    },
+    {
+      "status": "added",
+      "file": "PRISM_V14_BATCH_06_EVIDENCE/delete-dialog-768-light.png"
+    },
+    {
+      "status": "added",
+      "file": "PRISM_V14_BATCH_06_EVIDENCE/delete-dialog-adviser-1440.png"
+    },
+    {
+      "status": "added",
+      "file": "PRISM_V14_BATCH_06_EVIDENCE/development-failures.json"
+    },
+    {
+      "status": "added",
+      "file": "PRISM_V14_BATCH_06_EVIDENCE/documents-1440-light.png"
+    },
+    {
+      "status": "added",
+      "file": "PRISM_V14_BATCH_06_EVIDENCE/git-preparation.json"
+    },
+    {
+      "status": "added",
+      "file": "PRISM_V14_BATCH_06_EVIDENCE/ierb-entry-1024-dark.png"
+    },
+    {
+      "status": "added",
+      "file": "PRISM_V14_BATCH_06_EVIDENCE/ierb-entry-1024-light.png"
+    },
+    {
+      "status": "added",
+      "file": "PRISM_V14_BATCH_06_EVIDENCE/ierb-entry-1440-dark.png"
+    },
+    {
+      "status": "added",
+      "file": "PRISM_V14_BATCH_06_EVIDENCE/ierb-entry-1440-light.png"
+    },
+    {
+      "status": "added",
+      "file": "PRISM_V14_BATCH_06_EVIDENCE/ierb-entry-1920-dark.png"
+    },
+    {
+      "status": "added",
+      "file": "PRISM_V14_BATCH_06_EVIDENCE/ierb-entry-1920-light.png"
+    },
+    {
+      "status": "added",
+      "file": "PRISM_V14_BATCH_06_EVIDENCE/ierb-entry-390-dark.png"
+    },
+    {
+      "status": "added",
+      "file": "PRISM_V14_BATCH_06_EVIDENCE/ierb-entry-390-light.png"
+    },
+    {
+      "status": "added",
+      "file": "PRISM_V14_BATCH_06_EVIDENCE/ierb-entry-768-dark.png"
+    },
+    {
+      "status": "added",
+      "file": "PRISM_V14_BATCH_06_EVIDENCE/ierb-entry-768-light.png"
+    },
+    {
+      "status": "added",
+      "file": "PRISM_V14_BATCH_06_EVIDENCE/regression/batch4/batch4-integration.json"
+    },
+    {
+      "status": "added",
+      "file": "PRISM_V14_BATCH_06_EVIDENCE/regression/batch4/fourth-cycle-exception.json"
+    },
+    {
+      "status": "added",
+      "file": "PRISM_V14_BATCH_06_EVIDENCE/regression/batch4/progress-ai-request.json"
+    },
+    {
+      "status": "added",
+      "file": "PRISM_V14_BATCH_06_EVIDENCE/regression/batch4/summary-migration-tests.json"
+    },
+    {
+      "status": "added",
+      "file": "PRISM_V14_BATCH_06_EVIDENCE/regression/batch5/academic-migration.json"
+    },
+    {
+      "status": "added",
+      "file": "PRISM_V14_BATCH_06_EVIDENCE/regression/batch5/batch5-integration.json"
+    },
+    {
+      "status": "added",
+      "file": "PRISM_V14_BATCH_06_EVIDENCE/regression/batch5/responsive.json"
+    },
+    {
+      "status": "added",
+      "file": "PRISM_V14_BATCH_06_EVIDENCE/regression/foundation/foundation-tests.json"
+    },
+    {
+      "status": "added",
+      "file": "PRISM_V14_BATCH_06_EVIDENCE/regression/schema12-full/batch6-integration-schema12.json"
+    },
+    {
+      "status": "added",
+      "file": "PRISM_V14_BATCH_06_EVIDENCE/regression/schema12-full/completed-project.json"
+    },
+    {
+      "status": "added",
+      "file": "PRISM_V14_BATCH_06_EVIDENCE/regression/schema12-full/document-tests.json"
+    },
+    {
+      "status": "added",
+      "file": "PRISM_V14_BATCH_06_EVIDENCE/regression/schema12-full/final-report-completion.json"
+    },
+    {
+      "status": "added",
+      "file": "PRISM_V14_BATCH_06_EVIDENCE/regression/schema12-full/group-advancement.json"
+    },
+    {
+      "status": "added",
+      "file": "PRISM_V14_BATCH_06_EVIDENCE/regression/schema12-full/group-completion.json"
+    },
+    {
+      "status": "added",
+      "file": "PRISM_V14_BATCH_06_EVIDENCE/regression/schema12-full/migration-tests.json"
+    },
+    {
+      "status": "added",
+      "file": "PRISM_V14_BATCH_06_EVIDENCE/regression/schema12-full/project-tests.json"
+    },
+    {
+      "status": "added",
+      "file": "PRISM_V14_BATCH_06_EVIDENCE/regression/schema12-full/responsive-schema12.json"
+    },
+    {
+      "status": "added",
+      "file": "PRISM_V14_BATCH_06_EVIDENCE/regression/schema12-full/role-colors.json"
+    },
+    {
+      "status": "added",
+      "file": "PRISM_V14_BATCH_06_EVIDENCE/regression/schema12-full/schema15-completed-monitor.json"
+    },
+    {
+      "status": "added",
+      "file": "PRISM_V14_BATCH_06_EVIDENCE/regression/schema12-full/upload-tests.json"
+    },
+    {
+      "status": "added",
+      "file": "PRISM_V14_BATCH_06_EVIDENCE/required-field-inventory.json"
+    },
+    {
+      "status": "added",
+      "file": "PRISM_V14_BATCH_06_EVIDENCE/responsive-schema11.json"
+    },
+    {
+      "status": "added",
+      "file": "PRISM_V14_BATCH_06_EVIDENCE/responsive-schema15.json"
+    },
+    {
+      "status": "added",
+      "file": "PRISM_V14_BATCH_06_EVIDENCE/role-colors.json"
+    },
+    {
+      "status": "added",
+      "file": "PRISM_V14_BATCH_06_EVIDENCE/student-dashboard-1440-dark.png"
+    },
+    {
+      "status": "added",
+      "file": "PRISM_V14_BATCH_06_EVIDENCE/student-dashboard-1440-light.png"
+    },
+    {
+      "status": "added",
+      "file": "PRISM_V14_BATCH_06_EVIDENCE/student-profile-1440-dark.png"
+    },
+    {
+      "status": "added",
+      "file": "PRISM_V14_BATCH_06_EVIDENCE/student-profile-1440-light.png"
+    },
+    {
+      "status": "added",
+      "file": "PRISM_V14_BATCH_06_EVIDENCE/student-profile-390-dark.png"
+    },
+    {
+      "status": "added",
+      "file": "PRISM_V14_BATCH_06_EVIDENCE/student-profile-390-light.png"
+    },
+    {
+      "status": "added",
+      "file": "PRISM_V14_BATCH_06_EVIDENCE/syntax.json"
+    },
+    {
+      "status": "added",
+      "file": "PRISM_V14_BATCH_06_EVIDENCE/teardown.json"
+    },
+    {
+      "status": "added",
+      "file": "PRISM_V14_BATCH_06_REVIEW.md"
+    },
+    {
+      "status": "added",
+      "file": "PRISM_V14_BATCH_07_AUDIT_HANDOFF.md"
+    },
+    {
+      "status": "added",
+      "file": "PRISM_V14_PDF_REQUIREMENTS_TRACEABILITY_DRAFT.md"
+    },
+    {
+      "status": "modified",
+      "file": "account.php"
+    },
+    {
+      "status": "modified",
+      "file": "account_setup.php"
+    },
+    {
+      "status": "modified",
+      "file": "admin_legal_policies.php"
+    },
+    {
+      "status": "modified",
+      "file": "admin_notifications.php"
+    },
+    {
+      "status": "modified",
+      "file": "admin_people.php"
+    },
+    {
+      "status": "added",
+      "file": "assets/css/prism-forms.css"
+    },
+    {
+      "status": "modified",
+      "file": "assets/js/account.js"
+    },
+    {
+      "status": "modified",
+      "file": "assets/js/admin-management.js"
+    },
+    {
+      "status": "modified",
+      "file": "assets/js/adviser-dashboard.js"
+    },
+    {
+      "status": "modified",
+      "file": "assets/js/calendar-deadlines.js"
+    },
+    {
+      "status": "modified",
+      "file": "assets/js/documents.js"
+    },
+    {
+      "status": "modified",
+      "file": "assets/js/ierb-requirements.js"
+    },
+    {
+      "status": "modified",
+      "file": "assets/js/ierbprog.js"
+    },
+    {
+      "status": "added",
+      "file": "assets/js/prism-forms.js"
+    },
+    {
+      "status": "modified",
+      "file": "assets/js/prism-ui.js"
+    },
+    {
+      "status": "modified",
+      "file": "complete_profile.php"
+    },
+    {
+      "status": "modified",
+      "file": "documents.php"
+    },
+    {
+      "status": "modified",
+      "file": "documents_api.php"
+    },
+    {
+      "status": "modified",
+      "file": "forgot_password.php"
+    },
+    {
+      "status": "modified",
+      "file": "help_support.php"
+    },
+    {
+      "status": "modified",
+      "file": "ierb_api.php"
+    },
+    {
+      "status": "modified",
+      "file": "ierbprog.php"
+    },
+    {
+      "status": "modified",
+      "file": "includes/account_onboarding.php"
+    },
+    {
+      "status": "modified",
+      "file": "includes/document_management.php"
+    },
+    {
+      "status": "modified",
+      "file": "includes/frontend_styles.php"
+    },
+    {
+      "status": "modified",
+      "file": "includes/prism-navigation.php"
+    },
+    {
+      "status": "modified",
+      "file": "includes/staff_registration_card.php"
+    },
+    {
+      "status": "modified",
+      "file": "legal_consent.php"
+    },
+    {
+      "status": "modified",
+      "file": "login.php"
+    },
+    {
+      "status": "modified",
+      "file": "maintenance/ierb-group-tests/run.cjs"
+    },
+    {
+      "status": "modified",
+      "file": "maintenance/ierb-monitor-tests/integration.cjs"
+    },
+    {
+      "status": "added",
+      "file": "maintenance/ierb-ui-tests/README.md"
+    },
+    {
+      "status": "added",
+      "file": "maintenance/ierb-ui-tests/fixture.php"
+    },
+    {
+      "status": "added",
+      "file": "maintenance/ierb-ui-tests/integration.cjs"
+    },
+    {
+      "status": "modified",
+      "file": "register.php"
+    },
+    {
+      "status": "modified",
+      "file": "research_adviser.php"
+    },
+    {
+      "status": "modified",
+      "file": "reset_password.php"
+    },
+    {
+      "status": "modified",
+      "file": "role_portal.php"
+    },
+    {
+      "status": "modified",
+      "file": "students_api.php"
+    },
+    {
+      "status": "added",
+      "file": "PRISM_V14_BATCH_06_EVIDENCE/changed-file-inventory.json"
+    }
+  ],
+  "excluded": [
+    "PRISM_V13_GROUP_ADVANCEMENT_REVIEW/ (fixture sandbox)",
+    "PRISM_V14_BATCH_05_EVIDENCE untracked receipts",
+    "PRISM_V14_BATCH_06_EVIDENCE/regression non-JSON screenshots and PDFs",
+    "runtime logs, sessions, dependencies"
+  ]
+}

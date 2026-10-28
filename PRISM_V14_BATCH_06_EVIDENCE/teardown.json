@@ -1,0 +1,10 @@
+{
+  "status": "PASS",
+  "schemaVersion": "11",
+  "exactManifest": "PASS",
+  "batch6SyntheticRowsRemaining": 0,
+  "datadirVerified": true,
+  "syntheticMariaDBStopped": true,
+  "productionAccess": false,
+  "productionMigration": false
+}

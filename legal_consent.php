@@ -30,7 +30,7 @@ $_SESSION['legal_csrf']??=bin2hex(random_bytes(32));
 <p class="setup-lead">Before continuing to PRISM, please review the current Privacy Policy and Terms of Service.</p>
 <p class="setup-notice setup-email"><span>Signed in as <strong class="invited-email"><?= legal_escape($user['email']) ?></strong></span></p>
 <?php if ($error): ?><p role="alert" class="setup-error"><?= legal_escape($error) ?></p><?php endif; ?>
-<form method="post" id="consentForm">
+<form method="post" id="consentForm" data-prism-submit-once>
 <input type="hidden" name="csrf" value="<?= legal_escape($_SESSION['legal_csrf']) ?>">
 <input type="hidden" name="prism_generation" value="<?= legal_escape(prism_session_generation()) ?>">
 <input type="hidden" name="snapshot" value="<?= legal_snapshot($current) ?>">
@@ -47,7 +47,7 @@ $_SESSION['legal_csrf']??=bin2hex(random_bytes(32));
 <?php endforeach; ?>
 <div class="consent-actions">
 <a class="consent-back" href="index.php" aria-label="Back to PRISM" title="Back to PRISM"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M20 12H4m7-7-7 7 7 7"/></svg></a>
-<button type="submit" class="setup-btn" id="consentSubmit">Continue to PRISM</button>
+<button type="submit" class="setup-btn" id="consentSubmit" data-busy-label="Saving...">Continue to PRISM</button>
 </div>
 </form>
 <p class="setup-help">You can review either policy before agreeing. Normal PRISM access requires the outstanding acknowledgment/agreement.</p>

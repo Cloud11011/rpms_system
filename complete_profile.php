@@ -41,18 +41,24 @@ header('Cache-Control: no-store');
 
             <noscript><p role="alert" class="profile-error">JavaScript is required to complete your profile. Enable it and reload this page; your details have not been submitted.</p></noscript>
 
-            <form id="completeProfileForm" method="post" action="complete_profile.php" aria-labelledby="profileTitle" data-steps="<?= $student?2:1 ?>">
+            <form id="completeProfileForm" method="post" action="complete_profile.php" aria-labelledby="profileTitle" data-steps="<?= $student?2:1 ?>" data-prism-gate="valid">
                 <section class="wiz-panel" data-step="1">
                     <p class="setup-notice setup-email">
                         <i class="fa-regular fa-envelope" aria-hidden="true"></i>
                         <span>Invited email: <strong class="invited-email"><?= htmlspecialchars($user['email'],ENT_QUOTES,'UTF-8') ?></strong></span>
                     </p>
+                    <p class="prism-required-legend"><span class="prism-required-mark" aria-hidden="true">*</span>Required field</p>
                     <label for="onboardingName">Full name</label>
-                    <input id="onboardingName" name="name" autocomplete="name" maxlength="190" required>
+                    <input id="onboardingName" name="name" autocomplete="name" maxlength="190" placeholder="Enter full name" required>
 
                     <label for="onboardingId"><?= $student?'Student':'Employee' ?> ID</label>
-                    <input id="onboardingId" name="<?= $student?'studentId':'employeeId' ?>" maxlength="100" aria-describedby="identityPolicy" required>
+                    <?php if($student): ?>
+                    <input id="onboardingId" name="studentId" type="text" maxlength="100" placeholder="Enter Student ID (numbers only)" aria-describedby="identityPolicy" data-prism-student-id required>
+                    <p id="identityPolicy" class="profile-hint"><i class="fa-solid fa-circle-info" aria-hidden="true"></i><span>Use digits only, for example 2026123456. Leading zeros are kept. After completion, ID corrections require Admin review.</span></p>
+                    <?php else: ?>
+                    <input id="onboardingId" name="employeeId" maxlength="100" placeholder="Enter Employee ID" aria-describedby="identityPolicy" required>
                     <p id="identityPolicy" class="profile-hint"><i class="fa-solid fa-circle-info" aria-hidden="true"></i><span>After completion, ID corrections require Admin review.</span></p>
+                    <?php endif; ?>
                     <?php if(!$student): ?>
                     <label for="onboardingDepartment">Academic unit / Department</label>
                     <select id="onboardingDepartment" name="department" required>
@@ -78,7 +84,7 @@ header('Cache-Control: no-store');
                         <button type="button" data-academic="reset" hidden>Keep existing values</button>
                     </fieldset>
                     <label for="onboardingResearch">Research title <em class="opt">optional</em></label>
-                    <input id="onboardingResearch" name="research" maxlength="255" placeholder="You can add this later">
+                    <input id="onboardingResearch" name="research" maxlength="255" placeholder="Enter the complete research title (optional)">
                     <p class="profile-hint"><i class="fa-solid fa-circle-info" aria-hidden="true"></i><span>Adviser and research-group assignments are managed by staff.</span></p>
                 </section>
                 <?php endif; ?>

@@ -110,6 +110,22 @@ allSelection?.addEventListener('click',async()=>{
     if(selectionBusy||deleteBusy)return;selectionBusy=true;updateDocumentSelection();const filterKey=selectionFilterKey;
     try{const data=await api('selection_snapshot',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({filters:documentQuery()})});if(filterKey!==selectionFilterKey)return;selectedDocuments.clear();matchingSelection={token:data.selectionToken,ids:new Set(data.ids.map(String)),excluded:new Set()};toast(`${data.count} matching documents selected across all pages.`)}catch(error){toast(error.message,'error')}finally{selectionBusy=false;updateDocumentSelection()}
 });
+const uploaderRoles={student:'Student',adviser:'Research Adviser',admin:'RPMS Administrator'};
+// Server-resolved targets only; every value is rendered as text.
+function renderBulkDeleteRecords(records){
+    const list=document.getElementById('bulkDeleteRecords');list.replaceChildren();
+    document.getElementById('bulkDeleteRecordTotal').textContent=String(records.length);
+    records.forEach(record=>{
+        const item=document.createElement('li'),name=document.createElement('strong'),meta=document.createElement('span');
+        if(record.missing){name.textContent=`Document ${record.id}`;meta.textContent='No longer available. It will not be deleted from this confirmation.';}
+        else{
+            name.textContent=record.originalName;
+            const uploader=record.uploadedBy?record.uploadedBy+(uploaderRoles[record.uploaderRole]?` (${uploaderRoles[record.uploaderRole]})`:''):'Not recorded';
+            meta.textContent=`${record.documentType||'Unclassified'} · Version ${record.versionNo}${record.isCurrent?' (current)':' (previous)'} · Uploaded by: ${uploader}${record.studentName?` · Student: ${record.studentName}`:''}${record.locked?' · Formally submitted':''}`;
+        }
+        item.append(name,meta);list.append(item);
+    });
+}
 bulkDeleteButton?.addEventListener('click',async()=>{
     if(!selectedDocumentCount()||selectionBusy||deleteBusy)return;deleteReturnFocus=bulkDeleteButton;selectionBusy=true;updateDocumentSelection();const filterKey=selectionFilterKey;
     const selection=matchingSelection?{selectionToken:matchingSelection.token,excludedIds:[...matchingSelection.excluded]}:{ids:[...selectedDocuments.keys()],expectedVersions:Object.fromEntries(selectedDocuments)};
@@ -118,6 +134,7 @@ bulkDeleteButton?.addEventListener('click',async()=>{
         deleteConfirmation=data;deleteReason.value='';deleteStatus.textContent='';deleteStatus.classList.remove('document-error');
         const counts=document.getElementById('bulkDeleteCounts');counts.replaceChildren();
         [['Selected',data.count],['Current versions',data.currentVersions],['Historical versions',data.historicalVersions],['Formally submitted',data.submitted],['No longer eligible',(data.ineligible||[]).length]].forEach(([label,value])=>{const term=document.createElement('dt'),detail=document.createElement('dd');term.textContent=label;detail.textContent=value;counts.append(term,detail)});
+        renderBulkDeleteRecords(data.records||[]);
         const ineligible=document.getElementById('bulkDeleteIneligible');ineligible.replaceChildren();(data.ineligible||[]).forEach(record=>{const item=document.createElement('li');item.textContent=`${record.id}: ${record.message}`;ineligible.append(item)});
         if(!data.canDelete)deleteStatus.textContent='Nothing can be deleted from this confirmation. Clear the selection and refresh the records.';
         deleteConfirmButton.disabled=true;openModal(deleteModal);deleteReason.focus();
@@ -346,23 +363,17 @@ uploadForm.addEventListener('submit',async e=>{
     finally{button.disabled=false;button.innerHTML=original}
 });
 async function remove(d){
-    const needsReason=!!d.locked;
-    const answer=await PrismUI.confirm({
-        title:'Delete document',icon:'fa-trash',tone:'danger',confirmText:'Delete',
-        message:`Delete â€œ${d.originalName}â€? ${needsReason?'This formally submitted document is locked, so the reason will be recorded in the audit trail.':'This cannot be undone.'}`,
-        reasonLabel:needsReason?'Reason for deleting this submitted document':'',
-        reasonRequired:needsReason
-    });
-    if(!answer)return;
-    try{const data=await api('delete',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({id:d.id,reason:answer.reason||''})});await load();toast(data.message||'Document deleted.')}
-    catch(e){toast(e.message,'error')}
+    // The shared dialog loads the authoritative record (filename, recorded uploader, version) and reports failures in place.
+    const data=await PrismUI.confirmDocumentDelete(d);
+    if(!data)return;
+    await load();toast(data.message||'Document deleted.')
 }
 async function reviewStatus(d,status){
     const corrective=['Denied','Resubmission Requested'].includes(status);
     const answer=await PrismUI.confirm({
         title:`${status} document`,icon:status==='Approved'?'fa-check':'fa-clipboard-check',
         tone:status==='Denied'?'danger':'primary',confirmText:status,
-        message:corrective?'Explain what the student needs to correct before resubmitting.':status==='Approved'&&currentRole==='adviser'?`Approve â€œ${d.originalName}â€ version ${d.versionNo} and formally submit it to RPMS?`:'You may add reviewer remarks before saving this decision.',
+        message:corrective?'Explain what the student needs to correct before resubmitting.':status==='Approved'&&currentRole==='adviser'?`Approve “${d.originalName}” version ${d.versionNo} and formally submit it to RPMS?`:'You may add reviewer remarks before saving this decision.',
         reasonLabel:corrective?'Reviewer remarks (required)':'Reviewer remarks (optional)',
         reasonRequired:corrective,minReason:1
     });
@@ -383,7 +394,7 @@ async function review(d){
     const options=allowed.map(s=>`<option${s===d.reviewStatus?' selected':''}>${esc(s)}</option>`).join('');
     const answer=await PrismUI.confirm({
         title:'Review document',icon:'fa-clipboard-check',confirmText:'Save review',dialogClass:'document-review-dialog',
-        message:`Update the review status for â€œ${d.originalName}â€. ${currentRole==='adviser'?'Approve also formally submits this current version to RPMS.':''}`,
+        message:`Update the review status for “${d.originalName}”. ${currentRole==='adviser'?'Approve also formally submits this current version to RPMS.':''}`,
         extraHtml:`<label for="prismReviewStatus">Review status</label><select id="prismReviewStatus">${options}</select>`,
         reasonLabel:'Reviewer remarks',reasonRequired:false,
         collect:dlg=>({status:dlg.querySelector('#prismReviewStatus').value}),
@@ -395,7 +406,7 @@ async function review(d){
 }
 async function returnForRevision(d){
     const answer=await PrismUI.confirm({title:'Return to Student for Revision',icon:'fa-rotate-left',tone:'warning',confirmText:'Return for Revision',
-        message:`Return â€œ${d.originalName}â€ (${d.documentType}, version ${d.versionNo}) to ${d.student}? The original submission and approval will be preserved. The Student must upload a new revision for Adviser review.`,
+        message:`Return “${d.originalName}” (${d.documentType}, version ${d.versionNo}) to ${d.student}? The original submission and approval will be preserved. The Student must upload a new revision for Adviser review.`,
         reasonLabel:'RPMS return reason (required)',reasonRequired:true,minReason:1,maxReason:5000});
     if(!answer)return;
     try{const data=await PrismUI.postJson('documents_api.php?action=return_for_revision',{id:d.id,reason:answer.reason});await load();toast(data.message);document.dispatchEvent(new CustomEvent('prism:documents-changed'));}

@@ -27,7 +27,7 @@ $hiddenFields='<input type="hidden" name="prism_generation" value="'.legal_escap
 <div id="staffOneTime" class="staff-code-panel"><p class="staff-notice staff-warning"><strong>This code will not be shown again. Save it securely before continuing.</strong></p><div class="staff-code-row">
 <p id="staffPlaintext" class="staff-plaintext"><?= legal_escape($display['code']) ?></p>
 <button type="button" class="prism-btn prism-btn-secondary" data-staff-copy="staffPlaintext">Copy Code</button></div>
-<form action="staff_registration_manage.php" method="post"><?= $hiddenFields ?><input type="hidden" name="action" value="acknowledge"><input type="hidden" name="proof" value="<?= legal_escape($display['proof']) ?>">
+<form action="staff_registration_manage.php" method="post" data-prism-submit-once><?= $hiddenFields ?><input type="hidden" name="action" value="acknowledge"><input type="hidden" name="proof" value="<?= legal_escape($display['proof']) ?>">
 <label class="staff-check"><input type="checkbox" name="confirmed" value="1" required> <span>I have securely saved this code.</span></label>
 <p>Confirm within 10 minutes. Confirmation starts the 24-hour validity period.</p>
 <button type="submit" class="prism-btn prism-btn-primary">Confirm Saved</button></form></div>
@@ -35,10 +35,10 @@ $hiddenFields='<input type="hidden" name="prism_generation" value="'.legal_escap
 <section class="staff-share"><h3>Registration link</h3><p class="staff-hint">Share this link and your separately saved code through an appropriate private channel.</p><div class="staff-link-row"><a class="staff-link" id="staffRegistrationLink" href="<?= legal_escape($registrationLink) ?>"><?= legal_escape($registrationLink) ?></a><button type="button" class="prism-btn prism-btn-secondary" data-staff-copy="staffRegistrationLink">Copy Registration Link</button></div></section>
 <p id="staffCopyResult" role="status" aria-live="polite"></p>
 <?php if (!$error && !isset($display['code']) && $state!=='acknowledged'): ?>
-<form action="staff_registration_manage.php" method="post"><?= $hiddenFields ?><input type="hidden" name="action" value="generate">
+<form action="staff_registration_manage.php" method="post" data-prism-submit-once><?= $hiddenFields ?><input type="hidden" name="action" value="generate">
 <button type="submit" class="prism-btn prism-btn-primary"><?= $state==='pending'?'Generate Replacement':'Generate Staff Registration Code' ?></button></form><?php endif; ?>
 <?php if (!$error && in_array($state,['pending','acknowledged'],true)): ?>
-<form action="staff_registration_manage.php" method="post"><?= $hiddenFields ?><input type="hidden" name="action" value="invalidate">
+<form action="staff_registration_manage.php" method="post" data-prism-submit-once><?= $hiddenFields ?><input type="hidden" name="action" value="invalidate">
 <label class="staff-check"><input type="checkbox" name="confirmed" value="1" required> <span>Invalidate this Staff Registration Code. It will no longer be usable for Admin registration.</span></label>
 <button type="submit" class="prism-btn prism-btn-secondary">Invalidate Code</button></form><?php endif; ?>
 </section>

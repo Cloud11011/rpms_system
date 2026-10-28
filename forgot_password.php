@@ -57,7 +57,7 @@ require __DIR__ . '/config.php';
     }
 
     ?>
-        <form action="forgot_password_process.php" method="POST">
+        <form action="forgot_password_process.php" method="POST" data-prism-submit-once>
 
             <div class="input-group">
 

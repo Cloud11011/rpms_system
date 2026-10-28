@@ -1,0 +1,56 @@
+{
+  "status": "PASS",
+  "finalCriticalFailures": 0,
+  "note": "Runner totals are separate executions; embedded module counts overlap their runner totals and are not summed.",
+  "browser": "Chromium headless only",
+  "checks": [
+    {
+      "check": "Full legacy schema-11 HTTP/browser/security regression + Batch 6 (final code)",
+      "result": "PASS",
+      "assertions": 428,
+      "evidence": "runner total; Batch 6 module 118 (batch6-integration-schema11.json)"
+    },
+    {
+      "check": "Batch 1 foundation, migrations and races",
+      "result": "PASS",
+      "assertions": 99,
+      "evidence": "regression/foundation/foundation-tests.json"
+    },
+    {
+      "check": "Full schema-12 regression with Batch 2 documents, Batch 3 projects/uploads, schema 14/15 workflow + Batch 6",
+      "result": "PASS",
+      "assertions": 856,
+      "evidence": "runner total; documents 424, projects 96, uploads 96, project migration 14, Batch 6 module 120"
+    },
+    {
+      "check": "Batch 4 summary/history/AI/PDF/track-sheet regression",
+      "result": "PASS",
+      "assertions": 144,
+      "evidence": "runner total; module 132; summary migration matrix 8"
+    },
+    {
+      "check": "Batch 5 monitoring/catalog/migration/browser regression (after harness idempotency fix)",
+      "result": "PASS",
+      "assertions": 245,
+      "evidence": "runner total; module 233; attempt 1 failed on stale synthetic audits, see development-failures.json #16"
+    },
+    {
+      "check": "Batch 6 on the complete V14 schema 15",
+      "result": "PASS",
+      "assertions": 129,
+      "evidence": "runner total; Batch 6 module 117 (batch6-integration-schema15.json)"
+    },
+    {
+      "check": "Fixture migration 11->12->15 and return 15->13->12->11 with exact manifest",
+      "result": "PASS",
+      "assertions": null,
+      "evidence": "schema-end exact schema 11"
+    },
+    {
+      "check": "PHP / JavaScript syntax",
+      "result": "PASS",
+      "assertions": null,
+      "evidence": "syntax.json"
+    }
+  ]
+}

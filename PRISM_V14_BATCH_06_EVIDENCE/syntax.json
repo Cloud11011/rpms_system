@@ -1,0 +1,12 @@
+{
+  "status": "PASS",
+  "php": {
+    "files": 158,
+    "failures": []
+  },
+  "javascript": {
+    "files": 55,
+    "failures": []
+  },
+  "tools": "PHP 8.2.12 php -l; Node v25.0.0 --check"
+}
