@@ -1,0 +1,70 @@
+{
+  "scope": "Exploratory synthetic fixture runs only; none counted as acceptance passes",
+  "finalCriticalFailures": 0,
+  "recordedExploratoryFailures": [
+    {
+      "evidence": "development-failure-01.json",
+      "assertionsBeforeFailure": 82,
+      "error": "AssertionError [ERR_ASSERTION]: Server-side title ordering and filtered counts span genuinely distinct pages"
+    },
+    {
+      "evidence": "development-failure-02.json",
+      "assertionsBeforeFailure": 50,
+      "error": "AssertionError [ERR_ASSERTION]: Records without valid submission dates remain visible and consistently last"
+    },
+    {
+      "evidence": "development-failure-03.json",
+      "assertionsBeforeFailure": 77,
+      "error": "TimeoutError: locator.check: Timeout 30000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('[data-ierb-monitor]').locator('[data-record-key]').first()\u001b[22m\n\u001b[2m    - locator resolved to <input type=\"checkbox\" data-record-key=\"student:27\" aria-label=\"Select Synthetic Batch5 title 25\"/>\u001b[22m\n\u001b[2m  - attempting click action\u001b[22m\n\u001b[2m    - waiting for element to be visible, enabled and stable\u001b[22m\n\u001b[2m    - element is visible, enabled and stable\u001b[22m\n\u001b[2m    - scrolling into view if needed\u001b[22m\n\u001b[2m    - done scrolling\u001b[22m\n\u001b[2m    - <div class=\"prism-tour-slide\">\u2026</div> from <dialog open=\"\" aria-labelledby=\"prismReadonlyTitle\" class=\"prism-readonly-dialog prism-tour-dialog\">\u2026</dialog> subtree intercepts pointer events\u001b[22m\n\u001b[2m  - retrying click action\u001b[22m\n\u001b[2m    - waiting for element to be visible, enabled and stable\u001b[22m\n\u001b[2m    - element is visible, enabled and stable\u001b[22m\n\u001b[2m    - scrolling into view if needed\u001b[22m\n\u001b[2m    - done scrolling\u001b[22m\n\u001b[2m    - <dialog open=\"\" aria-labelledby=\"prismReadonlyTitle\" class=\"prism-readonly-dialog prism-tour-dialog\">\u2026</dialog> intercepts pointer events\u001b[22m\n\u001b[2m  - retrying click action\u001b[22m\n\u001b[2m    - waiting 20ms\u001b[22m\n\u001b[2m    - waiting for element to be visible, enabled and stable\u001b[22m\n\u001b[2m    - element is visible, enabled and stable\u001b[22m\n\u001b[2m    - scrolling into view if needed\u001b[22m\n\u001b[2m    - done scrolling\u001b[22m\n\u001b[2m    - <div class=\"prism-tour-slide\">\u2026</div> from <dialog open=\"\" aria-labelledby=\"prismReadonlyTitle\" class=\"prism-readonly-dialog prism-tour-dialog\">\u2026</dialog> subtree intercepts pointer events\u001b[22m\n\u001b[2m  2 \u00d7 retrying click action\u001b[22m\n\u001b[2m      - waiting 100ms\u001b[22m\n\u001b[2m      - waiting for element to be visible, enabled and stable\u001b[22m\n\u001b[2m      - element is visible, enabled and stable\u001b[22m\n\u001b[2m      - scrolling into view if needed\u001b[22m\n\u001b[2m      - done scrolling\u001b[22m\n\u001b[2m      - <dialog open=\"\" aria-labelledby=\"prismReadonlyTitle\" class=\"prism-readonly-dialog prism-tour-dialog\">\u2026</dialog> intercepts pointer events\u001b[22m\n\u001b[2m  14 \u00d7 retrying click action\u001b[22m\n\u001b[2m       - waiting 500ms\u001b[22m\n\u001b[2m       - waiting for element to be visible, enabled and stable\u001b[22m\n\u001b[2m       - element is visible, enabled and stable\u001b[22m\n\u001b[2m       - scrolling into view if needed\u001b[22m\n\u001b[2m       - done scrolling\u001b[22m\n\u001b[2m       - <dialog open=\"\" aria-labelledby=\"prismReadonlyTitle\" class=\"prism-readonly-dialog prism-tour-dialog\">\u2026</dialog> intercepts pointer events\u001b[22m\n\u001b[2m     - retrying click action\u001b[22m\n\u001b[2m       - waiting 500ms\u001b[22m\n\u001b[2m       - waiting for element to be visible, enabled and stable\u001b[22m\n\u001b[2m       - element is visible, enabled and stable\u001b[22m\n\u001b[2m       - scrolling into view if needed\u001b[22m\n\u001b[2m       - done scrolling\u001b[22m\n\u001b[2m       - <div class=\"prism-tour-slide\">\u2026</div> from <dialog open=\"\" aria-labelledby=\"prismReadonlyTitle\" class=\"prism-readonly-dialog prism-tour-dialog\">\u2026</dialog> subtree intercepts pointer events\u001b[22m\n\u001b[2m     - retrying click action\u001b[22m\n\u001b[2m       - waiting 500ms\u001b[22m\n\u001b[2m       - waiting for element to be visible, enabled and stable\u001b[22m\n\u001b[2m       - element is visible, enabled and stable\u001b[22m\n\u001b[2m       - scrolling into view if needed\u001b[22m\n\u001b[2m       - done scrolling\u001b[22m\n\u001b[2m       - <dialog open=\"\" aria-labelledby=\"prismReadonlyTitle\" class=\"prism-readonly-dialog prism-tour-dialog\">\u2026</dialog> intercepts pointer events\u001b[22m\n\u001b[2m     - retrying click action\u001b[22m\n\u001b[2m       - waiting 500ms\u001b[22m\n\u001b[2m       - waiting for element to be visible, enabled and stable\u001b[22m\n\u001b[2m       - element is visible, enabled and stable\u001b[22m\n\u001b[2m       - scrolling into view if needed\u001b[22m\n\u001b[2m       - done scrolling\u001b[22m\n\u001b[2m       - <dialog open=\"\" aria-labelledby=\"prismReadonlyTitle\" class=\"prism-readonly-dialog prism-tour-dialog\">\u2026</dialog> intercepts pointer events\u001b[22m\n\u001b[2m  - retrying click action\u001b[22m\n\u001b[2m    - waiting 500ms\u001b[22m\n"
+    },
+    {
+      "evidence": "development-failure-04.json",
+      "assertionsBeforeFailure": 97,
+      "error": "TimeoutError: locator.check: Timeout 30000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('[data-ierb-monitor]').locator('[data-record-key]').first()\u001b[22m\n\u001b[2m    - locator resolved to <input type=\"checkbox\" aria-label=\"Select S5\" data-record-key=\"student:5\"/>\u001b[22m\n\u001b[2m  - attempting click action\u001b[22m\n\u001b[2m    2 \u00d7 waiting for element to be visible, enabled and stable\u001b[22m\n\u001b[2m      - element is visible, enabled and stable\u001b[22m\n\u001b[2m      - scrolling into view if needed\u001b[22m\n\u001b[2m      - done scrolling\u001b[22m\n\u001b[2m      - <span>Document Submissions</span> from <aside class=\"sidebar prism-sidebar\">\u2026</aside> subtree intercepts pointer events\u001b[22m\n\u001b[2m    - retrying click action\u001b[22m\n\u001b[2m    - waiting 20ms\u001b[22m\n\u001b[2m    - waiting for element to be visible, enabled and stable\u001b[22m\n\u001b[2m    - element is visible, enabled and stable\u001b[22m\n\u001b[2m    - scrolling into view if needed\u001b[22m\n\u001b[2m    - done scrolling\u001b[22m\n\u001b[2m    - <a href=\"ierbprog.php\" aria-current=\"page\">\u2026</a> from <aside class=\"sidebar prism-sidebar\">\u2026</aside> subtree intercepts pointer events\u001b[22m\n\u001b[2m  2 \u00d7 retrying click action\u001b[22m\n\u001b[2m      - waiting 100ms\u001b[22m\n\u001b[2m      - waiting for element to be visible, enabled and stable\u001b[22m\n\u001b[2m      - element is visible, enabled and stable\u001b[22m\n\u001b[2m      - scrolling into view if needed\u001b[22m\n\u001b[2m      - done scrolling\u001b[22m\n\u001b[2m      - <aside class=\"sidebar prism-sidebar\">\u2026</aside> intercepts pointer events\u001b[22m\n\u001b[2m  14 \u00d7 retrying click action\u001b[22m\n\u001b[2m       - waiting 500ms\u001b[22m\n\u001b[2m       - waiting for element to be visible, enabled and stable\u001b[22m\n\u001b[2m       - element is visible, enabled and stable\u001b[22m\n\u001b[2m       - scrolling into view if needed\u001b[22m\n\u001b[2m       - done scrolling\u001b[22m\n\u001b[2m       - <span>Document Submissions</span> from <aside class=\"sidebar prism-sidebar\">\u2026</aside> subtree intercepts pointer events\u001b[22m\n\u001b[2m     - retrying click action\u001b[22m\n\u001b[2m       - waiting 500ms\u001b[22m\n\u001b[2m       - waiting for element to be visible, enabled and stable\u001b[22m\n\u001b[2m       - element is visible, enabled and stable\u001b[22m\n\u001b[2m       - scrolling into view if needed\u001b[22m\n\u001b[2m       - done scrolling\u001b[22m\n\u001b[2m       - <a href=\"ierbprog.php\" aria-current=\"page\">\u2026</a> from <aside class=\"sidebar prism-sidebar\">\u2026</aside> subtree intercepts pointer events\u001b[22m\n\u001b[2m     - retrying click action\u001b[22m\n\u001b[2m       - waiting 500ms\u001b[22m\n\u001b[2m       - waiting for element to be visible, enabled and stable\u001b[22m\n\u001b[2m       - element is visible, enabled and stable\u001b[22m\n\u001b[2m       - scrolling into view if needed\u001b[22m\n\u001b[2m       - done scrolling\u001b[22m\n\u001b[2m       - <aside class=\"sidebar prism-sidebar\">\u2026</aside> intercepts pointer events\u001b[22m\n\u001b[2m     - retrying click action\u001b[22m\n\u001b[2m       - waiting 500ms\u001b[22m\n\u001b[2m       - waiting for element to be visible, enabled and stable\u001b[22m\n\u001b[2m       - element is visible, enabled and stable\u001b[22m\n\u001b[2m       - scrolling into view if needed\u001b[22m\n\u001b[2m       - done scrolling\u001b[22m\n\u001b[2m       - <aside class=\"sidebar prism-sidebar\">\u2026</aside> intercepts pointer events\u001b[22m\n\u001b[2m  - retrying click action\u001b[22m\n\u001b[2m    - waiting 500ms\u001b[22m\n"
+    },
+    {
+      "evidence": "development-failure-05.json",
+      "assertionsBeforeFailure": 91,
+      "error": "TimeoutError: locator.click: Timeout 30000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('.prism-action-menu').filter({ has: locator('[data-summary=\"021f27c94dbbd01ea8eb348d\"]') }).first().locator('.prism-action-trigger')\u001b[22m\n"
+    },
+    {
+      "evidence": "development-failure-06.json",
+      "assertionsBeforeFailure": 74,
+      "error": "TimeoutError: locator.click: Timeout 30000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('.prism-action-panel:visible [data-summary=\"91f44cadd5e990024629c044\"]')\u001b[22m\n\u001b[2m    - locator resolved to <button type=\"button\" data-summary=\"91f44cadd5e990024629c044\" class=\"document-action-button summary-action prism-action-item\">\u2026</button>\u001b[22m\n\u001b[2m  - attempting click action\u001b[22m\n\u001b[2m    - waiting for element to be visible, enabled and stable\u001b[22m\n\u001b[2m    - element is not stable\u001b[22m\n\u001b[2m  - retrying click action\u001b[22m\n\u001b[2m    - waiting for element to be visible, enabled and stable\u001b[22m\n\u001b[2m    - element is not visible\u001b[22m\n\u001b[2m  - retrying click action\u001b[22m\n\u001b[2m    - waiting 20ms\u001b[22m\n\u001b[2m    2 \u00d7 waiting for element to be visible, enabled and stable\u001b[22m\n\u001b[2m      - element is not visible\u001b[22m\n\u001b[2m    - retrying click action\u001b[22m\n\u001b[2m      - waiting 100ms\u001b[22m\n\u001b[2m    58 \u00d7 waiting for element to be visible, enabled and stable\u001b[22m\n\u001b[2m       - element is not visible\u001b[22m\n\u001b[2m     - retrying click action\u001b[22m\n\u001b[2m       - waiting 500ms\u001b[22m\n"
+    },
+    {
+      "evidence": "development-failure-07.json",
+      "assertionsBeforeFailure": 92,
+      "error": "AssertionError [ERR_ASSERTION]: Server-side title ordering and filtered counts span genuinely distinct pages {\"total1\":4,\"total2\":4,\"page1\":1,\"page2\":1,\"keys1\":[\"student:31\",\"student:30\",\"student:29\",\"student:28\"],\"keys2\":[\"student:31\",\"student:30\",\"student:29\",\"student:28\"]}"
+    },
+    {
+      "evidence": "development-failure-08.json",
+      "assertionsBeforeFailure": 110,
+      "error": "AssertionError [ERR_ASSERTION]: 390 light: shared dashboard monitor remains within viewport"
+    },
+    {
+      "evidence": "development-failure-09.json",
+      "assertionsBeforeFailure": 110,
+      "error": "AssertionError [ERR_ASSERTION]: 390 light: shared dashboard monitor remains within viewport {\"pageWidth\":404,\"viewport\":390,\"monitorWidth\":240,\"monitorScroll\":240}"
+    },
+    {
+      "evidence": "development-failure-10.json",
+      "assertionsBeforeFailure": 110,
+      "error": "AssertionError [ERR_ASSERTION]: 390 light: shared dashboard monitor remains within viewport {\"pageWidth\":404,\"viewport\":390,\"monitorWidth\":240,\"monitorScroll\":240,\"outside\":[{\"tag\":\"SPAN\",\"id\":\"\",\"cls\":\"ai-orb o1\",\"right\":439.390625},{\"tag\":\"SPAN\",\"id\":\"\",\"cls\":\"ai-orb o2\",\"right\":468.890625},{\"tag\":\"SPAN\",\"id\":\"\",\"cls\":\"prism-badge tone-info is-small\",\"right\":404},{\"tag\":\"SPAN\",\"id\":\"\",\"cls\":\"\",\"right\":393}]}"
+    },
+    {
+      "evidence": "development-failure-11.json",
+      "assertionsBeforeFailure": 110,
+      "error": "AssertionError [ERR_ASSERTION]: 390 light: shared dashboard monitor remains within viewport {\"pageWidth\":404,\"viewport\":390,\"monitorWidth\":240,\"monitorScroll\":240,\"outside\":[{\"tag\":\"SPAN\",\"id\":\"\",\"cls\":\"ai-orb o1\",\"right\":439.390625},{\"tag\":\"SPAN\",\"id\":\"\",\"cls\":\"ai-orb o2\",\"right\":468.890625},{\"tag\":\"SPAN\",\"id\":\"\",\"cls\":\"prism-badge tone-info is-small\",\"right\":404},{\"tag\":\"SPAN\",\"id\":\"\",\"cls\":\"\",\"right\":393}]}"
+    }
+  ],
+  "otherDevelopmentChecks": "A temporary runner-edit syntax error and a diagnostic probe after the copied server had stopped were corrected; neither was an acceptance pass.",
+  "resolutions": [
+    "Use distinct Batch 5 fixture IDs and fail immediately on fixture SQL errors.",
+    "Seed an explicit undated record; scope title tests to the intended synthetic dataset.",
+    "Acknowledge onboarding and close navigation before interacting with page controls.",
+    "Wait for both immediate and debounced document search reloads before opening actions.",
+    "Constrain the Dashboard monitor card; wrap long badges and remove the mobile repository badge margin.",
+    "Use the same semantic status projection for filters, counts and displayed record status."
+  ]
+}

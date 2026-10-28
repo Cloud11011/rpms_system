@@ -7,7 +7,7 @@ function sourcePdf(text){
 }
 module.exports=async h=>{
   const {root,php,sql,post,expect,check,response,sessions:s,base,playwright,generation}=h;
-  const start=h.checks.length,evidence=path.join(root,'PRISM_V14_BATCH_04_EVIDENCE');fs.mkdirSync(evidence,{recursive:true});
+  const start=h.checks.length,evidence=path.resolve(process.env.PRISM_TEST_EVIDENCE_DIR||path.join(root,'PRISM_V14_BATCH_04_EVIDENCE'));fs.mkdirSync(evidence,{recursive:true});
   const helper=path.join(__dirname,'fixture.php');
   const cli=data=>JSON.parse(cp.execFileSync(php,[helper],{input:JSON.stringify(data),encoding:'utf8',windowsHide:true})).result;
   const oldHelper=path.join(root,'maintenance/ierb-v14-tests/documents-fixture.php');
@@ -99,6 +99,11 @@ module.exports=async h=>{
       await ctx.addInitScript(({theme,tour})=>{localStorage.setItem('prismTheme',theme);localStorage.setItem(tour,'seen');}, {theme,tour:'prismTour.admin.'+crypto.createHash('sha256').update('admin|1').digest('hex')+'.v1'});
       const page=await ctx.newPage();await page.goto(base+'/documents.php');
       await page.mouse.move(width-20,60);await page.keyboard.press('Escape');
+      await page.locator('#documentsTableBody[aria-busy="false"]').waitFor();
+      await page.locator('#documentSearch').fill('Synthetic Batch4 summary.pdf');
+      // The existing search has both an immediate reload and a shared-pager debounce.
+      await page.waitForTimeout(400);
+      await page.locator('#documentsTableBody[aria-busy="false"]').waitFor();
       const menu=page.locator('.prism-action-menu').filter({has:page.locator(`[data-summary="${id}"]`)}).first();
       await menu.locator('.prism-action-trigger').click();await page.locator(`.prism-action-panel:visible [data-summary="${id}"]`).click();await page.locator('#summaryVersion:not([disabled])').waitFor();
       check(await page.locator('#summaryVersion option').count()===10,'Version selector includes retained Local, AI and provider-fallback history at '+width+' '+theme);

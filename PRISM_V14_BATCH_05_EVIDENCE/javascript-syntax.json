@@ -1,0 +1,241 @@
+{
+  "status": "PASS",
+  "files": 47,
+  "checks": [
+    {
+      "file": "assets\\js\\academic-fields.js",
+      "pass": true,
+      "error": null
+    },
+    {
+      "file": "assets\\js\\academic-years.js",
+      "pass": true,
+      "error": null
+    },
+    {
+      "file": "assets\\js\\account-setup.js",
+      "pass": true,
+      "error": null
+    },
+    {
+      "file": "assets\\js\\account.js",
+      "pass": true,
+      "error": null
+    },
+    {
+      "file": "assets\\js\\admin-ai.js",
+      "pass": true,
+      "error": null
+    },
+    {
+      "file": "assets\\js\\admin-management.js",
+      "pass": true,
+      "error": null
+    },
+    {
+      "file": "assets\\js\\admin-notifications.js",
+      "pass": true,
+      "error": null
+    },
+    {
+      "file": "assets\\js\\admin-retention.js",
+      "pass": true,
+      "error": null
+    },
+    {
+      "file": "assets\\js\\adviser-calendar-reminders.js",
+      "pass": true,
+      "error": null
+    },
+    {
+      "file": "assets\\js\\adviser-dashboard.js",
+      "pass": true,
+      "error": null
+    },
+    {
+      "file": "assets\\js\\batch11-public.js",
+      "pass": true,
+      "error": null
+    },
+    {
+      "file": "assets\\js\\calendar-deadlines.js",
+      "pass": true,
+      "error": null
+    },
+    {
+      "file": "assets\\js\\calendar.js",
+      "pass": true,
+      "error": null
+    },
+    {
+      "file": "assets\\js\\complete-profile.js",
+      "pass": true,
+      "error": null
+    },
+    {
+      "file": "assets\\js\\dashboard-deadlines.js",
+      "pass": true,
+      "error": null
+    },
+    {
+      "file": "assets\\js\\dashboard-sidebar.js",
+      "pass": true,
+      "error": null
+    },
+    {
+      "file": "assets\\js\\data-export-ui.js",
+      "pass": true,
+      "error": null
+    },
+    {
+      "file": "assets\\js\\document-upload.js",
+      "pass": true,
+      "error": null
+    },
+    {
+      "file": "assets\\js\\documents.js",
+      "pass": true,
+      "error": null
+    },
+    {
+      "file": "assets\\js\\help-support-modal.js",
+      "pass": true,
+      "error": null
+    },
+    {
+      "file": "assets\\js\\help-support.js",
+      "pass": true,
+      "error": null
+    },
+    {
+      "file": "assets\\js\\ierb-monitor.js",
+      "pass": true,
+      "error": null
+    },
+    {
+      "file": "assets\\js\\ierb-requirements.js",
+      "pass": true,
+      "error": null
+    },
+    {
+      "file": "assets\\js\\ierbprog.js",
+      "pass": true,
+      "error": null
+    },
+    {
+      "file": "assets\\js\\invitations.js",
+      "pass": true,
+      "error": null
+    },
+    {
+      "file": "assets\\js\\legal-management.js",
+      "pass": true,
+      "error": null
+    },
+    {
+      "file": "assets\\js\\legal-theme.js",
+      "pass": true,
+      "error": null
+    },
+    {
+      "file": "assets\\js\\lifecycle-forms.js",
+      "pass": true,
+      "error": null
+    },
+    {
+      "file": "assets\\js\\login-legal.js",
+      "pass": true,
+      "error": null
+    },
+    {
+      "file": "assets\\js\\notification-center-ui.js",
+      "pass": true,
+      "error": null
+    },
+    {
+      "file": "assets\\js\\notification-history.js",
+      "pass": true,
+      "error": null
+    },
+    {
+      "file": "assets\\js\\onboarding.js",
+      "pass": true,
+      "error": null
+    },
+    {
+      "file": "assets\\js\\prism-calendar-presentation.js",
+      "pass": true,
+      "error": null
+    },
+    {
+      "file": "assets\\js\\prism-guidance.js",
+      "pass": true,
+      "error": null
+    },
+    {
+      "file": "assets\\js\\prism-ui.js",
+      "pass": true,
+      "error": null
+    },
+    {
+      "file": "assets\\js\\prism-workspace.js",
+      "pass": true,
+      "error": null
+    },
+    {
+      "file": "assets\\js\\register-ui.js",
+      "pass": true,
+      "error": null
+    },
+    {
+      "file": "assets\\js\\reports.js",
+      "pass": true,
+      "error": null
+    },
+    {
+      "file": "assets\\js\\role-calendar.js",
+      "pass": true,
+      "error": null
+    },
+    {
+      "file": "assets\\js\\role-portal.js",
+      "pass": true,
+      "error": null
+    },
+    {
+      "file": "assets\\js\\script.js",
+      "pass": true,
+      "error": null
+    },
+    {
+      "file": "assets\\js\\session-browser.js",
+      "pass": true,
+      "error": null
+    },
+    {
+      "file": "assets\\js\\staff-registration.js",
+      "pass": true,
+      "error": null
+    },
+    {
+      "file": "maintenance\\ierb-monitor-tests\\integration.cjs",
+      "pass": true,
+      "error": null
+    },
+    {
+      "file": "maintenance\\ierb-group-tests\\run.cjs",
+      "pass": true,
+      "error": null
+    },
+    {
+      "file": "maintenance\\ierb-v14-tests\\documents.cjs",
+      "pass": true,
+      "error": null
+    },
+    {
+      "file": "maintenance\\ierb-report-tests\\integration.cjs",
+      "pass": true,
+      "error": null
+    }
+  ]
+}

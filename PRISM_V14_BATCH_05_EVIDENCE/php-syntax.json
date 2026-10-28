@@ -1,0 +1,791 @@
+{
+  "status": "PASS",
+  "files": 157,
+  "checks": [
+    {
+      "file": "academic_years_api.php",
+      "pass": true,
+      "error": null
+    },
+    {
+      "file": "account.php",
+      "pass": true,
+      "error": null
+    },
+    {
+      "file": "account_invitation_api.php",
+      "pass": true,
+      "error": null
+    },
+    {
+      "file": "account_lifecycle_api.php",
+      "pass": true,
+      "error": null
+    },
+    {
+      "file": "account_setup.php",
+      "pass": true,
+      "error": null
+    },
+    {
+      "file": "admin_advisers.php",
+      "pass": true,
+      "error": null
+    },
+    {
+      "file": "admin_ai.php",
+      "pass": true,
+      "error": null
+    },
+    {
+      "file": "admin_archived_accounts.php",
+      "pass": true,
+      "error": null
+    },
+    {
+      "file": "admin_legal_policies.php",
+      "pass": true,
+      "error": null
+    },
+    {
+      "file": "admin_notifications.php",
+      "pass": true,
+      "error": null
+    },
+    {
+      "file": "admin_people.php",
+      "pass": true,
+      "error": null
+    },
+    {
+      "file": "admin_students.php",
+      "pass": true,
+      "error": null
+    },
+    {
+      "file": "advisers_api.php",
+      "pass": true,
+      "error": null
+    },
+    {
+      "file": "ai_helpers.php",
+      "pass": true,
+      "error": null
+    },
+    {
+      "file": "audit_api.php",
+      "pass": true,
+      "error": null
+    },
+    {
+      "file": "auth_rate_limit.php",
+      "pass": true,
+      "error": null
+    },
+    {
+      "file": "calendar.php",
+      "pass": true,
+      "error": null
+    },
+    {
+      "file": "calendar_deadlines_api.php",
+      "pass": true,
+      "error": null
+    },
+    {
+      "file": "change_password_required.php",
+      "pass": true,
+      "error": null
+    },
+    {
+      "file": "complete_profile.php",
+      "pass": true,
+      "error": null
+    },
+    {
+      "file": "config.php",
+      "pass": true,
+      "error": null
+    },
+    {
+      "file": "dashboard.php",
+      "pass": true,
+      "error": null
+    },
+    {
+      "file": "data_export.php",
+      "pass": true,
+      "error": null
+    },
+    {
+      "file": "data_exports_api.php",
+      "pass": true,
+      "error": null
+    },
+    {
+      "file": "documents.php",
+      "pass": true,
+      "error": null
+    },
+    {
+      "file": "documents_api.php",
+      "pass": true,
+      "error": null
+    },
+    {
+      "file": "document_preview.php",
+      "pass": true,
+      "error": null
+    },
+    {
+      "file": "forgot_password.php",
+      "pass": true,
+      "error": null
+    },
+    {
+      "file": "forgot_password_process.php",
+      "pass": true,
+      "error": null
+    },
+    {
+      "file": "help_support.php",
+      "pass": true,
+      "error": null
+    },
+    {
+      "file": "help_support_api.php",
+      "pass": true,
+      "error": null
+    },
+    {
+      "file": "ierbprog.php",
+      "pass": true,
+      "error": null
+    },
+    {
+      "file": "ierb_api.php",
+      "pass": true,
+      "error": null
+    },
+    {
+      "file": "index.php",
+      "pass": true,
+      "error": null
+    },
+    {
+      "file": "legal_consent.php",
+      "pass": true,
+      "error": null
+    },
+    {
+      "file": "loading.php",
+      "pass": true,
+      "error": null
+    },
+    {
+      "file": "login.php",
+      "pass": true,
+      "error": null
+    },
+    {
+      "file": "login_admin.php",
+      "pass": true,
+      "error": null
+    },
+    {
+      "file": "login_adviser.php",
+      "pass": true,
+      "error": null
+    },
+    {
+      "file": "login_process.php",
+      "pass": true,
+      "error": null
+    },
+    {
+      "file": "login_students.php",
+      "pass": true,
+      "error": null
+    },
+    {
+      "file": "logout.php",
+      "pass": true,
+      "error": null
+    },
+    {
+      "file": "notifications_api.php",
+      "pass": true,
+      "error": null
+    },
+    {
+      "file": "privacy.php",
+      "pass": true,
+      "error": null
+    },
+    {
+      "file": "profile_api.php",
+      "pass": true,
+      "error": null
+    },
+    {
+      "file": "register.php",
+      "pass": true,
+      "error": null
+    },
+    {
+      "file": "register_process.php",
+      "pass": true,
+      "error": null
+    },
+    {
+      "file": "reports.php",
+      "pass": true,
+      "error": null
+    },
+    {
+      "file": "reports_api.php",
+      "pass": true,
+      "error": null
+    },
+    {
+      "file": "research_adviser.php",
+      "pass": true,
+      "error": null
+    },
+    {
+      "file": "reset_password.php",
+      "pass": true,
+      "error": null
+    },
+    {
+      "file": "role_portal.php",
+      "pass": true,
+      "error": null
+    },
+    {
+      "file": "security.php",
+      "pass": true,
+      "error": null
+    },
+    {
+      "file": "send_followup.php",
+      "pass": true,
+      "error": null
+    },
+    {
+      "file": "staff_registration_manage.php",
+      "pass": true,
+      "error": null
+    },
+    {
+      "file": "stage_labels_api.php",
+      "pass": true,
+      "error": null
+    },
+    {
+      "file": "student.php",
+      "pass": true,
+      "error": null
+    },
+    {
+      "file": "students_api.php",
+      "pass": true,
+      "error": null
+    },
+    {
+      "file": "terms.php",
+      "pass": true,
+      "error": null
+    },
+    {
+      "file": "update_password.php",
+      "pass": true,
+      "error": null
+    },
+    {
+      "file": "workflow.php",
+      "pass": true,
+      "error": null
+    },
+    {
+      "file": "includes\\academic_catalog.php",
+      "pass": true,
+      "error": null
+    },
+    {
+      "file": "includes\\academic_years.php",
+      "pass": true,
+      "error": null
+    },
+    {
+      "file": "includes\\academic_year_manager.php",
+      "pass": true,
+      "error": null
+    },
+    {
+      "file": "includes\\account_identity.php",
+      "pass": true,
+      "error": null
+    },
+    {
+      "file": "includes\\account_lifecycle.php",
+      "pass": true,
+      "error": null
+    },
+    {
+      "file": "includes\\account_lifecycle_schema.php",
+      "pass": true,
+      "error": null
+    },
+    {
+      "file": "includes\\account_onboarding.php",
+      "pass": true,
+      "error": null
+    },
+    {
+      "file": "includes\\account_purge_files.php",
+      "pass": true,
+      "error": null
+    },
+    {
+      "file": "includes\\account_retention.php",
+      "pass": true,
+      "error": null
+    },
+    {
+      "file": "includes\\account_retention_bulk.php",
+      "pass": true,
+      "error": null
+    },
+    {
+      "file": "includes\\assets.php",
+      "pass": true,
+      "error": null
+    },
+    {
+      "file": "includes\\calendar_deadlines.php",
+      "pass": true,
+      "error": null
+    },
+    {
+      "file": "includes\\ceu_footer.php",
+      "pass": true,
+      "error": null
+    },
+    {
+      "file": "includes\\csv_export.php",
+      "pass": true,
+      "error": null
+    },
+    {
+      "file": "includes\\current_workflow_eligibility.php",
+      "pass": true,
+      "error": null
+    },
+    {
+      "file": "includes\\document_catalog.php",
+      "pass": true,
+      "error": null
+    },
+    {
+      "file": "includes\\document_catalog_client.php",
+      "pass": true,
+      "error": null
+    },
+    {
+      "file": "includes\\document_management.php",
+      "pass": true,
+      "error": null
+    },
+    {
+      "file": "includes\\document_management_actions.php",
+      "pass": true,
+      "error": null
+    },
+    {
+      "file": "includes\\document_summary.php",
+      "pass": true,
+      "error": null
+    },
+    {
+      "file": "includes\\document_summary_actions.php",
+      "pass": true,
+      "error": null
+    },
+    {
+      "file": "includes\\document_summary_ai.php",
+      "pass": true,
+      "error": null
+    },
+    {
+      "file": "includes\\document_summary_history.php",
+      "pass": true,
+      "error": null
+    },
+    {
+      "file": "includes\\document_summary_read.php",
+      "pass": true,
+      "error": null
+    },
+    {
+      "file": "includes\\document_upload.php",
+      "pass": true,
+      "error": null
+    },
+    {
+      "file": "includes\\document_workflow.php",
+      "pass": true,
+      "error": null
+    },
+    {
+      "file": "includes\\email_format.php",
+      "pass": true,
+      "error": null
+    },
+    {
+      "file": "includes\\frontend_styles.php",
+      "pass": true,
+      "error": null
+    },
+    {
+      "file": "includes\\help_support.php",
+      "pass": true,
+      "error": null
+    },
+    {
+      "file": "includes\\help_support_modal.php",
+      "pass": true,
+      "error": null
+    },
+    {
+      "file": "includes\\ierb_group_advancement.php",
+      "pass": true,
+      "error": null
+    },
+    {
+      "file": "includes\\ierb_monitor.php",
+      "pass": true,
+      "error": null
+    },
+    {
+      "file": "includes\\ierb_monitor_view.php",
+      "pass": true,
+      "error": null
+    },
+    {
+      "file": "includes\\ierb_progress.php",
+      "pass": true,
+      "error": null
+    },
+    {
+      "file": "includes\\ierb_stages.php",
+      "pass": true,
+      "error": null
+    },
+    {
+      "file": "includes\\ierb_track_actions.php",
+      "pass": true,
+      "error": null
+    },
+    {
+      "file": "includes\\ierb_track_report.php",
+      "pass": true,
+      "error": null
+    },
+    {
+      "file": "includes\\ierb_v14_requirements.php",
+      "pass": true,
+      "error": null
+    },
+    {
+      "file": "includes\\ierb_v14_workflow.php",
+      "pass": true,
+      "error": null
+    },
+    {
+      "file": "includes\\legal_header.php",
+      "pass": true,
+      "error": null
+    },
+    {
+      "file": "includes\\legal_placeholders.php",
+      "pass": true,
+      "error": null
+    },
+    {
+      "file": "includes\\legal_policy.php",
+      "pass": true,
+      "error": null
+    },
+    {
+      "file": "includes\\notification_delivery.php",
+      "pass": true,
+      "error": null
+    },
+    {
+      "file": "includes\\notification_lifecycle.php",
+      "pass": true,
+      "error": null
+    },
+    {
+      "file": "includes\\notification_worker.php",
+      "pass": true,
+      "error": null
+    },
+    {
+      "file": "includes\\office_container.php",
+      "pass": true,
+      "error": null
+    },
+    {
+      "file": "includes\\pagination.php",
+      "pass": true,
+      "error": null
+    },
+    {
+      "file": "includes\\prism-navigation.php",
+      "pass": true,
+      "error": null
+    },
+    {
+      "file": "includes\\public_landing.php",
+      "pass": true,
+      "error": null
+    },
+    {
+      "file": "includes\\public_legal.php",
+      "pass": true,
+      "error": null
+    },
+    {
+      "file": "includes\\public_urls.php",
+      "pass": true,
+      "error": null
+    },
+    {
+      "file": "includes\\record_filters.php",
+      "pass": true,
+      "error": null
+    },
+    {
+      "file": "includes\\report_lifecycle.php",
+      "pass": true,
+      "error": null
+    },
+    {
+      "file": "includes\\report_pdf.php",
+      "pass": true,
+      "error": null
+    },
+    {
+      "file": "includes\\research_groups.php",
+      "pass": true,
+      "error": null
+    },
+    {
+      "file": "includes\\research_projects.php",
+      "pass": true,
+      "error": null
+    },
+    {
+      "file": "includes\\research_project_advancement.php",
+      "pass": true,
+      "error": null
+    },
+    {
+      "file": "includes\\research_resources.php",
+      "pass": true,
+      "error": null
+    },
+    {
+      "file": "includes\\runtime_preflight.php",
+      "pass": true,
+      "error": null
+    },
+    {
+      "file": "includes\\schema_v10.php",
+      "pass": true,
+      "error": null
+    },
+    {
+      "file": "includes\\schema_v11.php",
+      "pass": true,
+      "error": null
+    },
+    {
+      "file": "includes\\schema_v12.php",
+      "pass": true,
+      "error": null
+    },
+    {
+      "file": "includes\\schema_v13.php",
+      "pass": true,
+      "error": null
+    },
+    {
+      "file": "includes\\schema_v14.php",
+      "pass": true,
+      "error": null
+    },
+    {
+      "file": "includes\\schema_v15.php",
+      "pass": true,
+      "error": null
+    },
+    {
+      "file": "includes\\session_browser.php",
+      "pass": true,
+      "error": null
+    },
+    {
+      "file": "includes\\staff_registration.php",
+      "pass": true,
+      "error": null
+    },
+    {
+      "file": "includes\\staff_registration_card.php",
+      "pass": true,
+      "error": null
+    },
+    {
+      "file": "includes\\stage_configuration.php",
+      "pass": true,
+      "error": null
+    },
+    {
+      "file": "includes\\student_activity.php",
+      "pass": true,
+      "error": null
+    },
+    {
+      "file": "includes\\student_snapshot.php",
+      "pass": true,
+      "error": null
+    },
+    {
+      "file": "includes\\summary_pdf_parser.php",
+      "pass": true,
+      "error": null
+    },
+    {
+      "file": "maintenance\\migrate-academic-years.php",
+      "pass": true,
+      "error": null
+    },
+    {
+      "file": "maintenance\\migrate-ierb-v14.php",
+      "pass": true,
+      "error": null
+    },
+    {
+      "file": "maintenance\\migrate-research-projects.php",
+      "pass": true,
+      "error": null
+    },
+    {
+      "file": "maintenance\\migrate-stage-guidance.php",
+      "pass": true,
+      "error": null
+    },
+    {
+      "file": "maintenance\\migrate-summary-history.php",
+      "pass": true,
+      "error": null
+    },
+    {
+      "file": "maintenance\\notification-dispatch.php",
+      "pass": true,
+      "error": null
+    },
+    {
+      "file": "maintenance\\reconcile-research-project.php",
+      "pass": true,
+      "error": null
+    },
+    {
+      "file": "maintenance\\runtime-preflight.php",
+      "pass": true,
+      "error": null
+    },
+    {
+      "file": "maintenance\\ierb-group-tests\\bootstrap.php",
+      "pass": true,
+      "error": null
+    },
+    {
+      "file": "maintenance\\ierb-group-tests\\fixture.php",
+      "pass": true,
+      "error": null
+    },
+    {
+      "file": "maintenance\\ierb-group-tests\\initialize.php",
+      "pass": true,
+      "error": null
+    },
+    {
+      "file": "maintenance\\ierb-group-tests\\mock-curl.php",
+      "pass": true,
+      "error": null
+    },
+    {
+      "file": "maintenance\\ierb-group-tests\\runtime.php",
+      "pass": true,
+      "error": null
+    },
+    {
+      "file": "maintenance\\ierb-group-tests\\seed.php",
+      "pass": true,
+      "error": null
+    },
+    {
+      "file": "maintenance\\ierb-group-tests\\shutdown.php",
+      "pass": true,
+      "error": null
+    },
+    {
+      "file": "maintenance\\ierb-monitor-tests\\fixture.php",
+      "pass": true,
+      "error": null
+    },
+    {
+      "file": "maintenance\\ierb-project-tests\\fixture.php",
+      "pass": true,
+      "error": null
+    },
+    {
+      "file": "maintenance\\ierb-project-tests\\generate-contract.php",
+      "pass": true,
+      "error": null
+    },
+    {
+      "file": "maintenance\\ierb-project-tests\\migration-cases.php",
+      "pass": true,
+      "error": null
+    },
+    {
+      "file": "maintenance\\ierb-report-tests\\cycles.php",
+      "pass": true,
+      "error": null
+    },
+    {
+      "file": "maintenance\\ierb-report-tests\\fixture.php",
+      "pass": true,
+      "error": null
+    },
+    {
+      "file": "maintenance\\ierb-v14-tests\\cases.php",
+      "pass": true,
+      "error": null
+    },
+    {
+      "file": "maintenance\\ierb-v14-tests\\documents-fixture.php",
+      "pass": true,
+      "error": null
+    },
+    {
+      "file": "maintenance\\ierb-v14-tests\\generate-contract.php",
+      "pass": true,
+      "error": null
+    }
+  ]
+}

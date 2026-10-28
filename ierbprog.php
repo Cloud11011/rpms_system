@@ -12,6 +12,7 @@ $profile_img = 'assets/images/default-avatar.svg';
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="<?= htmlspecialchars(asset_url('assets/css/ierb-monitor.css'),ENT_QUOTES,'UTF-8') ?>">
     <title>IERB Progress | CEU RPMS Workload Assistant</title>
     <script>try{if(localStorage.getItem('prismTheme')==='dark')document.documentElement.classList.add('dark-theme')}catch(_){}</script>
     <link rel="icon" type="image/png" href="assets/images/prismicon.png">
@@ -44,8 +45,9 @@ $profile_img = 'assets/images/default-avatar.svg';
             </div>
         </header>
 
+        <?php require __DIR__.'/includes/ierb_monitor_view.php'; require __DIR__.'/includes/academic_year_manager.php'; ?>
         <section class="progress-overview" aria-labelledby="progressOverviewTitle">
-            <div class="overview-heading"><div><span>IERB Progress</span><h2 id="progressOverviewTitle">Progress Overview</h2></div><strong id="overviewTotal">0 students · Select a stage to filter the list</strong></div>
+            <div class="overview-heading"><div><span>IERB Progress</span><h2 id="progressOverviewTitle">Legacy Student Stage Distribution</h2></div><strong id="overviewTotal">0 students · Select a stage to filter the list</strong></div>
             <div class="stage-chart" id="stageChart" role="group" aria-label="Student counts by IERB stage"></div>
         </section>
 
@@ -124,5 +126,7 @@ $profile_img = 'assets/images/default-avatar.svg';
 <script>window.PRISM_ACADEMIC_CATALOG = <?php echo json_encode(academic_catalog(), JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT); ?>;</script>
 <script src="<?php echo htmlspecialchars(asset_url('assets/js/academic-fields.js'), ENT_QUOTES, 'UTF-8'); ?>"></script>
 <script src="<?php echo htmlspecialchars(asset_url('assets/js/ierbprog.js'), ENT_QUOTES, 'UTF-8'); ?>"></script>
+<script src="<?= htmlspecialchars(asset_url('assets/js/ierb-monitor.js'),ENT_QUOTES,'UTF-8') ?>"></script>
+<script src="<?= htmlspecialchars(asset_url('assets/js/academic-years.js'),ENT_QUOTES,'UTF-8') ?>"></script>
 </body>
 </html>

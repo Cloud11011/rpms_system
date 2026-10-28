@@ -1160,7 +1160,7 @@
   function progressIdentityHtml(record) {
     const name = record.name || 'Student name unavailable';
     const initials = recordInitials(record.name);
-    return '<div class="ierb-card-identity"><span class="ierb-field-label">Student</span><div class="ierb-student-head"><span class="ierb-student-avatar" aria-hidden="true">'+esc(initials)+'</span><div><strong class="ierb-student-name">'+esc(name)+'</strong>'
+    return (record.research ? '<strong class="ierb-research-title">'+esc(record.research)+'</strong><small class="prism-sub">'+esc(record.groupId || 'Group not recorded')+'</small>' : '') + '<div class="ierb-card-identity"><span class="ierb-field-label">Student</span><div class="ierb-student-head"><span class="ierb-student-avatar" aria-hidden="true">'+esc(initials)+'</span><div><strong class="ierb-student-name">'+esc(name)+'</strong>'
       + (record.protocolCode ? '<small class="ierb-protocol-code">Protocol code: '+esc(record.protocolCode)+'</small>' : '') + '</div></div></div>';
   }
 
@@ -1299,7 +1299,7 @@
     recordField: recordField, recordDetails: recordDetails, recordFeedback: recordFeedback, recordInitials: recordInitials, compactProgressRecord: compactProgressRecord, reportCard: reportCard,
     documentTypes: DOCUMENT_TYPES, actionMenu: actionMenu, compactRecord: compactRecord, statusPills: statusPills,
     actionOrigin: control => control?.closest('.prism-action-menu')?.querySelector('.prism-action-trigger') || control,
-    confirm: confirmDialog, request: request, handleSessionExpiry: handleSessionExpiry, debounce: debounce, recordFilters: recordFilters, filtersDisclosure: filtersDisclosure, postJson: postJson, esc: esc, pagination: pagination, pageSizeControl: pageSizeControl, clientPager: clientPager, menuDisclosure: menuDisclosure, paginationWindow: paginationWindow, busy: busy, runAction: runAction, dirtyForm: dirtyForm, recordPager: recordPager, clearFilters: clearFilters,
+    modal: modal, confirm: confirmDialog, request: request, handleSessionExpiry: handleSessionExpiry, debounce: debounce, recordFilters: recordFilters, filtersDisclosure: filtersDisclosure, postJson: postJson, esc: esc, pagination: pagination, pageSizeControl: pageSizeControl, clientPager: clientPager, menuDisclosure: menuDisclosure, paginationWindow: paginationWindow, busy: busy, runAction: runAction, dirtyForm: dirtyForm, recordPager: recordPager, clearFilters: clearFilters,
     changeStudentProgress: changeStudentProgress, manageStages: manageStages, showStageGuidance: showStageGuidance, submitToRpms: submitToRpms, uploadRevision: uploadRevision, overrideStudent: overrideStudent, overrideDocument: overrideDocument, showVersions: showVersions,
     enhanceTable: enhanceTable, tableFilter: tableFilter, hint: hint,
     mountStudentWorkflow: mountStudentWorkflow, mountNeedsAttention: mountNeedsAttention, init: init,

@@ -43,15 +43,15 @@ function schema_v14_definition(PDO $pdo,string $name): string
     return preg_replace('/ AUTO_INCREMENT=\d+/', '', $pdo->query('SHOW CREATE TABLE `'.$name.'`')->fetch(PDO::FETCH_NUM)[1]);
 }
 
-function schema_v14_verify(PDO $pdo,bool $partial=false): void
+function schema_v14_verify(PDO $pdo,bool $partial=false,array $extraTables=[]): void
 {
-    schema_v13_verify($pdo,false,array_keys(schema_v14_tables()));
+    schema_v13_verify($pdo,false,array_merge(array_keys(schema_v14_tables()),$extraTables));
     $contract=json_decode(file_get_contents(__DIR__.'/summary_schema_v14.json'),true,512,JSON_THROW_ON_ERROR);
     $version=$pdo->query("SELECT v FROM schema_meta WHERE k='schema_version'")->fetchColumn();
     $present=$pdo->query('SHOW TABLES')->fetchAll(PDO::FETCH_COLUMN);
     foreach (array_keys(schema_v14_tables()) as $name) {
         if (!in_array($name,$present,true)) {
-            if (!$partial || $version==='14') throw new RuntimeException('Incomplete summary schema.');
+            if (!$partial || in_array($version,['14','15'],true)) throw new RuntimeException('Incomplete summary schema.');
         } elseif (schema_v14_definition($pdo,$name)!==$contract[$name]) throw new RuntimeException('Summary schema drift: '.$name);
     }
 }

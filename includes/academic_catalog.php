@@ -1,5 +1,6 @@
 <?php
-// Pure catalog/validation layer. Callers supply authorization and stored rows.
+require_once __DIR__.'/academic_years.php';
+// Shared program catalog; academic-year choices come from the database.
 if (realpath($_SERVER['SCRIPT_FILENAME'] ?? '') === __FILE__) {
     http_response_code(404);
     exit;
@@ -46,11 +47,8 @@ function academic_catalog(): array
         $programs[$key] = ['label' => $label, 'unit' => $unit,
             'level' => $unit === null ? 'graduate' : 'undergraduate', 'duration' => $duration];
     }
-    // Maintenance: do not casually remove historical years referenced by records.
-    // Append future years unless an explicit migration/legacy-validation plan exists.
-    // Explicit allowlist: no inferred rollover month or automatically active year.
     return ['units' => $units, 'programs' => $programs,
-        'academicYears' => ['2025-2026', '2026-2027', '2027-2028']];
+        'academicYears' => academic_years(db())];
 }
 
 function academic_year_levels(string $programKey): array

@@ -10,6 +10,7 @@ function prism_student_filter_options(PDO $pdo, string $scope, array $params): a
         $stmt = $pdo->prepare("SELECT DISTINCT $column AS value $scope ORDER BY value");
         $stmt->execute($params); $values = $stmt->fetchAll(PDO::FETCH_COLUMN);
         if ($key === 'stage') $values = array_merge(STAGE_SEQUENCE, $values);
+        if ($key === 'academicYear') $values = array_merge($catalog['academicYears'], $values);
         if ($key === 'status') $values = array_merge(['On Track','Pending','Delayed'], $values);
         $options[$key] = [];
         foreach (array_unique(array_map(fn($v) => trim((string)$v), $values)) as $value) {

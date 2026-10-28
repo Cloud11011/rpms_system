@@ -1,0 +1,9 @@
+{
+  "status": "PASS",
+  "schemaVersion": "11",
+  "exactManifest": "PASS",
+  "datadirVerified": true,
+  "syntheticMariaDBStopped": true,
+  "productionAccess": false,
+  "productionMigration": false
+}

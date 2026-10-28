@@ -4,7 +4,7 @@ function research_projects_available(PDO $pdo): bool
 {
     // A locking current read must not create a repeatable-read snapshot before
     // waiting for the Student fence; retries must see the winner's durable event.
-    return in_array((string)$pdo->query("SELECT v FROM schema_meta WHERE k='schema_version'".($pdo->inTransaction() ? ' LOCK IN SHARE MODE' : ''))->fetchColumn(),['13','14'],true);
+    return in_array((string)$pdo->query("SELECT v FROM schema_meta WHERE k='schema_version'".($pdo->inTransaction() ? ' LOCK IN SHARE MODE' : ''))->fetchColumn(),['13','14','15'],true);
 }
 
 /** Match the reviewed group writer's phantom fence before account/workflow locks.

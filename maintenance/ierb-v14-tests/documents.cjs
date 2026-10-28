@@ -38,6 +38,10 @@ module.exports = async h => {
       const r=JSON.parse(cp.execFileSync(php,[path.join(root,'maintenance/ierb-report-tests/fixture.php')],{input:JSON.stringify({action:'install'}),encoding:'utf8',windowsHide:true}));
       check(r.ok,'Existing V14 document suite runs on explicitly migrated synthetic schema 14');
     }
+    if(process.env.PRISM_TEST_MONITOR_SCHEMA15==='1'){
+      const r=JSON.parse(cp.execFileSync(php,[path.join(root,'maintenance/ierb-monitor-tests/fixture.php')],{input:JSON.stringify({action:'install'}),encoding:'utf8',windowsHide:true}));
+      check(r.ok,'Existing document/project workflows run on explicitly migrated disposable schema 15');
+    }
     await projectTests('setup');
     check(initial.length===13,'Exactly the approved 13 Initial Submission requirements');
     let list=await checklist();check(list.body.requirements.filter(r=>r.stage==='initial_submission').every(r=>r.state==='Missing'),'Missing requirements never count as accepted');
@@ -225,6 +229,18 @@ module.exports = async h => {
       const r=JSON.parse(cp.execFileSync(php,[path.join(root,'maintenance/ierb-report-tests/fixture.php')],{input:JSON.stringify({action:'completed-evidence'}),encoding:'utf8',windowsHide:true}));
       check(r.ok&&r.result.completed&&r.result.progress===100&&r.result.trackingRows===4,'Schema14 completed project report matches actual automatic Final Report completion and fixed tracking rows');
     }
+    if(process.env.PRISM_TEST_MONITOR_SCHEMA15==='1'){
+      const monitor=await expect(s.admin.get('/ierb_api.php?action=monitor').then(response),200,'Completed schema15 canonical project is visible in read-only monitor');
+      const r=monitor.body.records.find(r=>r.projectId);
+      const filtered=await expect(s.admin.get('/ierb_api.php?action=monitor&status=IERB%20Completed').then(response),200,'Completed semantic status is available as a server-side filter');
+      check(filtered.body.total===1&&filtered.body.records[0].key===r.key,'Completed status filtering matches the displayed record status and exact count');
+      check(r.progress===100&&r.stage==='ierb_completed'&&r.initialAcceptedCount===13,'Monitor shows authoritative 100% automatic completion and thirteen accepted Initial requirements');
+      check(r.requirements.find(x=>x.key==='form33').state==='Accepted'&&r.requirements.find(x=>x.key==='final_report').state==='Formally Submitted to RPMS','Monitor separates accepted institutional Form 33 from formally submitted Final Report');
+      check(!r.pending.length,'Completed project has no missing mandatory requirements');
+      const history=await expect(s.admin.get('/ierb_api.php?action=monitor_detail&keys[]='+r.key).then(response),200,'Completed project history remains accessible');
+      check(history.body.records[0].history.events.some(x=>x.event_type==='IERB completion'),'History shows recorded IERB completion timestamp');
+      fs.writeFileSync(path.join(evidence,'schema15-completed-monitor.json'),JSON.stringify({record:r,history:history.body.records[0].history},null,2));
+    }
     const completion=sql("SELECT workflow_id,revision,event_key,from_stage,to_stage,actor_user_id,evidence_json,request_key,created_at FROM ierb_workflow_events WHERE event_key='final_report_submitted'")[0];
     completion.evidence=JSON.parse(completion.evidence_json);delete completion.evidence_json;
     fs.writeFileSync(path.join(evidence,'final-report-completion.json'),JSON.stringify({scope:'Synthetic fixture only',workflow:state(),
@@ -234,6 +250,7 @@ module.exports = async h => {
     fs.writeFileSync(path.join(evidence,'document-tests.json'),JSON.stringify({status:'PASS',assertions:h.checks.length-start,cases:h.checks.slice(start),scope:'Datadir-verified isolated MariaDB; real PHP HTTP sessions and Chromium; no external delivery'},null,2)+'\n');
   } finally {
     if(browser)await browser.close();fs.writeFileSync(path.join(h.review,'sandbox/provider-scenario.txt'),'success');
+    if(process.env.PRISM_TEST_MONITOR_SCHEMA15==='1')cp.execFileSync(php,[path.join(root,'maintenance/ierb-monitor-tests/fixture.php')],{input:JSON.stringify({action:'cleanup',only15:true}),encoding:'utf8',windowsHide:true});
     if(process.env.PRISM_TEST_REPORT_SCHEMA14==='1')cp.execFileSync(php,[path.join(root,'maintenance/ierb-report-tests/fixture.php')],{input:JSON.stringify({action:'cleanup'}),encoding:'utf8',windowsHide:true});
     await projectTests('cleanup');
     check(cli({action:'cleanup'}).ok,'Remove only explicit Batch2 synthetic workflows and document rows after evidence capture');

@@ -1,0 +1,107 @@
+{
+  "status": "PASS",
+  "finalCriticalFailures": 0,
+  "startingSha": "fa61586f7a1a6e80fe94531afed00894181baf6c",
+  "runnerResults": {
+    "legacy-v11-final.json": {
+      "status": "PASS",
+      "assertions": 310,
+      "files": null
+    },
+    "foundation-tests.json": {
+      "status": "PASS",
+      "assertions": 99,
+      "files": null
+    },
+    "full-schema12-and-schema15-workflow.json": {
+      "status": "PASS",
+      "assertions": 734,
+      "files": null
+    },
+    "final-schema15-documents-runner.json": {
+      "status": "PASS",
+      "assertions": 438,
+      "files": null
+    },
+    "document-tests.json": {
+      "status": "PASS",
+      "assertions": 424,
+      "files": null
+    },
+    "project-tests.json": {
+      "status": "PASS",
+      "assertions": 96,
+      "files": null
+    },
+    "batch4-regression-runner.json": {
+      "status": "PASS",
+      "assertions": 136,
+      "files": null
+    },
+    "batch4-integration.json": {
+      "status": "PASS",
+      "assertions": 124,
+      "files": null
+    },
+    "cycle-tests.json": {
+      "status": "PASS",
+      "assertions": 44,
+      "files": null
+    },
+    "batch5-final-runner.json": {
+      "status": "PASS",
+      "assertions": 245,
+      "files": null
+    },
+    "batch5-integration.json": {
+      "status": "PASS",
+      "assertions": 233,
+      "files": null
+    },
+    "php-syntax.json": {
+      "status": "PASS",
+      "assertions": null,
+      "files": 157
+    },
+    "javascript-syntax.json": {
+      "status": "PASS",
+      "assertions": null,
+      "files": 47
+    },
+    "pdf-rendering.json": {
+      "status": "PASS",
+      "assertions": null,
+      "files": null
+    },
+    "teardown.json": {
+      "status": "PASS",
+      "assertions": null,
+      "files": null
+    },
+    "responsive.json": {
+      "status": "PASS",
+      "assertions": null,
+      "files": null
+    }
+  },
+  "assertionTotalsOverlap": "Embedded document/project/migration counts are included within runner totals; separate runs repeat coverage and are not summed.",
+  "academicMigrationCases": 13,
+  "summaryMigrationCases": 8,
+  "pdfs": 10,
+  "pdfPages": 27,
+  "responsiveWidths": [
+    390,
+    768,
+    1024,
+    1440,
+    1920
+  ],
+  "themes": [
+    "light",
+    "dark"
+  ],
+  "productionMigration": false,
+  "deployment": false,
+  "batch6": false,
+  "sourceReview": "PASS; exact staged inventory and binary PDF byte preservation verified"
+}

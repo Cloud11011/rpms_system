@@ -16,10 +16,14 @@ if ($current_hour >= 5 && $current_hour < 12) {
 }
 $current_date_formatted = date('l, F j, Y');
 
+require_once __DIR__.'/includes/ierb_v14_workflow.php';
 $pdo = db();
 $total_researchers = (int)$pdo->query('SELECT COUNT(*) FROM students WHERE archived_at IS NULL AND profile_completed_at IS NOT NULL')->fetchColumn();
 $pending_ierb = (int)$pdo->query("SELECT COUNT(*) FROM students WHERE archived_at IS NULL AND profile_completed_at IS NOT NULL AND status = 'Pending'")->fetchColumn();
-$approved_ethics = (int)$pdo->query("SELECT COUNT(*) FROM students WHERE archived_at IS NULL AND profile_completed_at IS NOT NULL AND stage = 'Completed'")->fetchColumn();
+$legacyCompleted="SELECT COUNT(*) FROM students s WHERE s.archived_at IS NULL AND s.profile_completed_at IS NOT NULL AND s.stage='Completed'";
+if (ierb_v14_schema_available($pdo)) $legacyCompleted.=' AND NOT EXISTS (SELECT 1 FROM ierb_workflows w WHERE w.student_id=s.id)';
+if (research_projects_available($pdo)) $legacyCompleted.=' AND NOT EXISTS (SELECT 1 FROM research_project_members m WHERE m.student_id=s.id)';
+$approved_ethics=(int)$pdo->query($legacyCompleted)->fetchColumn();
 $delayed_submissions = (int)$pdo->query("SELECT COUNT(*) FROM students WHERE archived_at IS NULL AND profile_completed_at IS NOT NULL AND status = 'Delayed'")->fetchColumn();
 ?>
 <!DOCTYPE html>
@@ -27,6 +31,7 @@ $delayed_submissions = (int)$pdo->query("SELECT COUNT(*) FROM students WHERE arc
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="stylesheet" href="<?= htmlspecialchars(asset_url('assets/css/ierb-monitor.css'),ENT_QUOTES,'UTF-8') ?>">
 <title>PRISM | Dashboard</title>
 <script>
 try {
@@ -123,7 +128,7 @@ try {
 <div class="card">
 <i class="fa-solid fa-circle-check"></i>
 <h1 id="approvedEthicsMetric"><?php echo $approved_ethics; ?></h1>
-<p title="Official stage recorded by RPMS; document approval does not grant institutional ethics approval."><?= htmlspecialchars(stage_label('Completed'), ENT_QUOTES, 'UTF-8') ?></p>
+<p title="Official stage recorded by RPMS; document approval does not grant institutional ethics approval.">Completed legacy Student records</p>
 </div>
 <div class="card card-alert">
 <i class="fa-solid fa-triangle-exclamation"></i>
@@ -151,24 +156,7 @@ try {
 <h3 class="pipeline-title">Research stage distribution</h3>
 </div>
 </div>
-<div class="pipeline-steps">
-<div class="step-item">
-<span><?= htmlspecialchars(stage_label('Stage 1'), ENT_QUOTES, 'UTF-8') ?></span>
-<strong id="initialStageCount">0 Groups</strong>
-</div>
-<div class="step-item">
-<span><?= htmlspecialchars(stage_label('Stage 2'), ENT_QUOTES, 'UTF-8') ?></span>
-<strong id="reviewStageCount">0 Groups</strong>
-</div>
-<div class="step-item delayed">
-<span><?= htmlspecialchars(stage_label('Stage 3') . ' / ' . stage_label('Stage 4'), ENT_QUOTES, 'UTF-8') ?></span>
-<strong id="revisionStageCount">0 Delayed</strong>
-</div>
-<div class="step-item approved">
-<span><?= htmlspecialchars(stage_label('Completed'), ENT_QUOTES, 'UTF-8') ?></span>
-<strong id="approvedStageCount">0 Groups</strong>
-</div>
-</div>
+<div class="monitor-distribution" id="monitorDistribution" aria-live="polite">Loading separate V14 and legacy stage counts...</div>
 </div>
 <!-- INTERACTIVE CALENDAR WITH MONTH AND YEAR VIEWS -->
 <div class="content-box calendar-box">
@@ -202,39 +190,7 @@ try {
 <ul class="reminder-list" id="dashboardReminderList"></ul>
 </div>
 </div>
-<!-- REAL-TIME IERB TRACKING TABLE -->
-<div class="content-box dashboard-monitor">
-<div class="table-header">
-<h3><i class="fa-solid fa-list-check"></i> IERB Progress Monitor</h3>
-<div class="header-actions">
-<a href="ierbprog.php" class="prism-btn dashboard-open-ierb">View All</a>
-<select class="table-filter" id="courseFilter" aria-label="Filter by course">
-<option value="">All courses</option>
-</select>
-<select class="table-filter" id="progressSort" aria-label="Sort by group progress">
-<option value="default">Sort: Group progress</option>
-<option value="high-to-low">Progress: High to low</option>
-<option value="low-to-high">Progress: Low to high</option>
-</select>
-<a class="prism-btn is-secondary" href="ierb_api.php?action=export_csv" title="Download the student progress list as a CSV file"><i class="fa-solid fa-file-arrow-down"></i> Export CSV</a>
-</div>
-</div>
-<div class="dashboard-table-scroll" tabindex="0" role="region" aria-label="IERB progress records"><table class="data-table">
-<thead>
-<tr>
-<th>Protocol Code / Group</th>
-<th>Course</th>
-<th>Research Title</th>
-<th>Stage</th>
-<th>Pending Requirements</th>
-<th>Overall Progress</th>
-<th>Status</th>
-<th>Action</th>
-</tr>
-</thead>
-<tbody id="ierbMonitorBody"></tbody>
-</table></div>
-</div>
+<div class="content-box dashboard-monitor"><?php require __DIR__.'/includes/ierb_monitor_view.php'; ?></div>
 <!-- DOCUMENT REPOSITORY SUMMARY -->
 <div class="content-box dashboard-repository">
 <div class="repository-header">
@@ -333,141 +289,17 @@ themeToggle?.addEventListener('click', () => {
     } catch (_) {}
 });
 
-// Student directory connection and IERB monitor (backed by ierb_api.php)
-const courseFilter = document.getElementById('courseFilter');
-const progressSort = document.getElementById('progressSort');
-const progressTableBody = document.getElementById('ierbMonitorBody');
-let monitorRecords = [], monitorOverview = [], monitorCourses = [];
-let monitorError = '';
-let monitorRequest = 0;
-const escapeMonitorHtml = value => String(value ?? '').replace(/[&<>'"]/g, char => ({
-    '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;'
-})[char]);
-const progressRows = () => Array.from(progressTableBody.querySelectorAll('tr[data-course]'));
-const progressNumber = value => parseFloat(String(value).replace('%', '')) || 0;
-
-async function loadMonitorStudents() {
-    const requestId = ++monitorRequest;
-    progressTableBody.setAttribute('aria-busy', 'true');
-    try {
-        const data = await PrismUI.request('ierb_api.php?' + new URLSearchParams({action:'list',preview:10,course:courseFilter.value,sort:progressSort.value}));
-        if (requestId !== monitorRequest) return;
-        monitorRecords = data.records || [];
-        monitorOverview = data.overview || monitorRecords.map(r => ({stage:r.stage,status:r.status,c:1}));
-        monitorCourses = data.courses || [...new Set(monitorRecords.map(r => r.course).filter(Boolean))];
-        monitorError = '';
-    } catch (error) {
-        if (requestId !== monitorRequest) return;
-        monitorRecords = [];
-        monitorError = error.message;
-    } finally {
-        if (requestId === monitorRequest) progressTableBody.setAttribute('aria-busy', 'false');
-    }
-}
-
-function updateMonitorMetrics() {
-    const count = predicate => monitorOverview.filter(predicate).reduce((sum,r) => sum + Number(r.c),0);
-    document.getElementById('totalResearchersMetric').textContent = count(() => true);
-    document.getElementById('pendingIerbMetric').textContent = count(r => r.status === 'Pending');
-    document.getElementById('approvedEthicsMetric').textContent = count(r => r.stage === 'Completed');
-    document.getElementById('delayedSubmissionsMetric').textContent = count(r => r.status === 'Delayed');
-    const setCount = (id,value) => {
-        const host=document.getElementById(id),number=document.createElement('b'),noun=document.createElement('small');
-        number.textContent=value;
-        noun.textContent=id==='revisionStageCount'?'delayed':(value===1?'group':'groups');
-        host.replaceChildren(number,noun);
-    };
-    setCount('initialStageCount',count(r => r.stage === 'Stage 1'));
-    setCount('reviewStageCount',count(r => r.stage === 'Stage 2'));
-    setCount('revisionStageCount',count(r => ['Stage 3','Stage 4'].includes(r.stage)));
-    setCount('approvedStageCount',count(r => r.stage === 'Completed'));
-}
-
-function populateCourseFilter(records) {
-    const selected = courseFilter.value;
-    courseFilter.querySelectorAll('option:not(:first-child)').forEach(option => option.remove());
-    monitorCourses.slice().sort().forEach(course => {
-        const option = document.createElement('option');
-        option.value = course;
-        option.textContent = course;
-        courseFilter.appendChild(option);
+const escapeMonitorHtml = value => PrismUI.esc(value);
+// Canonical projects and legacy Students remain distinct statistical units.
+document.addEventListener('prism:monitor-loaded', event => {
+    const host = document.getElementById('monitorDistribution'); host.replaceChildren();
+    const rows = event.detail.overview || [];
+    const semantic = rows.filter(r => Object.hasOwn(window.PRISM_V14_LABELS, r.stage));
+    const legacy = rows.filter(r => !Object.hasOwn(window.PRISM_V14_LABELS, r.stage));
+    [['V14 project / enrolled records', semantic], ['Legacy Student records', legacy]].forEach(([label, entries]) => {
+        const p = document.createElement('p'); p.textContent = label + ': ' + (entries.map(r => (window.PRISM_V14_LABELS[r.stage] || window.PRISM_STAGE_LABELS[r.stage] || r.stage) + ' (' + r.c + ')').join('; ') || 'None'); host.append(p);
     });
-    courseFilter.value = [...courseFilter.options].some(option => option.value === selected) ? selected : '';
-}
-
-function renderIerbMonitor() {
-    progressTableBody.replaceChildren();
-    progressTableBody.closest('table').classList.toggle('is-empty', !!monitorError || monitorRecords.length === 0);
-    if (monitorError) {
-        ['totalResearchersMetric','pendingIerbMetric','approvedEthicsMetric','delayedSubmissionsMetric',
-         'initialStageCount','reviewStageCount','revisionStageCount','approvedStageCount'].forEach(id => {
-            document.getElementById(id).textContent = 'Unavailable';
-        });
-        const row = document.createElement('tr');
-        const cell = document.createElement('td'); cell.colSpan = 8;
-        cell.textContent = 'Could not load IERB records. ' + monitorError;
-        row.appendChild(cell); progressTableBody.appendChild(row);
-        return;
-    }
-    updateMonitorMetrics(monitorRecords);
-    populateCourseFilter(monitorRecords);
-    if (!monitorRecords.length) {
-        const row = document.createElement('tr');
-        row.className = 'ierb-monitor-empty-row';
-        row.innerHTML = '<td colspan="8">' + PrismUI.emptyState({ icon: 'fa-user-graduate', title: 'No IERB records yet', text: 'Add a student and assign an adviser to start tracking progress.', actionLabel: 'Add a student', actionHref: 'admin_students.php' }) + '</td>';
-        progressTableBody.appendChild(row);
-        return;
-    }
-    monitorRecords.forEach(record => {
-        const row = document.createElement('tr');
-        row.dataset.course = record.course || '';
-        row.dataset.progress = record.progress || '0';
-        const statusClass = record.status === 'Delayed' ? 'is-delayed' : (record.status === 'On Track' ? 'is-on-track' : 'is-pending');
-        const progress = Math.max(0, Math.min(100, progressNumber(record.progress)));
-        row.className = `ierb-monitor-row ${statusClass}`;
-        row.innerHTML = `
-            <td><strong>${escapeMonitorHtml(record.protocolCode || record.groupId || record.studentId)}</strong>${record.protocolCode ? `<small class="prism-sub">${escapeMonitorHtml(record.groupId || record.studentId)}</small>` : ''}</td>
-            <td>${escapeMonitorHtml(record.course || 'Not set')}</td>
-            <td>${PrismUI.progressIdentityHtml(record)}</td>
-            <td><span class="stage-tag" title="${escapeMonitorHtml(record.stage || 'Stage 1')}">${escapeMonitorHtml(record.stageLabel || record.stage || 'Stage 1')}</span>${PrismUI.docMini(record.docs)}</td>
-            <td>${escapeMonitorHtml(record.requirements || 'None')}</td>
-            <td><div class="ierb-card-progress"><div><span>Overall progress</span><strong>${progress}%</strong></div><span class="ierb-progress-track" role="progressbar" aria-label="Overall progress" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${progress}"><span style="width:${progress}%"></span></span></div></td>
-            <td>${PrismUI.badge(record.status || 'Pending')}</td>
-            <td><button class="icon-btn" data-monitor-action="remind" title="Send follow-up email"><i class="fa-solid fa-paper-plane"></i></button><a class="icon-btn" data-monitor-action="documents" href="documents.php" title="Open Documents" aria-label="Open Documents">Open Documents</a><button class="icon-btn prism-override-icon" data-monitor-action="override" title="Correct IERB Stage" aria-label="Correct IERB Stage for ${escapeMonitorHtml(record.name)}"><i class="fa-solid fa-user-shield"></i></button></td>`;
-        row.querySelector('[data-monitor-action="remind"]').addEventListener('click', e => PrismUI.runAction(e.currentTarget,'Sending...',() => sendMonitorFollowup(record)));
-        row.querySelector('[data-monitor-action="override"]').addEventListener('click', e => PrismUI.runAction(e.currentTarget,'Processing...',async () => { if (await PrismUI.overrideStudent(record)) { await loadMonitorStudents(); renderIerbMonitor(); } }));
-        PrismUI.actionMenu(row.cells[7],{primary:row.querySelector('[data-monitor-action="documents"]')});
-        progressTableBody.appendChild(row);
-        const card = PrismUI.compactProgressRecord(row,record,2,6,7,[3,4,5]);
-        if (card) {
-            card.classList.add('ierb-monitor-card', statusClass);
-            const documents=card.querySelector('[data-monitor-action="documents"]');
-            if(documents) PrismUI.documentAction(documents,'view','Open Documents');
-        }
-    });
-}
-
-function filterAndSortProgress() {
-    loadMonitorStudents().then(renderIerbMonitor);
-}
-
-async function sendMonitorFollowup(record) {
-    const answer = await PrismUI.confirm({
-        title:'Send follow-up', icon:'fa-paper-plane', confirmText:'Send follow-up',
-        message:`Send the standard IERB progress follow-up to ${record.name} at ${record.email}?`
-    });
-    if (!answer) return;
-    try {
-        const data = await PrismUI.postJson('send_followup.php', { studentDbId: record.id });
-        PrismUI.toast(data.message || 'Follow-up processed.', data.ok ? 'success' : 'error');
-    } catch (e) {
-        PrismUI.toast(e.message || 'Could not send the follow-up email.', 'error');
-    }
-}
-
-courseFilter.addEventListener('change', filterAndSortProgress);
-progressSort.addEventListener('change', filterAndSortProgress);
-
+});
 // Modal Control Handlers
 function setAIBannerActions(state, reportUrl = '') {
     const actions = document.getElementById('aiBannerActions');
@@ -845,16 +677,12 @@ dashboardDayModal.addEventListener('click', event => {
 loadDashboardReminders();
 renderCalendar();
 renderDashboardReminders();
-(async function initDashboardData() {
-    await loadMonitorStudents();
-    renderIerbMonitor();
-})();
 
 window.addEventListener('pageshow', () => {
     loadDashboardReminders();
     renderCalendar();
     renderDashboardReminders();
-    loadMonitorStudents().then(renderIerbMonitor);
+
 });
 window.addEventListener('storage', event => {
     if (event.key === reminderStorageKey) {
@@ -864,5 +692,7 @@ window.addEventListener('storage', event => {
     }
 });
 </script>
+<script>window.PRISM_V14_LABELS = <?= json_encode(IerbStage::LABELS,JSON_HEX_TAG|JSON_HEX_AMP|JSON_HEX_APOS|JSON_HEX_QUOT) ?>;</script>
+<script src="<?= htmlspecialchars(asset_url('assets/js/ierb-monitor.js'),ENT_QUOTES,'UTF-8') ?>"></script>
 </body>
 </html>

@@ -30,8 +30,8 @@
     if (isAdmin) definitions.push(['adviserId','Research advisers']);
     const filters = PrismUI.recordFilters(document.getElementById('ierbMoreFilters'), definitions);
     const sort = PrismUI.recordFilters(document.getElementById('ierbMoreFilters'), [['sortBy','Sort by'],['direction','Direction']]);
-    sort.update({sortBy:[['name','Name'],['studentId','Student ID'],['stage','IERB stage'],['status','Status'],['academicYear','Academic year'],['group','Research group']].map(([value,label])=>({value,label})),direction:[{value:'ASC',label:'Ascending'},{value:'DESC',label:'Descending'}]});
-    sort.controls[0].options[0].textContent='Name (default)';sort.controls[1].options[0].textContent='Ascending (default)';
+    sort.update({sortBy:[['submission','Formal submission'],['title','Research Title'],['name','Name'],['studentId','Student ID'],['stage','IERB stage'],['status','Status'],['academicYear','Academic year'],['group','Research group']].map(([value,label])=>({value,label})),direction:[{value:'ASC',label:'Ascending'},{value:'DESC',label:'Descending'}]});
+    sort.controls[0].options[0].textContent='Newest submission first (default)';sort.controls[1].options[0].textContent='Default direction';
     if (!isAdmin) {
         ierbSearch.placeholder = 'Search by student name or ID';
         const visibleSort = sort.controls[0].closest('label');
@@ -98,6 +98,7 @@
         }
         renderOverview();
         renderTable();
+        document.dispatchEvent(new CustomEvent('prism:progress-changed'));
     }
 
     function renderOverview() {
@@ -105,7 +106,7 @@
         const stageCount = stage => overview.filter(r => r.stage === stage).reduce((sum, r) => sum + Number(r.c), 0);
         overviewTotal.textContent = loadError
             ? 'Unavailable'
-            : `${total} student${total === 1 ? '' : 's'} · Select a stage to filter the list`;
+            : `${total} legacy student${total === 1 ? '' : 's'} · Select a stage to filter the list`;
         stageChart.replaceChildren();
         stageChart.classList.toggle('is-empty', total === 0);
         stageChart.setAttribute('role', total ? 'group' : 'status');

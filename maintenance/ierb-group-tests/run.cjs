@@ -29,6 +29,8 @@ function prepareApp() {
     if (!file.endsWith('.php') && !file.startsWith('assets/') && !file.startsWith('includes/')) continue;
     const target = path.join(app, file); fs.mkdirSync(path.dirname(target), { recursive: true }); fs.copyFileSync(path.join(root, file), target);
   }
+  // Only the authorized additive endpoint is copied before staging; never copy config.local.php.
+  fs.copyFileSync(path.join(root,'academic_years_api.php'),path.join(app,'academic_years_api.php'));
   fs.copyFileSync(path.join(root, 'includes/ierb_group_advancement.php'), path.join(app, 'includes/ierb_group_advancement.php'));
   // Include additive foundation files before they are staged in Git.
   fs.cpSync(path.join(root, 'includes'), path.join(app, 'includes'), { recursive: true });
@@ -58,6 +60,7 @@ function prepareApp() {
     if (phase !== 'documents') await require('./backend.cjs')(h);
     if (!['backend','documents'].includes(phase)) { await require('./browser.cjs')(h); await require('./regression.cjs')(h); }
     if (process.env.PRISM_TEST_V14_DOCUMENTS === '1') await require('../ierb-v14-tests/documents.cjs')(h);
+    if (process.env.PRISM_TEST_BATCH5 === '1') await require('../ierb-monitor-tests/integration.cjs')(h);
     if (process.env.PRISM_TEST_BATCH4 === '1') await require('../ierb-report-tests/integration.cjs')(h);
     check(fixture({ action: 'schema' }).schemaVersion === expectedSchema, 'Full schema v' + expectedSchema + ' and version remain unchanged after all tests');
     const result = { status: 'PASS', assertions: checks.length, cases: checks, scope: 'Isolated synthetic MariaDB 10.4, actual PHP HTTP sessions and Chromium; no production data or external delivery' };

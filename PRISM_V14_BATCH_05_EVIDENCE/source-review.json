@@ -1,0 +1,109 @@
+{
+  "status": "PASS",
+  "startingSha": "fa61586f7a1a6e80fe94531afed00894181baf6c",
+  "completeSourceDiffReviewed": true,
+  "sourceFiles": [
+    ".gitattributes",
+    "PRISM_V14_BATCH_05_REVIEW.md",
+    "academic_years_api.php",
+    "assets/css/ierb-monitor.css",
+    "assets/js/academic-years.js",
+    "assets/js/ierb-monitor.js",
+    "assets/js/ierbprog.js",
+    "assets/js/prism-ui.js",
+    "config.php",
+    "dashboard.php",
+    "ierb_api.php",
+    "ierbprog.php",
+    "includes/academic_catalog.php",
+    "includes/academic_schema_v15.json",
+    "includes/academic_year_manager.php",
+    "includes/academic_year_seed.json",
+    "includes/academic_years.php",
+    "includes/account_lifecycle_schema.php",
+    "includes/account_onboarding.php",
+    "includes/account_retention.php",
+    "includes/document_summary_history.php",
+    "includes/ierb_monitor.php",
+    "includes/ierb_monitor_view.php",
+    "includes/ierb_v14_requirements.php",
+    "includes/ierb_v14_workflow.php",
+    "includes/record_filters.php",
+    "includes/research_projects.php",
+    "includes/schema_v12.php",
+    "includes/schema_v13.php",
+    "includes/schema_v14.php",
+    "includes/schema_v15.php",
+    "includes/stage_configuration.php",
+    "maintenance/ierb-group-tests/run.cjs",
+    "maintenance/ierb-monitor-tests/README.md",
+    "maintenance/ierb-monitor-tests/fixture.php",
+    "maintenance/ierb-monitor-tests/integration.cjs",
+    "maintenance/ierb-report-tests/fixture.php",
+    "maintenance/ierb-report-tests/integration.cjs",
+    "maintenance/ierb-report-tests/render.py",
+    "maintenance/ierb-v14-tests/documents.cjs",
+    "maintenance/migrate-academic-years.php",
+    "students_api.php"
+  ],
+  "diffCheck": "PASS",
+  "stagedDiffCheck": "PASS",
+  "historicalEvidenceChanged": false,
+  "runtimeDatabaseAndSecretsExcluded": true,
+  "pdfPackaging": "Batch 5 PDF artifacts are binary, preserving required xref spacing and exact bytes.",
+  "initialStagedCheck": "PDF xref spacing was initially treated as text; resolved by extending the existing Batch 4 binary evidence rule to Batch 5.",
+  "stagedInventoryMatches": true,
+  "stagedFileCount": 199,
+  "stagedPdfByteVerification": [
+    {
+      "file": "PRISM_V14_BATCH_05_EVIDENCE/completed-project.pdf",
+      "sha256": "939020277f1ec1ce39f4faa09e7f7193b74316c46c1a6d210bceac7809441d4f",
+      "stagedBytesExact": true
+    },
+    {
+      "file": "PRISM_V14_BATCH_05_EVIDENCE/institutional-projects.pdf",
+      "sha256": "b91790f15dda80ed7ff6ae7dff802442a8cb6190942bea181eec8b413659652c",
+      "stagedBytesExact": true
+    },
+    {
+      "file": "PRISM_V14_BATCH_05_EVIDENCE/layout-stress.pdf",
+      "sha256": "7b11352a6e64ccb22820026e12502d96b0b1ab24acc4e91897cebe9933a1d0de",
+      "stagedBytesExact": true
+    },
+    {
+      "file": "PRISM_V14_BATCH_05_EVIDENCE/project-track-sheet.pdf",
+      "sha256": "2d6165a52505d99b90eb6f88d31d7b6b3f9b72f1f2be445f8451deec4c9f1b55",
+      "stagedBytesExact": true
+    },
+    {
+      "file": "PRISM_V14_BATCH_05_EVIDENCE/summary-v1.pdf",
+      "sha256": "339570fccb279119134619c594a2a07364e8a831db437e40f495d3ca659e9829",
+      "stagedBytesExact": true
+    },
+    {
+      "file": "PRISM_V14_BATCH_05_EVIDENCE/summary-v4.pdf",
+      "sha256": "9f358408d0050c3d764787249fc7e7bb34f18a89b07cc61fc3cd769f95ad5b5e",
+      "stagedBytesExact": true
+    },
+    {
+      "file": "PRISM_V14_BATCH_05_EVIDENCE/track-cycles-1.pdf",
+      "sha256": "d1f50f1a0492581ec45f0fd2f6800c0d6be989f5defcea0d26c1c4bed83c40d9",
+      "stagedBytesExact": true
+    },
+    {
+      "file": "PRISM_V14_BATCH_05_EVIDENCE/track-cycles-2.pdf",
+      "sha256": "7c28f42f9f2c5eab036297b003fb21279d381d550aa10b2f484147d35fca0540",
+      "stagedBytesExact": true
+    },
+    {
+      "file": "PRISM_V14_BATCH_05_EVIDENCE/track-cycles-3.pdf",
+      "sha256": "e1fd23be63f23634f2a520e19fd85663ec676def9bc0ed0d67fd0379519f4e9c",
+      "stagedBytesExact": true
+    },
+    {
+      "file": "PRISM_V14_BATCH_05_EVIDENCE/track-cycles-4.pdf",
+      "sha256": "ba587aa29f69e38749316b29d994d37d5151da17a0c35c67976047b976caf3a7",
+      "stagedBytesExact": true
+    }
+  ]
+}

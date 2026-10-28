@@ -1,0 +1,28 @@
+{
+  "status": "PASS",
+  "install": {
+    "dryRunUnchanged": true,
+    "studentsPreserved": true,
+    "catalog": [
+      "2001-2002",
+      "2025-2026",
+      "2026-2027",
+      "2027-2028"
+    ]
+  },
+  "cases": [
+    "Operator opt-in required",
+    "Exact database binding required",
+    "Open transaction refused",
+    "Disabled foreign keys refused",
+    "Apply replay preserves all existing years",
+    "Retained academic-year rollback refused",
+    "Schema drift refused",
+    "Published missing table refused",
+    "Older migration cannot bypass schema 15 retention",
+    "Database rejects invalid consecutive-year creation",
+    "Empty fixture rollback preserves every schema 11-14 contract",
+    "Interrupted unpublished additive DDL resumes without changing assignments",
+    "Interrupted empty rollback and reapply retain historical-year discovery"
+  ]
+}

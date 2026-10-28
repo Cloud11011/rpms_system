@@ -291,6 +291,7 @@ function onboarding_finish(PDO $pdo, array $user, array $data): array
             $title=onboarding_text($data['research']??'','Research title',255,false);
             $pdo->prepare('UPDATE students SET student_id=?,full_name=?,course=?,academic_unit_key=?,program_key=?,year_level=?,academic_year=?,research_title=?,profile_completed_at=NOW() WHERE id=?')
                 ->execute([$identifier,$name,$academic['course'],$academic['academic_unit_key'],$academic['program_key'],$academic['year_level'],$academic['academic_year'],$title?:null,$r['id']]);
+            academic_year_assignment_audit($pdo,$login,(int)$r['id'],$r['academic_year']??null,$academic['academic_year']);
         } else {
             $department=onboarding_text($data['department']??null,'Department',190);
             if (!in_array($department,array_column(academic_catalog()['units'],'label'),true)) throw new AccountLifecycleValidation('Choose a department from the academic catalog.');

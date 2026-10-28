@@ -346,6 +346,7 @@ if ($action === 'save') {
             ]);
         }
         if (!isset($identityBefore)) $pdo->prepare('UPDATE students SET profile_completed_at=NOW() WHERE id=?')->execute([$id]);
+        academic_year_assignment_audit($pdo,$user,$id,$before['academic_year']??null,$academic['academic_year']);
         $identityRow=$pdo->prepare('SELECT * FROM students WHERE id=:id FOR UPDATE');
         $identityRow->execute([':id'=>$id]);
         lifecycle_identity_persist($pdo,$user,'student',$identityBefore??null,lifecycle_identity_capture($pdo,$identityRow->fetch(),'student'));

@@ -1,0 +1,26 @@
+{
+  "worktree": ".batch03-worktree",
+  "trackedModifiedFilesSha256": {
+    "PRISM_V14_BATCH_01_EVIDENCE/foundation-tests.json": "807409a6eb5bb8fc8891a721593f7ddc9cd827020c75ad297077445f8ce8c212",
+    "PRISM_V14_BATCH_01_EVIDENCE/git-preparation.json": "39406d6aab3f76d6c40ce1366a3f44057dec3d27968453f351e5d5935b1afcb0",
+    "PRISM_V14_BATCH_01_EVIDENCE/legacy-v11-initial.json": "a3aff58517a229552ae91d737cc2820c6602127a1cbe855f49813187766de464",
+    "PRISM_V14_BATCH_01_EVIDENCE/legacy-v12.json": "e28bba2e56a1d8daff6cc4bc1a341bff55fc3ca6a97a96455aad2afd069dd863",
+    "PRISM_V14_BATCH_01_EVIDENCE/php-syntax.json": "90bb378d8b85c0b8ac2226848fc2ad9452c4b9abeb74840feb6cd61b939971aa",
+    "PRISM_V14_BATCH_02_EVIDENCE/acceptance-summary.json": "66fd017852edb4f6a879d7dbb7b75590d4bf5865e0cd15bb74c67223c81b5d93",
+    "PRISM_V14_BATCH_02_EVIDENCE/development-failures.json": "2efb6f3f37469d6244f05a098cac7fabecba9ea67880ed0e9babb2519d7ebec1",
+    "PRISM_V14_BATCH_02_EVIDENCE/document-tests.json": "3bc5edd9e13cfaf20246a0aeb087ca5ddeb4579ead6679687a437e6cb38ec4e1",
+    "PRISM_V14_BATCH_02_EVIDENCE/final-report-completion.json": "f5db494ea05f5132af79287ab58bdf6c93e1410c0366617efb8b594ecb1e2755",
+    "PRISM_V14_BATCH_02_EVIDENCE/focused-documents.json": "c68aab99b30b7ae409bfcb472bdf328eecdc628fd8d82a37a9ed49e140d0df25",
+    "PRISM_V14_BATCH_02_EVIDENCE/foundation-tests.json": "807409a6eb5bb8fc8891a721593f7ddc9cd827020c75ad297077445f8ce8c212",
+    "PRISM_V14_BATCH_02_EVIDENCE/git-preparation.json": "f5695abf56956fe7d9299c5b9c3e25c971f80c16fc151eff828c8d1d3cb0fd9e",
+    "PRISM_V14_BATCH_02_EVIDENCE/javascript-syntax.json": "ef4b0489eaa9ed628356b14f7609c1b03adadca56901a5cb739cff7241fd41d8",
+    "PRISM_V14_BATCH_02_EVIDENCE/legacy-v11.json": "585d787e1b6447315d70b58afea04d4826efb45c29c7eea46ec517a0932d9882",
+    "PRISM_V14_BATCH_02_EVIDENCE/legacy-v12-and-documents.json": "0e8b13bc248ec74ef6827032c7c39691d7c5360234205ecee3da7bf26b4fad7b",
+    "PRISM_V14_BATCH_02_EVIDENCE/php-syntax.json": "238203dbfc74d30c49960100e416b0b41a1cca3b9d2bf26b7438fbe8e5e243f1",
+    "PRISM_V14_BATCH_02_EVIDENCE/teardown.json": "3c3f5a5cbba70c63d0acb70e3d2aa6daf71779c8c5c5c6d8ac57482d1c5ebc71"
+  },
+  "untrackedPreserved": true,
+  "checkpoint": "verified after same-commit branch detachment; every pre-existing modified file remains byte-for-byte identical",
+  "postHandoffSha256Match": true,
+  "postHandoffHead": "fa61586f7a1a6e80fe94531afed00894181baf6c"
+}

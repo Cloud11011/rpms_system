@@ -294,7 +294,7 @@ function ierb_v14_resolve_correction(PDO $pdo, array $actor, int $studentId, int
 
 function ierb_v14_guard_document_delete(PDO $pdo, array $doc): void
 {
-    if ((string)$pdo->query("SELECT v FROM schema_meta WHERE k='schema_version'")->fetchColumn()==='14') {
+    if (in_array((string)$pdo->query("SELECT v FROM schema_meta WHERE k='schema_version'")->fetchColumn(),['14','15'],true)) {
         $q=$pdo->prepare('SELECT id FROM document_summary_versions WHERE document_id=? LIMIT 1 FOR UPDATE'); $q->execute([$doc['id']]);
         if ($q->fetchColumn()) throw new DocumentWorkflowError('Summary versions and their source documents are retained. Use Return for Revision.',409);
     }

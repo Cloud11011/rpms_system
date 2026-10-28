@@ -1,0 +1,113 @@
+{
+  "status": "PASS",
+  "renderer": "2.0",
+  "reports": [
+    {
+      "pdf": "completed-project.pdf",
+      "pages": 3,
+      "images": [
+        "completed-project-page-1.png",
+        "completed-project-page-2.png",
+        "completed-project-page-3.png"
+      ],
+      "bounds": "PASS",
+      "headersFooters": "PASS"
+    },
+    {
+      "pdf": "institutional-projects.pdf",
+      "pages": 1,
+      "images": [
+        "institutional-projects-page-1.png"
+      ],
+      "bounds": "PASS",
+      "headersFooters": "PASS"
+    },
+    {
+      "pdf": "layout-stress.pdf",
+      "pages": 5,
+      "images": [
+        "layout-stress-page-1.png",
+        "layout-stress-page-2.png",
+        "layout-stress-page-3.png",
+        "layout-stress-page-4.png",
+        "layout-stress-page-5.png"
+      ],
+      "bounds": "PASS",
+      "headersFooters": "PASS"
+    },
+    {
+      "pdf": "project-track-sheet.pdf",
+      "pages": 3,
+      "images": [
+        "project-track-sheet-page-1.png",
+        "project-track-sheet-page-2.png",
+        "project-track-sheet-page-3.png"
+      ],
+      "bounds": "PASS",
+      "headersFooters": "PASS"
+    },
+    {
+      "pdf": "summary-v1.pdf",
+      "pages": 1,
+      "images": [
+        "summary-v1-page-1.png"
+      ],
+      "bounds": "PASS",
+      "headersFooters": "PASS"
+    },
+    {
+      "pdf": "summary-v4.pdf",
+      "pages": 1,
+      "images": [
+        "summary-v4-page-1.png"
+      ],
+      "bounds": "PASS",
+      "headersFooters": "PASS"
+    },
+    {
+      "pdf": "track-cycles-1.pdf",
+      "pages": 3,
+      "images": [
+        "track-cycles-1-page-1.png",
+        "track-cycles-1-page-2.png",
+        "track-cycles-1-page-3.png"
+      ],
+      "bounds": "PASS",
+      "headersFooters": "PASS"
+    },
+    {
+      "pdf": "track-cycles-2.pdf",
+      "pages": 3,
+      "images": [
+        "track-cycles-2-page-1.png",
+        "track-cycles-2-page-2.png",
+        "track-cycles-2-page-3.png"
+      ],
+      "bounds": "PASS",
+      "headersFooters": "PASS"
+    },
+    {
+      "pdf": "track-cycles-3.pdf",
+      "pages": 3,
+      "images": [
+        "track-cycles-3-page-1.png",
+        "track-cycles-3-page-2.png",
+        "track-cycles-3-page-3.png"
+      ],
+      "bounds": "PASS",
+      "headersFooters": "PASS"
+    },
+    {
+      "pdf": "track-cycles-4.pdf",
+      "pages": 4,
+      "images": [
+        "track-cycles-4-page-1.png",
+        "track-cycles-4-page-2.png",
+        "track-cycles-4-page-3.png",
+        "track-cycles-4-page-4.png"
+      ],
+      "bounds": "PASS",
+      "headersFooters": "PASS"
+    }
+  ]
+}

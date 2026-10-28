@@ -14,6 +14,19 @@ require_once __DIR__ . '/includes/ierb_group_advancement.php';
 $user = api_require_login(['admin', 'adviser', 'student']);
 $pdo = db();
 $action = $_GET['action'] ?? 'list';
+if (in_array($action,['monitor','monitor_compare','monitor_detail'],true)) {
+    api_require_login(['admin','adviser']);
+    header('Cache-Control: no-store');
+    require_once __DIR__.'/includes/ierb_monitor.php';
+    try {
+        if ($action==='monitor') json_out(monitor_list($pdo,$user,$_GET));
+        json_out(monitor_selected($pdo,$user,$_GET['keys']??null,$action==='monitor_detail',$_GET));
+    } catch (Throwable $e) {
+        $status=lifecycle_error_status($e);
+        if ($status>=500) log_api_error('ierb_monitor',$e->getMessage());
+        json_out(['ok'=>false,'message'=>$status<500?$e->getMessage():'The monitor could not be loaded. Refresh and try again.'],$status);
+    }
+}
 if ($action === 'v14_contract') {
     header('Cache-Control: no-store');
     json_out(['ok'=>true,'contract'=>IerbStage::contract(),'activeWorkflow'=>'legacy']);
@@ -53,18 +66,19 @@ function adviser_may_access_student(PDO $pdo, array $user, int $studentId): bool
 
 function ierb_row(array $r, array $docCounts = [], array $earlierReturns = []): array
 {
+    $project=research_project_for_student(db(),(int)$r['id']);
     return [
         'id' => (int)$r['id'],
         'studentId' => $r['student_id'],
         'name' => $r['full_name'],
         'email' => $r['email'],
-        'groupId' => $r['research_group'],
+        'groupId' => $project['public_identifier'] ?? $r['research_group'],
         'course' => $r['course'],
         'academicUnitKey' => $r['academic_unit_key'] ?? null,
         'programKey' => $r['program_key'] ?? null,
         'yearLevel' => $r['year_level'] ?? null,
         'academicYear' => $r['academic_year'] ?? null,
-        'research' => $r['research_title'],
+        'research' => $project['research_title'] ?? $r['research_title'],
         'progressVersion' => (string)($r['progress_version'] ?? '0'),
         'earlierStageReturns' => $earlierReturns[(int)$r['id']] ?? [],
         'stage' => $r['stage'],
@@ -73,7 +87,7 @@ function ierb_row(array $r, array $docCounts = [], array $earlierReturns = []): 
         'requirements' => $r['requirements'],
         'protocolCode' => $r['protocol_code'] ?? null,
         'isPrincipalInvestigator' => !empty($r['is_principal_investigator']),
-        'lastSubmissionDate' => $r['last_submission_date'],
+        'lastSubmissionDate' => $r['verified_submission'] ?? null,
         'progress' => stage_progress_percent($r['stage']),
         'v14' => ierb_v14_read_summary(db(), (int)$r['id']),
         'adviser' => $r['adviser_name'] ?? null,
@@ -85,12 +99,19 @@ function ierb_row(array $r, array $docCounts = [], array $earlierReturns = []): 
 /** One validated filter/order definition for the current list and complete CSV dataset. */
 function ierb_apply_current_filters(string &$scope, array &$params, array $query, array $filterOptions): string
 {
+    require_once __DIR__.'/includes/ierb_monitor.php';
+    $holder=research_projects_available(db())?'COALESCE((SELECT p.submission_holder_id FROM research_project_members m JOIN research_projects p ON p.id=m.project_id WHERE m.student_id=s.id),s.id)':'s.id';
+    $scope=str_replace(' WHERE ', ' LEFT JOIN ('.monitor_formal_sql().') formal_dates ON formal_dates.student_id='.$holder.' WHERE ', $scope);
     prism_apply_student_filters($scope, $params, $query, $filterOptions);
     $q = prism_record_search($query);
     if ($q !== '') $scope .= ' AND ' . prism_search_clause(['s.protocol_code', 's.student_id', 's.full_name', 's.email', 's.research_title', 's.research_group', 's.course', 'f.full_name'], $q, $params);
     // Stage sequence has Completed last, rather than alphabetically first.
     $stageOrder = "CASE s.stage WHEN 'Stage 1' THEN 0 WHEN 'Stage 2' THEN 1 WHEN 'Stage 3' THEN 2 WHEN 'Stage 4' THEN 3 WHEN 'Stage 5' THEN 4 WHEN 'Completed' THEN 5 ELSE 0 END";
     $sort = $query['sort'] ?? '';
+    $date=ierb_v14_schema_available(db())?'IF(EXISTS(SELECT 1 FROM ierb_workflows w WHERE w.student_id='.$holder.'),formal_dates.latest_verified,formal_dates.latest_submission)':'formal_dates.latest_submission';
+    $by=$query['sortBy']??'';
+    if (($by==='' && !in_array($sort,['high-to-low','low-to-high'],true)) || $by==='submission') return "$date IS NULL ASC, $date ".(($query['direction']??'DESC')==='ASC'?'ASC':'DESC').', s.id ASC';
+    if ($by==='title') return 's.research_title '.(($query['direction']??'ASC')==='DESC'?'DESC':'ASC').', s.id ASC';
     return in_array($sort, ['high-to-low', 'low-to-high'], true) ? $stageOrder . ($sort === 'high-to-low' ? ' DESC' : ' ASC') . ', s.full_name ASC, s.id ASC' : prism_record_order($query, ['name'=>'s.full_name','studentId'=>'s.student_id','stage'=>$stageOrder,'status'=>'s.status','academicYear'=>'s.academic_year','group'=>'s.research_group'], 'name', 's.id ASC');
 }
 
@@ -112,7 +133,10 @@ function describe_progress_change(array $old, string $newStage, string $newStatu
 // ---------------------------------------------------------------------
 if ($action === 'list') {
     [$scope, $params] = prism_operational_student_scope($user);
-    $summary = $pdo->prepare('SELECT s.stage, s.status, COUNT(*) AS c ' . $scope . ' GROUP BY s.stage, s.status');
+    $legacyScope=$scope;
+    if (ierb_v14_schema_available($pdo)) $legacyScope.=' AND NOT EXISTS (SELECT 1 FROM ierb_workflows w WHERE w.student_id=s.id)';
+    if (research_projects_available($pdo)) $legacyScope.=' AND NOT EXISTS (SELECT 1 FROM research_project_members m WHERE m.student_id=s.id)';
+    $summary = $pdo->prepare('SELECT s.stage, s.status, COUNT(*) AS c ' . $legacyScope . ' GROUP BY s.stage, s.status');
     $summary->execute($params);
     $overview = $summary->fetchAll();
     $courses = $pdo->prepare('SELECT DISTINCT s.course ' . $scope . ' ORDER BY s.course');
@@ -129,8 +153,15 @@ if ($action === 'list') {
         foreach ($dashboardStages[$dashboardStage] as $i=>$stage) { $key=':dashboardStage'.$i; $keys[]=$key; $params[$key]=$stage; }
         $scope .= ' AND s.stage IN ('.implode(',',$keys).')';
     }
-    $page = prism_page_query($pdo, 'SELECT s.*, f.full_name AS adviser_name, (SELECT COALESCE(MAX(h.id),0) FROM ierb_history h WHERE h.student_id=s.id) AS progress_version', $scope, $params, $order, $_GET);
+    $page = prism_page_query($pdo, 'SELECT s.*, f.full_name AS adviser_name, (SELECT COALESCE(MAX(h.id),0) FROM ierb_history h WHERE h.student_id=s.id) AS progress_version, formal_dates.latest_submission AS verified_submission', $scope, $params, $order, $_GET);
     $rows = $page['rows']; unset($page['rows']);
+    foreach ($rows as &$row) {
+        $summary=ierb_v14_read_summary($pdo,(int)$row['id']);
+        if ($summary) {
+            $holder=research_project_for_student($pdo,(int)$row['id']);
+            $q=$pdo->prepare('SELECT latest_verified FROM ('.monitor_formal_sql().') dates WHERE student_id=?'); $q->execute([$holder['submission_holder_id']??$row['id']]); $row['verified_submission']=$q->fetchColumn()?:null;
+        }
+    } unset($row);
     $counts = student_document_counts($pdo, array_column($rows, 'id'));
     $earlierReturns = ierb_earlier_stage_returns($pdo, $rows);
     json_out(['ok' => true, 'records' => array_map(fn($r) => ierb_row($r, $counts, $earlierReturns), $rows), 'overview' => $overview, 'courses' => $courseOptions, 'filterOptions'=>$filterOptions] + $page);
@@ -234,7 +265,7 @@ if ($action === 'export_csv') {
     [$scope, $params] = prism_operational_student_scope($user);
     $filterOptions = prism_student_filter_options($pdo, $scope, $params);
     $order = ierb_apply_current_filters($scope, $params, $_GET, $filterOptions);
-    $stmt = $pdo->prepare('SELECT s.*, f.full_name AS adviser_name ' . $scope . ' ORDER BY ' . $order);
+    $stmt = $pdo->prepare('SELECT s.*, f.full_name AS adviser_name, formal_dates.latest_submission AS verified_submission, formal_dates.latest_verified AS verified_v14_submission ' . $scope . ' ORDER BY ' . $order);
     $stmt->execute($params);
     $rows = $stmt->fetchAll();
     $counts = student_document_counts($pdo);
@@ -253,14 +284,15 @@ if ($action === 'export_csv') {
         fputcsv($out, array_map('csv_safe', $cells), ',', '"', '');
     };
     $put(['Protocol Code', 'Student ID', 'Student Name', 'Email', 'Course', 'Research Group', 'Research Title',
-        'Adviser', 'Stage', 'Stage Name', 'Status', 'Progress (%)', 'Pending Requirements', 'Last Submission Date',
+        'Adviser', 'Stage', 'Stage Name', 'Status', 'Progress (%)', 'Pending Requirements', 'Latest Audited Formal Submission (Asia/Manila)', 'Academic Year',
         'Docs Pending Adviser Review', 'Docs Ready for RPMS Submission', 'Docs Submitted to RPMS', 'Needs Attention']);
     foreach ($rows as $r) {
         $c = $counts[(int)$r['id']] ?? empty_doc_counts();
+        $row=ierb_row($r,$counts);
         $put([
             $r['protocol_code'] ?? '', $r['student_id'], $r['full_name'], $r['email'], $r['course'],
-            $r['research_group'], $r['research_title'], $r['adviser_name'] ?? '', $r['stage'], stage_label($r['stage']),
-            $r['status'], stage_progress_percent($r['stage']), $r['requirements'], $r['last_submission_date'],
+            $row['groupId'], $row['research'], $r['adviser_name'] ?? '', $row['v14']['stage']??$r['stage'], $row['v14']['stageLabel']??stage_label($r['stage']),
+            $r['status'], $row['v14']['progress']??stage_progress_percent($r['stage']), $r['requirements'], $row['v14']?($r['verified_v14_submission']??null):$row['lastSubmissionDate'], $r['academic_year'],
             $c['pendingReview'], $c['readyForRpms'], $c['submittedToRpms'], $attention[(int)$r['id']] ?? '',
         ]);
     }
@@ -458,6 +490,7 @@ if ($action === 'save') {
             ':actor' => document_attribution($user['full_name'], $override ? ' (Admin Override)' : ''),
         ]);
         if (!isset($identityBefore)) $pdo->prepare('UPDATE students SET profile_completed_at=NOW() WHERE id=?')->execute([$id]);
+        academic_year_assignment_audit($pdo,$user,$id,$oldRow['academic_year']??null,$academic['academic_year']);
         $identityRow=$pdo->prepare('SELECT * FROM students WHERE id=:id FOR UPDATE');
         $identityRow->execute([':id'=>$id]);
         lifecycle_identity_persist($pdo,$user,'student',$identityBefore??null,lifecycle_identity_capture($pdo,$identityRow->fetch(),'student'));

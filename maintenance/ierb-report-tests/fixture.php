@@ -3,6 +3,7 @@ require dirname(__DIR__).'/ierb-group-tests/bootstrap.php';
 require_once $root.'/includes/schema_v14.php';
 require_once $root.'/includes/ierb_track_report.php';
 require_once $root.'/includes/report_pdf.php';
+$evidence=getenv('PRISM_TEST_EVIDENCE_DIR')?:$root.'/PRISM_V14_BATCH_04_EVIDENCE';
 $in=json_decode(stream_get_contents(STDIN),true,512,JSON_THROW_ON_ERROR);
 putenv('PRISM_ALLOW_SCHEMA_V13_MIGRATION=1');putenv('PRISM_SCHEMA_V13_EXPECT_DB=prism_group_synthetic_v11');
 putenv('PRISM_ALLOW_SCHEMA_V14_MIGRATION=1');putenv('PRISM_SCHEMA_V14_EXPECT_DB=prism_group_synthetic_v11');
@@ -38,13 +39,13 @@ try {
             $pdo->exec("UPDATE students SET research_group='Synthetic stale legacy label' WHERE id=6");
             $terms=document_summary_identifiers($pdo,$doc,$GLOBALS['actor']);$pdo->rollBack();return $terms;
         })(),
-        'completed-evidence'=>(function()use($pdo,$root){
+        'completed-evidence'=>(function()use($pdo,$root,$evidence){
             $id=(int)$pdo->query('SELECT id FROM research_projects LIMIT 1')->fetchColumn();
             $pdo->beginTransaction();research_project_fence($pdo);$s=track_project_snapshot($pdo,$GLOBALS['actor'],$id);$pdo->commit();
             if ($s['workflow']['stage_key']!==IerbStage::COMPLETED || !$s['project']['completed_at'] || $s['checklist']['workflow']['progress']!==100)throw new RuntimeException('Completion report mismatch');
             if (!$s['tracking']['overflowEvidence'])throw new RuntimeException('Historical overflow not retained');
-            file_put_contents($root.'/PRISM_V14_BATCH_04_EVIDENCE/completed-project.pdf',make_pdf('CEU RPMS - IERB Track Sheet',track_report_blocks($s)));
-            file_put_contents($root.'/PRISM_V14_BATCH_04_EVIDENCE/completed-project.json',json_encode($s,JSON_PRETTY_PRINT|JSON_THROW_ON_ERROR));
+            file_put_contents($evidence.'/completed-project.pdf',make_pdf('CEU RPMS - IERB Track Sheet',track_report_blocks($s)));
+            file_put_contents($evidence.'/completed-project.json',json_encode($s,JSON_PRETTY_PRINT|JSON_THROW_ON_ERROR));
             return ['completed'=>true,'progress'=>100,'trackingRows'=>count($s['tracking']['rows']),'officialCycles'=>$s['tracking']['officialResubmissionCount']];
         })(),
         'retained-rollback'=>(function()use($pdo){try{migrate_schema_v14($pdo,'rollback');}catch(RuntimeException $e){return ['refused'=>true];}throw new RuntimeException('Retained rollback accepted');})(),
@@ -60,12 +61,12 @@ try {
             migrate_schema_v14($pdo,'rollback');migrate_schema_v14($pdo,'apply');$checks[]='Empty rollback and reapply preserve exact contract';
             return $checks;
         })(),
-        'layout'=>(function()use($pdo,$in,$root){
+        'layout'=>(function()use($pdo,$in,$root,$evidence){
             $pdo->beginTransaction();research_project_fence($pdo);$s=track_project_snapshot($pdo,$GLOBALS['actor'],$in['projectId']);$pdo->commit();
             // Layout stress data is synthetic, visibly labeled, and never persisted as project facts.
             $s['notes'][]='SYNTHETIC LAYOUT STRESS FIXTURE. '.str_repeat('Verification notes must wrap cleanly and continue across multiple pages. ',65);
             foreach($s['checklist']['requirements'] as &$r)$r['label'].=str_repeat(' synthetic long requirement label',7);unset($r);
-            $path=$root.'/PRISM_V14_BATCH_04_EVIDENCE/layout-stress.pdf';file_put_contents($path,make_pdf('CEU RPMS - IERB Track Sheet',track_report_blocks($s)));return ['path'=>$path];
+            $path=$evidence.'/layout-stress.pdf';file_put_contents($path,make_pdf('CEU RPMS - IERB Track Sheet',track_report_blocks($s)));return ['path'=>$path];
         })(),
         'cleanup'=>(function()use($pdo){
             $pdo->exec('DELETE FROM ierb_report_snapshots');$pdo->exec('DELETE FROM document_summary_versions');migrate_schema_v14($pdo,'rollback');return ['ok'=>true];

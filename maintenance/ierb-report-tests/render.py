@@ -1,10 +1,10 @@
 """Render actual PDFs and check page bounds; install PyMuPDF in a workspace-local tools folder."""
 from pathlib import Path
-import json, sys
+import json, sys, os
 root=Path(__file__).resolve().parents[2]
-sys.path.insert(0,str(root/'.batch04-tools'))
+sys.path.insert(0,os.environ.get('PRISM_TEST_PDFTOOLS',str(root/'.batch04-tools')))
 import pymupdf
-evidence=root/'PRISM_V14_BATCH_04_EVIDENCE'
+evidence=Path(os.environ.get('PRISM_TEST_EVIDENCE_DIR',str(root/'PRISM_V14_BATCH_04_EVIDENCE')))
 result=[]
 for source in sorted(evidence.glob('*.pdf')):
     doc=pymupdf.open(source)
