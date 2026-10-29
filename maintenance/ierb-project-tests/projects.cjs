@@ -62,9 +62,13 @@ module.exports=h=>{
     if(phase==='ready'){
       check(state().stage_key==='initial_submission','Accepting all 13 requirements creates eligibility, with no automatic project advancement');
       const own=(await response(await partner.get('/documents_api.php?action=requirements&studentId=6'))).body;
-      check(own.requirements.filter(r=>r.stage==='initial_submission').every(r=>r.state==='Accepted'&&r.documentId===null),'Partner sees shared accepted status without access to holder private document references');
-      await expect(response(await partner.get('/documents_api.php?action=file&download=1&id='+docs.cv)),403,'Canonical membership never exposes another Student private file');
-      await expect(response(await partner.get('/documents_api.php?action=versions&id='+docs.cv)),403,'Private document version history remains owner scoped');
+      // Batch 7R Decision A supersedes Batch 3: verified members share the single project evidence record.
+      check(own.requirements.filter(r=>r.stage==='initial_submission').every(r=>r.state==='Accepted'&&r.documentId!==null),'Every verified member sees the shared accepted project evidence references');
+      const shared=await partner.get('/documents_api.php?action=file&download=1&id='+docs.cv);check(shared.status()===200&&(await shared.body()).subarray(0,5).toString()==='%PDF-','A verified project member may open the shared project evidence file');
+      await expect(response(await partner.get('/documents_api.php?action=versions&id='+docs.cv)),200,'A verified project member may read the shared document version history');
+      const outsider=await h.login('student5@example.test');
+      await expect(response(await outsider.get('/documents_api.php?action=file&download=1&id='+docs.cv)),403,'A Student outside the project never reaches its evidence file');
+      await expect(response(await outsider.get('/documents_api.php?action=versions&id='+docs.cv)),403,'A Student outside the project never reaches its version history');
       for(const role of ['student','adviser'])await expect(post(s[role],'group_advance_preview',{groupKey:key()}),403,role+' cannot preview or advance a canonical research group');
       const stale=await preview();check(stale.eligible,'All 13 current accepted requirements make the canonical group eligible');
       check(project({action:'rename',projectId:p().id,revision:p().revision,title:'PRISM: Administrator Updated Title'}).ok,'Title update retains project evidence while invalidating a previous preview');
@@ -83,11 +87,12 @@ module.exports=h=>{
       fs.writeFileSync(path.join(evidence,'group-advancement.json'),JSON.stringify({concurrentResults:parsed,memberProgress:sql('SELECT * FROM research_project_members WHERE project_id=?',[p().id])},null,2));
     }
     if(phase==='beforeCompletion'){
-      const attempt=await response(await partner.post('/documents_api.php?action=upload',{headers:{origin:h.base,'X-Prism-Generation':await h.generation(partner)},multipart:{documentType:'Form 33-0B - Final Report Form',requestId:require('node:crypto').randomUUID(),document:{name:'Synthetic Batch2 partner-private-final.pdf',mimeType:'application/pdf',buffer:h.pdf()}}}));
-      check(attempt.status===200,'Partner retains ownership of their independently uploaded private evidence');
-      const privateId=attempt.body.document.id;
-      await expect(post(s.adviser,'review',{id:privateId,status:'Approved',remarks:'Synthetic attempt to submit outside holder authority'},'documents_api.php'),409,'Only the designated submission holder can formally submit the project Final Report');
-      check(!sql('SELECT rpms_submitted_at FROM documents WHERE id=?',[privateId])[0].rpms_submitted_at,'Unauthorized partner Final Report formal submission rolls back without partial completion');
+      const attempt=await response(await partner.post('/documents_api.php?action=upload',{headers:{origin:h.base,'X-Prism-Generation':await h.generation(partner)},multipart:{documentType:'Form 33-0B - Final Report Form',requestId:require('node:crypto').randomUUID(),document:{name:'Synthetic Batch2 partner-final.pdf',mimeType:'application/pdf',buffer:h.pdf()}}}));
+      check(attempt.status===200,'A non-PI verified member uploads the project Final Report');
+      const memberDoc=sql('SELECT * FROM documents WHERE id=?',[attempt.body.document.id])[0];
+      check(memberDoc.student_id===4&&memberDoc.supersedes_id===docs.final_report&&memberDoc.is_current===1&&memberDoc.uploaded_by==='Synthetic Student 6'&&memberDoc.uploaded_by_role==='student','The member upload joins the single project version chain and preserves the individual uploader');
+      check(sql("SELECT user_email FROM activity_logs WHERE action='document_uploaded' AND entity_id=?",[memberDoc.id])[0]?.user_email==='student6@example.test','The upload audit records the uploading member, not the evidence record');
+      docs.final_report=memberDoc.id; // Later phases formally submit the member-uploaded current version.
       docBefore=sql('SELECT COUNT(*) n FROM documents WHERE student_id=6')[0].n;
       check(sql('SELECT stage_key FROM research_project_members WHERE project_id=?',[p().id]).every(r=>r.stage_key==='approval_data_gathering'),'Repeated conditional correction cases resume every member at the interrupted review stage');
       const corrections=sql("SELECT e.event_key,h.student_id,h.from_stage,h.to_stage FROM research_project_member_history h JOIN research_project_events e ON e.id=h.project_event_id WHERE h.project_id=? AND e.event_key IN ('open_correction','resolve_correction')",[p().id]);

@@ -29,8 +29,11 @@ function current_workflow_actor(PDO $pdo, array $actor, bool $credentialChange =
     return $live;
 }
 
-/** Lock Student first, then live logins and assigned Adviser, matching document transitions. */
-function current_workflow_student(PDO $pdo, int $id, array $actor): array
+/** Lock Student first, then live logins and assigned Adviser, matching document transitions.
+ * $projectMember admits a verified fellow member of the same canonical project; only the reviewed
+ * project-evidence paths (upload, formal submission, project reads) pass it.
+ */
+function current_workflow_student(PDO $pdo, int $id, array $actor, bool $projectMember = false): array
 {
     if (!$pdo->inTransaction()) throw new LogicException('Student eligibility requires a transaction.');
     research_project_fence($pdo);
@@ -43,7 +46,8 @@ function current_workflow_student(PDO $pdo, int $id, array $actor): array
     $login=lifecycle_resolve_login($pdo,$row,'student');
     if (!$login || $login['status']!=='Active') throw new AccountLifecycleConflict('The Student account is inactive.');
     $live=current_workflow_actor($pdo,$actor);
-    if ($live['role']==='student' && (int)$login['id']!==(int)$live['id']) {
+    if ($live['role']==='student' && (int)$login['id']!==(int)$live['id']
+        && !($projectMember && research_project_member_actor($pdo,$id,$live))) {
         throw new AccountLifecycleForbidden('This Student record is not yours.');
     }
     if ($live['role']==='adviser') {

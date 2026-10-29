@@ -1,4 +1,5 @@
 <?php
+if (PHP_SAPI !== 'cli') exit; // Test fixture: never reachable over HTTP (B7-F21).
 require_once dirname(__DIR__,2).'/includes/ierb_track_report.php';
 if (!defined('WF_SUBMITTED_RPMS')) define('WF_SUBMITTED_RPMS','Submitted to RPMS');
 $checks=[];

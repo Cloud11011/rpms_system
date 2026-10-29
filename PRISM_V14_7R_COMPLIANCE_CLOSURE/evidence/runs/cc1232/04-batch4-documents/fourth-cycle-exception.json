@@ -1,0 +1,2533 @@
+{
+  "formatVersion": 1,
+  "capturedAt": "2026-10-28 22:27:08.786910",
+  "project": {
+    "id": 1,
+    "public_identifier": "synthetic-study-of-research-monitoring-and-the-organization-of-institutional-ethics-documentation-across-several-academic-programmes-with-a-long-research-title",
+    "research_title": "Synthetic study of research monitoring and the organization of institutional ethics documentation across several academic programmes with a long research title for PDF wrapping verification",
+    "adviser_id": 2,
+    "submission_holder_id": 4,
+    "workflow_id": 4,
+    "revision": 13,
+    "completed_at": null,
+    "completion_document_id": null,
+    "created_at": "2026-10-28 22:26:37.441364"
+  },
+  "identity": {
+    "Principal Investigator": "Not recorded",
+    "Protocol Code": "Not recorded",
+    "Research Category": "Not recorded",
+    "Research / Study Title": "Synthetic study of research monitoring and the organization of institutional ethics documentation across several academic programmes with a long research title for PDF wrapping verification",
+    "Co-Investigators": "Not recorded",
+    "Research Group Identifier": "synthetic-study-of-research-monitoring-and-the-organization-of-institutional-ethics-documentation-across-several-academic-programmes-with-a-long-research-title",
+    "Academic Year": "2026-2027",
+    "Assigned Research Adviser": "Synthetic Adviser 2",
+    "Current IERB Stage": "Initial Submission"
+  },
+  "workflow": {
+    "id": 4,
+    "student_id": 4,
+    "stage_key": "initial_submission",
+    "revision": 13,
+    "legacy_stage_snapshot": "Stage 1",
+    "enrollment_evidence": "Synthetic documented explicit context",
+    "enrolled_by_user_id": 1,
+    "enrolled_at": "2026-10-28 22:26:37.424909",
+    "updated_at": "2026-10-28 22:27:08.576521"
+  },
+  "checklist": {
+    "ok": true,
+    "enrolled": true,
+    "submissionScope": {
+      "kind": "project_submission_holder",
+      "studentId": 4,
+      "groupSynchronization": "canonical",
+      "projectId": 1,
+      "identifier": "synthetic-study-of-research-monitoring-and-the-organization-of-institutional-ethics-documentation-across-several-academic-programmes-with-a-long-research-title",
+      "researchTitle": "Synthetic study of research monitoring and the organization of institutional ethics documentation across several academic programmes with a long research title for PDF wrapping verification",
+      "principalInvestigator": null,
+      "uploadPolicy": "Every verified member may upload, revise and formally submit Adviser-approved project documents."
+    },
+    "workflow": {
+      "workflowId": 4,
+      "stage": "initial_submission",
+      "stageLabel": "Initial Submission",
+      "revision": 13,
+      "correctionCase": null,
+      "progress": 0
+    },
+    "requirements": [
+      {
+        "key": "ethics",
+        "label": "Certification of Ethics",
+        "stage": "initial_submission",
+        "state": "Missing",
+        "documentId": null,
+        "documentType": null,
+        "versionNo": null,
+        "reviewStatus": null,
+        "acceptedAt": null,
+        "acceptanceEventId": null,
+        "canAccept": false
+      },
+      {
+        "key": "cv",
+        "label": "Curriculum Vitae",
+        "stage": "initial_submission",
+        "state": "Missing",
+        "documentId": null,
+        "documentType": null,
+        "versionNo": null,
+        "reviewStatus": null,
+        "acceptedAt": null,
+        "acceptanceEventId": null,
+        "canAccept": false
+      },
+      {
+        "key": "questionnaire",
+        "label": "Data Collection Questionnaire",
+        "stage": "initial_submission",
+        "state": "Missing",
+        "documentId": null,
+        "documentType": null,
+        "versionNo": null,
+        "reviewStatus": null,
+        "acceptedAt": null,
+        "acceptanceEventId": null,
+        "canAccept": false
+      },
+      {
+        "key": "workflow",
+        "label": "Diagrammatic Workflow",
+        "stage": "initial_submission",
+        "state": "Missing",
+        "documentId": null,
+        "documentType": null,
+        "versionNo": null,
+        "reviewStatus": null,
+        "acceptedAt": null,
+        "acceptanceEventId": null,
+        "canAccept": false
+      },
+      {
+        "key": "form11",
+        "label": "Form 11 Review Checklist",
+        "stage": "initial_submission",
+        "state": "Missing",
+        "documentId": null,
+        "documentType": null,
+        "versionNo": null,
+        "reviewStatus": null,
+        "acceptedAt": null,
+        "acceptanceEventId": null,
+        "canAccept": false
+      },
+      {
+        "key": "form12",
+        "label": "Form 12 Registration and Application Form",
+        "stage": "initial_submission",
+        "state": "Missing",
+        "documentId": null,
+        "documentType": null,
+        "versionNo": null,
+        "reviewStatus": null,
+        "acceptedAt": null,
+        "acceptanceEventId": null,
+        "canAccept": false
+      },
+      {
+        "key": "form13",
+        "label": "Form 13 Study Protocol Assessment Form",
+        "stage": "initial_submission",
+        "state": "Missing",
+        "documentId": null,
+        "documentType": null,
+        "versionNo": null,
+        "reviewStatus": null,
+        "acceptedAt": null,
+        "acceptanceEventId": null,
+        "canAccept": false
+      },
+      {
+        "key": "form14",
+        "label": "Form 14 Informed Consent Assessment Form",
+        "stage": "initial_submission",
+        "state": "Missing",
+        "documentId": null,
+        "documentType": null,
+        "versionNo": null,
+        "reviewStatus": null,
+        "acceptedAt": null,
+        "acceptanceEventId": null,
+        "canAccept": false
+      },
+      {
+        "key": "consent_english",
+        "label": "Informed Consent in English",
+        "stage": "initial_submission",
+        "state": "Missing",
+        "documentId": null,
+        "documentType": null,
+        "versionNo": null,
+        "reviewStatus": null,
+        "acceptedAt": null,
+        "acceptanceEventId": null,
+        "canAccept": false
+      },
+      {
+        "key": "consent_local",
+        "label": "Informed Consent in Local Language",
+        "stage": "initial_submission",
+        "state": "Missing",
+        "documentId": null,
+        "documentType": null,
+        "versionNo": null,
+        "reviewStatus": null,
+        "acceptedAt": null,
+        "acceptanceEventId": null,
+        "canAccept": false
+      },
+      {
+        "key": "letter",
+        "label": "Letter to IERB Chair",
+        "stage": "initial_submission",
+        "state": "Missing",
+        "documentId": null,
+        "documentType": null,
+        "versionNo": null,
+        "reviewStatus": null,
+        "acceptedAt": null,
+        "acceptanceEventId": null,
+        "canAccept": false
+      },
+      {
+        "key": "payment",
+        "label": "Payment Receipt",
+        "stage": "initial_submission",
+        "state": "Missing",
+        "documentId": null,
+        "documentType": null,
+        "versionNo": null,
+        "reviewStatus": null,
+        "acceptedAt": null,
+        "acceptanceEventId": null,
+        "canAccept": false
+      },
+      {
+        "key": "protocol",
+        "label": "Study Protocol",
+        "stage": "initial_submission",
+        "state": "Uploaded / Pending Review",
+        "documentId": "2e755f12d44c7e18ec2c245a",
+        "documentType": "Study Protocol",
+        "versionNo": 1,
+        "reviewStatus": "Submitted",
+        "acceptedAt": null,
+        "acceptanceEventId": null,
+        "canAccept": false
+      },
+      {
+        "key": "form33",
+        "label": "Form 33 - Certificate of Approval",
+        "stage": "approval_data_gathering",
+        "state": "Missing",
+        "documentId": null,
+        "documentType": null,
+        "versionNo": null,
+        "reviewStatus": null,
+        "acceptedAt": null,
+        "acceptanceEventId": null,
+        "canAccept": false
+      },
+      {
+        "key": "final_report",
+        "label": "Form 33-0B - Final Report Form",
+        "stage": "ierb_completed",
+        "state": "Missing",
+        "documentId": null,
+        "documentType": null,
+        "versionNo": null,
+        "reviewStatus": null,
+        "acceptedAt": null,
+        "acceptanceEventId": null,
+        "canAccept": false
+      }
+    ],
+    "pendingCorrectionRequest": null,
+    "viewerRole": "admin",
+    "operationsActivated": false
+  },
+  "tracking": {
+    "rows": [
+      {
+        "caseId": null,
+        "submittedAt": "2026-10-28 22:27:01",
+        "returnedAt": "2026-10-28 22:27:02",
+        "submissionEvidence": [
+          {
+            "auditId": 908,
+            "documentId": "0fbf98cb2c012ea5fa2f1ffd",
+            "versionNo": 1,
+            "documentType": "Other Supporting Document",
+            "submittedAt": "2026-10-28 22:27:01",
+            "auditAt": "2026-10-28 22:27:01"
+          }
+        ],
+        "returnEvidence": [
+          {
+            "auditId": 913,
+            "documentId": "0fbf98cb2c012ea5fa2f1ffd",
+            "returnedAt": "2026-10-28 22:27:02"
+          }
+        ],
+        "label": "Initial Submission"
+      },
+      {
+        "caseId": 7,
+        "submittedAt": "2026-10-28 22:27:02",
+        "returnedAt": "2026-10-28 22:27:04",
+        "submissionEvidence": [
+          {
+            "auditId": 916,
+            "documentId": "49e2f90ecfb1beed20d9fbc1",
+            "versionNo": 2,
+            "documentType": "Other Supporting Document",
+            "submittedAt": "2026-10-28 22:27:02",
+            "auditAt": "2026-10-28 22:27:02"
+          }
+        ],
+        "returnEvidence": [
+          {
+            "auditId": 928,
+            "documentId": "49e2f90ecfb1beed20d9fbc1",
+            "returnedAt": "2026-10-28 22:27:04"
+          }
+        ],
+        "details": {
+          "id": 7,
+          "workflow_id": 4,
+          "interrupted_stage": "initial_submission",
+          "reason": "Synthetic RPMS correction case",
+          "affected_documents_json": "[{\"id\":\"0fbf98cb2c012ea5fa2f1ffd\",\"student_id\":4,\"document_type\":\"Other Supporting Document\",\"stage\":\"Stage 1\",\"version_no\":1,\"is_current\":1}]",
+          "requires_amendment": 0,
+          "opened_by_user_id": 1,
+          "opened_at": "2026-10-28 22:27:02.167049",
+          "resolved_by_user_id": 1,
+          "resolved_at": "2026-10-28 22:27:03.081603",
+          "resolution_evidence_json": "{\"correctedDocuments\":[{\"requirementKey\":\"affected:0fbf98cb2c012ea5fa2f1ffd\",\"documentId\":\"49e2f90ecfb1beed20d9fbc1\",\"documentOwnerStudentId\":4,\"documentType\":\"Other Supporting Document\",\"documentStage\":\"Stage 1\",\"versionNo\":2,\"reviewStatus\":\"Approved\",\"formallySubmittedAt\":\"2026-10-28 22:27:02\",\"submissionAuditId\":916,\"correctionCaseId\":7,\"institutionalApprovalReference\":\"\",\"acceptanceEventId\":45,\"acceptedAt\":\"2026-10-28 22:27:02.781259\"}]}",
+          "active_workflow": null
+        },
+        "label": "1st Resubmission"
+      },
+      {
+        "caseId": 8,
+        "submittedAt": "2026-10-28 22:27:04",
+        "returnedAt": "2026-10-28 22:27:06",
+        "submissionEvidence": [
+          {
+            "auditId": 931,
+            "documentId": "899cb40cfa108f1416e62a84",
+            "versionNo": 3,
+            "documentType": "Other Supporting Document",
+            "submittedAt": "2026-10-28 22:27:04",
+            "auditAt": "2026-10-28 22:27:04"
+          }
+        ],
+        "returnEvidence": [
+          {
+            "auditId": 943,
+            "documentId": "899cb40cfa108f1416e62a84",
+            "returnedAt": "2026-10-28 22:27:06"
+          }
+        ],
+        "details": {
+          "id": 8,
+          "workflow_id": 4,
+          "interrupted_stage": "initial_submission",
+          "reason": "Synthetic RPMS correction case",
+          "affected_documents_json": "[{\"id\":\"49e2f90ecfb1beed20d9fbc1\",\"student_id\":4,\"document_type\":\"Other Supporting Document\",\"stage\":\"Stage 1\",\"version_no\":2,\"is_current\":1}]",
+          "requires_amendment": 0,
+          "opened_by_user_id": 1,
+          "opened_at": "2026-10-28 22:27:03.921817",
+          "resolved_by_user_id": 1,
+          "resolved_at": "2026-10-28 22:27:05.410879",
+          "resolution_evidence_json": "{\"correctedDocuments\":[{\"requirementKey\":\"affected:49e2f90ecfb1beed20d9fbc1\",\"documentId\":\"899cb40cfa108f1416e62a84\",\"documentOwnerStudentId\":4,\"documentType\":\"Other Supporting Document\",\"documentStage\":\"Stage 1\",\"versionNo\":3,\"reviewStatus\":\"Approved\",\"formallySubmittedAt\":\"2026-10-28 22:27:04\",\"submissionAuditId\":931,\"correctionCaseId\":8,\"institutionalApprovalReference\":\"\",\"acceptanceEventId\":48,\"acceptedAt\":\"2026-10-28 22:27:04.990221\"}]}",
+          "active_workflow": null
+        },
+        "label": "2nd Resubmission"
+      },
+      {
+        "caseId": 9,
+        "submittedAt": "2026-10-28 22:27:06",
+        "returnedAt": "2026-10-28 22:27:07",
+        "submissionEvidence": [
+          {
+            "auditId": 946,
+            "documentId": "1a7a405170fe17e3dbfa86f1",
+            "versionNo": 4,
+            "documentType": "Other Supporting Document",
+            "submittedAt": "2026-10-28 22:27:06",
+            "auditAt": "2026-10-28 22:27:06"
+          }
+        ],
+        "returnEvidence": [
+          {
+            "auditId": 958,
+            "documentId": "1a7a405170fe17e3dbfa86f1",
+            "returnedAt": "2026-10-28 22:27:07"
+          }
+        ],
+        "details": {
+          "id": 9,
+          "workflow_id": 4,
+          "interrupted_stage": "initial_submission",
+          "reason": "Synthetic RPMS correction case",
+          "affected_documents_json": "[{\"id\":\"899cb40cfa108f1416e62a84\",\"student_id\":4,\"document_type\":\"Other Supporting Document\",\"stage\":\"Stage 1\",\"version_no\":3,\"is_current\":1}]",
+          "requires_amendment": 0,
+          "opened_by_user_id": 1,
+          "opened_at": "2026-10-28 22:27:06.231157",
+          "resolved_by_user_id": 1,
+          "resolved_at": "2026-10-28 22:27:07.038548",
+          "resolution_evidence_json": "{\"correctedDocuments\":[{\"requirementKey\":\"affected:899cb40cfa108f1416e62a84\",\"documentId\":\"1a7a405170fe17e3dbfa86f1\",\"documentOwnerStudentId\":4,\"documentType\":\"Other Supporting Document\",\"documentStage\":\"Stage 1\",\"versionNo\":4,\"reviewStatus\":\"Approved\",\"formallySubmittedAt\":\"2026-10-28 22:27:06\",\"submissionAuditId\":946,\"correctionCaseId\":9,\"institutionalApprovalReference\":\"\",\"acceptanceEventId\":51,\"acceptedAt\":\"2026-10-28 22:27:06.785812\"}]}",
+          "active_workflow": null
+        },
+        "label": "3rd Resubmission"
+      }
+    ],
+    "overflowEvidence": [
+      {
+        "caseId": 10,
+        "submittedAt": "2026-10-28 22:27:08",
+        "returnedAt": null,
+        "submissionEvidence": [
+          {
+            "auditId": 961,
+            "documentId": "7b642e641f5d51a83534675c",
+            "versionNo": 5,
+            "documentType": "Other Supporting Document",
+            "submittedAt": "2026-10-28 22:27:08",
+            "auditAt": "2026-10-28 22:27:08"
+          }
+        ],
+        "returnEvidence": [],
+        "details": {
+          "id": 10,
+          "workflow_id": 4,
+          "interrupted_stage": "initial_submission",
+          "reason": "Synthetic RPMS correction case",
+          "affected_documents_json": "[{\"id\":\"1a7a405170fe17e3dbfa86f1\",\"student_id\":4,\"document_type\":\"Other Supporting Document\",\"stage\":\"Stage 1\",\"version_no\":4,\"is_current\":1}]",
+          "requires_amendment": 0,
+          "opened_by_user_id": 1,
+          "opened_at": "2026-10-28 22:27:07.704496",
+          "resolved_by_user_id": 1,
+          "resolved_at": "2026-10-28 22:27:08.576156",
+          "resolution_evidence_json": "{\"correctedDocuments\":[{\"requirementKey\":\"affected:1a7a405170fe17e3dbfa86f1\",\"documentId\":\"7b642e641f5d51a83534675c\",\"documentOwnerStudentId\":4,\"documentType\":\"Other Supporting Document\",\"documentStage\":\"Stage 1\",\"versionNo\":5,\"reviewStatus\":\"Approved\",\"formallySubmittedAt\":\"2026-10-28 22:27:08\",\"submissionAuditId\":961,\"correctionCaseId\":10,\"institutionalApprovalReference\":\"\",\"acceptanceEventId\":54,\"acceptedAt\":\"2026-10-28 22:27:08.291401\"}]}",
+          "active_workflow": null
+        }
+      }
+    ],
+    "notes": [
+      "32 formal-submission audits lack complete source document evidence. Dates cannot be reconstructed from those records. Audit IDs retained for RPMS review: 55, 59, 434, 438, 509, 513, 615, 619, 650, 655, 662, 669, 674, 679, 684, 689, 694, 699, 704, 709, 714, 725, 746, 754, 768, 773, 787, 793, 807, 816, 824, 851.",
+      "RPMS REVIEW REQUIRED: 4 official correction resubmission cycles exceed the three report slots. All overflow evidence is retained in the report snapshot; no additional tracking rows are generated."
+    ],
+    "allCorrectionCases": [
+      {
+        "id": 7,
+        "workflow_id": 4,
+        "interrupted_stage": "initial_submission",
+        "reason": "Synthetic RPMS correction case",
+        "affected_documents_json": "[{\"id\":\"0fbf98cb2c012ea5fa2f1ffd\",\"student_id\":4,\"document_type\":\"Other Supporting Document\",\"stage\":\"Stage 1\",\"version_no\":1,\"is_current\":1}]",
+        "requires_amendment": 0,
+        "opened_by_user_id": 1,
+        "opened_at": "2026-10-28 22:27:02.167049",
+        "resolved_by_user_id": 1,
+        "resolved_at": "2026-10-28 22:27:03.081603",
+        "resolution_evidence_json": "{\"correctedDocuments\":[{\"requirementKey\":\"affected:0fbf98cb2c012ea5fa2f1ffd\",\"documentId\":\"49e2f90ecfb1beed20d9fbc1\",\"documentOwnerStudentId\":4,\"documentType\":\"Other Supporting Document\",\"documentStage\":\"Stage 1\",\"versionNo\":2,\"reviewStatus\":\"Approved\",\"formallySubmittedAt\":\"2026-10-28 22:27:02\",\"submissionAuditId\":916,\"correctionCaseId\":7,\"institutionalApprovalReference\":\"\",\"acceptanceEventId\":45,\"acceptedAt\":\"2026-10-28 22:27:02.781259\"}]}",
+        "active_workflow": null
+      },
+      {
+        "id": 8,
+        "workflow_id": 4,
+        "interrupted_stage": "initial_submission",
+        "reason": "Synthetic RPMS correction case",
+        "affected_documents_json": "[{\"id\":\"49e2f90ecfb1beed20d9fbc1\",\"student_id\":4,\"document_type\":\"Other Supporting Document\",\"stage\":\"Stage 1\",\"version_no\":2,\"is_current\":1}]",
+        "requires_amendment": 0,
+        "opened_by_user_id": 1,
+        "opened_at": "2026-10-28 22:27:03.921817",
+        "resolved_by_user_id": 1,
+        "resolved_at": "2026-10-28 22:27:05.410879",
+        "resolution_evidence_json": "{\"correctedDocuments\":[{\"requirementKey\":\"affected:49e2f90ecfb1beed20d9fbc1\",\"documentId\":\"899cb40cfa108f1416e62a84\",\"documentOwnerStudentId\":4,\"documentType\":\"Other Supporting Document\",\"documentStage\":\"Stage 1\",\"versionNo\":3,\"reviewStatus\":\"Approved\",\"formallySubmittedAt\":\"2026-10-28 22:27:04\",\"submissionAuditId\":931,\"correctionCaseId\":8,\"institutionalApprovalReference\":\"\",\"acceptanceEventId\":48,\"acceptedAt\":\"2026-10-28 22:27:04.990221\"}]}",
+        "active_workflow": null
+      },
+      {
+        "id": 9,
+        "workflow_id": 4,
+        "interrupted_stage": "initial_submission",
+        "reason": "Synthetic RPMS correction case",
+        "affected_documents_json": "[{\"id\":\"899cb40cfa108f1416e62a84\",\"student_id\":4,\"document_type\":\"Other Supporting Document\",\"stage\":\"Stage 1\",\"version_no\":3,\"is_current\":1}]",
+        "requires_amendment": 0,
+        "opened_by_user_id": 1,
+        "opened_at": "2026-10-28 22:27:06.231157",
+        "resolved_by_user_id": 1,
+        "resolved_at": "2026-10-28 22:27:07.038548",
+        "resolution_evidence_json": "{\"correctedDocuments\":[{\"requirementKey\":\"affected:899cb40cfa108f1416e62a84\",\"documentId\":\"1a7a405170fe17e3dbfa86f1\",\"documentOwnerStudentId\":4,\"documentType\":\"Other Supporting Document\",\"documentStage\":\"Stage 1\",\"versionNo\":4,\"reviewStatus\":\"Approved\",\"formallySubmittedAt\":\"2026-10-28 22:27:06\",\"submissionAuditId\":946,\"correctionCaseId\":9,\"institutionalApprovalReference\":\"\",\"acceptanceEventId\":51,\"acceptedAt\":\"2026-10-28 22:27:06.785812\"}]}",
+        "active_workflow": null
+      },
+      {
+        "id": 10,
+        "workflow_id": 4,
+        "interrupted_stage": "initial_submission",
+        "reason": "Synthetic RPMS correction case",
+        "affected_documents_json": "[{\"id\":\"1a7a405170fe17e3dbfa86f1\",\"student_id\":4,\"document_type\":\"Other Supporting Document\",\"stage\":\"Stage 1\",\"version_no\":4,\"is_current\":1}]",
+        "requires_amendment": 0,
+        "opened_by_user_id": 1,
+        "opened_at": "2026-10-28 22:27:07.704496",
+        "resolved_by_user_id": 1,
+        "resolved_at": "2026-10-28 22:27:08.576156",
+        "resolution_evidence_json": "{\"correctedDocuments\":[{\"requirementKey\":\"affected:1a7a405170fe17e3dbfa86f1\",\"documentId\":\"7b642e641f5d51a83534675c\",\"documentOwnerStudentId\":4,\"documentType\":\"Other Supporting Document\",\"documentStage\":\"Stage 1\",\"versionNo\":5,\"reviewStatus\":\"Approved\",\"formallySubmittedAt\":\"2026-10-28 22:27:08\",\"submissionAuditId\":961,\"correctionCaseId\":10,\"institutionalApprovalReference\":\"\",\"acceptanceEventId\":54,\"acceptedAt\":\"2026-10-28 22:27:08.291401\"}]}",
+        "active_workflow": null
+      }
+    ],
+    "auditEvidence": [
+      {
+        "id": 53,
+        "action": "document_uploaded",
+        "entity_id": "32dd3becef51e930dc960e84",
+        "after_value": "v1",
+        "details": "\"Synthetic group regression.pdf\" v1 (Study Protocol, Stage 1)",
+        "created_at": "2026-10-28 20:47:25"
+      },
+      {
+        "id": 54,
+        "action": "document_approved",
+        "entity_id": "32dd3becef51e930dc960e84",
+        "after_value": "Approved",
+        "details": "Actor user ID 2; Version 1 (Study Protocol, Stage 1)",
+        "created_at": "2026-10-28 20:47:25"
+      },
+      {
+        "id": 55,
+        "action": "document_submitted_to_rpms",
+        "entity_id": "32dd3becef51e930dc960e84",
+        "after_value": "Submitted to RPMS",
+        "details": "Actor user ID 2; Version 1 (Study Protocol, Stage 1)",
+        "created_at": "2026-10-28 20:47:25"
+      },
+      {
+        "id": 56,
+        "action": "document_returned_for_revision",
+        "entity_id": "32dd3becef51e930dc960e84",
+        "after_value": "Returned for Revision",
+        "details": "Actor user ID 1; Version 1 (Study Protocol, Stage 1)",
+        "created_at": "2026-10-28 20:47:26"
+      },
+      {
+        "id": 57,
+        "action": "document_uploaded",
+        "entity_id": "d23f9d7eeeee6d6d8ff932f3",
+        "after_value": "v2",
+        "details": "\"Synthetic group regression.pdf\" v2 (Study Protocol, Stage 1) replaces v1",
+        "created_at": "2026-10-28 20:47:26"
+      },
+      {
+        "id": 58,
+        "action": "document_approved",
+        "entity_id": "d23f9d7eeeee6d6d8ff932f3",
+        "after_value": "Approved",
+        "details": "Actor user ID 2; Version 2 (Study Protocol, Stage 1)",
+        "created_at": "2026-10-28 20:47:26"
+      },
+      {
+        "id": 59,
+        "action": "document_resubmitted_to_rpms",
+        "entity_id": "d23f9d7eeeee6d6d8ff932f3",
+        "after_value": "Submitted to RPMS",
+        "details": "Actor user ID 2; Version 2 (Study Protocol, Stage 1)",
+        "created_at": "2026-10-28 20:47:26"
+      },
+      {
+        "id": 67,
+        "action": "document_deleted",
+        "entity_id": "32dd3becef51e930dc960e84",
+        "after_value": "Permanently deleted",
+        "details": "Permanently deleted \"Synthetic group regression.pdf\" v1 in confirmed bulk selection (11 records).",
+        "created_at": "2026-10-28 20:47:29"
+      },
+      {
+        "id": 68,
+        "action": "document_deleted",
+        "entity_id": "349eeaff45f2812c6643718d",
+        "after_value": "Permanently deleted",
+        "details": "Actor user ID 1; Permanently deleted \"Synthetic group regression.pdf\" v1 in confirmed bulk selection (11 records).",
+        "created_at": "2026-10-28 20:47:29"
+      },
+      {
+        "id": 69,
+        "action": "document_deleted",
+        "entity_id": "55d1f645cb676dd0cc02ff7f",
+        "after_value": "Permanently deleted",
+        "details": "Actor user ID 1; Permanently deleted \"Synthetic group regression.pdf\" v1 in confirmed bulk selection (11 records).",
+        "created_at": "2026-10-28 20:47:29"
+      },
+      {
+        "id": 70,
+        "action": "document_deleted",
+        "entity_id": "56d41982981614987e28cdb4",
+        "after_value": "Permanently deleted",
+        "details": "Actor user ID 1; Permanently deleted \"Synthetic group regression.pdf\" v1 in confirmed bulk selection (11 records).",
+        "created_at": "2026-10-28 20:47:29"
+      },
+      {
+        "id": 71,
+        "action": "document_deleted",
+        "entity_id": "6e7db5c40afb99f127558185",
+        "after_value": "Permanently deleted",
+        "details": "Actor user ID 1; Permanently deleted \"Synthetic group regression.pdf\" v1 in confirmed bulk selection (11 records).",
+        "created_at": "2026-10-28 20:47:29"
+      },
+      {
+        "id": 72,
+        "action": "document_deleted",
+        "entity_id": "7624747055ae1463d66861ae",
+        "after_value": "Permanently deleted",
+        "details": "Actor user ID 1; Permanently deleted \"Synthetic group regression.pdf\" v1 in confirmed bulk selection (11 records).",
+        "created_at": "2026-10-28 20:47:29"
+      },
+      {
+        "id": 73,
+        "action": "document_deleted",
+        "entity_id": "987372473d02bde4f3fe43cb",
+        "after_value": "Permanently deleted",
+        "details": "Actor user ID 1; Permanently deleted \"Synthetic group regression.pdf\" v1 in confirmed bulk selection (11 records).",
+        "created_at": "2026-10-28 20:47:29"
+      },
+      {
+        "id": 74,
+        "action": "document_deleted",
+        "entity_id": "c49a4be9702d10c095d3da51",
+        "after_value": "Permanently deleted",
+        "details": "Actor user ID 1; Permanently deleted \"Synthetic group regression.pdf\" v1 in confirmed bulk selection (11 records).",
+        "created_at": "2026-10-28 20:47:29"
+      },
+      {
+        "id": 75,
+        "action": "document_deleted",
+        "entity_id": "c90d38785c39541e93bf58ab",
+        "after_value": "Permanently deleted",
+        "details": "Actor user ID 1; Permanently deleted \"Synthetic group regression.pdf\" v1 in confirmed bulk selection (11 records).",
+        "created_at": "2026-10-28 20:47:29"
+      },
+      {
+        "id": 76,
+        "action": "document_deleted",
+        "entity_id": "d23f9d7eeeee6d6d8ff932f3",
+        "after_value": "Permanently deleted",
+        "details": "Permanently deleted \"Synthetic group regression.pdf\" v2 in confirmed bulk selection (11 records).",
+        "created_at": "2026-10-28 20:47:29"
+      },
+      {
+        "id": 77,
+        "action": "document_deleted",
+        "entity_id": "ecdc98e5d3e1c3d3c1d8559e",
+        "after_value": "Permanently deleted",
+        "details": "Actor user ID 1; Permanently deleted \"Synthetic group regression.pdf\" v1 in confirmed bulk selection (11 records).",
+        "created_at": "2026-10-28 20:47:29"
+      },
+      {
+        "id": 432,
+        "action": "document_uploaded",
+        "entity_id": "f5e361ff0665c24ee1e3414a",
+        "after_value": "v1",
+        "details": "\"Synthetic group regression.pdf\" v1 (Study Protocol, Stage 1)",
+        "created_at": "2026-10-28 21:21:18"
+      },
+      {
+        "id": 433,
+        "action": "document_approved",
+        "entity_id": "f5e361ff0665c24ee1e3414a",
+        "after_value": "Approved",
+        "details": "Actor user ID 2; Version 1 (Study Protocol, Stage 1)",
+        "created_at": "2026-10-28 21:21:18"
+      },
+      {
+        "id": 434,
+        "action": "document_submitted_to_rpms",
+        "entity_id": "f5e361ff0665c24ee1e3414a",
+        "after_value": "Submitted to RPMS",
+        "details": "Actor user ID 2; Version 1 (Study Protocol, Stage 1)",
+        "created_at": "2026-10-28 21:21:18"
+      },
+      {
+        "id": 435,
+        "action": "document_returned_for_revision",
+        "entity_id": "f5e361ff0665c24ee1e3414a",
+        "after_value": "Returned for Revision",
+        "details": "Actor user ID 1; Version 1 (Study Protocol, Stage 1)",
+        "created_at": "2026-10-28 21:21:18"
+      },
+      {
+        "id": 436,
+        "action": "document_uploaded",
+        "entity_id": "3f647babf2972cc6cd85f257",
+        "after_value": "v2",
+        "details": "\"Synthetic group regression.pdf\" v2 (Study Protocol, Stage 1) replaces v1",
+        "created_at": "2026-10-28 21:21:18"
+      },
+      {
+        "id": 437,
+        "action": "document_approved",
+        "entity_id": "3f647babf2972cc6cd85f257",
+        "after_value": "Approved",
+        "details": "Actor user ID 2; Version 2 (Study Protocol, Stage 1)",
+        "created_at": "2026-10-28 21:21:19"
+      },
+      {
+        "id": 438,
+        "action": "document_resubmitted_to_rpms",
+        "entity_id": "3f647babf2972cc6cd85f257",
+        "after_value": "Submitted to RPMS",
+        "details": "Actor user ID 2; Version 2 (Study Protocol, Stage 1)",
+        "created_at": "2026-10-28 21:21:19"
+      },
+      {
+        "id": 446,
+        "action": "document_deleted",
+        "entity_id": "19932629a18a80d523b7be90",
+        "after_value": "Permanently deleted",
+        "details": "Actor user ID 1; Permanently deleted \"Synthetic group regression.pdf\" v1 in confirmed bulk selection (11 records).",
+        "created_at": "2026-10-28 21:21:22"
+      },
+      {
+        "id": 447,
+        "action": "document_deleted",
+        "entity_id": "3f647babf2972cc6cd85f257",
+        "after_value": "Permanently deleted",
+        "details": "Permanently deleted \"Synthetic group regression.pdf\" v2 in confirmed bulk selection (11 records).",
+        "created_at": "2026-10-28 21:21:22"
+      },
+      {
+        "id": 448,
+        "action": "document_deleted",
+        "entity_id": "4a4f84d6eceb113d9a9051a8",
+        "after_value": "Permanently deleted",
+        "details": "Actor user ID 1; Permanently deleted \"Synthetic group regression.pdf\" v1 in confirmed bulk selection (11 records).",
+        "created_at": "2026-10-28 21:21:22"
+      },
+      {
+        "id": 449,
+        "action": "document_deleted",
+        "entity_id": "83a3cfaf35bfe9d2d4e70c1f",
+        "after_value": "Permanently deleted",
+        "details": "Actor user ID 1; Permanently deleted \"Synthetic group regression.pdf\" v1 in confirmed bulk selection (11 records).",
+        "created_at": "2026-10-28 21:21:22"
+      },
+      {
+        "id": 450,
+        "action": "document_deleted",
+        "entity_id": "8af07e2d83493e9b1765989e",
+        "after_value": "Permanently deleted",
+        "details": "Actor user ID 1; Permanently deleted \"Synthetic group regression.pdf\" v1 in confirmed bulk selection (11 records).",
+        "created_at": "2026-10-28 21:21:22"
+      },
+      {
+        "id": 451,
+        "action": "document_deleted",
+        "entity_id": "ad5e1f93a9326cc57fac6d8b",
+        "after_value": "Permanently deleted",
+        "details": "Actor user ID 1; Permanently deleted \"Synthetic group regression.pdf\" v1 in confirmed bulk selection (11 records).",
+        "created_at": "2026-10-28 21:21:22"
+      },
+      {
+        "id": 452,
+        "action": "document_deleted",
+        "entity_id": "ae2e1bac3ea9d58a0a672bd2",
+        "after_value": "Permanently deleted",
+        "details": "Actor user ID 1; Permanently deleted \"Synthetic group regression.pdf\" v1 in confirmed bulk selection (11 records).",
+        "created_at": "2026-10-28 21:21:22"
+      },
+      {
+        "id": 453,
+        "action": "document_deleted",
+        "entity_id": "bd011cefcd51fe6565f7a427",
+        "after_value": "Permanently deleted",
+        "details": "Actor user ID 1; Permanently deleted \"Synthetic group regression.pdf\" v1 in confirmed bulk selection (11 records).",
+        "created_at": "2026-10-28 21:21:22"
+      },
+      {
+        "id": 454,
+        "action": "document_deleted",
+        "entity_id": "cc839d5c0ca8c23f9f3c479c",
+        "after_value": "Permanently deleted",
+        "details": "Actor user ID 1; Permanently deleted \"Synthetic group regression.pdf\" v1 in confirmed bulk selection (11 records).",
+        "created_at": "2026-10-28 21:21:22"
+      },
+      {
+        "id": 455,
+        "action": "document_deleted",
+        "entity_id": "cfa6bf872c97f9eccf30a929",
+        "after_value": "Permanently deleted",
+        "details": "Actor user ID 1; Permanently deleted \"Synthetic group regression.pdf\" v1 in confirmed bulk selection (11 records).",
+        "created_at": "2026-10-28 21:21:22"
+      },
+      {
+        "id": 456,
+        "action": "document_deleted",
+        "entity_id": "f5e361ff0665c24ee1e3414a",
+        "after_value": "Permanently deleted",
+        "details": "Permanently deleted \"Synthetic group regression.pdf\" v1 in confirmed bulk selection (11 records).",
+        "created_at": "2026-10-28 21:21:22"
+      },
+      {
+        "id": 507,
+        "action": "document_uploaded",
+        "entity_id": "4f6d20eb943ccf595e67d376",
+        "after_value": "v1",
+        "details": "\"Synthetic group regression.pdf\" v1 (Study Protocol, Stage 1)",
+        "created_at": "2026-10-28 22:12:51"
+      },
+      {
+        "id": 508,
+        "action": "document_approved",
+        "entity_id": "4f6d20eb943ccf595e67d376",
+        "after_value": "Approved",
+        "details": "Actor user ID 2; Version 1 (Study Protocol, Stage 1)",
+        "created_at": "2026-10-28 22:12:51"
+      },
+      {
+        "id": 509,
+        "action": "document_submitted_to_rpms",
+        "entity_id": "4f6d20eb943ccf595e67d376",
+        "after_value": "Submitted to RPMS",
+        "details": "Actor user ID 2; Version 1 (Study Protocol, Stage 1)",
+        "created_at": "2026-10-28 22:12:51"
+      },
+      {
+        "id": 510,
+        "action": "document_returned_for_revision",
+        "entity_id": "4f6d20eb943ccf595e67d376",
+        "after_value": "Returned for Revision",
+        "details": "Actor user ID 1; Version 1 (Study Protocol, Stage 1)",
+        "created_at": "2026-10-28 22:12:52"
+      },
+      {
+        "id": 511,
+        "action": "document_uploaded",
+        "entity_id": "d5e6c36d83e3367dda31351b",
+        "after_value": "v2",
+        "details": "\"Synthetic group regression.pdf\" v2 (Study Protocol, Stage 1) replaces v1",
+        "created_at": "2026-10-28 22:12:52"
+      },
+      {
+        "id": 512,
+        "action": "document_approved",
+        "entity_id": "d5e6c36d83e3367dda31351b",
+        "after_value": "Approved",
+        "details": "Actor user ID 2; Version 2 (Study Protocol, Stage 1)",
+        "created_at": "2026-10-28 22:12:52"
+      },
+      {
+        "id": 513,
+        "action": "document_resubmitted_to_rpms",
+        "entity_id": "d5e6c36d83e3367dda31351b",
+        "after_value": "Submitted to RPMS",
+        "details": "Actor user ID 2; Version 2 (Study Protocol, Stage 1)",
+        "created_at": "2026-10-28 22:12:52"
+      },
+      {
+        "id": 521,
+        "action": "document_deleted",
+        "entity_id": "06c91b6279d4038388e5cd85",
+        "after_value": "Permanently deleted",
+        "details": "Actor user ID 1; Permanently deleted \"Synthetic group regression.pdf\" v1 in confirmed bulk selection (11 records).",
+        "created_at": "2026-10-28 22:12:55"
+      },
+      {
+        "id": 522,
+        "action": "document_deleted",
+        "entity_id": "35a0905a30337c5b83626ee1",
+        "after_value": "Permanently deleted",
+        "details": "Actor user ID 1; Permanently deleted \"Synthetic group regression.pdf\" v1 in confirmed bulk selection (11 records).",
+        "created_at": "2026-10-28 22:12:55"
+      },
+      {
+        "id": 523,
+        "action": "document_deleted",
+        "entity_id": "4d8cc5b80682768ecc8c001a",
+        "after_value": "Permanently deleted",
+        "details": "Actor user ID 1; Permanently deleted \"Synthetic group regression.pdf\" v1 in confirmed bulk selection (11 records).",
+        "created_at": "2026-10-28 22:12:55"
+      },
+      {
+        "id": 524,
+        "action": "document_deleted",
+        "entity_id": "4f6d20eb943ccf595e67d376",
+        "after_value": "Permanently deleted",
+        "details": "Permanently deleted \"Synthetic group regression.pdf\" v1 in confirmed bulk selection (11 records).",
+        "created_at": "2026-10-28 22:12:55"
+      },
+      {
+        "id": 525,
+        "action": "document_deleted",
+        "entity_id": "8d17cb6e8c52c1b310a418c9",
+        "after_value": "Permanently deleted",
+        "details": "Actor user ID 1; Permanently deleted \"Synthetic group regression.pdf\" v1 in confirmed bulk selection (11 records).",
+        "created_at": "2026-10-28 22:12:55"
+      },
+      {
+        "id": 526,
+        "action": "document_deleted",
+        "entity_id": "93a9c51464d8cbd5e3ec907c",
+        "after_value": "Permanently deleted",
+        "details": "Actor user ID 1; Permanently deleted \"Synthetic group regression.pdf\" v1 in confirmed bulk selection (11 records).",
+        "created_at": "2026-10-28 22:12:55"
+      },
+      {
+        "id": 527,
+        "action": "document_deleted",
+        "entity_id": "a30099b7ed525fc907c45949",
+        "after_value": "Permanently deleted",
+        "details": "Actor user ID 1; Permanently deleted \"Synthetic group regression.pdf\" v1 in confirmed bulk selection (11 records).",
+        "created_at": "2026-10-28 22:12:55"
+      },
+      {
+        "id": 528,
+        "action": "document_deleted",
+        "entity_id": "bae92dc477a96b11a26cb8ef",
+        "after_value": "Permanently deleted",
+        "details": "Actor user ID 1; Permanently deleted \"Synthetic group regression.pdf\" v1 in confirmed bulk selection (11 records).",
+        "created_at": "2026-10-28 22:12:55"
+      },
+      {
+        "id": 529,
+        "action": "document_deleted",
+        "entity_id": "d5e6c36d83e3367dda31351b",
+        "after_value": "Permanently deleted",
+        "details": "Permanently deleted \"Synthetic group regression.pdf\" v2 in confirmed bulk selection (11 records).",
+        "created_at": "2026-10-28 22:12:55"
+      },
+      {
+        "id": 530,
+        "action": "document_deleted",
+        "entity_id": "e8ff052082e8da1d5ef19e39",
+        "after_value": "Permanently deleted",
+        "details": "Actor user ID 1; Permanently deleted \"Synthetic group regression.pdf\" v1 in confirmed bulk selection (11 records).",
+        "created_at": "2026-10-28 22:12:55"
+      },
+      {
+        "id": 531,
+        "action": "document_deleted",
+        "entity_id": "f6054cb02dde8975c0dcdb34",
+        "after_value": "Permanently deleted",
+        "details": "Actor user ID 1; Permanently deleted \"Synthetic group regression.pdf\" v1 in confirmed bulk selection (11 records).",
+        "created_at": "2026-10-28 22:12:55"
+      },
+      {
+        "id": 557,
+        "action": "ierb_v14_open_correction",
+        "entity_id": "4",
+        "after_value": "resubmission_amendment",
+        "details": "Actor user ID 1; V14 workflow 1; revision 2; correction case 2",
+        "created_at": "2026-10-28 22:16:07"
+      },
+      {
+        "id": 559,
+        "action": "ierb_v14_open_correction",
+        "entity_id": "4",
+        "after_value": "resubmission_amendment",
+        "details": "Actor user ID 1; V14 workflow 1; revision 4; correction case 3",
+        "created_at": "2026-10-28 22:16:07"
+      },
+      {
+        "id": 613,
+        "action": "document_uploaded",
+        "entity_id": "2705007c63170687a6857a21",
+        "after_value": "v1",
+        "details": "\"Synthetic group regression.pdf\" v1 (Study Protocol, Stage 1)",
+        "created_at": "2026-10-28 22:19:00"
+      },
+      {
+        "id": 614,
+        "action": "document_approved",
+        "entity_id": "2705007c63170687a6857a21",
+        "after_value": "Approved",
+        "details": "Actor user ID 2; Version 1 (Study Protocol, Stage 1)",
+        "created_at": "2026-10-28 22:19:00"
+      },
+      {
+        "id": 615,
+        "action": "document_submitted_to_rpms",
+        "entity_id": "2705007c63170687a6857a21",
+        "after_value": "Submitted to RPMS",
+        "details": "Actor user ID 2; Version 1 (Study Protocol, Stage 1)",
+        "created_at": "2026-10-28 22:19:00"
+      },
+      {
+        "id": 616,
+        "action": "document_returned_for_revision",
+        "entity_id": "2705007c63170687a6857a21",
+        "after_value": "Returned for Revision",
+        "details": "Actor user ID 1; Version 1 (Study Protocol, Stage 1)",
+        "created_at": "2026-10-28 22:19:01"
+      },
+      {
+        "id": 617,
+        "action": "document_uploaded",
+        "entity_id": "41bcc38376ed52b3ea22e8dc",
+        "after_value": "v2",
+        "details": "\"Synthetic group regression.pdf\" v2 (Study Protocol, Stage 1) replaces v1",
+        "created_at": "2026-10-28 22:19:01"
+      },
+      {
+        "id": 618,
+        "action": "document_approved",
+        "entity_id": "41bcc38376ed52b3ea22e8dc",
+        "after_value": "Approved",
+        "details": "Actor user ID 2; Version 2 (Study Protocol, Stage 1)",
+        "created_at": "2026-10-28 22:19:01"
+      },
+      {
+        "id": 619,
+        "action": "document_resubmitted_to_rpms",
+        "entity_id": "41bcc38376ed52b3ea22e8dc",
+        "after_value": "Submitted to RPMS",
+        "details": "Actor user ID 2; Version 2 (Study Protocol, Stage 1)",
+        "created_at": "2026-10-28 22:19:01"
+      },
+      {
+        "id": 627,
+        "action": "document_deleted",
+        "entity_id": "2705007c63170687a6857a21",
+        "after_value": "Permanently deleted",
+        "details": "Permanently deleted \"Synthetic group regression.pdf\" v1 in confirmed bulk selection (11 records).",
+        "created_at": "2026-10-28 22:19:05"
+      },
+      {
+        "id": 628,
+        "action": "document_deleted",
+        "entity_id": "36b7fa934c3a5f603c313513",
+        "after_value": "Permanently deleted",
+        "details": "Actor user ID 1; Permanently deleted \"Synthetic group regression.pdf\" v1 in confirmed bulk selection (11 records).",
+        "created_at": "2026-10-28 22:19:05"
+      },
+      {
+        "id": 629,
+        "action": "document_deleted",
+        "entity_id": "41bcc38376ed52b3ea22e8dc",
+        "after_value": "Permanently deleted",
+        "details": "Permanently deleted \"Synthetic group regression.pdf\" v2 in confirmed bulk selection (11 records).",
+        "created_at": "2026-10-28 22:19:05"
+      },
+      {
+        "id": 630,
+        "action": "document_deleted",
+        "entity_id": "77bd257002ab6a43cd31f756",
+        "after_value": "Permanently deleted",
+        "details": "Actor user ID 1; Permanently deleted \"Synthetic group regression.pdf\" v1 in confirmed bulk selection (11 records).",
+        "created_at": "2026-10-28 22:19:05"
+      },
+      {
+        "id": 631,
+        "action": "document_deleted",
+        "entity_id": "8c9822471f745f177fa1fea4",
+        "after_value": "Permanently deleted",
+        "details": "Actor user ID 1; Permanently deleted \"Synthetic group regression.pdf\" v1 in confirmed bulk selection (11 records).",
+        "created_at": "2026-10-28 22:19:05"
+      },
+      {
+        "id": 632,
+        "action": "document_deleted",
+        "entity_id": "b0881c6e9de1745be3a5e3af",
+        "after_value": "Permanently deleted",
+        "details": "Actor user ID 1; Permanently deleted \"Synthetic group regression.pdf\" v1 in confirmed bulk selection (11 records).",
+        "created_at": "2026-10-28 22:19:05"
+      },
+      {
+        "id": 633,
+        "action": "document_deleted",
+        "entity_id": "be9685c5e1f57f93e2596b2d",
+        "after_value": "Permanently deleted",
+        "details": "Actor user ID 1; Permanently deleted \"Synthetic group regression.pdf\" v1 in confirmed bulk selection (11 records).",
+        "created_at": "2026-10-28 22:19:05"
+      },
+      {
+        "id": 634,
+        "action": "document_deleted",
+        "entity_id": "cd3c1c99ca847140390247dd",
+        "after_value": "Permanently deleted",
+        "details": "Actor user ID 1; Permanently deleted \"Synthetic group regression.pdf\" v1 in confirmed bulk selection (11 records).",
+        "created_at": "2026-10-28 22:19:05"
+      },
+      {
+        "id": 635,
+        "action": "document_deleted",
+        "entity_id": "dcb0330089631ee2d163c9c2",
+        "after_value": "Permanently deleted",
+        "details": "Actor user ID 1; Permanently deleted \"Synthetic group regression.pdf\" v1 in confirmed bulk selection (11 records).",
+        "created_at": "2026-10-28 22:19:05"
+      },
+      {
+        "id": 636,
+        "action": "document_deleted",
+        "entity_id": "e5c830e42363669b6c240f83",
+        "after_value": "Permanently deleted",
+        "details": "Actor user ID 1; Permanently deleted \"Synthetic group regression.pdf\" v1 in confirmed bulk selection (11 records).",
+        "created_at": "2026-10-28 22:19:05"
+      },
+      {
+        "id": 637,
+        "action": "document_deleted",
+        "entity_id": "ff09212bc85425c5db2aef0b",
+        "after_value": "Permanently deleted",
+        "details": "Actor user ID 1; Permanently deleted \"Synthetic group regression.pdf\" v1 in confirmed bulk selection (11 records).",
+        "created_at": "2026-10-28 22:19:05"
+      },
+      {
+        "id": 647,
+        "action": "document_uploaded",
+        "entity_id": "a02697e00b1b848aba21d50b",
+        "after_value": "v1",
+        "details": "\"Synthetic Batch2 ethics.pdf\" v1 (Certification of Ethics, Stage 1)",
+        "created_at": "2026-10-28 22:21:02"
+      },
+      {
+        "id": 648,
+        "action": "document_uploaded",
+        "entity_id": "9ff659b454b159e87ee52ca9",
+        "after_value": "v1",
+        "details": "\"Synthetic Batch2 cv.pdf\" v1 (Curriculum Vitae, Stage 1)",
+        "created_at": "2026-10-28 22:21:02"
+      },
+      {
+        "id": 649,
+        "action": "document_approved",
+        "entity_id": "a02697e00b1b848aba21d50b",
+        "after_value": "Approved",
+        "details": "Actor user ID 2; Version 1 (Certification of Ethics, Stage 1)",
+        "created_at": "2026-10-28 22:21:03"
+      },
+      {
+        "id": 650,
+        "action": "document_submitted_to_rpms",
+        "entity_id": "a02697e00b1b848aba21d50b",
+        "after_value": "Submitted to RPMS",
+        "details": "Actor user ID 2; Version 1 (Certification of Ethics, Stage 1)",
+        "created_at": "2026-10-28 22:21:03"
+      },
+      {
+        "id": 654,
+        "action": "document_approved",
+        "entity_id": "9ff659b454b159e87ee52ca9",
+        "after_value": "Approved",
+        "details": "Actor user ID 2; Version 1 (Curriculum Vitae, Stage 1)",
+        "created_at": "2026-10-28 22:21:04"
+      },
+      {
+        "id": 655,
+        "action": "document_submitted_to_rpms",
+        "entity_id": "9ff659b454b159e87ee52ca9",
+        "after_value": "Submitted to RPMS",
+        "details": "Actor user ID 2; Version 1 (Curriculum Vitae, Stage 1)",
+        "created_at": "2026-10-28 22:21:04"
+      },
+      {
+        "id": 658,
+        "action": "document_uploaded",
+        "entity_id": "56b5ecf02d38b58a525dbb1c",
+        "after_value": "v1",
+        "details": "\"Synthetic Batch2 questionnaire.pdf\" v1 (Data Collection Questionnaire, Stage 1)",
+        "created_at": "2026-10-28 22:21:05"
+      },
+      {
+        "id": 659,
+        "action": "document_denied",
+        "entity_id": "56b5ecf02d38b58a525dbb1c",
+        "after_value": "Denied",
+        "details": "Actor user ID 2; Version 1 (Data Collection Questionnaire, Stage 1)",
+        "created_at": "2026-10-28 22:21:05"
+      },
+      {
+        "id": 660,
+        "action": "document_uploaded",
+        "entity_id": "2d7830f3c7a6806722768168",
+        "after_value": "v2",
+        "details": "\"Synthetic Batch2 questionnaire.pdf\" v2 (Data Collection Questionnaire, Stage 1) replaces v1",
+        "created_at": "2026-10-28 22:21:05"
+      },
+      {
+        "id": 661,
+        "action": "document_approved",
+        "entity_id": "2d7830f3c7a6806722768168",
+        "after_value": "Approved",
+        "details": "Actor user ID 2; Version 2 (Data Collection Questionnaire, Stage 1)",
+        "created_at": "2026-10-28 22:21:05"
+      },
+      {
+        "id": 662,
+        "action": "document_submitted_to_rpms",
+        "entity_id": "2d7830f3c7a6806722768168",
+        "after_value": "Submitted to RPMS",
+        "details": "Actor user ID 2; Version 2 (Data Collection Questionnaire, Stage 1)",
+        "created_at": "2026-10-28 22:21:05"
+      },
+      {
+        "id": 665,
+        "action": "document_uploaded",
+        "entity_id": "2561f4243d5087f02b832a62",
+        "after_value": "v1",
+        "details": "\"Synthetic Batch2 workflow.pdf\" v1 (Diagrammatic Workflow, Stage 1)",
+        "created_at": "2026-10-28 22:21:06"
+      },
+      {
+        "id": 666,
+        "action": "document_resubmission_requested",
+        "entity_id": "2561f4243d5087f02b832a62",
+        "after_value": "Resubmission Requested",
+        "details": "Actor user ID 2; Version 1 (Diagrammatic Workflow, Stage 1)",
+        "created_at": "2026-10-28 22:21:06"
+      },
+      {
+        "id": 667,
+        "action": "document_uploaded",
+        "entity_id": "9a16787ab6bd921acfa9bde2",
+        "after_value": "v2",
+        "details": "\"Synthetic Batch2 workflow.pdf\" v2 (Diagrammatic Workflow, Stage 1) replaces v1",
+        "created_at": "2026-10-28 22:21:06"
+      },
+      {
+        "id": 668,
+        "action": "document_approved",
+        "entity_id": "9a16787ab6bd921acfa9bde2",
+        "after_value": "Approved",
+        "details": "Actor user ID 2; Version 2 (Diagrammatic Workflow, Stage 1)",
+        "created_at": "2026-10-28 22:21:06"
+      },
+      {
+        "id": 669,
+        "action": "document_submitted_to_rpms",
+        "entity_id": "9a16787ab6bd921acfa9bde2",
+        "after_value": "Submitted to RPMS",
+        "details": "Actor user ID 2; Version 2 (Diagrammatic Workflow, Stage 1)",
+        "created_at": "2026-10-28 22:21:06"
+      },
+      {
+        "id": 672,
+        "action": "document_uploaded",
+        "entity_id": "0812eadc72f8c2be028c5005",
+        "after_value": "v1",
+        "details": "\"Synthetic Batch2 form11.pdf\" v1 (Form 11 Review Checklist, Stage 1)",
+        "created_at": "2026-10-28 22:21:06"
+      },
+      {
+        "id": 673,
+        "action": "document_approved",
+        "entity_id": "0812eadc72f8c2be028c5005",
+        "after_value": "Approved",
+        "details": "Actor user ID 2; Version 1 (Form 11 Review Checklist, Stage 1)",
+        "created_at": "2026-10-28 22:21:07"
+      },
+      {
+        "id": 674,
+        "action": "document_submitted_to_rpms",
+        "entity_id": "0812eadc72f8c2be028c5005",
+        "after_value": "Submitted to RPMS",
+        "details": "Actor user ID 2; Version 1 (Form 11 Review Checklist, Stage 1)",
+        "created_at": "2026-10-28 22:21:07"
+      },
+      {
+        "id": 677,
+        "action": "document_uploaded",
+        "entity_id": "6396dce41897b4d3cf953783",
+        "after_value": "v1",
+        "details": "\"Synthetic Batch2 form12.pdf\" v1 (Form 12 Registration and Application Form, Stage 1)",
+        "created_at": "2026-10-28 22:21:07"
+      },
+      {
+        "id": 678,
+        "action": "document_approved",
+        "entity_id": "6396dce41897b4d3cf953783",
+        "after_value": "Approved",
+        "details": "Actor user ID 2; Version 1 (Form 12 Registration and Application Form, Stage 1)",
+        "created_at": "2026-10-28 22:21:07"
+      },
+      {
+        "id": 679,
+        "action": "document_submitted_to_rpms",
+        "entity_id": "6396dce41897b4d3cf953783",
+        "after_value": "Submitted to RPMS",
+        "details": "Actor user ID 2; Version 1 (Form 12 Registration and Application Form, Stage 1)",
+        "created_at": "2026-10-28 22:21:07"
+      },
+      {
+        "id": 682,
+        "action": "document_uploaded",
+        "entity_id": "088115e5b042c4416357e502",
+        "after_value": "v1",
+        "details": "\"Synthetic Batch2 form13.pdf\" v1 (Form 13 Study Protocol Assessment Form, Stage 1)",
+        "created_at": "2026-10-28 22:21:08"
+      },
+      {
+        "id": 683,
+        "action": "document_approved",
+        "entity_id": "088115e5b042c4416357e502",
+        "after_value": "Approved",
+        "details": "Actor user ID 2; Version 1 (Form 13 Study Protocol Assessment Form, Stage 1)",
+        "created_at": "2026-10-28 22:21:08"
+      },
+      {
+        "id": 684,
+        "action": "document_submitted_to_rpms",
+        "entity_id": "088115e5b042c4416357e502",
+        "after_value": "Submitted to RPMS",
+        "details": "Actor user ID 2; Version 1 (Form 13 Study Protocol Assessment Form, Stage 1)",
+        "created_at": "2026-10-28 22:21:08"
+      },
+      {
+        "id": 687,
+        "action": "document_uploaded",
+        "entity_id": "726f23a31872eadd91f0813c",
+        "after_value": "v1",
+        "details": "\"Synthetic Batch2 form14.pdf\" v1 (Form 14 Informed Consent Assessment Form, Stage 1)",
+        "created_at": "2026-10-28 22:21:08"
+      },
+      {
+        "id": 688,
+        "action": "document_approved",
+        "entity_id": "726f23a31872eadd91f0813c",
+        "after_value": "Approved",
+        "details": "Actor user ID 2; Version 1 (Form 14 Informed Consent Assessment Form, Stage 1)",
+        "created_at": "2026-10-28 22:21:09"
+      },
+      {
+        "id": 689,
+        "action": "document_submitted_to_rpms",
+        "entity_id": "726f23a31872eadd91f0813c",
+        "after_value": "Submitted to RPMS",
+        "details": "Actor user ID 2; Version 1 (Form 14 Informed Consent Assessment Form, Stage 1)",
+        "created_at": "2026-10-28 22:21:09"
+      },
+      {
+        "id": 692,
+        "action": "document_uploaded",
+        "entity_id": "d8f3ec366786c6d3d98f8301",
+        "after_value": "v1",
+        "details": "\"Synthetic Batch2 consent_english.pdf\" v1 (Informed Consent in English, Stage 1)",
+        "created_at": "2026-10-28 22:21:09"
+      },
+      {
+        "id": 693,
+        "action": "document_approved",
+        "entity_id": "d8f3ec366786c6d3d98f8301",
+        "after_value": "Approved",
+        "details": "Actor user ID 2; Version 1 (Informed Consent in English, Stage 1)",
+        "created_at": "2026-10-28 22:21:09"
+      },
+      {
+        "id": 694,
+        "action": "document_submitted_to_rpms",
+        "entity_id": "d8f3ec366786c6d3d98f8301",
+        "after_value": "Submitted to RPMS",
+        "details": "Actor user ID 2; Version 1 (Informed Consent in English, Stage 1)",
+        "created_at": "2026-10-28 22:21:09"
+      },
+      {
+        "id": 697,
+        "action": "document_uploaded",
+        "entity_id": "ebe4d4c23c1b597bc583395b",
+        "after_value": "v1",
+        "details": "\"Synthetic Batch2 consent_local.pdf\" v1 (Informed Consent in Local Language, Stage 1)",
+        "created_at": "2026-10-28 22:21:10"
+      },
+      {
+        "id": 698,
+        "action": "document_approved",
+        "entity_id": "ebe4d4c23c1b597bc583395b",
+        "after_value": "Approved",
+        "details": "Actor user ID 2; Version 1 (Informed Consent in Local Language, Stage 1)",
+        "created_at": "2026-10-28 22:21:10"
+      },
+      {
+        "id": 699,
+        "action": "document_submitted_to_rpms",
+        "entity_id": "ebe4d4c23c1b597bc583395b",
+        "after_value": "Submitted to RPMS",
+        "details": "Actor user ID 2; Version 1 (Informed Consent in Local Language, Stage 1)",
+        "created_at": "2026-10-28 22:21:10"
+      },
+      {
+        "id": 702,
+        "action": "document_uploaded",
+        "entity_id": "de074b559a6cd5ca9580282b",
+        "after_value": "v1",
+        "details": "\"Synthetic Batch2 letter.pdf\" v1 (Letter to IERB Chair, Stage 1)",
+        "created_at": "2026-10-28 22:21:11"
+      },
+      {
+        "id": 703,
+        "action": "document_approved",
+        "entity_id": "de074b559a6cd5ca9580282b",
+        "after_value": "Approved",
+        "details": "Actor user ID 2; Version 1 (Letter to IERB Chair, Stage 1)",
+        "created_at": "2026-10-28 22:21:11"
+      },
+      {
+        "id": 704,
+        "action": "document_submitted_to_rpms",
+        "entity_id": "de074b559a6cd5ca9580282b",
+        "after_value": "Submitted to RPMS",
+        "details": "Actor user ID 2; Version 1 (Letter to IERB Chair, Stage 1)",
+        "created_at": "2026-10-28 22:21:11"
+      },
+      {
+        "id": 707,
+        "action": "document_uploaded",
+        "entity_id": "7f8fe91f3759f2d7dc81a69c",
+        "after_value": "v1",
+        "details": "\"Synthetic Batch2 payment.pdf\" v1 (Payment Receipt, Stage 1)",
+        "created_at": "2026-10-28 22:21:11"
+      },
+      {
+        "id": 708,
+        "action": "document_approved",
+        "entity_id": "7f8fe91f3759f2d7dc81a69c",
+        "after_value": "Approved",
+        "details": "Actor user ID 2; Version 1 (Payment Receipt, Stage 1)",
+        "created_at": "2026-10-28 22:21:11"
+      },
+      {
+        "id": 709,
+        "action": "document_submitted_to_rpms",
+        "entity_id": "7f8fe91f3759f2d7dc81a69c",
+        "after_value": "Submitted to RPMS",
+        "details": "Actor user ID 2; Version 1 (Payment Receipt, Stage 1)",
+        "created_at": "2026-10-28 22:21:11"
+      },
+      {
+        "id": 712,
+        "action": "document_uploaded",
+        "entity_id": "602f1b53216855e4e5418da3",
+        "after_value": "v1",
+        "details": "\"Synthetic Batch2 protocol.pdf\" v1 (Study Protocol, Stage 1)",
+        "created_at": "2026-10-28 22:21:12"
+      },
+      {
+        "id": 713,
+        "action": "document_approved",
+        "entity_id": "602f1b53216855e4e5418da3",
+        "after_value": "Approved",
+        "details": "Actor user ID 2; Version 1 (Study Protocol, Stage 1)",
+        "created_at": "2026-10-28 22:21:12"
+      },
+      {
+        "id": 714,
+        "action": "document_submitted_to_rpms",
+        "entity_id": "602f1b53216855e4e5418da3",
+        "after_value": "Submitted to RPMS",
+        "details": "Actor user ID 2; Version 1 (Study Protocol, Stage 1)",
+        "created_at": "2026-10-28 22:21:12"
+      },
+      {
+        "id": 715,
+        "action": "document_uploaded",
+        "entity_id": "5d3b16aa61caab27a9fd75fd",
+        "after_value": "v1",
+        "details": "\"Synthetic Batch2 final_report.pdf\" v1 (Form 33-0B - Final Report Form, Stage 4)",
+        "created_at": "2026-10-28 22:21:14"
+      },
+      {
+        "id": 721,
+        "action": "ierb_v14_open_correction",
+        "entity_id": "4",
+        "after_value": "resubmission_amendment",
+        "details": "Actor user ID 1; V14 workflow 1; revision 14; correction case 1",
+        "created_at": "2026-10-28 22:21:14"
+      },
+      {
+        "id": 722,
+        "action": "document_returned_for_revision",
+        "entity_id": "602f1b53216855e4e5418da3",
+        "after_value": "Returned for Revision",
+        "details": "Actor user ID 1; Version 1 (Study Protocol, Stage 1)",
+        "created_at": "2026-10-28 22:21:14"
+      },
+      {
+        "id": 723,
+        "action": "document_uploaded",
+        "entity_id": "dcdba32ac155c00989edf40a",
+        "after_value": "v2",
+        "details": "\"Synthetic Batch2 protocol.pdf\" v2 (Study Protocol, Stage 1) replaces v1",
+        "created_at": "2026-10-28 22:21:14"
+      },
+      {
+        "id": 724,
+        "action": "document_approved",
+        "entity_id": "dcdba32ac155c00989edf40a",
+        "after_value": "Approved",
+        "details": "Actor user ID 2; Version 2 (Study Protocol, Stage 1)",
+        "created_at": "2026-10-28 22:21:14"
+      },
+      {
+        "id": 725,
+        "action": "document_resubmitted_to_rpms",
+        "entity_id": "dcdba32ac155c00989edf40a",
+        "after_value": "Submitted to RPMS",
+        "details": "Actor user ID 2; Version 2 (Study Protocol, Stage 1)",
+        "created_at": "2026-10-28 22:21:14"
+      },
+      {
+        "id": 744,
+        "action": "document_uploaded",
+        "entity_id": "100416938ce7ee8ee8d08fb1",
+        "after_value": "v1",
+        "details": "\"Synthetic Batch2 form33.pdf\" v1 (Form 33 - Certificate of Approval, Stage 3)",
+        "created_at": "2026-10-28 22:21:23"
+      },
+      {
+        "id": 745,
+        "action": "document_approved",
+        "entity_id": "100416938ce7ee8ee8d08fb1",
+        "after_value": "Approved",
+        "details": "Actor user ID 2; Version 1 (Form 33 - Certificate of Approval, Stage 3)",
+        "created_at": "2026-10-28 22:21:23"
+      },
+      {
+        "id": 746,
+        "action": "document_submitted_to_rpms",
+        "entity_id": "100416938ce7ee8ee8d08fb1",
+        "after_value": "Submitted to RPMS",
+        "details": "Actor user ID 2; Version 1 (Form 33 - Certificate of Approval, Stage 3)",
+        "created_at": "2026-10-28 22:21:23"
+      },
+      {
+        "id": 750,
+        "action": "ierb_v14_open_correction",
+        "entity_id": "4",
+        "after_value": "resubmission_amendment",
+        "details": "Actor user ID 1; V14 workflow 1; revision 19; correction case 2",
+        "created_at": "2026-10-28 22:21:24"
+      },
+      {
+        "id": 751,
+        "action": "document_returned_for_revision",
+        "entity_id": "dcdba32ac155c00989edf40a",
+        "after_value": "Returned for Revision",
+        "details": "Actor user ID 1; Version 2 (Study Protocol, Stage 1)",
+        "created_at": "2026-10-28 22:21:24"
+      },
+      {
+        "id": 752,
+        "action": "document_uploaded",
+        "entity_id": "b7d960f066adb56fd3455482",
+        "after_value": "v3",
+        "details": "\"Synthetic Batch2 protocol.pdf\" v3 (Study Protocol, Stage 1) replaces v2",
+        "created_at": "2026-10-28 22:21:24"
+      },
+      {
+        "id": 753,
+        "action": "document_approved",
+        "entity_id": "b7d960f066adb56fd3455482",
+        "after_value": "Approved",
+        "details": "Actor user ID 2; Version 3 (Study Protocol, Stage 1)",
+        "created_at": "2026-10-28 22:21:25"
+      },
+      {
+        "id": 754,
+        "action": "document_resubmitted_to_rpms",
+        "entity_id": "b7d960f066adb56fd3455482",
+        "after_value": "Submitted to RPMS",
+        "details": "Actor user ID 2; Version 3 (Study Protocol, Stage 1)",
+        "created_at": "2026-10-28 22:21:25"
+      },
+      {
+        "id": 764,
+        "action": "ierb_v14_open_correction",
+        "entity_id": "4",
+        "after_value": "resubmission_amendment",
+        "details": "Actor user ID 1; V14 workflow 1; revision 22; correction case 3",
+        "created_at": "2026-10-28 22:21:26"
+      },
+      {
+        "id": 765,
+        "action": "document_returned_for_revision",
+        "entity_id": "b7d960f066adb56fd3455482",
+        "after_value": "Returned for Revision",
+        "details": "Actor user ID 1; Version 3 (Study Protocol, Stage 1)",
+        "created_at": "2026-10-28 22:21:26"
+      },
+      {
+        "id": 766,
+        "action": "document_uploaded",
+        "entity_id": "4e9dd13fa9e76c1574301ff1",
+        "after_value": "v4",
+        "details": "\"Synthetic Batch2 protocol.pdf\" v4 (Study Protocol, Stage 1) replaces v3",
+        "created_at": "2026-10-28 22:21:26"
+      },
+      {
+        "id": 767,
+        "action": "document_approved",
+        "entity_id": "4e9dd13fa9e76c1574301ff1",
+        "after_value": "Approved",
+        "details": "Actor user ID 2; Version 4 (Study Protocol, Stage 1)",
+        "created_at": "2026-10-28 22:21:26"
+      },
+      {
+        "id": 768,
+        "action": "document_resubmitted_to_rpms",
+        "entity_id": "4e9dd13fa9e76c1574301ff1",
+        "after_value": "Submitted to RPMS",
+        "details": "Actor user ID 2; Version 4 (Study Protocol, Stage 1)",
+        "created_at": "2026-10-28 22:21:26"
+      },
+      {
+        "id": 771,
+        "action": "document_uploaded",
+        "entity_id": "2c929892dadee1baa6043e18",
+        "after_value": "v1",
+        "details": "\"Synthetic Batch2 amendment.pdf\" v1 (Amendment Form, Stage 2)",
+        "created_at": "2026-10-28 22:21:27"
+      },
+      {
+        "id": 772,
+        "action": "document_approved",
+        "entity_id": "2c929892dadee1baa6043e18",
+        "after_value": "Approved",
+        "details": "Actor user ID 2; Version 1 (Amendment Form, Stage 2)",
+        "created_at": "2026-10-28 22:21:27"
+      },
+      {
+        "id": 773,
+        "action": "document_submitted_to_rpms",
+        "entity_id": "2c929892dadee1baa6043e18",
+        "after_value": "Submitted to RPMS",
+        "details": "Actor user ID 2; Version 1 (Amendment Form, Stage 2)",
+        "created_at": "2026-10-28 22:21:27"
+      },
+      {
+        "id": 783,
+        "action": "ierb_v14_open_correction",
+        "entity_id": "4",
+        "after_value": "resubmission_amendment",
+        "details": "Actor user ID 1; V14 workflow 1; revision 26; correction case 4",
+        "created_at": "2026-10-28 22:21:28"
+      },
+      {
+        "id": 784,
+        "action": "document_returned_for_revision",
+        "entity_id": "4e9dd13fa9e76c1574301ff1",
+        "after_value": "Returned for Revision",
+        "details": "Actor user ID 1; Version 4 (Study Protocol, Stage 1)",
+        "created_at": "2026-10-28 22:21:28"
+      },
+      {
+        "id": 785,
+        "action": "document_uploaded",
+        "entity_id": "0cccfe243ffedd3567fd0799",
+        "after_value": "v5",
+        "details": "\"Synthetic Batch2 protocol.pdf\" v5 (Study Protocol, Stage 1) replaces v4",
+        "created_at": "2026-10-28 22:21:28"
+      },
+      {
+        "id": 786,
+        "action": "document_approved",
+        "entity_id": "0cccfe243ffedd3567fd0799",
+        "after_value": "Approved",
+        "details": "Actor user ID 2; Version 5 (Study Protocol, Stage 1)",
+        "created_at": "2026-10-28 22:21:29"
+      },
+      {
+        "id": 787,
+        "action": "document_resubmitted_to_rpms",
+        "entity_id": "0cccfe243ffedd3567fd0799",
+        "after_value": "Submitted to RPMS",
+        "details": "Actor user ID 2; Version 5 (Study Protocol, Stage 1)",
+        "created_at": "2026-10-28 22:21:29"
+      },
+      {
+        "id": 790,
+        "action": "document_returned_for_revision",
+        "entity_id": "2c929892dadee1baa6043e18",
+        "after_value": "Returned for Revision",
+        "details": "Actor user ID 1; Version 1 (Amendment Form, Stage 2)",
+        "created_at": "2026-10-28 22:21:29"
+      },
+      {
+        "id": 791,
+        "action": "document_uploaded",
+        "entity_id": "35243fcc5e5e3654dfaa361d",
+        "after_value": "v2",
+        "details": "\"Synthetic Batch2 amendment.pdf\" v2 (Amendment Form, Stage 2) replaces v1",
+        "created_at": "2026-10-28 22:21:29"
+      },
+      {
+        "id": 792,
+        "action": "document_approved",
+        "entity_id": "35243fcc5e5e3654dfaa361d",
+        "after_value": "Approved",
+        "details": "Actor user ID 2; Version 2 (Amendment Form, Stage 2)",
+        "created_at": "2026-10-28 22:21:29"
+      },
+      {
+        "id": 793,
+        "action": "document_resubmitted_to_rpms",
+        "entity_id": "35243fcc5e5e3654dfaa361d",
+        "after_value": "Submitted to RPMS",
+        "details": "Actor user ID 2; Version 2 (Amendment Form, Stage 2)",
+        "created_at": "2026-10-28 22:21:29"
+      },
+      {
+        "id": 803,
+        "action": "ierb_v14_open_correction",
+        "entity_id": "4",
+        "after_value": "resubmission_amendment",
+        "details": "Actor user ID 1; V14 workflow 1; revision 30; correction case 5",
+        "created_at": "2026-10-28 22:21:30"
+      },
+      {
+        "id": 804,
+        "action": "document_returned_for_revision",
+        "entity_id": "0cccfe243ffedd3567fd0799",
+        "after_value": "Returned for Revision",
+        "details": "Actor user ID 1; Version 5 (Study Protocol, Stage 1)",
+        "created_at": "2026-10-28 22:21:31"
+      },
+      {
+        "id": 805,
+        "action": "document_uploaded",
+        "entity_id": "983bb2bebba4ac0ae5ef7c03",
+        "after_value": "v6",
+        "details": "\"Synthetic Batch2 protocol.pdf\" v6 (Study Protocol, Stage 1) replaces v5",
+        "created_at": "2026-10-28 22:21:31"
+      },
+      {
+        "id": 806,
+        "action": "document_approved",
+        "entity_id": "983bb2bebba4ac0ae5ef7c03",
+        "after_value": "Approved",
+        "details": "Actor user ID 2; Version 6 (Study Protocol, Stage 1)",
+        "created_at": "2026-10-28 22:21:31"
+      },
+      {
+        "id": 807,
+        "action": "document_resubmitted_to_rpms",
+        "entity_id": "983bb2bebba4ac0ae5ef7c03",
+        "after_value": "Submitted to RPMS",
+        "details": "Actor user ID 2; Version 6 (Study Protocol, Stage 1)",
+        "created_at": "2026-10-28 22:21:31"
+      },
+      {
+        "id": 814,
+        "action": "document_uploaded",
+        "entity_id": "913732671f4014f3c2655030",
+        "after_value": "v1",
+        "details": "\"Synthetic Batch2 supporting.pdf\" v1 (Other Supporting Document, Stage 1)",
+        "created_at": "2026-10-28 22:21:32"
+      },
+      {
+        "id": 815,
+        "action": "document_approved",
+        "entity_id": "913732671f4014f3c2655030",
+        "after_value": "Approved",
+        "details": "Actor user ID 2; Version 1 (Other Supporting Document, Stage 1)",
+        "created_at": "2026-10-28 22:21:32"
+      },
+      {
+        "id": 816,
+        "action": "document_submitted_to_rpms",
+        "entity_id": "913732671f4014f3c2655030",
+        "after_value": "Submitted to RPMS",
+        "details": "Actor user ID 2; Version 1 (Other Supporting Document, Stage 1)",
+        "created_at": "2026-10-28 22:21:32"
+      },
+      {
+        "id": 820,
+        "action": "ierb_v14_open_correction",
+        "entity_id": "4",
+        "after_value": "resubmission_amendment",
+        "details": "Actor user ID 1; V14 workflow 1; revision 33; correction case 6",
+        "created_at": "2026-10-28 22:21:33"
+      },
+      {
+        "id": 821,
+        "action": "document_returned_for_revision",
+        "entity_id": "913732671f4014f3c2655030",
+        "after_value": "Returned for Revision",
+        "details": "Actor user ID 1; Version 1 (Other Supporting Document, Stage 1)",
+        "created_at": "2026-10-28 22:21:33"
+      },
+      {
+        "id": 822,
+        "action": "document_uploaded",
+        "entity_id": "bd8bd2286cb4dd12c3e48005",
+        "after_value": "v2",
+        "details": "\"Synthetic Batch2 supporting.pdf\" v2 (Other Supporting Document, Stage 1) replaces v1",
+        "created_at": "2026-10-28 22:21:33"
+      },
+      {
+        "id": 823,
+        "action": "document_approved",
+        "entity_id": "bd8bd2286cb4dd12c3e48005",
+        "after_value": "Approved",
+        "details": "Actor user ID 2; Version 2 (Other Supporting Document, Stage 1)",
+        "created_at": "2026-10-28 22:21:33"
+      },
+      {
+        "id": 824,
+        "action": "document_resubmitted_to_rpms",
+        "entity_id": "bd8bd2286cb4dd12c3e48005",
+        "after_value": "Submitted to RPMS",
+        "details": "Actor user ID 2; Version 2 (Other Supporting Document, Stage 1)",
+        "created_at": "2026-10-28 22:21:33"
+      },
+      {
+        "id": 842,
+        "action": "document_uploaded",
+        "entity_id": "c56c685366deadea40929bd1",
+        "after_value": "v2",
+        "details": "\"Synthetic Batch2 partner-final.pdf\" v2 (Form 33-0B - Final Report Form, Stage 4) replaces v1; uploaded by project member Student record 6",
+        "created_at": "2026-10-28 22:21:58"
+      },
+      {
+        "id": 850,
+        "action": "document_approved",
+        "entity_id": "c56c685366deadea40929bd1",
+        "after_value": "Approved",
+        "details": "Actor user ID 2; Version 2 (Form 33-0B - Final Report Form, Stage 4)",
+        "created_at": "2026-10-28 22:22:06"
+      },
+      {
+        "id": 851,
+        "action": "document_submitted_to_rpms",
+        "entity_id": "c56c685366deadea40929bd1",
+        "after_value": "Submitted to RPMS",
+        "details": "Actor user ID 2; Version 2 (Form 33-0B - Final Report Form, Stage 4)",
+        "created_at": "2026-10-28 22:22:06"
+      },
+      {
+        "id": 885,
+        "action": "document_uploaded",
+        "entity_id": "0fbf98cb2c012ea5fa2f1ffd",
+        "after_value": "v1",
+        "details": "\"Synthetic Batch4 summary.pdf\" v1 (Other Supporting Document, Stage 1)",
+        "created_at": "2026-10-28 22:26:33"
+      },
+      {
+        "id": 886,
+        "action": "document_summarized",
+        "entity_id": "0fbf98cb2c012ea5fa2f1ffd",
+        "after_value": null,
+        "details": "Actor user ID 1; source=local; partial=0; summary_id=2; summary_version=2; source_version=1",
+        "created_at": "2026-10-28 22:26:34"
+      },
+      {
+        "id": 887,
+        "action": "document_summarized",
+        "entity_id": "0fbf98cb2c012ea5fa2f1ffd",
+        "after_value": null,
+        "details": "Actor user ID 1; source=local; partial=0; summary_id=3; summary_version=3; source_version=1",
+        "created_at": "2026-10-28 22:26:34"
+      },
+      {
+        "id": 888,
+        "action": "document_summarized",
+        "entity_id": "0fbf98cb2c012ea5fa2f1ffd",
+        "after_value": null,
+        "details": "Actor user ID 1; source=ai; partial=0; summary_id=4; summary_version=4; source_version=1",
+        "created_at": "2026-10-28 22:26:34"
+      },
+      {
+        "id": 889,
+        "action": "document_summary_exported",
+        "entity_id": "0fbf98cb2c012ea5fa2f1ffd",
+        "after_value": null,
+        "details": "Actor user ID 1; Summary ID 4; version 4",
+        "created_at": "2026-10-28 22:26:34"
+      },
+      {
+        "id": 890,
+        "action": "document_summary_exported",
+        "entity_id": "0fbf98cb2c012ea5fa2f1ffd",
+        "after_value": null,
+        "details": "Actor user ID 1; Summary ID 3; version 3",
+        "created_at": "2026-10-28 22:26:34"
+      },
+      {
+        "id": 891,
+        "action": "document_summary_exported",
+        "entity_id": "0fbf98cb2c012ea5fa2f1ffd",
+        "after_value": null,
+        "details": "Actor user ID 1; Summary ID 2; version 2",
+        "created_at": "2026-10-28 22:26:35"
+      },
+      {
+        "id": 892,
+        "action": "document_summary_exported",
+        "entity_id": "0fbf98cb2c012ea5fa2f1ffd",
+        "after_value": null,
+        "details": "Actor user ID 1; Summary ID 1; version 1",
+        "created_at": "2026-10-28 22:26:35"
+      },
+      {
+        "id": 893,
+        "action": "document_uploaded",
+        "entity_id": "2e755f12d44c7e18ec2c245a",
+        "after_value": "v1",
+        "details": "\"Synthetic Batch4 partial.pdf\" v1 (Study Protocol, Stage 1)",
+        "created_at": "2026-10-28 22:26:35"
+      },
+      {
+        "id": 894,
+        "action": "document_summarized",
+        "entity_id": "2e755f12d44c7e18ec2c245a",
+        "after_value": null,
+        "details": "Actor user ID 1; source=local; partial=1; summary_id=5; summary_version=1; source_version=1",
+        "created_at": "2026-10-28 22:26:35"
+      },
+      {
+        "id": 895,
+        "action": "document_summarized",
+        "entity_id": "0fbf98cb2c012ea5fa2f1ffd",
+        "after_value": null,
+        "details": "Actor user ID 1; source=local; partial=0; summary_id=6; summary_version=5; source_version=1",
+        "created_at": "2026-10-28 22:26:35"
+      },
+      {
+        "id": 896,
+        "action": "document_summarized",
+        "entity_id": "0fbf98cb2c012ea5fa2f1ffd",
+        "after_value": null,
+        "details": "Actor user ID 1; source=local; partial=0; summary_id=7; summary_version=6; source_version=1",
+        "created_at": "2026-10-28 22:26:35"
+      },
+      {
+        "id": 897,
+        "action": "document_summarized",
+        "entity_id": "0fbf98cb2c012ea5fa2f1ffd",
+        "after_value": null,
+        "details": "Actor user ID 1; source=local; partial=0; summary_id=8; summary_version=7; source_version=1",
+        "created_at": "2026-10-28 22:26:36"
+      },
+      {
+        "id": 898,
+        "action": "document_summarized",
+        "entity_id": "0fbf98cb2c012ea5fa2f1ffd",
+        "after_value": null,
+        "details": "Actor user ID 1; source=local; partial=0; summary_id=9; summary_version=8; source_version=1",
+        "created_at": "2026-10-28 22:26:36"
+      },
+      {
+        "id": 899,
+        "action": "document_summarized",
+        "entity_id": "0fbf98cb2c012ea5fa2f1ffd",
+        "after_value": null,
+        "details": "Actor user ID 1; source=local; partial=0; summary_id=10; summary_version=9; source_version=1",
+        "created_at": "2026-10-28 22:26:36"
+      },
+      {
+        "id": 900,
+        "action": "document_summarized",
+        "entity_id": "0fbf98cb2c012ea5fa2f1ffd",
+        "after_value": null,
+        "details": "Actor user ID 1; source=local; partial=0; summary_id=11; summary_version=10; source_version=1",
+        "created_at": "2026-10-28 22:26:36"
+      },
+      {
+        "id": 907,
+        "action": "document_approved",
+        "entity_id": "0fbf98cb2c012ea5fa2f1ffd",
+        "after_value": "Approved",
+        "details": "Actor user ID 2; Version 1 (Other Supporting Document, Stage 1)",
+        "created_at": "2026-10-28 22:27:01"
+      },
+      {
+        "id": 908,
+        "action": "document_submitted_to_rpms",
+        "entity_id": "0fbf98cb2c012ea5fa2f1ffd",
+        "after_value": "Submitted to RPMS",
+        "details": "Actor user ID 2; Version 1 (Other Supporting Document, Stage 1)",
+        "created_at": "2026-10-28 22:27:01"
+      },
+      {
+        "id": 912,
+        "action": "ierb_v14_open_correction",
+        "entity_id": "4",
+        "after_value": "resubmission_amendment",
+        "details": "Actor user ID 1; V14 workflow 4; revision 2; correction case 7",
+        "created_at": "2026-10-28 22:27:02"
+      },
+      {
+        "id": 913,
+        "action": "document_returned_for_revision",
+        "entity_id": "0fbf98cb2c012ea5fa2f1ffd",
+        "after_value": "Returned for Revision",
+        "details": "Actor user ID 1; Version 1 (Other Supporting Document, Stage 1)",
+        "created_at": "2026-10-28 22:27:02"
+      },
+      {
+        "id": 914,
+        "action": "document_uploaded",
+        "entity_id": "49e2f90ecfb1beed20d9fbc1",
+        "after_value": "v2",
+        "details": "\"Synthetic Batch4 summary.pdf\" v2 (Other Supporting Document, Stage 1) replaces v1",
+        "created_at": "2026-10-28 22:27:02"
+      },
+      {
+        "id": 915,
+        "action": "document_approved",
+        "entity_id": "49e2f90ecfb1beed20d9fbc1",
+        "after_value": "Approved",
+        "details": "Actor user ID 2; Version 2 (Other Supporting Document, Stage 1)",
+        "created_at": "2026-10-28 22:27:02"
+      },
+      {
+        "id": 916,
+        "action": "document_resubmitted_to_rpms",
+        "entity_id": "49e2f90ecfb1beed20d9fbc1",
+        "after_value": "Submitted to RPMS",
+        "details": "Actor user ID 2; Version 2 (Other Supporting Document, Stage 1)",
+        "created_at": "2026-10-28 22:27:02"
+      },
+      {
+        "id": 927,
+        "action": "ierb_v14_open_correction",
+        "entity_id": "4",
+        "after_value": "resubmission_amendment",
+        "details": "Actor user ID 1; V14 workflow 4; revision 5; correction case 8",
+        "created_at": "2026-10-28 22:27:03"
+      },
+      {
+        "id": 928,
+        "action": "document_returned_for_revision",
+        "entity_id": "49e2f90ecfb1beed20d9fbc1",
+        "after_value": "Returned for Revision",
+        "details": "Actor user ID 1; Version 2 (Other Supporting Document, Stage 1)",
+        "created_at": "2026-10-28 22:27:04"
+      },
+      {
+        "id": 929,
+        "action": "document_uploaded",
+        "entity_id": "899cb40cfa108f1416e62a84",
+        "after_value": "v3",
+        "details": "\"Synthetic Batch4 summary.pdf\" v3 (Other Supporting Document, Stage 1) replaces v2",
+        "created_at": "2026-10-28 22:27:04"
+      },
+      {
+        "id": 930,
+        "action": "document_approved",
+        "entity_id": "899cb40cfa108f1416e62a84",
+        "after_value": "Approved",
+        "details": "Actor user ID 2; Version 3 (Other Supporting Document, Stage 1)",
+        "created_at": "2026-10-28 22:27:04"
+      },
+      {
+        "id": 931,
+        "action": "document_resubmitted_to_rpms",
+        "entity_id": "899cb40cfa108f1416e62a84",
+        "after_value": "Submitted to RPMS",
+        "details": "Actor user ID 2; Version 3 (Other Supporting Document, Stage 1)",
+        "created_at": "2026-10-28 22:27:04"
+      },
+      {
+        "id": 942,
+        "action": "ierb_v14_open_correction",
+        "entity_id": "4",
+        "after_value": "resubmission_amendment",
+        "details": "Actor user ID 1; V14 workflow 4; revision 8; correction case 9",
+        "created_at": "2026-10-28 22:27:06"
+      },
+      {
+        "id": 943,
+        "action": "document_returned_for_revision",
+        "entity_id": "899cb40cfa108f1416e62a84",
+        "after_value": "Returned for Revision",
+        "details": "Actor user ID 1; Version 3 (Other Supporting Document, Stage 1)",
+        "created_at": "2026-10-28 22:27:06"
+      },
+      {
+        "id": 944,
+        "action": "document_uploaded",
+        "entity_id": "1a7a405170fe17e3dbfa86f1",
+        "after_value": "v4",
+        "details": "\"Synthetic Batch4 summary.pdf\" v4 (Other Supporting Document, Stage 1) replaces v3",
+        "created_at": "2026-10-28 22:27:06"
+      },
+      {
+        "id": 945,
+        "action": "document_approved",
+        "entity_id": "1a7a405170fe17e3dbfa86f1",
+        "after_value": "Approved",
+        "details": "Actor user ID 2; Version 4 (Other Supporting Document, Stage 1)",
+        "created_at": "2026-10-28 22:27:06"
+      },
+      {
+        "id": 946,
+        "action": "document_resubmitted_to_rpms",
+        "entity_id": "1a7a405170fe17e3dbfa86f1",
+        "after_value": "Submitted to RPMS",
+        "details": "Actor user ID 2; Version 4 (Other Supporting Document, Stage 1)",
+        "created_at": "2026-10-28 22:27:06"
+      },
+      {
+        "id": 957,
+        "action": "ierb_v14_open_correction",
+        "entity_id": "4",
+        "after_value": "resubmission_amendment",
+        "details": "Actor user ID 1; V14 workflow 4; revision 11; correction case 10",
+        "created_at": "2026-10-28 22:27:07"
+      },
+      {
+        "id": 958,
+        "action": "document_returned_for_revision",
+        "entity_id": "1a7a405170fe17e3dbfa86f1",
+        "after_value": "Returned for Revision",
+        "details": "Actor user ID 1; Version 4 (Other Supporting Document, Stage 1)",
+        "created_at": "2026-10-28 22:27:07"
+      },
+      {
+        "id": 959,
+        "action": "document_uploaded",
+        "entity_id": "7b642e641f5d51a83534675c",
+        "after_value": "v5",
+        "details": "\"Synthetic Batch4 summary.pdf\" v5 (Other Supporting Document, Stage 1) replaces v4",
+        "created_at": "2026-10-28 22:27:08"
+      },
+      {
+        "id": 960,
+        "action": "document_approved",
+        "entity_id": "7b642e641f5d51a83534675c",
+        "after_value": "Approved",
+        "details": "Actor user ID 2; Version 5 (Other Supporting Document, Stage 1)",
+        "created_at": "2026-10-28 22:27:08"
+      },
+      {
+        "id": 961,
+        "action": "document_resubmitted_to_rpms",
+        "entity_id": "7b642e641f5d51a83534675c",
+        "after_value": "Submitted to RPMS",
+        "details": "Actor user ID 2; Version 5 (Other Supporting Document, Stage 1)",
+        "created_at": "2026-10-28 22:27:08"
+      }
+    ],
+    "officialResubmissionCount": 4
+  },
+  "workflowEvents": [
+    {
+      "id": 43,
+      "workflow_id": 4,
+      "revision": 1,
+      "event_key": "enrolled",
+      "from_stage": "Stage 1",
+      "to_stage": "initial_submission",
+      "correction_case_id": null,
+      "actor_user_id": 1,
+      "reason": "Synthetic Batch4 reviewed enrollment",
+      "evidence_json": "{\"reviewEvidence\":\"Synthetic documented explicit context\"}",
+      "request_key": "batch4-enrollment-request-0001",
+      "request_sha256": "acae419c19184eaa9257a82d471e3447e109f37020d1380e168fa29c35ac61ed",
+      "result_json": "{\"ok\":true,\"workflowId\":4,\"stage\":\"initial_submission\",\"stageLabel\":\"Initial Submission\",\"revision\":1,\"correctionCase\":null,\"progress\":0,\"projectNotificationIds\":[]}",
+      "created_at": "2026-10-28 22:26:37.425754"
+    },
+    {
+      "id": 44,
+      "workflow_id": 4,
+      "revision": 2,
+      "event_key": "open_correction",
+      "from_stage": "initial_submission",
+      "to_stage": "resubmission_amendment",
+      "correction_case_id": 7,
+      "actor_user_id": 1,
+      "reason": "Synthetic RPMS correction case",
+      "evidence_json": "{\"affectedDocuments\":[{\"id\":\"0fbf98cb2c012ea5fa2f1ffd\",\"student_id\":4,\"document_type\":\"Other Supporting Document\",\"stage\":\"Stage 1\",\"version_no\":1,\"is_current\":1}],\"requiresAmendment\":false,\"initiatedBy\":\"rpms\"}",
+      "request_key": "7cdd98ea-9289-4c5b-b62d-9e4419ace3be",
+      "request_sha256": "cc0d25610d0957710140e145601b9f5dafe69db22f78618ebab502fc1f407c7c",
+      "result_json": "{\"ok\":true,\"workflowId\":4,\"stage\":\"resubmission_amendment\",\"stageLabel\":\"Resubmission \\/ Amendment\",\"revision\":2,\"correctionCase\":{\"id\":7,\"workflow_id\":4,\"interrupted_stage\":\"initial_submission\",\"reason\":\"Synthetic RPMS correction case\",\"affected_documents_json\":\"[{\\\"id\\\":\\\"0fbf98cb2c012ea5fa2f1ffd\\\",\\\"student_id\\\":4,\\\"document_type\\\":\\\"Other Supporting Document\\\",\\\"stage\\\":\\\"Stage 1\\\",\\\"version_no\\\":1,\\\"is_current\\\":1}]\",\"requires_amendment\":0,\"opened_by_user_id\":1,\"opened_at\":\"2026-10-28 22:27:02.167049\",\"resolved_by_user_id\":null,\"resolved_at\":null,\"resolution_evidence_json\":null,\"active_workflow\":4},\"progress\":0,\"projectNotificationIds\":[649,650,651]}",
+      "created_at": "2026-10-28 22:27:02.167827"
+    },
+    {
+      "id": 45,
+      "workflow_id": 4,
+      "revision": 3,
+      "event_key": "requirement_accepted",
+      "from_stage": "resubmission_amendment",
+      "to_stage": "resubmission_amendment",
+      "correction_case_id": 7,
+      "actor_user_id": 1,
+      "reason": "Synthetic Batch4 accepted corrected supporting evidence",
+      "evidence_json": "{\"requirementKey\":\"affected:0fbf98cb2c012ea5fa2f1ffd\",\"documentId\":\"49e2f90ecfb1beed20d9fbc1\",\"documentOwnerStudentId\":4,\"documentType\":\"Other Supporting Document\",\"documentStage\":\"Stage 1\",\"versionNo\":2,\"reviewStatus\":\"Approved\",\"formallySubmittedAt\":\"2026-10-28 22:27:02\",\"submissionAuditId\":916,\"correctionCaseId\":7,\"institutionalApprovalReference\":\"\"}",
+      "request_key": "a938848d-0dd2-4459-841b-2b3481174216",
+      "request_sha256": "5a7fbaadc0afe98d6e181f82582a5746d93d5f018d7358fea6ef77a638e44cba",
+      "result_json": "{\"ok\":true,\"workflowId\":4,\"stage\":\"resubmission_amendment\",\"stageLabel\":\"Resubmission \\/ Amendment\",\"revision\":3,\"correctionCase\":{\"id\":7,\"workflow_id\":4,\"interrupted_stage\":\"initial_submission\",\"reason\":\"Synthetic RPMS correction case\",\"affected_documents_json\":\"[{\\\"id\\\":\\\"0fbf98cb2c012ea5fa2f1ffd\\\",\\\"student_id\\\":4,\\\"document_type\\\":\\\"Other Supporting Document\\\",\\\"stage\\\":\\\"Stage 1\\\",\\\"version_no\\\":1,\\\"is_current\\\":1}]\",\"requires_amendment\":0,\"opened_by_user_id\":1,\"opened_at\":\"2026-10-28 22:27:02.167049\",\"resolved_by_user_id\":null,\"resolved_at\":null,\"resolution_evidence_json\":null,\"active_workflow\":4},\"progress\":0,\"projectNotificationIds\":[]}",
+      "created_at": "2026-10-28 22:27:02.781259"
+    },
+    {
+      "id": 46,
+      "workflow_id": 4,
+      "revision": 4,
+      "event_key": "resolve_correction",
+      "from_stage": "resubmission_amendment",
+      "to_stage": "initial_submission",
+      "correction_case_id": 7,
+      "actor_user_id": 1,
+      "reason": "Synthetic current correction evidence verified",
+      "evidence_json": "{\"correctedDocuments\":[{\"requirementKey\":\"affected:0fbf98cb2c012ea5fa2f1ffd\",\"documentId\":\"49e2f90ecfb1beed20d9fbc1\",\"documentOwnerStudentId\":4,\"documentType\":\"Other Supporting Document\",\"documentStage\":\"Stage 1\",\"versionNo\":2,\"reviewStatus\":\"Approved\",\"formallySubmittedAt\":\"2026-10-28 22:27:02\",\"submissionAuditId\":916,\"correctionCaseId\":7,\"institutionalApprovalReference\":\"\",\"acceptanceEventId\":45,\"acceptedAt\":\"2026-10-28 22:27:02.781259\"}]}",
+      "request_key": "d490f47f-ba9a-436e-bc82-8b69f36f8982",
+      "request_sha256": "52174884340a1922ece993d75ae9186d93046b12780bd72aec5597a2ac9dc148",
+      "result_json": "{\"ok\":true,\"workflowId\":4,\"stage\":\"initial_submission\",\"stageLabel\":\"Initial Submission\",\"revision\":4,\"correctionCase\":null,\"progress\":0,\"projectNotificationIds\":[659,660,661]}",
+      "created_at": "2026-10-28 22:27:03.082355"
+    },
+    {
+      "id": 47,
+      "workflow_id": 4,
+      "revision": 5,
+      "event_key": "open_correction",
+      "from_stage": "initial_submission",
+      "to_stage": "resubmission_amendment",
+      "correction_case_id": 8,
+      "actor_user_id": 1,
+      "reason": "Synthetic RPMS correction case",
+      "evidence_json": "{\"affectedDocuments\":[{\"id\":\"49e2f90ecfb1beed20d9fbc1\",\"student_id\":4,\"document_type\":\"Other Supporting Document\",\"stage\":\"Stage 1\",\"version_no\":2,\"is_current\":1}],\"requiresAmendment\":false,\"initiatedBy\":\"rpms\"}",
+      "request_key": "eaa6131f-22f4-4023-9148-0492d6400bdd",
+      "request_sha256": "a6e1a5bb870192d12b5c8ddc41b93cd55631a0ae532d74a40cbbfd4e20e440d6",
+      "result_json": "{\"ok\":true,\"workflowId\":4,\"stage\":\"resubmission_amendment\",\"stageLabel\":\"Resubmission \\/ Amendment\",\"revision\":5,\"correctionCase\":{\"id\":8,\"workflow_id\":4,\"interrupted_stage\":\"initial_submission\",\"reason\":\"Synthetic RPMS correction case\",\"affected_documents_json\":\"[{\\\"id\\\":\\\"49e2f90ecfb1beed20d9fbc1\\\",\\\"student_id\\\":4,\\\"document_type\\\":\\\"Other Supporting Document\\\",\\\"stage\\\":\\\"Stage 1\\\",\\\"version_no\\\":2,\\\"is_current\\\":1}]\",\"requires_amendment\":0,\"opened_by_user_id\":1,\"opened_at\":\"2026-10-28 22:27:03.921817\",\"resolved_by_user_id\":null,\"resolved_at\":null,\"resolution_evidence_json\":null,\"active_workflow\":4},\"progress\":0,\"projectNotificationIds\":[662,663,664]}",
+      "created_at": "2026-10-28 22:27:03.922881"
+    },
+    {
+      "id": 48,
+      "workflow_id": 4,
+      "revision": 6,
+      "event_key": "requirement_accepted",
+      "from_stage": "resubmission_amendment",
+      "to_stage": "resubmission_amendment",
+      "correction_case_id": 8,
+      "actor_user_id": 1,
+      "reason": "Synthetic Batch4 accepted corrected supporting evidence",
+      "evidence_json": "{\"requirementKey\":\"affected:49e2f90ecfb1beed20d9fbc1\",\"documentId\":\"899cb40cfa108f1416e62a84\",\"documentOwnerStudentId\":4,\"documentType\":\"Other Supporting Document\",\"documentStage\":\"Stage 1\",\"versionNo\":3,\"reviewStatus\":\"Approved\",\"formallySubmittedAt\":\"2026-10-28 22:27:04\",\"submissionAuditId\":931,\"correctionCaseId\":8,\"institutionalApprovalReference\":\"\"}",
+      "request_key": "d4df9563-d231-4dc5-b726-c7b6dd488306",
+      "request_sha256": "14790dc0e225bb6b5ab003fd4057bb685a2c575f8823bca2db878ef76965e443",
+      "result_json": "{\"ok\":true,\"workflowId\":4,\"stage\":\"resubmission_amendment\",\"stageLabel\":\"Resubmission \\/ Amendment\",\"revision\":6,\"correctionCase\":{\"id\":8,\"workflow_id\":4,\"interrupted_stage\":\"initial_submission\",\"reason\":\"Synthetic RPMS correction case\",\"affected_documents_json\":\"[{\\\"id\\\":\\\"49e2f90ecfb1beed20d9fbc1\\\",\\\"student_id\\\":4,\\\"document_type\\\":\\\"Other Supporting Document\\\",\\\"stage\\\":\\\"Stage 1\\\",\\\"version_no\\\":2,\\\"is_current\\\":1}]\",\"requires_amendment\":0,\"opened_by_user_id\":1,\"opened_at\":\"2026-10-28 22:27:03.921817\",\"resolved_by_user_id\":null,\"resolved_at\":null,\"resolution_evidence_json\":null,\"active_workflow\":4},\"progress\":0,\"projectNotificationIds\":[]}",
+      "created_at": "2026-10-28 22:27:04.990221"
+    },
+    {
+      "id": 49,
+      "workflow_id": 4,
+      "revision": 7,
+      "event_key": "resolve_correction",
+      "from_stage": "resubmission_amendment",
+      "to_stage": "initial_submission",
+      "correction_case_id": 8,
+      "actor_user_id": 1,
+      "reason": "Synthetic current correction evidence verified",
+      "evidence_json": "{\"correctedDocuments\":[{\"requirementKey\":\"affected:49e2f90ecfb1beed20d9fbc1\",\"documentId\":\"899cb40cfa108f1416e62a84\",\"documentOwnerStudentId\":4,\"documentType\":\"Other Supporting Document\",\"documentStage\":\"Stage 1\",\"versionNo\":3,\"reviewStatus\":\"Approved\",\"formallySubmittedAt\":\"2026-10-28 22:27:04\",\"submissionAuditId\":931,\"correctionCaseId\":8,\"institutionalApprovalReference\":\"\",\"acceptanceEventId\":48,\"acceptedAt\":\"2026-10-28 22:27:04.990221\"}]}",
+      "request_key": "9dcaca6d-aee3-438a-89f9-736d02504e5c",
+      "request_sha256": "ad7640268fcd4ed77b8c3d942ac7ff16db9768b0fcf3571283084160f53427fd",
+      "result_json": "{\"ok\":true,\"workflowId\":4,\"stage\":\"initial_submission\",\"stageLabel\":\"Initial Submission\",\"revision\":7,\"correctionCase\":null,\"progress\":0,\"projectNotificationIds\":[672,673,674]}",
+      "created_at": "2026-10-28 22:27:05.411874"
+    },
+    {
+      "id": 50,
+      "workflow_id": 4,
+      "revision": 8,
+      "event_key": "open_correction",
+      "from_stage": "initial_submission",
+      "to_stage": "resubmission_amendment",
+      "correction_case_id": 9,
+      "actor_user_id": 1,
+      "reason": "Synthetic RPMS correction case",
+      "evidence_json": "{\"affectedDocuments\":[{\"id\":\"899cb40cfa108f1416e62a84\",\"student_id\":4,\"document_type\":\"Other Supporting Document\",\"stage\":\"Stage 1\",\"version_no\":3,\"is_current\":1}],\"requiresAmendment\":false,\"initiatedBy\":\"rpms\"}",
+      "request_key": "473a6f88-6af7-4c1f-90c7-6f857f9ec98e",
+      "request_sha256": "dcbe4a88ca2a5407e932b9cc10126821a6237f077584be6a73fdb9b0874889dc",
+      "result_json": "{\"ok\":true,\"workflowId\":4,\"stage\":\"resubmission_amendment\",\"stageLabel\":\"Resubmission \\/ Amendment\",\"revision\":8,\"correctionCase\":{\"id\":9,\"workflow_id\":4,\"interrupted_stage\":\"initial_submission\",\"reason\":\"Synthetic RPMS correction case\",\"affected_documents_json\":\"[{\\\"id\\\":\\\"899cb40cfa108f1416e62a84\\\",\\\"student_id\\\":4,\\\"document_type\\\":\\\"Other Supporting Document\\\",\\\"stage\\\":\\\"Stage 1\\\",\\\"version_no\\\":3,\\\"is_current\\\":1}]\",\"requires_amendment\":0,\"opened_by_user_id\":1,\"opened_at\":\"2026-10-28 22:27:06.231157\",\"resolved_by_user_id\":null,\"resolved_at\":null,\"resolution_evidence_json\":null,\"active_workflow\":4},\"progress\":0,\"projectNotificationIds\":[675,676,677]}",
+      "created_at": "2026-10-28 22:27:06.231920"
+    },
+    {
+      "id": 51,
+      "workflow_id": 4,
+      "revision": 9,
+      "event_key": "requirement_accepted",
+      "from_stage": "resubmission_amendment",
+      "to_stage": "resubmission_amendment",
+      "correction_case_id": 9,
+      "actor_user_id": 1,
+      "reason": "Synthetic Batch4 accepted corrected supporting evidence",
+      "evidence_json": "{\"requirementKey\":\"affected:899cb40cfa108f1416e62a84\",\"documentId\":\"1a7a405170fe17e3dbfa86f1\",\"documentOwnerStudentId\":4,\"documentType\":\"Other Supporting Document\",\"documentStage\":\"Stage 1\",\"versionNo\":4,\"reviewStatus\":\"Approved\",\"formallySubmittedAt\":\"2026-10-28 22:27:06\",\"submissionAuditId\":946,\"correctionCaseId\":9,\"institutionalApprovalReference\":\"\"}",
+      "request_key": "b5195365-bc60-4ff1-9be6-246ed30449d2",
+      "request_sha256": "21c2420662740937928ec13e06dbbbb8e32926ebf50ed68163313f2a238c9078",
+      "result_json": "{\"ok\":true,\"workflowId\":4,\"stage\":\"resubmission_amendment\",\"stageLabel\":\"Resubmission \\/ Amendment\",\"revision\":9,\"correctionCase\":{\"id\":9,\"workflow_id\":4,\"interrupted_stage\":\"initial_submission\",\"reason\":\"Synthetic RPMS correction case\",\"affected_documents_json\":\"[{\\\"id\\\":\\\"899cb40cfa108f1416e62a84\\\",\\\"student_id\\\":4,\\\"document_type\\\":\\\"Other Supporting Document\\\",\\\"stage\\\":\\\"Stage 1\\\",\\\"version_no\\\":3,\\\"is_current\\\":1}]\",\"requires_amendment\":0,\"opened_by_user_id\":1,\"opened_at\":\"2026-10-28 22:27:06.231157\",\"resolved_by_user_id\":null,\"resolved_at\":null,\"resolution_evidence_json\":null,\"active_workflow\":4},\"progress\":0,\"projectNotificationIds\":[]}",
+      "created_at": "2026-10-28 22:27:06.785812"
+    },
+    {
+      "id": 52,
+      "workflow_id": 4,
+      "revision": 10,
+      "event_key": "resolve_correction",
+      "from_stage": "resubmission_amendment",
+      "to_stage": "initial_submission",
+      "correction_case_id": 9,
+      "actor_user_id": 1,
+      "reason": "Synthetic current correction evidence verified",
+      "evidence_json": "{\"correctedDocuments\":[{\"requirementKey\":\"affected:899cb40cfa108f1416e62a84\",\"documentId\":\"1a7a405170fe17e3dbfa86f1\",\"documentOwnerStudentId\":4,\"documentType\":\"Other Supporting Document\",\"documentStage\":\"Stage 1\",\"versionNo\":4,\"reviewStatus\":\"Approved\",\"formallySubmittedAt\":\"2026-10-28 22:27:06\",\"submissionAuditId\":946,\"correctionCaseId\":9,\"institutionalApprovalReference\":\"\",\"acceptanceEventId\":51,\"acceptedAt\":\"2026-10-28 22:27:06.785812\"}]}",
+      "request_key": "2934e516-8db7-4afa-a5f1-18286ea8c258",
+      "request_sha256": "698650c3e8e46eefd902c83d350bfe63349c44de59111efa1373418d51a7a3e1",
+      "result_json": "{\"ok\":true,\"workflowId\":4,\"stage\":\"initial_submission\",\"stageLabel\":\"Initial Submission\",\"revision\":10,\"correctionCase\":null,\"progress\":0,\"projectNotificationIds\":[685,686,687]}",
+      "created_at": "2026-10-28 22:27:07.039296"
+    },
+    {
+      "id": 53,
+      "workflow_id": 4,
+      "revision": 11,
+      "event_key": "open_correction",
+      "from_stage": "initial_submission",
+      "to_stage": "resubmission_amendment",
+      "correction_case_id": 10,
+      "actor_user_id": 1,
+      "reason": "Synthetic RPMS correction case",
+      "evidence_json": "{\"affectedDocuments\":[{\"id\":\"1a7a405170fe17e3dbfa86f1\",\"student_id\":4,\"document_type\":\"Other Supporting Document\",\"stage\":\"Stage 1\",\"version_no\":4,\"is_current\":1}],\"requiresAmendment\":false,\"initiatedBy\":\"rpms\"}",
+      "request_key": "06bbea62-eb18-4e2b-9182-65d6c52a53c2",
+      "request_sha256": "ebb00097d40539d4e6b698825b3ce700d95103ad194481a313c840a03d28b158",
+      "result_json": "{\"ok\":true,\"workflowId\":4,\"stage\":\"resubmission_amendment\",\"stageLabel\":\"Resubmission \\/ Amendment\",\"revision\":11,\"correctionCase\":{\"id\":10,\"workflow_id\":4,\"interrupted_stage\":\"initial_submission\",\"reason\":\"Synthetic RPMS correction case\",\"affected_documents_json\":\"[{\\\"id\\\":\\\"1a7a405170fe17e3dbfa86f1\\\",\\\"student_id\\\":4,\\\"document_type\\\":\\\"Other Supporting Document\\\",\\\"stage\\\":\\\"Stage 1\\\",\\\"version_no\\\":4,\\\"is_current\\\":1}]\",\"requires_amendment\":0,\"opened_by_user_id\":1,\"opened_at\":\"2026-10-28 22:27:07.704496\",\"resolved_by_user_id\":null,\"resolved_at\":null,\"resolution_evidence_json\":null,\"active_workflow\":4},\"progress\":0,\"projectNotificationIds\":[688,689,690]}",
+      "created_at": "2026-10-28 22:27:07.705348"
+    },
+    {
+      "id": 54,
+      "workflow_id": 4,
+      "revision": 12,
+      "event_key": "requirement_accepted",
+      "from_stage": "resubmission_amendment",
+      "to_stage": "resubmission_amendment",
+      "correction_case_id": 10,
+      "actor_user_id": 1,
+      "reason": "Synthetic Batch4 accepted corrected supporting evidence",
+      "evidence_json": "{\"requirementKey\":\"affected:1a7a405170fe17e3dbfa86f1\",\"documentId\":\"7b642e641f5d51a83534675c\",\"documentOwnerStudentId\":4,\"documentType\":\"Other Supporting Document\",\"documentStage\":\"Stage 1\",\"versionNo\":5,\"reviewStatus\":\"Approved\",\"formallySubmittedAt\":\"2026-10-28 22:27:08\",\"submissionAuditId\":961,\"correctionCaseId\":10,\"institutionalApprovalReference\":\"\"}",
+      "request_key": "39ec1301-f500-495e-8a79-2d64bb2cf912",
+      "request_sha256": "5899f21638bd45fa43a8198d23b6df6f885edb5d0b134c1005bf46509a28dc78",
+      "result_json": "{\"ok\":true,\"workflowId\":4,\"stage\":\"resubmission_amendment\",\"stageLabel\":\"Resubmission \\/ Amendment\",\"revision\":12,\"correctionCase\":{\"id\":10,\"workflow_id\":4,\"interrupted_stage\":\"initial_submission\",\"reason\":\"Synthetic RPMS correction case\",\"affected_documents_json\":\"[{\\\"id\\\":\\\"1a7a405170fe17e3dbfa86f1\\\",\\\"student_id\\\":4,\\\"document_type\\\":\\\"Other Supporting Document\\\",\\\"stage\\\":\\\"Stage 1\\\",\\\"version_no\\\":4,\\\"is_current\\\":1}]\",\"requires_amendment\":0,\"opened_by_user_id\":1,\"opened_at\":\"2026-10-28 22:27:07.704496\",\"resolved_by_user_id\":null,\"resolved_at\":null,\"resolution_evidence_json\":null,\"active_workflow\":4},\"progress\":0,\"projectNotificationIds\":[]}",
+      "created_at": "2026-10-28 22:27:08.291401"
+    },
+    {
+      "id": 55,
+      "workflow_id": 4,
+      "revision": 13,
+      "event_key": "resolve_correction",
+      "from_stage": "resubmission_amendment",
+      "to_stage": "initial_submission",
+      "correction_case_id": 10,
+      "actor_user_id": 1,
+      "reason": "Synthetic current correction evidence verified",
+      "evidence_json": "{\"correctedDocuments\":[{\"requirementKey\":\"affected:1a7a405170fe17e3dbfa86f1\",\"documentId\":\"7b642e641f5d51a83534675c\",\"documentOwnerStudentId\":4,\"documentType\":\"Other Supporting Document\",\"documentStage\":\"Stage 1\",\"versionNo\":5,\"reviewStatus\":\"Approved\",\"formallySubmittedAt\":\"2026-10-28 22:27:08\",\"submissionAuditId\":961,\"correctionCaseId\":10,\"institutionalApprovalReference\":\"\",\"acceptanceEventId\":54,\"acceptedAt\":\"2026-10-28 22:27:08.291401\"}]}",
+      "request_key": "39fab223-ce4a-4775-8726-ffd2fcffca8e",
+      "request_sha256": "6462cdc5f51ec64742942fc12f303200565621aeb69ef53500b5e00e8d4eba10",
+      "result_json": "{\"ok\":true,\"workflowId\":4,\"stage\":\"initial_submission\",\"stageLabel\":\"Initial Submission\",\"revision\":13,\"correctionCase\":null,\"progress\":0,\"projectNotificationIds\":[698,699,700]}",
+      "created_at": "2026-10-28 22:27:08.577395"
+    }
+  ],
+  "projectEvents": [
+    {
+      "id": 1,
+      "project_id": 1,
+      "revision": 1,
+      "event_key": "membership_reconciled",
+      "actor_user_id": 1,
+      "reason": "Synthetic Batch4 reviewed explicit membership",
+      "evidence_json": "{\"verifiedMembers\":[{\"id\":4,\"student_id\":\"S4\",\"full_name\":\"Synthetic Student 4\",\"email\":\"student4@example.test\",\"research_title\":null,\"research_group\":\"AMT-BSIT-Y4-2627-G97\",\"course\":\"BS in Information Technology\",\"adviser_id\":2,\"stage\":\"Stage 1\",\"status\":\"On Track\",\"requirements\":null,\"protocol_code\":null,\"is_principal_investigator\":0,\"last_submission_date\":\"2026-10-28\",\"user_id\":4,\"created_at\":\"2026-01-01 00:00:00\",\"updated_at\":\"2026-10-28 22:22:37\",\"academic_unit_key\":\"amt\",\"program_key\":\"bsit\",\"year_level\":\"4th Year\",\"academic_year\":\"2026-2027\",\"archived_at\":null,\"retention_hold\":0,\"retention_hold_at\":null,\"retention_hold_by\":null,\"retention_hold_reason\":null,\"purge_postponed_at\":null,\"purge_postponed_reason\":null,\"restored_at\":null,\"profile_completed_at\":\"2026-01-01 00:00:00\"},{\"id\":6,\"student_id\":\"S6\",\"full_name\":\"Synthetic Student 6\",\"email\":\"student6@example.test\",\"research_title\":\" changed\",\"research_group\":\"AMT-BSIT-Y4-2627-G97\",\"course\":\"BS in Information Technology\",\"adviser_id\":2,\"stage\":\"Stage 1\",\"status\":\"Delayed\",\"requirements\":null,\"protocol_code\":null,\"is_principal_investigator\":0,\"last_submission_date\":null,\"user_id\":6,\"created_at\":\"2026-01-01 00:00:00\",\"updated_at\":\"2026-10-28 22:22:37\",\"academic_unit_key\":\"amt\",\"program_key\":\"bsit\",\"year_level\":\"4th Year\",\"academic_year\":\"2026-2027\",\"archived_at\":null,\"retention_hold\":0,\"retention_hold_at\":null,\"retention_hold_by\":null,\"retention_hold_reason\":null,\"purge_postponed_at\":null,\"purge_postponed_reason\":null,\"restored_at\":null,\"profile_completed_at\":\"2026-01-01 00:00:00\"}],\"holderId\":4,\"adviserId\":2,\"workflowId\":4,\"historicalCompletionEventId\":null,\"historicalCompletionReference\":\"\"}",
+      "created_at": "2026-10-28 22:26:37.442750"
+    },
+    {
+      "id": 2,
+      "project_id": 1,
+      "revision": 2,
+      "event_key": "open_correction",
+      "actor_user_id": 1,
+      "reason": "Authoritative workflow event 44",
+      "evidence_json": "{\"workflowEventId\":44,\"workflowId\":4,\"workflowRevision\":2,\"memberIds\":[4,6]}",
+      "created_at": "2026-10-28 22:27:02.180724"
+    },
+    {
+      "id": 3,
+      "project_id": 1,
+      "revision": 3,
+      "event_key": "requirement_accepted",
+      "actor_user_id": 1,
+      "reason": "Authoritative workflow event 45",
+      "evidence_json": "{\"workflowEventId\":45,\"workflowId\":4,\"workflowRevision\":3,\"memberIds\":[4,6]}",
+      "created_at": "2026-10-28 22:27:02.792016"
+    },
+    {
+      "id": 4,
+      "project_id": 1,
+      "revision": 4,
+      "event_key": "resolve_correction",
+      "actor_user_id": 1,
+      "reason": "Authoritative workflow event 46",
+      "evidence_json": "{\"workflowEventId\":46,\"workflowId\":4,\"workflowRevision\":4,\"memberIds\":[4,6]}",
+      "created_at": "2026-10-28 22:27:03.093082"
+    },
+    {
+      "id": 5,
+      "project_id": 1,
+      "revision": 5,
+      "event_key": "open_correction",
+      "actor_user_id": 1,
+      "reason": "Authoritative workflow event 47",
+      "evidence_json": "{\"workflowEventId\":47,\"workflowId\":4,\"workflowRevision\":5,\"memberIds\":[4,6]}",
+      "created_at": "2026-10-28 22:27:03.942363"
+    },
+    {
+      "id": 6,
+      "project_id": 1,
+      "revision": 6,
+      "event_key": "requirement_accepted",
+      "actor_user_id": 1,
+      "reason": "Authoritative workflow event 48",
+      "evidence_json": "{\"workflowEventId\":48,\"workflowId\":4,\"workflowRevision\":6,\"memberIds\":[4,6]}",
+      "created_at": "2026-10-28 22:27:05.012534"
+    },
+    {
+      "id": 7,
+      "project_id": 1,
+      "revision": 7,
+      "event_key": "resolve_correction",
+      "actor_user_id": 1,
+      "reason": "Authoritative workflow event 49",
+      "evidence_json": "{\"workflowEventId\":49,\"workflowId\":4,\"workflowRevision\":7,\"memberIds\":[4,6]}",
+      "created_at": "2026-10-28 22:27:05.424909"
+    },
+    {
+      "id": 8,
+      "project_id": 1,
+      "revision": 8,
+      "event_key": "open_correction",
+      "actor_user_id": 1,
+      "reason": "Authoritative workflow event 50",
+      "evidence_json": "{\"workflowEventId\":50,\"workflowId\":4,\"workflowRevision\":8,\"memberIds\":[4,6]}",
+      "created_at": "2026-10-28 22:27:06.244343"
+    },
+    {
+      "id": 9,
+      "project_id": 1,
+      "revision": 9,
+      "event_key": "requirement_accepted",
+      "actor_user_id": 1,
+      "reason": "Authoritative workflow event 51",
+      "evidence_json": "{\"workflowEventId\":51,\"workflowId\":4,\"workflowRevision\":9,\"memberIds\":[4,6]}",
+      "created_at": "2026-10-28 22:27:06.796035"
+    },
+    {
+      "id": 10,
+      "project_id": 1,
+      "revision": 10,
+      "event_key": "resolve_correction",
+      "actor_user_id": 1,
+      "reason": "Authoritative workflow event 52",
+      "evidence_json": "{\"workflowEventId\":52,\"workflowId\":4,\"workflowRevision\":10,\"memberIds\":[4,6]}",
+      "created_at": "2026-10-28 22:27:07.049395"
+    },
+    {
+      "id": 11,
+      "project_id": 1,
+      "revision": 11,
+      "event_key": "open_correction",
+      "actor_user_id": 1,
+      "reason": "Authoritative workflow event 53",
+      "evidence_json": "{\"workflowEventId\":53,\"workflowId\":4,\"workflowRevision\":11,\"memberIds\":[4,6]}",
+      "created_at": "2026-10-28 22:27:07.717190"
+    },
+    {
+      "id": 12,
+      "project_id": 1,
+      "revision": 12,
+      "event_key": "requirement_accepted",
+      "actor_user_id": 1,
+      "reason": "Authoritative workflow event 54",
+      "evidence_json": "{\"workflowEventId\":54,\"workflowId\":4,\"workflowRevision\":12,\"memberIds\":[4,6]}",
+      "created_at": "2026-10-28 22:27:08.299536"
+    },
+    {
+      "id": 13,
+      "project_id": 1,
+      "revision": 13,
+      "event_key": "resolve_correction",
+      "actor_user_id": 1,
+      "reason": "Authoritative workflow event 55",
+      "evidence_json": "{\"workflowEventId\":55,\"workflowId\":4,\"workflowRevision\":13,\"memberIds\":[4,6]}",
+      "created_at": "2026-10-28 22:27:08.593251"
+    }
+  ],
+  "members": [
+    {
+      "id": 4,
+      "student_id": "S4",
+      "full_name": "Synthetic Student 4",
+      "email": "student4@example.test",
+      "research_title": "Synthetic study of research monitoring and the organization of institutional ethics documentation across several academic programmes with a long research title for PDF wrapping verification",
+      "research_group": "synthetic-study-of-research-monitoring-and-the-organization-of-institutional-ethics-documentation-across-several-academic-programmes-with-a-long-research-title",
+      "course": "BS in Information Technology",
+      "adviser_id": 2,
+      "stage": "Stage 1",
+      "status": "On Track",
+      "requirements": null,
+      "protocol_code": null,
+      "is_principal_investigator": 0,
+      "last_submission_date": "2026-10-28",
+      "user_id": 4,
+      "created_at": "2026-01-01 00:00:00",
+      "updated_at": "2026-10-28 22:27:08",
+      "academic_unit_key": "amt",
+      "program_key": "bsit",
+      "year_level": "4th Year",
+      "academic_year": "2026-2027",
+      "archived_at": null,
+      "retention_hold": 0,
+      "retention_hold_at": null,
+      "retention_hold_by": null,
+      "retention_hold_reason": null,
+      "purge_postponed_at": null,
+      "purge_postponed_reason": null,
+      "restored_at": null,
+      "profile_completed_at": "2026-01-01 00:00:00",
+      "project_stage": "initial_submission",
+      "workflow_revision": 13
+    },
+    {
+      "id": 6,
+      "student_id": "S6",
+      "full_name": "Synthetic Student 6",
+      "email": "student6@example.test",
+      "research_title": "Synthetic study of research monitoring and the organization of institutional ethics documentation across several academic programmes with a long research title for PDF wrapping verification",
+      "research_group": "synthetic-study-of-research-monitoring-and-the-organization-of-institutional-ethics-documentation-across-several-academic-programmes-with-a-long-research-title",
+      "course": "BS in Information Technology",
+      "adviser_id": 2,
+      "stage": "Stage 1",
+      "status": "Delayed",
+      "requirements": null,
+      "protocol_code": null,
+      "is_principal_investigator": 0,
+      "last_submission_date": null,
+      "user_id": 6,
+      "created_at": "2026-01-01 00:00:00",
+      "updated_at": "2026-10-28 22:26:37",
+      "academic_unit_key": "amt",
+      "program_key": "bsit",
+      "year_level": "4th Year",
+      "academic_year": "2026-2027",
+      "archived_at": null,
+      "retention_hold": 0,
+      "retention_hold_at": null,
+      "retention_hold_by": null,
+      "retention_hold_reason": null,
+      "purge_postponed_at": null,
+      "purge_postponed_reason": null,
+      "restored_at": null,
+      "profile_completed_at": "2026-01-01 00:00:00",
+      "project_stage": "initial_submission",
+      "workflow_revision": 13
+    }
+  ],
+  "notes": [
+    "32 formal-submission audits lack complete source document evidence. Dates cannot be reconstructed from those records. Audit IDs retained for RPMS review: 55, 59, 434, 438, 509, 513, 615, 619, 650, 655, 662, 669, 674, 679, 684, 689, 694, 699, 704, 709, 714, 725, 746, 754, 768, 773, 787, 793, 807, 816, 824, 851.",
+    "RPMS REVIEW REQUIRED: 4 official correction resubmission cycles exceed the three report slots. All overflow evidence is retained in the report snapshot; no additional tracking rows are generated.",
+    "The Principal Investigator is shown only when RPMS recorded a designation; it identifies a role and grants no additional permission. Co-investigator roles and research category have no authoritative fields. The project evidence record and membership order do not establish investigator roles.",
+    "Protocol code comes from the designated holder; academic year requires agreement among recorded project members.",
+    "Submitted dates use document rpms_submitted_at with mandatory formal-submission audits; returned dates use separate document_returned_for_revision audits. Uploads, acceptances and case openings do not establish those dates.",
+    "Each case contributes at most one cycle. Date Submitted is the earliest audited formal submission of an affected successor or required Amendment in that case, not proof that every correction was submitted.",
+    "All times are stored database values shown in Asia/Manila. Unknown dates remain Not recorded.",
+    "The shared PDF engine uses built-in Latin fonts with Windows-1252 text; characters outside it are shown as ? with a notice. The retained database snapshot preserves the original UTF-8 source values."
+  ]
+}

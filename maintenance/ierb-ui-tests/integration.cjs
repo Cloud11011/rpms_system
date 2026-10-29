@@ -150,13 +150,28 @@ module.exports = async h => {
       }
     };
     const overflow = page => page.evaluate(() => document.documentElement.scrollWidth > innerWidth + 1);
+    // F02: the entry modal once stayed hidden after a delivered click (7R fx1232 run 01). Keep the evidence, then fail as before.
+    const openEntry = async (page, label) => {
+      await page.click('#addIerbEntry');
+      try { await page.locator('#ierbEntryModal').waitFor({ state: 'visible' }); }
+      catch (error) {
+        await page.screenshot({ path: path.join(evidence, `ierb-entry-failure-${label}.png`) }).catch(() => {});
+        fs.writeFileSync(path.join(evidence, `ierb-entry-failure-${label}.json`), JSON.stringify({ pageErrors: errors, state: await page.evaluate(() => {
+          const b = document.getElementById('addIerbEntry'), m = document.getElementById('ierbEntryModal'), r = b?.getBoundingClientRect(), hit = r && document.elementFromPoint(r.x + r.width / 2, r.y + r.height / 2);
+          return { url: location.href, readyState: document.readyState, navigation: performance.getEntriesByType('navigation').map(e => e.type), modal: m && { display: m.style.display, ariaHidden: m.getAttribute('aria-hidden') },
+            button: r && { rect: r.toJSON(), hit: hit && (hit.id || String(hit.className) || hit.tagName) }, sidebar: document.querySelector('.prism-sidebar')?.className, active: document.activeElement?.id || document.activeElement?.tagName,
+            dialogs: [...document.querySelectorAll('dialog[open],[aria-modal="true"]')].map(d => d.id || String(d.className)) };
+        }).catch(e => String(e)) }, null, 2));
+        throw error;
+      }
+    };
     const lum = c => { const [r, g, b] = c.match(/\d+(\.\d+)?/g).slice(0, 3).map(Number).map(v => { v /= 255; return v <= .03928 ? v / 12.92 : ((v + .055) / 1.055) ** 2.4; }); return .2126 * r + .7152 * g + .0722 * b; };
     const contrast = (a, b) => { const [x, y] = [lum(a), lum(b)].sort((m, n) => n - m); return (x + .05) / (y + .05); };
 
     // IERB entry: markers, placeholders, numeric ID, paste, gating, Cancel, double submit.
     {
       const { ctx, page } = await open('admin', 'ierbprog.php');
-      await page.click('#addIerbEntry'); await page.locator('#ierbEntryModal').waitFor({ state: 'visible' });
+      await openEntry(page, 'first');
       await page.waitForTimeout(150);
       const marked = await markers(page);
       check(['entryStudentName', 'entryStudentId', 'entryEmail', 'entryResearchTitle', 'entryGroupId'].every(id => marked.includes(id)) && !['entryRequirements', 'entrySubmissionDate', 'entryStage', 'entryStatus'].some(id => marked.includes(id)),
@@ -210,7 +225,7 @@ module.exports = async h => {
       let posts = 0; page.on('request', r => { if (r.url().includes('ierb_api.php?action=save')) posts++; });
       await page.click('#cancelIerbEntry');
       check(!(await page.locator('#ierbEntryModal').isVisible()) && posts === 0, 'Cancel closes the IERB entry dialog without saving');
-      await page.click('#addIerbEntry'); await page.locator('#ierbEntryModal').waitFor({ state: 'visible' });
+      await openEntry(page, 'reopen');
       check(await save.isDisabled(), 'Reopened Add dialog starts from an empty, disabled state');
       if (legacyGroups) {
       await fillEntry();
@@ -251,6 +266,8 @@ module.exports = async h => {
         'Submitted-document deletion reason is required, marked and has a placeholder');
       await dialog.getByRole('button', { name: 'Delete Document' }).click();
       check(/Add a reason/.test(await dialog.locator('.prism-field-error').innerText()) && sql("SELECT id FROM documents WHERE id='b6aa00000000000000000004'").length === 1, 'Missing reason keeps the dialog open and deletes nothing');
+      check(await dialog.locator('#prismReason').evaluate(e => e.getAttribute('aria-invalid') === 'true' && /Add a reason/.test(document.getElementById(e.getAttribute('aria-describedby'))?.textContent || '')),
+        'The missing-reason error marks the reason field invalid and is programmatically linked to it (F03)');
       await dialog.getByRole('button', { name: 'Cancel' }).click();
       let deletes = 0; page.on('request', r => { if (r.url().endsWith('documents_api.php?action=delete')) deletes++; });
       await page.route('**/documents_api.php?action=delete', async route => { await h.sleep(500); await route.continue(); });
@@ -382,7 +399,7 @@ module.exports = async h => {
       if ([390, 1440].includes(width)) await ad.page.screenshot({ path: path.join(evidence, `account-adviser-${width}-${theme}.png`) });
       await ad.ctx.close();
       const am = await open('admin', 'ierbprog.php', { width, theme, touch: width === 390 });
-      await am.page.click('#addIerbEntry'); await am.page.locator('#ierbEntryModal').waitFor({ state: 'visible' }); await am.page.waitForTimeout(120);
+      await openEntry(am.page, `${width}-${theme}`); await am.page.waitForTimeout(120);
       entry.adminOverflow = await overflow(am.page);
       entry.modal = await am.page.locator('.ierb-entry-dialog').evaluate(d => { const r = d.getBoundingClientRect(); return r.width <= innerWidth && d.scrollWidth <= d.clientWidth + 1; });
       entry.markerVisible = await am.page.locator('label[for=entryStudentId] .prism-required-mark').isVisible();
@@ -408,6 +425,8 @@ module.exports = async h => {
     sql("DELETE FROM documents WHERE id LIKE 'b6aa%'");
     const ids = sql(`SELECT id,user_id FROM students WHERE email LIKE 'batch6-%@example.test'`);
     for (const { id } of ids) { sql('DELETE FROM calendar_deadline_recipients WHERE student_id=?', [id]); sql('DELETE FROM ierb_history WHERE student_id=?', [id]); sql('DELETE FROM documents WHERE student_id=?', [id]); sql('DELETE FROM students WHERE id=?', [id]); }
+    // Identity audits name the deleted record's ID; left behind, they make a later fixture that reuses the ID resolve a stale login (closure F02).
+    for (const { id } of ids) sql("DELETE FROM activity_logs WHERE entity_type='student' AND entity_id=?", [String(id)]);
     const users = sql(`SELECT id FROM users WHERE email LIKE 'batch6-%@example.test'`);
     for (const { id } of users) {
       for (const table of ['account_invitations', 'password_resets', 'user_policy_acceptances']) sql(`DELETE FROM ${table} WHERE user_id=?`, [id]);

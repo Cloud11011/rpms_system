@@ -1,0 +1,7 @@
+{
+    "ok": true,
+    "mode": "apply",
+    "to": "12",
+    "extensionCollation": "utf8mb4_unicode_ci",
+    "legacyRowsChanged": 0
+}

@@ -29,7 +29,7 @@ if (in_array($action,['monitor','monitor_compare','monitor_detail'],true)) {
 }
 if ($action === 'v14_contract') {
     header('Cache-Control: no-store');
-    json_out(['ok'=>true,'contract'=>IerbStage::contract(),'activeWorkflow'=>'legacy']);
+    json_out(['ok'=>true,'contract'=>IerbStage::contract(),'activeWorkflow'=>'legacy','operationsActivated'=>ierb_v14_http_operations_enabled()]);
 }
 if (in_array($action, ['advance', 'correct', 'status', 'override', 'save', 'note', 'delete', 'group_advance_preview', 'group_advance', 'group_advance_cancel'], true)) {
     require_post_same_origin();
@@ -50,6 +50,62 @@ if (in_array($action, ['group_advance_list','group_advance_preview','group_advan
         if ($status>=500) log_api_error('ierb_group_advancement','The research group operation could not be completed.');
         json_out(['ok'=>false,'message'=>$status<500 ? $e->getMessage()
             : 'The group operation could not be completed. Refresh and review current group progress before continuing.'], $status);
+    }
+}
+
+// V14 operations: RPMS enrollment, reconciliation, PI designation and correction cases; Adviser correction requests.
+// Every mutation is POST, same-origin, session-generation bound, request-key idempotent and revision checked,
+// and is refused unless the operator has activated V14 operations (ierb_v14_gate).
+const IERB_V14_OPERATIONS = ['v14_correction_queue','v14_correction_request','v14_correction_decide','v14_correction_open','v14_correction_resolve',
+    'v14_enroll','v14_project_preview','v14_project_reconcile','v14_project_rename','v14_project_adviser','v14_project_pi'];
+if (in_array($action, IERB_V14_OPERATIONS, true)) {
+    header('Cache-Control: no-store');
+    require_once __DIR__.'/includes/ierb_v14_requirements.php';
+    try {
+        if ($action === 'v14_correction_queue') { api_require_login('admin'); json_out(ierb_v14_correction_queue($pdo,$user)); }
+        require_post_same_origin();
+        require_session_generation(true);
+        api_require_login($action === 'v14_correction_request' ? 'adviser' : 'admin');
+        $p = lifecycle_decode_body(file_get_contents('php://input'));
+        $int = static function(string $k) use ($p): int {
+            if (!isset($p[$k]) || !is_int($p[$k]) || $p[$k] < 0) throw new AccountLifecycleValidation('Provide a valid '.$k.'.');
+            return $p[$k];
+        };
+        $str = static function(string $k, bool $optional=false) use ($p): string {
+            if (!array_key_exists($k,$p) && $optional) return '';
+            if (!isset($p[$k]) || !is_string($p[$k])) throw new AccountLifecycleValidation('Provide '.$k.'.');
+            return $p[$k];
+        };
+        $ids = static function(string $k, bool $optional=false) use ($p): ?array {
+            if (!array_key_exists($k,$p) && $optional) return null;
+            if (!isset($p[$k]) || !is_array($p[$k]) || !array_is_list($p[$k])) throw new AccountLifecycleValidation('Select the affected document versions.');
+            return $p[$k];
+        };
+        $bool = static function(string $k) use ($p): bool {
+            if (!isset($p[$k]) || !is_bool($p[$k])) throw new AccountLifecycleValidation('Choose whether an Amendment Form is required.');
+            return $p[$k];
+        };
+        // Authoritative fields are always derived; never accepted from the client.
+        foreach (['actor_user_id','stage_key','resolved_by_user_id','opened_by_user_id','submission_holder_id'] as $field) {
+            if (array_key_exists($field,$p)) throw new AccountLifecycleValidation('Authoritative workflow fields cannot be supplied.');
+        }
+        json_out(match ($action) {
+            'v14_correction_request' => ierb_v14_request_correction($pdo,$user,$int('studentId'),$int('revision'),$str('reason'),$ids('documentIds'),(bool)($p['suggestAmendment'] ?? false),$str('requestKey')),
+            'v14_correction_decide' => ierb_v14_decide_correction_request($pdo,$user,$int('studentId'),$int('revision'),$int('requestEventId'),$str('decision'),$str('reason'),
+                ($p['decision'] ?? '') === 'approve' ? $bool('requiresAmendment') : false,$ids('documentIds',true),$str('requestKey')),
+            'v14_correction_open' => ierb_v14_open_correction($pdo,$user,$int('studentId'),$int('revision'),$str('reason'),$ids('documentIds'),$bool('requiresAmendment'),$str('requestKey')),
+            'v14_correction_resolve' => ierb_v14_resolve_correction($pdo,$user,$int('studentId'),$int('revision'),$str('reason'),$str('requestKey')),
+            'v14_enroll' => ierb_v14_enroll($pdo,$user,$int('studentId'),$str('stage'),$str('reason'),$str('evidence'),$str('requestKey')),
+            'v14_project_preview' => (function() use ($pdo,$user,$p) { ierb_v14_gate($pdo); return research_project_preview($pdo,$user,is_array($p['studentIds'] ?? null) ? $p['studentIds'] : []); })(),
+            'v14_project_reconcile' => research_project_reconcile($pdo,$user,$str('title'),$int('holderId'),$int('adviserId'),is_array($p['mapping'] ?? null) ? $p['mapping'] : [],$str('reason'),$str('historicalCompletionReference',true)),
+            'v14_project_rename' => research_project_rename($pdo,$user,$int('projectId'),$int('revision'),$str('title'),$str('reason')),
+            'v14_project_adviser' => research_project_reassign_adviser($pdo,$user,$int('projectId'),$int('revision'),$int('adviserId'),$str('reason')),
+            'v14_project_pi' => research_project_designate_pi($pdo,$user,$int('projectId'),$int('revision'),$int('studentId'),$str('reason')),
+        });
+    } catch (Throwable $e) {
+        $status = $e instanceof DocumentWorkflowError ? $e->status : lifecycle_error_status($e);
+        if ($status >= 500) log_api_error('ierb_v14_operation', get_class($e));
+        json_out(['ok'=>false,'message'=>$status < 500 ? $e->getMessage() : 'The V14 operation could not be completed. Refresh and review the current state before retrying.'], $status);
     }
 }
 
@@ -379,6 +435,7 @@ if ($action === 'save') {
             if ($stage!=='Stage 1') throw new AccountLifecycleValidation('New records begin at Stage 1. Use a reasoned IERB correction after creation if needed.');
             onboarding_student_id($studentIdCode);
             if ($research === '') throw new AccountLifecycleValidation('Research title is required for a new IERB entry.');
+            $research = research_project_title($research);
             onboarding_email_available($pdo,$email);
             onboarding_id_available($pdo,$studentIdCode,'student',0,0);
         }
@@ -393,6 +450,19 @@ if ($action === 'save') {
             if (array_key_exists('profile_completed_at',$oldRow) && $oldRow['profile_completed_at']===null) throw new AccountLifecycleConflict('Pending identities must complete secure onboarding before record editing.');
             onboarding_student_id($studentIdCode, (string)$oldRow['student_id']);
             current_workflow_student($pdo,$id,$user);
+            // Research Title (B7-F09): never erased; an unchanged blank legacy title stays as recorded pending RPMS
+            // decision D2; canonical project titles change only through the audited project rename.
+            $titleBefore = trim((string)$oldRow['research_title']);
+            if ($research === '' && $titleBefore !== '') throw new AccountLifecycleValidation('A Research Title is required and an existing title cannot be erased.');
+            if ($research !== '' && $research !== $titleBefore) $research = research_project_title($research);
+            $canonical = research_project_for_student($pdo,$id,true);
+            if ($canonical && $research !== $canonical['research_title']) {
+                throw new AccountLifecycleConflict('This Student belongs to canonical research project '.$canonical['public_identifier'].'. Change its title through the audited project rename.');
+            }
+            if ($research !== $titleBefore) {
+                document_workflow_audit($pdo,$user,'research_title_changed',['entity_type'=>'student','entity_id'=>$id,'student_id'=>$id,
+                    'before'=>mb_substr($titleBefore,0,255),'after'=>mb_substr($research,0,255),'details'=>'IERB record edit; Research Title changed']);
+            }
             $stage=$data['stage']??$oldRow['stage'];
             $status=$data['status']??$oldRow['status'];
             if ($stage!==$oldRow['stage'] || $status!==$oldRow['status']) {

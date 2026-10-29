@@ -85,9 +85,10 @@ function document_workflow_change(PDO $pdo, array $actor, string $id, string $op
                                    string $status = '', string $reason = '', ?int $expectedVersion = null, ?string $expectedStatus = null): array
 {
     if (!preg_match('/\A[a-f0-9]{24}\z/',$id)) throw new DocumentWorkflowError('Provide a valid document ID.',422);
-    if (!in_array($operation,['review','return','submit','override','comment'],true)) throw new DocumentWorkflowError('Invalid document action.',422);
+    if (!in_array($operation,['review','return','submit','member_submit','override','comment'],true)) throw new DocumentWorkflowError('Invalid document action.',422);
     $role=$actor['role']??'';
-    $roles=match($operation) { 'review'=>['adviser'], 'return','override'=>['admin'], 'submit'=>['admin'], 'comment'=>['adviser','admin'] };
+    $roles=match($operation) { 'review'=>['adviser'], 'return','override'=>['admin'], 'submit'=>['admin'], 'member_submit'=>['student'], 'comment'=>['adviser','admin'] };
+    if ($operation==='member_submit' && $expectedVersion===null) throw new DocumentWorkflowError('Refresh and confirm the exact version before formal submission.',422);
     if (!in_array($role,$roles,true)) throw new DocumentWorkflowError('Only the assigned Adviser may record an ordinary review. RPMS interventions require Admin Override.',403);
     $reason=trim($reason);
     if (mb_strlen($reason)>5000 || ($operation==='return' && $reason==='')
@@ -109,7 +110,7 @@ function document_workflow_change(PDO $pdo, array $actor, string $id, string $op
     try {
         research_project_fence($pdo);
         $q=$pdo->prepare('SELECT * FROM students WHERE id=? FOR UPDATE'); $q->execute([$sid]); $student=$q->fetch(PDO::FETCH_ASSOC);
-        try { $student=current_workflow_student($pdo,(int)$sid,$actor); }
+        try { $student=current_workflow_student($pdo,(int)$sid,$actor,$operation==='member_submit'); }
         catch (AccountLifecycleForbidden $e) { throw new DocumentWorkflowError($e->getMessage(),403); }
         catch (AccountLifecycleConflict $e) { throw new DocumentWorkflowError($e->getMessage(),$e->getMessage()==='The Student account is inactive.'?403:409); }
         if (!$student || !empty($student['archived_at']) || empty($student['profile_completed_at'])) {
@@ -194,6 +195,14 @@ function document_workflow_change(PDO $pdo, array $actor, string $id, string $op
             $message='RPMS updated the status of "'.$doc['original_name'].'" (version '.$doc['version_no'].'). Open Documents for its official state. This does not grant IERB approval.';
             $ids=document_notice_atomic($pdo,$live,(int)$sid,'PRISM Document Status Update',$message,
                 'Admin Override on a document',$audit['details'].'; '.$before.' -> '.$after.'. Reason: '.$reason);
+        } elseif ($operation==='member_submit') {
+            // Any verified project member (or the record owner) forwards an Adviser approval; PI status grants nothing extra.
+            if (document_is_locked($doc) || !empty($doc['rpms_returned_at'])) throw new DocumentWorkflowError('This version was already submitted or returned. Refresh to see its current state.',409);
+            if ($doc['review_status']!=='Approved' || !empty($doc['admin_override']) || trim((string)$doc['reviewed_by'])==='') {
+                throw new DocumentWorkflowError('Only a version approved by the assigned Adviser can be formally submitted by a Student.',409);
+            }
+            [$advanced,$ids,$message]=document_formal_submission($pdo,$live,$student,$doc,$audit);
+            $after=WF_SUBMITTED_RPMS;
         } elseif ($operation==='submit') {
             if (document_is_locked($doc) || !empty($doc['rpms_returned_at'])) throw new DocumentWorkflowError('This version was already submitted or returned. Refresh and use the current revision.',409);
             if ($role==='admin') {
@@ -243,9 +252,10 @@ function document_workflow_change(PDO $pdo, array $actor, string $id, string $op
 function document_formal_submission(PDO $pdo, array $actor, array $student, array $doc, array $audit): array
 {
     if (!$pdo->inTransaction()) throw new LogicException('Formal submission requires a transaction.');
-    $override=$actor['role']==='admin';
+    $override=$actor['role']==='admin'; $memberSubmission=$actor['role']==='student';
     if ($override) $audit['details'].='; review='.$doc['review_status'].' -> Approved';
-    $submitter=document_attribution($actor['full_name'],$override?' (RPMS Admin, Admin Override)':' (Adviser approval)');
+    if ($memberSubmission) $audit['details'].='; formally submitted by Student '.$actor['full_name'];
+    $submitter=document_attribution($actor['full_name'],$override?' (RPMS Admin, Admin Override)':($memberSubmission?' (Student formal submission)':' (Adviser approval)'));
     $q=$pdo->prepare('UPDATE documents SET rpms_submitted_at=NOW(),rpms_submitted_by=? WHERE id=? AND is_current=1 AND rpms_submitted_at IS NULL');
     $q->execute([$submitter,$doc['id']]);
     if ($q->rowCount()!==1) throw new DocumentWorkflowError('This version was already submitted. Refresh to see its current state.',409);
@@ -263,14 +273,15 @@ function document_formal_submission(PDO $pdo, array $actor, array $student, arra
         catch (AccountLifecycleConflict|AccountLifecycleValidation $e) { throw new DocumentWorkflowError($e->getMessage(),409); }
         if ($completion) $advanced=$completion['stage'];
     }
-    $message=$override?'RPMS formally submitted your document on your behalf.':'Your adviser approved and automatically formally submitted your document to RPMS. No additional submission action is required.';
+    $message=$override?'RPMS formally submitted your document on your behalf.':($memberSubmission?$actor['full_name'].' formally submitted your Adviser-approved project document to RPMS.'
+        :'Your adviser approved and automatically formally submitted your document to RPMS. No additional submission action is required.');
     $message.=' "'.$doc['original_name'].'" (version '.$doc['version_no'].').';
     if (!$override && $audit['reason']!=='') $message.=' Remarks: '.$audit['reason'];
     $ids=document_workflow_notifications($pdo,$actor,$student,[],'PRISM Formal RPMS Submission Confirmation',$message,false);
     $ids=array_merge($ids,$completion['projectNotificationIds'] ?? []);
     // Staff receive an accurate queue notice, separate from Student wording and private override evidence.
     $q=$pdo->query("SELECT id,email,full_name FROM users WHERE role='admin' AND status='Active' ORDER BY id FOR UPDATE");
-    $staffMessage='A new formally submitted document is available for RPMS review: "'.$doc['original_name'].'" v'.$doc['version_no'].($override?'; authorized Admin Override.':' after Adviser approval.');
+    $staffMessage='A new formally submitted document is available for RPMS review: "'.$doc['original_name'].'" v'.$doc['version_no'].($override?'; authorized Admin Override.':($memberSubmission?' (Adviser-approved; submitted by Student '.$actor['full_name'].').':' after Adviser approval.'));
     if ($override) $staffMessage.=' Reason: '.$audit['reason'];
     $schedule=date('Y-m-d H:i:s');
     $campaign=notification_create_campaign($pdo,$actor,'workflow','Document submitted to RPMS',$staffMessage,$schedule);

@@ -1,0 +1,8 @@
+{
+    "ok": true,
+    "mode": "apply",
+    "to": "13",
+    "extensionCollation": "utf8mb4_unicode_ci",
+    "legacyRowsChanged": 0,
+    "membershipsInferred": 0
+}

@@ -574,7 +574,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     <div class="student-document-identity"><strong>${esc(d.originalName)} <small>v${Number(d.versionNo||1)}</small>${d.preview?' <small class="student-document-preview-label">UI preview · sample only</small>':''}</strong><span>${esc(d.documentType)} · ${esc(d.stageLabel||d.stage)}</span></div>
                     <div class="student-document-date"><span>Submitted</span><strong>${esc(date)}</strong></div>
                     <div class="student-document-state">${PrismUI.badge(state,{small:true})}</div>
-                    <div class="student-document-actions">${d.preview?'<span class="action-btn" aria-disabled="true">Preview only</span>':`${PrismUI.documentActionsHtml(d)}<div class="student-document-menu-wrap"><button type="button" class="action-btn student-document-menu-toggle" aria-label="More actions"><i class="fa-solid fa-ellipsis" aria-hidden="true"></i></button><div class="student-document-menu"><button type="button" data-version-history="${esc(d.id)}"><i class="fa-solid fa-clock-rotate-left" aria-hidden="true"></i> Version history</button>${d.actions?.uploadRevision?`<button type="button" data-upload-revision="${esc(d.id)}"><i class="fa-solid fa-arrow-up-from-bracket" aria-hidden="true"></i> Upload revision</button>`:''}</div></div>`}</div>
+                    <div class="student-document-actions">${d.preview?'<span class="action-btn" aria-disabled="true">Preview only</span>':`${PrismUI.documentActionsHtml(d)}${d.actions?.memberSubmitToRpms?`<button type="button" class="action-btn student-document-submit" data-member-submit="${esc(d.id)}" aria-label="Submit ${esc(d.originalName)} version ${Number(d.versionNo||1)} to RPMS"><i class="fa-solid fa-paper-plane" aria-hidden="true"></i> Submit to RPMS</button>`:''}<div class="student-document-menu-wrap"><button type="button" class="action-btn student-document-menu-toggle" aria-label="More actions"><i class="fa-solid fa-ellipsis" aria-hidden="true"></i></button><div class="student-document-menu"><button type="button" data-version-history="${esc(d.id)}"><i class="fa-solid fa-clock-rotate-left" aria-hidden="true"></i> Version history</button>${d.actions?.uploadRevision?`<button type="button" data-upload-revision="${esc(d.id)}"><i class="fa-solid fa-arrow-up-from-bracket" aria-hidden="true"></i> Upload revision</button>`:''}</div></div>`}</div>
                 </div>
                 ${feedback?feedback.outerHTML:''}
                 <button type="button" class="student-document-details-toggle" aria-expanded="false" aria-controls="${esc(detailsId)}"><span>Show More Details</span><i class="fa-solid fa-chevron-down" aria-hidden="true"></i></button>
@@ -904,6 +904,8 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
         const history=e.target.closest('[data-version-history]'); if(history){PrismUI.showVersions(history.dataset.versionHistory);return;}
+        const memberSubmit=e.target.closest('[data-member-submit]');
+        if(memberSubmit){const doc=documentHistory.records.find(d=>String(d.id)===memberSubmit.dataset.memberSubmit);if(doc?.actions?.memberSubmitToRpms)PrismUI.runAction(memberSubmit,'Submitting...',()=>PrismUI.memberSubmitToRpms(doc));return;}
         const button = e.target.closest('[data-upload-revision]');
         if(!button)return;
         const doc = [...documentHistory.records,...myDocuments].find(d=>String(d.id)===button.dataset.uploadRevision);

@@ -1,0 +1,9 @@
+{
+  "variant": "test",
+  "iterations": 300,
+  "attempts": 10,
+  "misses": [],
+  "recoveredOnRetry": 0,
+  "durationP50": 1744,
+  "durationMax": 2218
+}

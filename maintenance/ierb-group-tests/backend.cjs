@@ -101,9 +101,13 @@ module.exports = async h => {
     ['account eligibility', () => sql("UPDATE users SET status='Inactive' WHERE id=5"), () => {}],
     ['legal acceptance', () => sql('DELETE FROM user_policy_acceptances WHERE user_id=5'), () => sql('INSERT IGNORE INTO user_policy_acceptances(user_id,policy_version_id) SELECT 5,policy_version_id FROM user_policy_acceptances WHERE user_id=4')],
   ]) {
-    reset(); p = await preview(); mutate(); const before = state();
-    const r = await expect(post(s.admin, 'group_advance', payload(p)), 409, 'Changed ' + label + ' rejects stale confirmation');
-    check(r.body.message.includes('Research group information changed after your preview') && state() === before, 'Stale ' + label + ' produces the required conflict and no extra writes'); restore();
+    reset(); p = await preview(); mutate();
+    // Restore even when an assertion fails, so one failure cannot contaminate later cases or runs (B7-F11).
+    try {
+      const before = state();
+      const r = await expect(post(s.admin, 'group_advance', payload(p)), 409, 'Changed ' + label + ' rejects stale confirmation');
+      check(r.body.message.includes('Research group information changed after your preview') && state() === before, 'Stale ' + label + ' produces the required conflict and no extra writes');
+    } finally { restore(); }
   }
   reset();
   sql("UPDATE advisers SET status='Inactive' WHERE id=3");

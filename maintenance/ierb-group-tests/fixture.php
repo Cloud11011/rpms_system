@@ -1,4 +1,5 @@
 <?php
+if (PHP_SAPI !== 'cli') exit; // Test fixture: never reachable over HTTP (B7-F21).
 require __DIR__.'/bootstrap.php';
 $in=json_decode(stream_get_contents(STDIN),true,512,JSON_THROW_ON_ERROR);
 $pdo=db();

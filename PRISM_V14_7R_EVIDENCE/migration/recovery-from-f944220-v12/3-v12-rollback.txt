@@ -1,0 +1,6 @@
+{
+    "ok": true,
+    "mode": "rollback",
+    "to": "11",
+    "legacyRowsChanged": 0
+}

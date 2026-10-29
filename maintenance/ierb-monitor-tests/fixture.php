@@ -1,4 +1,5 @@
 <?php
+if (PHP_SAPI !== 'cli') exit; // Test fixture: never reachable over HTTP (B7-F21).
 /** This helper refuses every database outside the verified disposable datadir. */
 require dirname(__DIR__).'/ierb-group-tests/bootstrap.php';
 require_once $root.'/includes/schema_v15.php';
@@ -39,7 +40,7 @@ try {
             $refuses(fn()=>$pdo->exec("INSERT INTO academic_years(year_label,historical,added_by_user_id) VALUES ('2030-2032',0,1)"),'Database rejects invalid consecutive-year creation');
             $pdo->exec('DELETE FROM academic_years'); migrate_schema_v15($pdo,'rollback'); schema_v14_verify($pdo);
             $checks[]='Empty fixture rollback preserves every schema 11-14 contract';
-            $pdo->exec(schema_v15_tables()['academic_years']); migrate_schema_v15($pdo); migrate_schema_v15($pdo,'apply');
+            $pdo->exec(schema_v15_tables(schema_extension_collation($pdo))['academic_years']); migrate_schema_v15($pdo); migrate_schema_v15($pdo,'apply');
             $checks[]='Interrupted unpublished additive DDL resumes without changing assignments';
             $pdo->exec('DELETE FROM academic_years'); $pdo->exec("UPDATE schema_meta SET v='14' WHERE k='schema_version'"); migrate_schema_v15($pdo,'rollback');
             migrate_schema_v15($pdo,'apply'); $checks[]='Interrupted empty rollback and reapply retain historical-year discovery';

@@ -83,7 +83,7 @@ if ($action === 'list' || $action === 'options') {
     $q = prism_record_search($_GET);
     if ($q !== '') $scope .= ' AND ' . prism_search_clause(['s.full_name', 's.student_id', 's.email', 's.research_title', 's.research_group', 'f.full_name'], $q, $params);
     }
-    $order = prism_record_order($_GET, ['name'=>'s.full_name','studentId'=>'s.student_id','email'=>'s.email','archivedAt'=>'s.archived_at','group'=>'s.research_group','adviser'=>'f.full_name','stage'=>'s.stage','status'=>'s.status','academicYear'=>'s.academic_year'], 'name', 's.id ASC');
+    $order = prism_record_order($_GET, ['updated'=>'s.updated_at','created'=>'s.created_at','name'=>'s.full_name','studentId'=>'s.student_id','email'=>'s.email','archivedAt'=>'s.archived_at','group'=>'s.research_group','adviser'=>'f.full_name','stage'=>'s.stage','status'=>'s.status','academicYear'=>'s.academic_year'], 'name', 's.id ASC');
     $page = prism_page_query($pdo, 'SELECT s.*, f.full_name AS adviser_name, '.retention_projection('student','s'), $scope, $params, $order, $_GET);
     $rows = $page['rows']; unset($page['rows']);
     json_out(['ok' => true, 'students' => array_map('row_to_student', $rows), 'filterOptions'=>$filterOptions] + $page);
@@ -233,6 +233,11 @@ if ($action === 'save') {
             // records; retain the stored values when either field is null.
             $finalProtocolCode = $protocolCode !== null ? ($protocolCode !== '' ? $protocolCode : null) : $before['protocol_code'];
             $finalIsPrincipal = $isPrincipal !== null ? $isPrincipal : (int)$before['is_principal_investigator'];
+            // Research Title (B7-F09) applies to Student Records edits as well as IERB entry edits: never erased, and a
+            // changed title is validated and audited before/after. An unchanged blank legacy title stays as recorded (D2).
+            $titleBefore = trim((string)$before['research_title']);
+            if ($research === '' && $titleBefore !== '') throw new AccountLifecycleValidation('A Research Title is required and an existing title cannot be erased.');
+            if ($research !== '' && $research !== $titleBefore) $research = research_project_title($research);
             try {
                 $academic = academic_validate($data, $before);
                 $group = research_group_assignment($pdo, $user, $data, $academic, $before);
@@ -255,6 +260,10 @@ if ($action === 'save') {
                 ':academic_unit' => $academic['academic_unit_key'], ':program' => $academic['program_key'],
                 ':year_level' => $academic['year_level'], ':academic_year' => $academic['academic_year'], ':adv' => $adviserId, ':req' => $finalRequirements, ':pcode' => $finalProtocolCode,
                 ':pi' => $finalIsPrincipal, ':id' => $id]);
+            if ($research !== $titleBefore) {
+                document_workflow_audit($pdo,$user,'research_title_changed',['entity_type'=>'student','entity_id'=>$id,'student_id'=>$id,
+                    'before'=>mb_substr($titleBefore,0,255),'after'=>mb_substr($research,0,255),'details'=>'Student Records edit; Research Title changed']);
+            }
 
             if (!$adviserEdit) {
                 sync_student_login_identity($pdo, (string)$before['email'], $studentId, $name, $email);

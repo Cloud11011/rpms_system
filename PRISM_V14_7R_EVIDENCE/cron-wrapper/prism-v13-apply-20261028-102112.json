@@ -1,0 +1,23 @@
+{
+    "startedAt": "2026-10-28T10:21:03+01:00",
+    "step": "v13",
+    "mode": "apply",
+    "php": "8.2.12",
+    "sapi": "cli",
+    "extensions": {
+        "pdo_mysql": true,
+        "mbstring": true,
+        "intl": false
+    },
+    "exit": 0,
+    "stdout": {
+        "ok": true,
+        "mode": "apply",
+        "to": "13",
+        "extensionCollation": "utf8mb4_general_ci",
+        "legacyRowsChanged": 0,
+        "membershipsInferred": 0
+    },
+    "stderr": "",
+    "finishedAt": "2026-10-28T10:21:12+01:00"
+}

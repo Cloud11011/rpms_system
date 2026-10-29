@@ -1,4 +1,5 @@
 <?php
+if (PHP_SAPI !== 'cli') exit; // Test fixture: never reachable over HTTP (B7-F21).
 /** Rebuild only in the datadir-verified disposable group fixture, before running V14 tests. */
 require dirname(__DIR__).'/ierb-group-tests/bootstrap.php';
 require $root.'/includes/schema_v12.php';

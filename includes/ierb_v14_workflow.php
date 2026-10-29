@@ -8,11 +8,19 @@ function ierb_v14_schema_available(PDO $pdo): bool
     return in_array((string)$pdo->query("SELECT v FROM schema_meta WHERE k='schema_version'".($pdo->inTransaction() ? ' LOCK IN SHARE MODE' : ''))->fetchColumn(), ['12','13','14','15'], true);
 }
 
+/** HTTP operations (enrollment, reconciliation, correction cases) are an explicit activation decision:
+ * config.local.php must define PRISM_IERB_V14_OPERATIONS as true. The default deployment stays CLI-only.
+ */
+function ierb_v14_http_operations_enabled(): bool
+{
+    return PHP_SAPI !== 'cli' && defined('PRISM_IERB_V14_OPERATIONS') && PRISM_IERB_V14_OPERATIONS === true;
+}
+
 function ierb_v14_gate(PDO $pdo): void
 {
-    // Enrollment/correction administration remain explicitly opted-in CLI operations.
-    if (PHP_SAPI !== 'cli' || getenv('PRISM_IERB_V14_FOUNDATION') !== '1' || !ierb_v14_schema_available($pdo)) {
-        throw new AccountLifecycleConflict('General V14 activation remains unavailable. Explicit CLI enrollment and correction administration require operator opt-in.');
+    $cli = PHP_SAPI === 'cli' && getenv('PRISM_IERB_V14_FOUNDATION') === '1';
+    if ((!$cli && !ierb_v14_http_operations_enabled()) || !ierb_v14_schema_available($pdo)) {
+        throw new AccountLifecycleConflict('V14 operations are not activated. Enrollment and correction administration require operator opt-in (CLI) or an approved activation setting.');
     }
 }
 
@@ -51,11 +59,11 @@ function ierb_v14_request_key(string $key): void
 }
 
 /** Student -> login/actor -> workflow lock order, shared with document and legacy mutations. */
-function ierb_v14_lock(PDO $pdo, array $actor, int $studentId, bool $admin = true): array
+function ierb_v14_lock(PDO $pdo, array $actor, int $studentId, bool $admin = true, bool $projectMember = false): array
 {
     if (!$pdo->inTransaction()) throw new LogicException('V14 locking requires a transaction.');
     if ($admin && ($actor['role'] ?? '') !== 'admin') throw new AccountLifecycleForbidden('Only RPMS Administrators may manage official correction cases.');
-    $student = current_workflow_student($pdo, $studentId, $actor);
+    $student = current_workflow_student($pdo, $studentId, $actor, $projectMember);
     $live = current_workflow_actor($pdo, $actor);
     if ($admin && !legal_admin_eligible($live)) throw new AccountLifecycleForbidden('An eligible active RPMS Administrator is required.');
     $q = $pdo->prepare('SELECT * FROM ierb_workflows WHERE student_id=? FOR UPDATE');
@@ -155,32 +163,62 @@ function ierb_v14_open_correction(PDO $pdo, array $actor, int $studentId, int $e
         if (!$workflow) throw new AccountLifecycleConflict('Explicit V14 enrollment is required.');
         if ($result = ierb_v14_replay($pdo, $workflow, $key, $digest)) { $pdo->commit(); return $result; }
         if ((int)$workflow['revision'] !== $expectedRevision) throw new AccountLifecycleConflict('The workflow changed. Refresh before opening a correction.');
-        try { $to = IerbStage::transition($workflow['stage_key'], 'open_correction'); }
-        catch (InvalidArgumentException $e) { throw new AccountLifecycleConflict($e->getMessage()); }
-        if (ierb_v14_case($pdo, (int)$workflow['id'])) throw new AccountLifecycleConflict('Resolve the open correction case first.');
-        $affected = [];
-        foreach ($documentIds as $id) {
-            $q = $pdo->prepare('SELECT id,student_id,document_type,stage,version_no,is_current FROM documents WHERE id=? FOR UPDATE');
-            $q->execute([$id]); $doc = $q->fetch(PDO::FETCH_ASSOC);
-            if (!$doc || (int)$doc['student_id'] !== $studentId || (int)$doc['is_current'] !== 1) throw new AccountLifecycleValidation('Affected documents must be current versions owned by this Student.');
-            require_once __DIR__.'/ierb_v14_requirements.php';
-            $requirement = ierb_v14_requirement_key($doc['document_type']);
-            if ($requirement === 'final_report' || ($requirement === 'amendment' && !$requiresAmendment)) {
-                throw new AccountLifecycleValidation('Resolve official corrections before Final Report submission; an affected Amendment Form requires the case Amendment policy.');
-            }
-            $current = document_current_version($pdo, $studentId, $doc['stage'], $doc['document_type']);
-            if (!$current || $current['id'] !== $doc['id']) throw new AccountLifecycleConflict('Select the authoritative current document version.');
-            $affected[] = $doc;
-        }
-        $pdo->prepare('INSERT INTO ierb_correction_cases(workflow_id,interrupted_stage,reason,affected_documents_json,requires_amendment,opened_by_user_id)
-            VALUES (?,?,?,?,?,?)')->execute([$workflow['id'], $workflow['stage_key'], $reason, json_encode($affected, JSON_THROW_ON_ERROR), (int)$requiresAmendment, $live['id']]);
-        $caseId = (int)$pdo->lastInsertId();
-        $pdo->prepare('UPDATE ierb_workflows SET stage_key=?,revision=revision+1,updated_at=NOW(6) WHERE id=?')->execute([$to, $workflow['id']]);
-        $result = ierb_v14_event($pdo, $live, $workflow, 'open_correction', $workflow['stage_key'], $to, $key, $digest, $reason, $caseId,
-            ['affectedDocuments' => $affected, 'requiresAmendment' => $requiresAmendment]);
+        require_once __DIR__.'/ierb_v14_corrections.php';
+        // RPMS-initiated: a pending Adviser request for this workflow is superseded by the direct decision.
+        $pending = ierb_v14_pending_request($pdo, (int)$workflow['id']);
+        $result = ierb_v14_open_correction_locked($pdo, $live, $workflow, $studentId, $reason, $documentIds, $requiresAmendment, $key, $digest,
+            $pending ? ['requestEventId' => (int)$pending['id'], 'requestDecision' => 'superseded_by_rpms_initiated_case'] : ['initiatedBy' => 'rpms']);
         $pdo->commit(); document_workflow_deliver($pdo,$result['projectNotificationIds'] ?? []); return $result;
     } catch (Throwable $e) { if ($pdo->inTransaction()) $pdo->rollBack(); throw $e; }
     finally { $pdo->query("SELECT RELEASE_LOCK('prism_migrate')"); }
+}
+
+/** Caller holds the migration lock, the Student/workflow locks and the transaction. */
+function ierb_v14_open_correction_locked(PDO $pdo, array $live, array $workflow, int $studentId, string $reason, array $documentIds,
+    bool $requiresAmendment, string $key, string $digest, array $origin): array
+{
+    if (!$pdo->inTransaction()) throw new LogicException('Correction opening requires the decision transaction.');
+    try { $to = IerbStage::transition($workflow['stage_key'], 'open_correction'); }
+    catch (InvalidArgumentException $e) { throw new AccountLifecycleConflict($e->getMessage()); }
+    if (ierb_v14_case($pdo, (int)$workflow['id'])) throw new AccountLifecycleConflict('Resolve the open correction case first.');
+    $affected = ierb_v14_affected_documents($pdo, $studentId, $documentIds, $requiresAmendment);
+    $pdo->prepare('INSERT INTO ierb_correction_cases(workflow_id,interrupted_stage,reason,affected_documents_json,requires_amendment,opened_by_user_id)
+        VALUES (?,?,?,?,?,?)')->execute([$workflow['id'], $workflow['stage_key'], $reason, json_encode($affected, JSON_THROW_ON_ERROR), (int)$requiresAmendment, $live['id']]);
+    $caseId = (int)$pdo->lastInsertId();
+    $pdo->prepare('UPDATE ierb_workflows SET stage_key=?,revision=revision+1,updated_at=NOW(6) WHERE id=?')->execute([$to, $workflow['id']]);
+    return ierb_v14_event($pdo, $live, $workflow, 'open_correction', $workflow['stage_key'], $to, $key, $digest, $reason, $caseId,
+        ['affectedDocuments' => $affected, 'requiresAmendment' => $requiresAmendment] + $origin);
+}
+
+/** Affected versions must be current, authoritative and owned by the project evidence record. */
+function ierb_v14_affected_documents(PDO $pdo, int $studentId, array $documentIds, bool $requiresAmendment): array
+{
+    $affected = [];
+    foreach ($documentIds as $id) {
+        $q = $pdo->prepare('SELECT id,student_id,document_type,stage,version_no,is_current FROM documents WHERE id=? FOR UPDATE');
+        $q->execute([$id]); $doc = $q->fetch(PDO::FETCH_ASSOC);
+        if (!$doc || (int)$doc['student_id'] !== $studentId || (int)$doc['is_current'] !== 1) throw new AccountLifecycleValidation('Affected documents must be current versions owned by this Student.');
+        require_once __DIR__.'/ierb_v14_requirements.php';
+        $requirement = ierb_v14_requirement_key($doc['document_type']);
+        if ($requirement === 'final_report' || ($requirement === 'amendment' && !$requiresAmendment)) {
+            throw new AccountLifecycleValidation('Resolve official corrections before Final Report submission; an affected Amendment Form requires the case Amendment policy.');
+        }
+        $current = document_current_version($pdo, $studentId, $doc['stage'], $doc['document_type']);
+        if (!$current || $current['id'] !== $doc['id']) throw new AccountLifecycleConflict('Select the authoritative current document version.');
+        $affected[] = $doc;
+    }
+    return $affected;
+}
+
+/** Shared input validation for document references in correction decisions. */
+function ierb_v14_document_ids(array $documentIds): array
+{
+    if (!$documentIds || count($documentIds) > 100 || count(array_unique($documentIds, SORT_REGULAR)) !== count($documentIds)) {
+        throw new AccountLifecycleValidation('Select 1–100 distinct affected document versions.');
+    }
+    foreach ($documentIds as $id) if (!is_string($id) || !preg_match('/\A[a-zA-Z0-9_-]{1,40}\z/D', $id)) throw new AccountLifecycleValidation('Invalid document reference.');
+    sort($documentIds, SORT_STRING);
+    return array_values($documentIds);
 }
 
 /** The evidence adapter shares the authorized document transaction and never commits it. */

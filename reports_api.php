@@ -50,7 +50,12 @@ if ($action === 'export_csv') {
 
 if ($action === 'list') {
     $scope = 'FROM reports' . (!empty($_GET['aiOnly']) ? " WHERE type IN ('AI Summarized Report','AI Full Report')" : '');
-    $page = prism_page_query($pdo, 'SELECT *', $scope, [], 'generated_at DESC, id DESC', $_GET);
+    // Newest generated first by default (B7-F13); the order is strictly allowlisted.
+    $orders = ['newest'=>'generated_at DESC, id DESC', 'oldest'=>'generated_at ASC, id ASC', 'title-asc'=>'title ASC, generated_at DESC, id DESC',
+        'title-desc'=>'title DESC, generated_at DESC, id DESC', 'type'=>'type ASC, generated_at DESC, id DESC'];
+    $sort = $_GET['sort'] ?? 'newest';
+    if (!is_string($sort) || !isset($orders[$sort])) json_out(['ok'=>false,'message'=>'Choose a supported report sort order.'],422);
+    $page = prism_page_query($pdo, 'SELECT *', $scope, [], $orders[$sort], $_GET);
     $rows = $page['rows']; unset($page['rows']);
     foreach ($rows as &$row) $row['requiresRegeneration'] = in_array($row['type'], ['AI Summarized Report','AI Full Report'], true) && !str_starts_with($row['filename'], 'ai_v2_');
     unset($row);
@@ -115,12 +120,16 @@ if ($action === 'ai_report') {
     $title = $mode === 'full' ? "AI Full Progress Report - $scopeTitle" : "AI Summarized Progress Report - $scopeTitle";
     $lines = [
         $aiUsed ? 'Narrative source: AI-assisted; verify against the factual tables.' : 'Narrative source: Local fallback (AI unavailable).',
-        'Scope: ' . $scopeTitle . '. Counts represent legacy student records, not distinct projects. Explicitly enrolled V14 workflows and canonical project members are excluded. Use the Project Track Sheet reports for V14.',
+        'Scope: ' . $scopeTitle . '. Record counts are legacy student records; research titles and canonical projects are listed once each below. Explicitly enrolled V14 workflows and canonical project members are excluded from the record counts. Use the Project Track Sheet reports for V14.',
+        'Sources: PRISM student records, configured stage labels and canonical project records at generation time. Research titles are printed from PRISM and were not sent to the AI provider.',
         'Prepared for: RPMS administration. Internal review copy.',
     ];
-    $lines = array_merge($lines, ai_stage_guide(), progress_report_tables($students, 'summary'), ['# Narrative', $narrative]);
+    $lines = array_merge($lines, ai_stage_guide(), progress_report_tables($students, 'summary'), progress_research_title_table($students),
+        progress_canonical_project_table($pdo), ['# Narrative', $narrative]);
     if ($mode === 'full') $lines = array_merge($lines, progress_case_detail_table($students));
 
+    $lines[] = '# Limitations and human verification';
+    $lines[] = 'The narrative is limited to the counts above and may omit context. A missing value means not recorded. RPMS staff must verify every statement against the factual tables and source records before relying on or sharing this report.';
     $lines[] = 'Official IERB stages are recorded by RPMS Administrators. Document approval and submission do not grant institutional ethics approval.';
 
     $reportId = bin2hex(random_bytes(12));
@@ -186,20 +195,63 @@ function progress_report_tables(array $students, string $mode): array
     return $blocks;
 }
 
-/** Server-side identifiers stay local; student names and requirements text are excluded. */
+function report_title_text(?string $title): string
+{
+    $title = trim((string)$title);
+    return $title !== '' ? $title : 'Not recorded';
+}
+
+/** Server-side identifiers and titles stay local (never in the provider payload); names and requirement text are excluded. */
 function progress_case_detail_table(array $students): array
 {
     $rows = [];
     foreach (array_values($students) as $index => $s) {
-        $rows[] = [report_case_ref($index), trim((string)($s['student_id'] ?? '')) ?: 'Not recorded',
+        $rows[] = [report_case_ref($index), report_title_text($s['research_title'] ?? null), trim((string)($s['student_id'] ?? '')) ?: 'Not recorded',
             trim((string)($s['protocol_code'] ?? '')) !== '' ? (string)$s['protocol_code'] : 'No Protocol Code Assigned Yet',
             in_array($s['stage'], STAGE_SEQUENCE, true) ? $s['stage'] : 'Not recorded',
             in_array($s['status'], ['Pending','On Track','Delayed','Approved','Completed'], true) ? $s['status'] : 'Not recorded',
             trim((string)($s['requirements'] ?? '')) !== '' ? 'Yes' : 'No'];
     }
-    return ['# Case details (Student ID and Protocol Code)',
-        ['headers'=>['Case','Student ID','Protocol Code','Stage','Status','Requirements Recorded'],
-         'widths'=>[66,88,120,64,74,100], 'rows'=>$rows]];
+    return ['# Case details (Research Title, Student ID and Protocol Code)',
+        ['headers'=>['Case','Research Title','Student ID','Protocol Code','Stage','Status','Req. Recorded'],
+         'widths'=>[52,150,64,88,52,58,48], 'rows'=>$rows]];
+}
+
+/** Legacy rows with the exact same recorded title, group label and academic year are listed once.
+ * This is a presentation of recorded values, not verified project membership (no fuzzy matching).
+ */
+function progress_research_title_table(array $students): array
+{
+    $groups = [];
+    foreach ($students as $s) {
+        $key = json_encode([trim((string)($s['research_title'] ?? '')), trim((string)($s['research_group'] ?? '')), trim((string)($s['academic_year'] ?? ''))]);
+        $groups[$key] ??= ['title' => report_title_text($s['research_title'] ?? null), 'group' => trim((string)($s['research_group'] ?? '')) ?: 'Not recorded',
+            'year' => trim((string)($s['academic_year'] ?? '')) ?: 'Not recorded', 'records' => 0, 'stages' => []];
+        $groups[$key]['records']++;
+        $groups[$key]['stages'][in_array($s['stage'], STAGE_SEQUENCE, true) ? stage_label($s['stage']) : 'Not recorded'] = true;
+    }
+    uasort($groups, static fn($a, $b) => strcasecmp($a['title'], $b['title']));
+    $rows = array_map(static fn($g) => [$g['title'], $g['group'], $g['year'], (string)$g['records'], implode(', ', array_keys($g['stages']))], array_values($groups));
+    $rows[] = ['Distinct recorded title/group entries', '', '', (string)count($groups), ''];
+    return ['# Research titles in scope',
+        'Records that share an identical recorded Research Title, group label and academic year are listed once. This is not verified project membership; canonical projects are counted once below and in the Project Track Sheet reports.',
+        ['headers' => ['Research Title', 'Recorded group', 'Academic year', 'Records', 'Recorded stage(s)'], 'widths' => [176, 112, 64, 48, 112], 'rows' => $rows]];
+}
+
+/** Canonical V14 projects are counted once each, whatever their member count. */
+function progress_canonical_project_table(PDO $pdo): array
+{
+    if (!research_projects_available($pdo)) return [];
+    $rows = [];
+    foreach ($pdo->query('SELECT p.research_title,p.public_identifier,w.stage_key,(SELECT COUNT(*) FROM research_project_members m WHERE m.project_id=p.id) AS members
+        FROM research_projects p JOIN ierb_workflows w ON w.id=p.workflow_id JOIN students h ON h.id=p.submission_holder_id
+        WHERE h.archived_at IS NULL ORDER BY p.research_title, p.id')->fetchAll(PDO::FETCH_ASSOC) as $p) {
+        $rows[] = [$p['research_title'], $p['public_identifier'], (string)$p['members'], IerbStage::LABELS[$p['stage_key']]];
+    }
+    if (!$rows) return ['# Canonical research projects', 'No canonical V14 research projects are recorded yet.'];
+    $rows[] = ['Distinct canonical projects', '', '', (string)(count($rows))];
+    return ['# Canonical research projects (each counted once)',
+        ['headers' => ['Research Title', 'Project identifier', 'Members', 'Official stage'], 'widths' => [200, 160, 52, 100], 'rows' => $rows]];
 }
 
 /** Authoritative display labels, retrieved through the same helper used by PRISM screens. */

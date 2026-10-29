@@ -1,10 +1,12 @@
 <?php
 /** Schema 12 is the additive V14 foundation; workflow version and schema version differ. */
 require_once __DIR__.'/schema_v11.php';
+require_once __DIR__.'/schema_collation.php';
 
-function schema_v12_tables(): array
+/** Pinned DDL rendered for the legacy base collation (see schema_collation.php). */
+function schema_v12_tables(string $collation = SCHEMA_PINNED_COLLATION): array
 {
-    return [
+    return array_map(static fn($ddl) => schema_extension_ddl($ddl, $collation), [
         'ierb_workflows' => "CREATE TABLE ierb_workflows (
             id INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
             student_id INT NOT NULL,
@@ -68,7 +70,7 @@ function schema_v12_tables(): array
             CONSTRAINT ierb_event_evidence CHECK (JSON_VALID(evidence_json)),
             CONSTRAINT ierb_event_result CHECK (JSON_VALID(result_json))
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci",
-    ];
+    ]);
 }
 
 /** SHOW CREATE also covers CHECK expressions, collation and generated columns. */
@@ -79,12 +81,15 @@ function schema_v12_definition(PDO $pdo, string $table): string
     return preg_replace('/ AUTO_INCREMENT=\d+/', '', $row[1]);
 }
 
-/** Validate exact base v11 plus any already-created canonical extension tables (DDL restart). */
-function schema_v12_verify(PDO $pdo, bool $partial = false, array $projectTables = []): void
+/** Validate exact base v11 plus any already-created canonical extension tables (DDL restart).
+ * $acceptPinned admits empty tables created by the f944220 runners (always unicode_ci) for rollback only.
+ */
+function schema_v12_verify(PDO $pdo, bool $partial = false, array $projectTables = [], bool $acceptPinned = false): void
 {
     require_once __DIR__.'/account_lifecycle.php';
     $base = json_decode(file_get_contents(schema_v11_manifest_file()), true, 512, JSON_THROW_ON_ERROR);
     $extension = json_decode(file_get_contents(__DIR__.'/ierb_schema_v12.json'), true, 512, JSON_THROW_ON_ERROR);
+    $collation = schema_extension_collation($pdo);
     $actual = lifecycle_schema_inventory($pdo);
     if ($projectTables) {
         foreach (['tables','columns','indexes','foreign_keys'] as $kind) {
@@ -97,7 +102,13 @@ function schema_v12_verify(PDO $pdo, bool $partial = false, array $projectTables
     // Partial DDL is legitimate only while the base is still v11. A published v12
     // missing a table is drift/data loss, never an invitation to silently recreate it.
     if ((!$partial || $actual['schema_version'] === '12') && count($present) !== count($names)) throw new RuntimeException('Incomplete schema 12 extension.');
-    foreach ($present as $name) if (schema_v12_definition($pdo, $name) !== $extension[$name]) throw new RuntimeException('Unexpected schema 12 definition: '.$name.'.');
+    foreach ($present as $name) {
+        $definition = schema_v12_definition($pdo, $name);
+        if (!schema_extension_matches($pdo, $name, $definition, $extension[$name], $collation)
+            && !($acceptPinned && schema_extension_matches($pdo, $name, $definition, $extension[$name], SCHEMA_PINNED_COLLATION))) {
+            throw new RuntimeException('Unexpected schema 12 definition or collation: '.$name.' (legacy base '.$collation.').');
+        }
+    }
     foreach (['tables','columns','indexes','foreign_keys'] as $kind) {
         $actual[$kind] = array_values(array_filter($actual[$kind], static fn($row) => !in_array($row['TABLE_NAME'], $names, true)));
     }
@@ -130,10 +141,11 @@ function migrate_schema_v12(PDO $pdo, string $mode = 'dry-run'): array
     if ($pdo->inTransaction() || (int)$pdo->query('SELECT @@SESSION.foreign_key_checks')->fetchColumn() !== 1) throw new RuntimeException('Migration requires FK enforcement outside a transaction.');
     if ((int)$pdo->query("SELECT GET_LOCK('prism_migrate',5)")->fetchColumn() !== 1) throw new RuntimeException('Schema maintenance lock unavailable.');
     try {
-        schema_v12_verify($pdo, true);
+        schema_v12_verify($pdo, true, [], $mode === 'rollback');
+        $collation = schema_extension_collation($pdo);
         $version = (string)$pdo->query("SELECT v FROM schema_meta WHERE k='schema_version'")->fetchColumn();
         $present = $pdo->query("SELECT TABLE_NAME FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME IN ('ierb_workflows','ierb_correction_cases','ierb_workflow_events')")->fetchAll(PDO::FETCH_COLUMN);
-        if ($mode === 'dry-run') return ['ok' => true, 'mode' => $mode, 'from' => $version, 'to' => '12', 'existingExtensionTables' => $present, 'legacyRowsChanged' => 0];
+        if ($mode === 'dry-run') return ['ok' => true, 'mode' => $mode, 'from' => $version, 'to' => '12', 'existingExtensionTables' => $present, 'extensionCollation' => $collation, 'legacyRowsChanged' => 0];
         if ($mode === 'rollback') {
             // Rollback is safe only BEFORE activation/data. Retain every live workflow and its evidence.
             foreach ($present as $name) if ((int)$pdo->query('SELECT COUNT(*) FROM `'.$name.'`')->fetchColumn()) throw new RuntimeException('Rollback refused: retained V14 workflow data exists. Disable activation and retain the extension.');
@@ -143,9 +155,9 @@ function migrate_schema_v12(PDO $pdo, string $mode = 'dry-run'): array
             schema_v11_verify($pdo);
             return ['ok' => true, 'mode' => $mode, 'to' => '11', 'legacyRowsChanged' => 0];
         }
-        foreach (schema_v12_tables() as $name => $sql) if (!in_array($name, $present, true)) $pdo->exec($sql);
+        foreach (schema_v12_tables($collation) as $name => $sql) if (!in_array($name, $present, true)) $pdo->exec($sql);
         schema_v12_verify($pdo);
         $pdo->exec("UPDATE schema_meta SET v='12' WHERE k='schema_version'");
-        return ['ok' => true, 'mode' => $mode, 'to' => '12', 'legacyRowsChanged' => 0];
+        return ['ok' => true, 'mode' => $mode, 'to' => '12', 'extensionCollation' => $collation, 'legacyRowsChanged' => 0];
     } finally { $pdo->query("SELECT RELEASE_LOCK('prism_migrate')"); }
 }

@@ -1,0 +1,176 @@
+{
+    "startedAt": "2026-10-28T10:21:34+01:00",
+    "step": "preflight",
+    "mode": "x",
+    "php": "8.2.12",
+    "sapi": "cli",
+    "extensions": {
+        "pdo_mysql": true,
+        "mbstring": true,
+        "intl": false
+    },
+    "exit": 1,
+    "stdout": {
+        "ok": false,
+        "php": "8.2.12",
+        "sapi": "cli",
+        "read_only": true,
+        "checks": [
+            {
+                "capability": "PHP >=8.1",
+                "required": true,
+                "ok": true,
+                "guidance": "Available."
+            },
+            {
+                "capability": "ext-ctype",
+                "required": true,
+                "ok": true,
+                "guidance": "Available."
+            },
+            {
+                "capability": "ext-dom",
+                "required": true,
+                "ok": true,
+                "guidance": "Available."
+            },
+            {
+                "capability": "ext-fileinfo",
+                "required": true,
+                "ok": true,
+                "guidance": "Available."
+            },
+            {
+                "capability": "ext-iconv",
+                "required": true,
+                "ok": true,
+                "guidance": "Available."
+            },
+            {
+                "capability": "ext-libxml",
+                "required": true,
+                "ok": true,
+                "guidance": "Available."
+            },
+            {
+                "capability": "ext-mbstring",
+                "required": true,
+                "ok": true,
+                "guidance": "Available."
+            },
+            {
+                "capability": "ext-pdo",
+                "required": true,
+                "ok": true,
+                "guidance": "Available."
+            },
+            {
+                "capability": "ext-pdo_mysql",
+                "required": true,
+                "ok": true,
+                "guidance": "Available."
+            },
+            {
+                "capability": "ext-session",
+                "required": true,
+                "ok": true,
+                "guidance": "Available."
+            },
+            {
+                "capability": "ext-zip",
+                "required": true,
+                "ok": false,
+                "guidance": "Enable zip in the PHP configuration used by this SAPI."
+            },
+            {
+                "capability": "ext-zlib",
+                "required": true,
+                "ok": true,
+                "guidance": "Available."
+            },
+            {
+                "capability": "Argon2id",
+                "required": true,
+                "ok": true,
+                "guidance": "Available."
+            },
+            {
+                "capability": "cURL (Gmail/OpenRouter)",
+                "required": false,
+                "ok": true,
+                "guidance": "Available."
+            },
+            {
+                "capability": "Composer autoload",
+                "required": true,
+                "ok": true,
+                "guidance": "Available."
+            },
+            {
+                "capability": "Locked PDF parser",
+                "required": true,
+                "ok": true,
+                "guidance": "Available."
+            },
+            {
+                "capability": "storage permissions",
+                "required": true,
+                "ok": false,
+                "guidance": "Create this private directory for the PHP account before deployment."
+            },
+            {
+                "capability": "storage/documents permissions",
+                "required": true,
+                "ok": false,
+                "guidance": "Create this private directory for the PHP account before deployment."
+            },
+            {
+                "capability": "storage/reports permissions",
+                "required": true,
+                "ok": false,
+                "guidance": "Create this private directory for the PHP account before deployment."
+            },
+            {
+                "capability": "upload_tmp_dir permissions",
+                "required": true,
+                "ok": true,
+                "guidance": "Available."
+            },
+            {
+                "capability": "session.save_path permissions",
+                "required": true,
+                "ok": true,
+                "guidance": "Available."
+            },
+            {
+                "capability": "file_uploads",
+                "required": true,
+                "ok": true,
+                "guidance": "Available."
+            },
+            {
+                "capability": "20 MiB upload limit",
+                "required": true,
+                "ok": true,
+                "guidance": "Available."
+            },
+            {
+                "capability": "Multipart POST capacity",
+                "required": true,
+                "ok": true,
+                "guidance": "Available."
+            }
+        ],
+        "database": {
+            "ok": true,
+            "contract": "PASS",
+            "schema_version": "15",
+            "missing_objects": [],
+            "server_version": "12.3.2-MariaDB",
+            "legacy_collation": "utf8mb4_general_ci",
+            "boundary": "Read-only exact reviewed schema contract (v11 manifest, frozen constraints and pinned extension definitions); not authenticated workflow verification."
+        }
+    },
+    "stderr": "",
+    "finishedAt": "2026-10-28T10:21:43+01:00"
+}

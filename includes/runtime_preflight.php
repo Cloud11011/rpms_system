@@ -48,21 +48,40 @@ function prism_runtime_preflight(string $root, bool $integrations=false): array
         'database'=>'NOT VERIFIED; use the explicit --database option with isolated/authorized read-only credentials.'];
 }
 
-/** No migrate(), seed(), DDL or application records are written. */
+/** No migrate(), seed(), DDL or application records are written.
+ * Schemas 11-15 also run the complete reviewed contract comparison used by the migration runners.
+ */
 function prism_runtime_database_preflight(PDO $pdo): array
 {
     $pdo->exec('SET SESSION TRANSACTION READ ONLY');
     $pdo->beginTransaction();
     try {
         $version=(string)$pdo->query("SELECT v FROM schema_meta WHERE k='schema_version'")->fetchColumn();
-        $manifest=json_decode(file_get_contents(__DIR__.($version==='11'?'/account_lifecycle_schema_v11.json':'/account_lifecycle_schema.json')),true,512,JSON_THROW_ON_ERROR);
+        $supported=['10','11','12','13','14','15'];
+        $manifest=json_decode(file_get_contents(__DIR__.($version==='10'?'/account_lifecycle_schema.json':'/account_lifecycle_schema_v11.json')),true,512,JSON_THROW_ON_ERROR);
         $missing=[];
         $q=$pdo->prepare('SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME=? AND COLUMN_NAME=?');
         foreach ($manifest['columns'] as $column) {
             $q->execute([$column['TABLE_NAME'],$column['COLUMN_NAME']]);
             if ((int)$q->fetchColumn()!==1) $missing[]=$column['TABLE_NAME'].'.'.$column['COLUMN_NAME'];
         }
-        return ['ok'=>in_array($version,['10','11'],true)&&!$missing,'schema_version'=>$version,'missing_objects'=>$missing,
-            'boundary'=>'Read-only column presence check; not complete index/constraint or authenticated workflow verification.'];
+        $result=['schema_version'=>$version,'missing_objects'=>$missing,'server_version'=>(string)$pdo->query('SELECT VERSION()')->fetchColumn()];
+        require_once __DIR__.'/schema_collation.php';
+        try { $result['legacy_collation']=schema_extension_collation($pdo); }
+        catch (SchemaCollationError $e) { $result['legacy_collation']='UNSUPPORTED: '.$e->getMessage(); }
+        $contract='NOT CHECKED';
+        if ($version!=='10' && in_array($version,$supported,true)) {
+            require_once __DIR__.'/account_lifecycle.php';
+            try { lifecycle_compare_schema($pdo); $contract='PASS'; }
+            catch (Throwable $e) {
+                $contract='FAIL';
+                // Contract messages name tables and checks only, never data or credentials.
+                $reasons=[]; for ($x=$e; $x; $x=$x->getPrevious()) $reasons[]=$x->getMessage();
+                $result['contract_failure']=array_values(array_unique($reasons));
+            }
+        }
+        return ['ok'=>in_array($version,$supported,true)&&!$missing&&$contract!=='FAIL','contract'=>$contract]+$result
+            +['boundary'=>$version==='10'?'Read-only column presence check; not complete index/constraint or authenticated workflow verification.'
+                :'Read-only exact reviewed schema contract (v11 manifest, frozen constraints and pinned extension definitions); not authenticated workflow verification.'];
     } finally { $pdo->rollBack(); }
 }

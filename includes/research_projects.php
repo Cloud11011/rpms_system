@@ -25,11 +25,63 @@ function research_project_for_student(PDO $pdo, int $sid, bool $lock = false): ?
     $q->execute([$sid]); return $q->fetch(PDO::FETCH_ASSOC) ?: null;
 }
 
+/** The verified member row of a live Student login in the canonical project of $studentId, if any.
+ * Membership comes only from reviewed reconciliation; names, titles and group labels never qualify.
+ */
+function research_project_member_actor(PDO $pdo, int $studentId, array $live): ?array
+{
+    if (($live['role'] ?? '') !== 'student' || !$pdo->inTransaction()) return null;
+    $project = research_project_for_student($pdo, $studentId, true);
+    if (!$project) return null;
+    foreach (research_project_members($pdo, (int)$project['id']) as $row) {
+        if (!empty($row['archived_at']) || empty($row['profile_completed_at'])) continue;
+        $login = lifecycle_resolve_login($pdo, $row, 'student');
+        if ($login && (int)$login['id'] === (int)$live['id'] && $login['status'] === 'Active') return $row + ['project_id' => (int)$project['id']];
+    }
+    return null;
+}
+
+/** Read authorization: a Student sees their own record's documents and their own project's evidence record. */
+function research_project_student_can_read(PDO $pdo, string $email, int $studentId): bool
+{
+    $q = $pdo->prepare('SELECT email FROM students WHERE id=?'); $q->execute([$studentId]);
+    if (strcasecmp((string)$q->fetchColumn(), $email) === 0) return true;
+    if (!research_projects_available($pdo)) return false;
+    $q = $pdo->prepare('SELECT 1 FROM research_projects p JOIN research_project_members m ON m.project_id=p.id JOIN students me ON me.id=m.student_id
+        WHERE p.submission_holder_id=? AND me.email=? AND me.archived_at IS NULL LIMIT 1');
+    $q->execute([$studentId, $email]);
+    return (bool)$q->fetchColumn();
+}
+
+/** Project evidence (documents, requirements, workflow) is held once, on the designated record. */
+function research_project_evidence_owner(PDO $pdo, int $studentId): int
+{
+    $project = research_project_for_student($pdo, $studentId, $pdo->inTransaction());
+    return $project ? (int)$project['submission_holder_id'] : $studentId;
+}
+
+/** The RPMS-designated Principal Investigator is a recorded fact, never derived from the evidence holder. */
+function research_project_principal_investigator(PDO $pdo, int $projectId): ?array
+{
+    $q = $pdo->prepare("SELECT id,evidence_json,created_at FROM research_project_events WHERE project_id=? AND event_key='pi_designated' ORDER BY id DESC LIMIT 1");
+    $q->execute([$projectId]); $event = $q->fetch(PDO::FETCH_ASSOC);
+    if (!$event) return null;
+    $evidence = json_decode($event['evidence_json'], true, 512, JSON_THROW_ON_ERROR);
+    $q = $pdo->prepare('SELECT s.id,s.full_name,s.student_id FROM research_project_members m JOIN students s ON s.id=m.student_id WHERE m.project_id=? AND m.student_id=?');
+    $q->execute([$projectId, (int)$evidence['studentId']]); $member = $q->fetch(PDO::FETCH_ASSOC);
+    // A designated Student who is no longer a member is reported as undesignated, never silently replaced.
+    return $member ? ['studentId' => (int)$member['id'], 'name' => $member['full_name'], 'studentNumber' => $member['student_id'],
+        'designatedAt' => $event['created_at'], 'eventId' => (int)$event['id'], 'source' => 'RPMS designation'] : null;
+}
+
 function research_project_slug(string $title): string
 {
     $ascii = iconv('UTF-8', 'ASCII//TRANSLIT//IGNORE', $title);
-    $slug = trim(preg_replace('/[^a-z0-9]+/', '-', strtolower($ascii === false ? '' : $ascii)), '-');
-    return substr($slug ?: 'research-project', 0, 160);
+    // libiconv transliterates "ñ" as "~n" where glibc gives "n"; drop the marks so identifiers are platform-independent.
+    $ascii = str_replace(['~', '^', '`', '"', "'"], '', $ascii === false ? '' : $ascii);
+    // Truncate first, then trim, so a long title never yields a trailing hyphen (B7-F22).
+    $slug = trim(substr(trim(preg_replace('/[^a-z0-9]+/', '-', strtolower($ascii)), '-'), 0, 160), '-');
+    return $slug ?: 'research-project';
 }
 
 function research_project_identifier(PDO $pdo, string $title, ?int $own = null): string
@@ -74,6 +126,28 @@ function research_project_event(PDO $pdo, array $actor, array $project, string $
     document_workflow_audit($pdo, $actor, 'research_project_'.$event, ['entity_type'=>'research_project','entity_id'=>$project['id'],'student_id'=>null,
         'reason'=>$reason,'details'=>'Canonical project '.$project['id'].'; event '.$id]);
     return $id;
+}
+
+/** Read-only reconciliation preview: exact snapshots for RPMS to review. Nothing is inferred or changed. */
+function research_project_preview(PDO $pdo, array $actor, array $studentIds): array
+{
+    if (!research_projects_available($pdo)) throw new AccountLifecycleConflict('Schema 13 is required.');
+    if (!$studentIds || count($studentIds) > 50 || count(array_unique($studentIds)) !== count($studentIds)) throw new AccountLifecycleValidation('Select 1–50 distinct Student records.');
+    foreach ($studentIds as $sid) if (!is_int($sid) || $sid < 1) throw new AccountLifecycleValidation('Invalid Student record.');
+    $pdo->beginTransaction();
+    try {
+        research_project_fence($pdo); $live = research_project_admin($pdo, $actor); $mapping = [];
+        foreach ($studentIds as $sid) {
+            $row = current_workflow_student($pdo, $sid, $live);
+            $q = $pdo->prepare('SELECT stage_key FROM ierb_workflows WHERE student_id=?'); $q->execute([$sid]);
+            $mapping[] = ['studentId' => (int)$row['id'], 'snapshotSha256' => hash('sha256', json_encode($row, JSON_THROW_ON_ERROR)),
+                'name' => $row['full_name'], 'studentNumber' => $row['student_id'], 'previousGroup' => $row['research_group'], 'previousTitle' => $row['research_title'],
+                'adviserId' => (int)$row['adviser_id'], 'enrolledStage' => $q->fetchColumn() ?: null,
+                'existingProject' => research_project_for_student($pdo, $sid)['public_identifier'] ?? null];
+        }
+        $pdo->commit();
+        return ['ok' => true, 'mapping' => $mapping, 'note' => 'Review every legacy association, the evidence record and the Principal Investigator before applying. No membership changed.'];
+    } catch (Throwable $e) { if ($pdo->inTransaction()) $pdo->rollBack(); throw $e; }
 }
 
 /** An operator-reviewed mapping binds exact Student snapshots, never similar titles.
@@ -177,13 +251,33 @@ function research_project_reassign_adviser(PDO $pdo, array $actor, int $id, int 
     finally { $pdo->query("SELECT RELEASE_LOCK('prism_migrate')"); }
 }
 
+/** PI is an identifying role only; it grants no upload, submission or approval permission. */
+function research_project_designate_pi(PDO $pdo, array $actor, int $id, int $expectedRevision, int $studentId, string $reason): array
+{
+    ierb_v14_gate($pdo); $reason=ierb_v14_reason($reason); ierb_v14_begin($pdo);
+    try {
+        research_project_fence($pdo); $live=research_project_admin($pdo,$actor);
+        $q=$pdo->prepare('SELECT * FROM research_projects WHERE id=? FOR UPDATE'); $q->execute([$id]); $p=$q->fetch(PDO::FETCH_ASSOC);
+        if (!$p || (int)$p['revision']!==$expectedRevision) throw new AccountLifecycleConflict('The project changed. Review its current members.');
+        $members=array_map('intval',array_column(research_project_members($pdo,$id),'id'));
+        if (!in_array($studentId,$members,true)) throw new AccountLifecycleValidation('Choose a verified member of this research project.');
+        $previous=research_project_principal_investigator($pdo,$id);
+        if ($previous && $previous['studentId']===$studentId) throw new AccountLifecycleConflict('This member is already the designated Principal Investigator.');
+        research_project_event($pdo,$live,$p,'pi_designated',$reason,['studentId'=>$studentId,'previousStudentId'=>$previous['studentId']??null]);
+        $pdo->commit(); return ['ok'=>true,'projectId'=>$id,'principalInvestigatorStudentId'=>$studentId];
+    } catch (Throwable $e) { if ($pdo->inTransaction()) $pdo->rollBack(); throw $e; }
+    finally { $pdo->query("SELECT RELEASE_LOCK('prism_migrate')"); }
+}
+
 /** Validate membership, live accounts and authority before evidence can change progress. */
 function research_project_validate(PDO $pdo, array $project, array $actor): array
 {
-    if (!in_array($actor['role'],['admin','adviser'],true)) throw new AccountLifecycleForbidden('Only authorized staff may change project evidence.');
+    // A verified member may drive a formal-submission event (for example the Final Report); PI status is irrelevant.
+    if (!in_array($actor['role'],['admin','adviser','student'],true)) throw new AccountLifecycleForbidden('Only authorized project participants may change project evidence.');
     $rows = research_project_members($pdo,(int)$project['id']); $holder = false;
+    if ($actor['role']==='student' && !research_project_member_actor($pdo,(int)$project['submission_holder_id'],$actor)) throw new AccountLifecycleForbidden('Only a verified member of this research project may submit its evidence.');
     foreach ($rows as $row) {
-        current_workflow_student($pdo,(int)$row['id'],$actor);
+        current_workflow_student($pdo,(int)$row['id'],$actor,true);
         $login=lifecycle_resolve_login($pdo,$row,'student');
         if (!empty($login['must_change_password']) || legal_outstanding($pdo,(int)$login['id'])) throw new AccountLifecycleConflict('A project member has incomplete account setup or legal acceptance.');
         if ((int)$row['adviser_id'] !== (int)$project['adviser_id'] || $row['research_group'] !== $project['public_identifier'] || $row['research_title'] !== $project['research_title']) throw new AccountLifecycleConflict('Canonical membership, research title or Adviser assignment is inconsistent. Administrative reconciliation required.');

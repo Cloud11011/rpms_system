@@ -1,0 +1,65 @@
+{
+  "collation": {
+    "anchor": "utf8mb4_general_ci",
+    "extension": {
+      "academic_years": "utf8mb4_general_ci",
+      "document_summary_versions": "utf8mb4_general_ci",
+      "ierb_correction_cases": "utf8mb4_general_ci",
+      "ierb_report_snapshots": "utf8mb4_general_ci",
+      "ierb_workflows": "utf8mb4_general_ci",
+      "ierb_workflow_events": "utf8mb4_general_ci",
+      "research_projects": "utf8mb4_general_ci",
+      "research_project_events": "utf8mb4_general_ci",
+      "research_project_identifiers": "utf8mb4_general_ci",
+      "research_project_members": "utf8mb4_general_ci",
+      "research_project_member_history": "utf8mb4_general_ci"
+    }
+  },
+  "project": {
+    "id": 1,
+    "public_identifier": "batch-7r-shared-project-penaflor-study",
+    "research_title": "Batch 7R Shared Project – Peñaflor Study",
+    "adviser_id": 2,
+    "submission_holder_id": 40,
+    "workflow_id": 1,
+    "revision": 6,
+    "completed_at": null,
+    "completion_document_id": null,
+    "created_at": "2026-10-29 06:35:46.692270"
+  },
+  "pi": {
+    "studentId": 41,
+    "name": "Synthetic Student 41",
+    "studentNumber": "7000041",
+    "designatedAt": "2026-10-29 06:35:48.315875",
+    "eventId": 2,
+    "source": "RPMS designation"
+  },
+  "case": {
+    "id": 1,
+    "workflow_id": 1,
+    "interrupted_stage": "initial_submission",
+    "reason": "Synthetic RPMS approved the correction request.",
+    "affected_documents_json": "[{\"id\":\"1bad28b3078df565713bc352\",\"student_id\":40,\"document_type\":\"Study Protocol\",\"stage\":\"Stage 1\",\"version_no\":2,\"is_current\":1}]",
+    "requires_amendment": 1,
+    "opened_by_user_id": 1,
+    "opened_at": "2026-10-29 06:36:07.071693",
+    "resolved_by_user_id": null,
+    "resolved_at": null,
+    "resolution_evidence_json": null,
+    "active_workflow": 1
+  },
+  "race": [
+    200,
+    409
+  ],
+  "preflight": {
+    "ok": true,
+    "contract": "PASS",
+    "schema_version": "15",
+    "missing_objects": [],
+    "server_version": "12.3.2-MariaDB",
+    "legacy_collation": "utf8mb4_general_ci",
+    "boundary": "Read-only exact reviewed schema contract (v11 manifest, frozen constraints and pinned extension definitions); not authenticated workflow verification."
+  }
+}

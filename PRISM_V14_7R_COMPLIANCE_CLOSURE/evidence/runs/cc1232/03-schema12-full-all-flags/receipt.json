@@ -1,0 +1,1 @@
+{"label":"03-schema12-full-all-flags","exit":0,"start":"2026-10-28T22:16:45+08:00","end":"2026-10-28T22:25:33+08:00","env":"PRISM_TEST_SCHEMA_VERSION=12 PRISM_TEST_V14_DOCUMENTS=1 PRISM_TEST_PROJECT_GROUP=1 PRISM_TEST_REPORT_SCHEMA14=1 PRISM_TEST_MONITOR_SCHEMA15=1 PRISM_TEST_BATCH6=1","fixture":"cc1232","collation":"utf8mb4_general_ci","base":"f944220+7R working tree+closure"}

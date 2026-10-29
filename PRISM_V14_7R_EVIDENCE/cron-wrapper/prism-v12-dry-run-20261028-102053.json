@@ -1,0 +1,24 @@
+{
+    "startedAt": "2026-10-28T10:20:49+01:00",
+    "step": "v12",
+    "mode": "dry-run",
+    "php": "8.2.12",
+    "sapi": "cli",
+    "extensions": {
+        "pdo_mysql": true,
+        "mbstring": true,
+        "intl": false
+    },
+    "exit": 0,
+    "stdout": {
+        "ok": true,
+        "mode": "dry-run",
+        "from": "11",
+        "to": "12",
+        "existingExtensionTables": [],
+        "extensionCollation": "utf8mb4_general_ci",
+        "legacyRowsChanged": 0
+    },
+    "stderr": "",
+    "finishedAt": "2026-10-28T10:20:53+01:00"
+}

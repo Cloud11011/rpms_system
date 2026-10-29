@@ -1,4 +1,5 @@
 <?php
+if (PHP_SAPI !== 'cli') exit; // Test fixture: never reachable over HTTP (B7-F21).
 function project_migration_tests(PDO $pdo): array
 {
     $cases=[];
@@ -25,10 +26,10 @@ function project_migration_tests(PDO $pdo): array
     $pdo->exec('ALTER TABLE research_projects DROP unexpected_column');
     $pdo->exec('DROP TABLE research_project_member_history');
     $refuses(fn()=>migrate_schema_v13($pdo,'apply'),'Published project schema with a missing table is not silently recreated');
-    $pdo->exec(schema_v13_tables()['research_project_member_history']);
+    $pdo->exec(schema_v13_tables(schema_extension_collation($pdo))['research_project_member_history']);
     migrate_schema_v13($pdo,'rollback');
     $check(lifecycle_schema_inventory($pdo)===$inventory && $fingerprint()===$before,'Empty project rollback restores the exact schema 12 contract and retained records');
-    $pdo->exec(schema_v13_tables()['research_projects']); migrate_schema_v13($pdo,'apply');
+    $pdo->exec(schema_v13_tables(schema_extension_collation($pdo))['research_projects']); migrate_schema_v13($pdo,'apply');
     $check($fingerprint()===$before,'Interrupted project apply resumes without data rewriting');
     $pdo->exec("UPDATE schema_meta SET v='12' WHERE k='schema_version'"); $pdo->exec('DROP TABLE research_project_member_history');
     migrate_schema_v13($pdo,'rollback');

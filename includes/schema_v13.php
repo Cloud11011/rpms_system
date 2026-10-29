@@ -2,10 +2,11 @@
 /** Additive canonical project extension. No legacy membership is inferred by DDL. */
 require_once __DIR__.'/schema_v12.php';
 
-function schema_v13_tables(): array
+/** Pinned DDL rendered for the legacy base collation; documents.id is a VARCHAR foreign key parent. */
+function schema_v13_tables(string $collation = SCHEMA_PINNED_COLLATION): array
 {
     $tail = ' ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci';
-    return [
+    return array_map(static fn($ddl) => schema_extension_ddl($ddl, $collation), [
         'research_projects' => "CREATE TABLE research_projects (
             id INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
             public_identifier VARCHAR(190) CHARACTER SET ascii COLLATE ascii_bin NOT NULL UNIQUE,
@@ -70,7 +71,7 @@ function schema_v13_tables(): array
             CONSTRAINT project_history_event_fk FOREIGN KEY (project_event_id) REFERENCES research_project_events(id) ON DELETE RESTRICT,
             CONSTRAINT project_history_member_fk FOREIGN KEY (project_id,student_id) REFERENCES research_project_members(project_id,student_id) ON DELETE RESTRICT
         )".$tail,
-    ];
+    ]);
 }
 
 function schema_v13_definition(PDO $pdo, string $name): string
@@ -84,12 +85,13 @@ function schema_v13_verify(PDO $pdo, bool $partial = false, array $extraTables =
     $names = array_keys(schema_v13_tables());
     schema_v12_verify($pdo, false, array_merge($names,$extraTables));
     $contract = json_decode(file_get_contents(__DIR__.'/research_schema_v13.json'), true, 512, JSON_THROW_ON_ERROR);
+    $collation = schema_extension_collation($pdo);
     $version = $pdo->query("SELECT v FROM schema_meta WHERE k='schema_version'")->fetchColumn();
     foreach ($names as $name) {
         $q = $pdo->prepare('SELECT COUNT(*) FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME=?'); $q->execute([$name]);
         if (!$q->fetchColumn()) {
             if (!$partial || in_array($version,['13','14','15'],true)) throw new RuntimeException('Incomplete project schema.');
-        } elseif (schema_v13_definition($pdo, $name) !== $contract[$name]) throw new RuntimeException('Project schema drift: '.$name);
+        } elseif (!schema_extension_matches($pdo, $name, schema_v13_definition($pdo, $name), $contract[$name], $collation)) throw new RuntimeException('Project schema drift: '.$name.' (legacy base '.$collation.').');
     }
 }
 
@@ -109,10 +111,10 @@ function migrate_schema_v13(PDO $pdo, string $mode = 'dry-run'): array
             foreach (array_reverse(array_keys(schema_v13_tables())) as $name) if (in_array($name, $present, true)) $pdo->exec('DROP TABLE `'.$name.'`');
             schema_v12_verify($pdo);
         } elseif ($mode === 'apply') {
-            foreach (schema_v13_tables() as $name => $ddl) if (!in_array($name, $present, true)) $pdo->exec($ddl);
+            foreach (schema_v13_tables(schema_extension_collation($pdo)) as $name => $ddl) if (!in_array($name, $present, true)) $pdo->exec($ddl);
             schema_v13_verify($pdo);
             $pdo->exec("UPDATE schema_meta SET v='13' WHERE k='schema_version'");
         }
-        return ['ok'=>true,'mode'=>$mode,'to'=>$mode === 'rollback' ? '12' : '13','legacyRowsChanged'=>0,'membershipsInferred'=>0];
+        return ['ok'=>true,'mode'=>$mode,'to'=>$mode === 'rollback' ? '12' : '13','extensionCollation'=>schema_extension_collation($pdo),'legacyRowsChanged'=>0,'membershipsInferred'=>0];
     } finally { $pdo->query("SELECT RELEASE_LOCK('prism_migrate')"); }
 }

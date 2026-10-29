@@ -1,0 +1,11 @@
+{
+    "ok": true,
+    "mode": "apply",
+    "to": "15",
+    "historicalYears": [
+        "2025-2026",
+        "2026-2027",
+        "2027-2028"
+    ],
+    "existingAssignmentsChanged": 0
+}

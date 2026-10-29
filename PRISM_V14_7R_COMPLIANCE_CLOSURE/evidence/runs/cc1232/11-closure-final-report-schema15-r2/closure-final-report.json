@@ -1,0 +1,83 @@
+{
+  "lateUploadStatus": 409,
+  "project": {
+    "id": 2,
+    "identifier": "closure-final-report-project-sao-jose-study",
+    "completedAt": "2026-10-28 22:33:48.035541",
+    "completionDocument": "47175a81e211a62260f59579"
+  },
+  "submitter": "student62@example.test (non-PI member)",
+  "pi": 61,
+  "race": [
+    200,
+    409
+  ],
+  "duplicates": [
+    409,
+    409,
+    409
+  ],
+  "members": [
+    {
+      "student_id": 60,
+      "stage_key": "ierb_completed",
+      "workflow_revision": 20
+    },
+    {
+      "student_id": 61,
+      "stage_key": "ierb_completed",
+      "workflow_revision": 20
+    },
+    {
+      "student_id": 62,
+      "stage_key": "ierb_completed",
+      "workflow_revision": 20
+    }
+  ],
+  "history": "60,61,62",
+  "ledgerEvent": {
+    "actor": 62,
+    "from": "approval_data_gathering",
+    "to": "ierb_completed"
+  },
+  "audits": [
+    {
+      "action": "document_submitted_to_rpms",
+      "user_email": "student62@example.test",
+      "after_value": "Submitted to RPMS"
+    }
+  ],
+  "memberProgressAudits": "60,61,62",
+  "notices": [
+    {
+      "type": "student",
+      "id": 60,
+      "subject": "PRISM research project progress"
+    },
+    {
+      "type": "adviser",
+      "id": 2,
+      "subject": "PRISM research project progress"
+    },
+    {
+      "type": "student",
+      "id": 61,
+      "subject": "PRISM research project progress"
+    },
+    {
+      "type": "student",
+      "id": 62,
+      "subject": "PRISM research project progress"
+    },
+    {
+      "type": "student",
+      "id": 60,
+      "subject": "PRISM Formal RPMS Submission Confirmation"
+    },
+    {
+      "type": "admin",
+      "id": 1,
+      "subject": "Document submitted to RPMS"
+    }
+  ]
+}

@@ -1,0 +1,48 @@
+Writer creates the file with the exact content and restores the umask
+Writer never overwrites an existing file
+Writer refuses the unsafe file name ".hidden.json"
+Writer refuses the unsafe file name "bad name.json"
+Writer refuses the unsafe file name "semi;colon.json"
+Writer refuses the unsafe file name ""
+Writer refuses a missing directory
+Writer refuses a directory inside the deployed application
+Writer refuses a dangling link planted at the target and creates nothing through it
+Writer refuses a link to an existing file and leaves its target unchanged
+Writer refuses a linked directory
+POSIX: a new private file is 0600
+POSIX: the file is 0600 even under umask 000
+POSIX: a directory with mode 755 is refused
+POSIX: a directory with mode 750 is refused
+POSIX: a directory with mode 711 is refused
+POSIX: a directory with mode 701 is refused
+POSIX: a directory owned by another account is refused
+Issuer requires --out: evidence is never printed to stdout
+Issuer refuses an empty --out
+Issuer refuses evidence inside the application directory
+Issuer refuses an existing --out file and leaves it unchanged
+Issuer refuses a planted link at --out
+Issuer refuses a linked --out directory
+POSIX: issuer refuses a group/world-accessible --out directory
+Issuer creates no evidence file when issuance does not complete
+Issuer never prints the key
+Cron runner refuses a receipt directory inside the application
+Cron runner refuses a missing receipt directory
+Cron runner refuses a linked receipt directory
+POSIX: cron runner refuses a group/world-accessible receipt directory
+Cron runner refuses the unsafe mode "..\/..\/escape" that would name the receipt
+Cron runner refuses the unsafe mode "X" that would name the receipt
+Cron runner refuses the unsafe mode "a b" that would name the receipt
+Probe applies the migration runner's TLS rule: an unreadable CA is refused before connecting
+The probe receipt is stored privately with a unique name and carries no password or DSN
+POSIX: the receipt file is 0600
+Probe refuses a non-MySQL DSN through the shared connection policy
+A failed probe reports only connection_failed (no credentials)
+{
+    "status": "PASS",
+    "platform": "Linux",
+    "php": "8.2.35",
+    "assertions": 39,
+    "skipped": [
+        "TLS server checks (PRISM_TEST_TLS_* not set)"
+    ]
+}

@@ -1,4 +1,5 @@
 <?php
+if (PHP_SAPI !== 'cli') exit; // Test fixture: never reachable over HTTP (B7-F21).
 require dirname(__DIR__).'/ierb-group-tests/bootstrap.php';
 require_once $root.'/includes/schema_v12.php';
 require_once $root.'/includes/stage_configuration.php';
@@ -48,7 +49,7 @@ try {
         check(lifecycle_schema_inventory($pdo)===$after && retained()===$before, 'Applying the migration twice is idempotent');
         sql('DROP TABLE ierb_workflow_events');
         refuses(fn()=>migrate_schema_v12($pdo,'apply'), RuntimeException::class, 'Published schema 12 with a missing table is refused rather than silently repaired');
-        $pdo->exec(schema_v12_tables()['ierb_workflow_events']); // Explicit disposable test repair of an empty table.
+        $pdo->exec(schema_v12_tables(schema_extension_collation($pdo))['ierb_workflow_events']); // Explicit disposable test repair of an empty table.
         sql('ALTER TABLE ierb_workflows ADD unexpected_column INT NULL');
         refuses(fn()=>migrate_schema_v12($pdo,'apply'), RuntimeException::class, 'Migration refuses extension schema drift');
         refuses(fn()=>lifecycle_compare_schema($pdo), AccountLifecycleConflict::class, 'Permanent deletion schema verification fails closed on drift');
@@ -56,7 +57,7 @@ try {
         check(migrate_schema_v12($pdo,'rollback')['to']==='11', 'Empty extension rollback restores schema 11');
         check(lifecycle_schema_inventory($pdo)===$inventory && retained()===$before, 'Rollback restores the exact inventory and every retained record');
         // Simulate interruption after the first implicit-commit CREATE.
-        $pdo->exec(schema_v12_tables()['ierb_workflows']);
+        $pdo->exec(schema_v12_tables(schema_extension_collation($pdo))['ierb_workflows']);
         check(count(migrate_schema_v12($pdo)['existingExtensionTables'])===1, 'Dry run recognizes a canonical partially applied migration');
         migrate_schema_v12($pdo,'apply'); schema_v12_verify($pdo);
         check(retained()===$before, 'Restart after interrupted DDL safely finishes without changing legacy rows');

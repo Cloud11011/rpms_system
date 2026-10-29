@@ -1,0 +1,45 @@
+Writer creates the file with the exact content and restores the umask
+Writer never overwrites an existing file
+Writer refuses the unsafe file name ".hidden.json"
+Writer refuses the unsafe file name "bad name.json"
+Writer refuses the unsafe file name "semi;colon.json"
+Writer refuses the unsafe file name ""
+Writer refuses a missing directory
+Writer refuses a directory inside the deployed application
+Writer refuses a dangling link planted at the target and creates nothing through it
+Writer refuses a link to an existing file and leaves its target unchanged
+Writer refuses a linked directory
+Issuer requires --out: evidence is never printed to stdout
+Issuer refuses an empty --out
+Issuer refuses evidence inside the application directory
+Issuer refuses an existing --out file and leaves it unchanged
+Issuer refuses a planted link at --out
+Issuer refuses a linked --out directory
+Issuer creates no evidence file when issuance does not complete
+Issuer never prints the key
+Cron runner refuses a receipt directory inside the application
+Cron runner refuses a missing receipt directory
+Cron runner refuses a linked receipt directory
+Cron runner refuses the unsafe mode "..\/..\/escape" that would name the receipt
+Cron runner refuses the unsafe mode "X" that would name the receipt
+Cron runner refuses the unsafe mode "a b" that would name the receipt
+Probe applies the migration runner's TLS rule: an unreadable CA is refused before connecting
+The probe receipt is stored privately with a unique name and carries no password or DSN
+Probe refuses a non-MySQL DSN through the shared connection policy
+A failed probe reports only connection_failed (no credentials)
+TLS: the probe verifies the server certificate with the configured CA and records the negotiated cipher
+TLS: the probe refuses a server certificate not signed by the configured CA
+TLS: the preflight step applies the same certificate verification
+TLS: the migration runner refuses the same certificate (one policy for every step)
+The probe refuses a connection to a database other than the configured one
+The preflight step refuses a database other than the configured one
+TLS: with a CA configured, a server without TLS is refused (connection_failed)
+{
+    "status": "PASS",
+    "platform": "Windows",
+    "php": "8.2.12",
+    "assertions": 36,
+    "skipped": [
+        "POSIX mode and ownership checks (Windows host)"
+    ]
+}

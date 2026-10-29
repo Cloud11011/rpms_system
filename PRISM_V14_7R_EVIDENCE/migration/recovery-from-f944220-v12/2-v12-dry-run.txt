@@ -1,0 +1,5 @@
+{
+    "ok": false,
+    "errorClass": "precondition_refused",
+    "message": "Unexpected schema 12 definition or collation: ierb_correction_cases (legacy base utf8mb4_general_ci)."
+}

@@ -109,16 +109,18 @@ function track_project_snapshot(PDO $pdo,array $actor,int $id): array
     $q=$pdo->prepare('SELECT * FROM ierb_workflow_events WHERE workflow_id=? ORDER BY revision FOR UPDATE'); $q->execute([$workflow['id']]); $events=$q->fetchAll(PDO::FETCH_ASSOC);
     $q=$pdo->prepare('SELECT * FROM research_project_events WHERE project_id=? ORDER BY revision FOR UPDATE'); $q->execute([$id]); $projectEvents=$q->fetchAll(PDO::FETCH_ASSOC);
     $q=$pdo->prepare('SELECT academic_year FROM students s JOIN research_project_members m ON m.student_id=s.id WHERE m.project_id=? ORDER BY s.id FOR UPDATE'); $q->execute([$id]); $years=array_values(array_unique(array_filter($q->fetchAll(PDO::FETCH_COLUMN))));
-    $identity=['Principal Investigator'=>'Not recorded','Protocol Code'=>$holder['protocol_code']?:'Not recorded','Research Category'=>'Not recorded',
+    // PI is an RPMS-designated fact (project event), never derived from the evidence holder or membership order.
+    $pi=research_project_principal_investigator($pdo,$id);
+    $identity=['Principal Investigator'=>$pi?$pi['name'].' (designated by RPMS '.substr((string)$pi['designatedAt'],0,10).')':'Not recorded','Protocol Code'=>$holder['protocol_code']?:'Not recorded','Research Category'=>'Not recorded',
         'Research / Study Title'=>$project['research_title'],'Co-Investigators'=>'Not recorded','Research Group Identifier'=>$project['public_identifier'],
         'Academic Year'=>count($years)===1?$years[0]:'Not recorded (missing or inconsistent member records)',
         'Assigned Research Adviser'=>$adviser?:'Not recorded','Current IERB Stage'=>$checklist['workflow']['stageLabel']];
-    $notes=array_merge($tracking['notes'],['Investigator roles and research category have no authoritative fields in the current canonical project schema. Submission holder and membership do not establish investigator roles.',
+    $notes=array_merge($tracking['notes'],['The Principal Investigator is shown only when RPMS recorded a designation; it identifies a role and grants no additional permission. Co-investigator roles and research category have no authoritative fields. The project evidence record and membership order do not establish investigator roles.',
         'Protocol code comes from the designated holder; academic year requires agreement among recorded project members.',
         'Submitted dates use document rpms_submitted_at with mandatory formal-submission audits; returned dates use separate document_returned_for_revision audits. Uploads, acceptances and case openings do not establish those dates.',
         'Each case contributes at most one cycle. Date Submitted is the earliest audited formal submission of an affected successor or required Amendment in that case, not proof that every correction was submitted.',
         'All times are stored database values shown in Asia/Manila. Unknown dates remain Not recorded.']);
-    $notes[]='The shared PDF engine uses built-in Latin fonts and transliterates unsupported characters. The retained database snapshot preserves the original UTF-8 source values.';
+    $notes[]='The shared PDF engine uses built-in Latin fonts with Windows-1252 text; characters outside it are shown as ? with a notice. The retained database snapshot preserves the original UTF-8 source values.';
     return ['formatVersion'=>1,'capturedAt'=>$pdo->query('SELECT NOW(6)')->fetchColumn(),'project'=>$project,'identity'=>$identity,
         'workflow'=>$workflow,'checklist'=>$checklist,'tracking'=>$tracking,'workflowEvents'=>$events,'projectEvents'=>$projectEvents,
         'members'=>research_project_members($pdo,$id),'notes'=>$notes];

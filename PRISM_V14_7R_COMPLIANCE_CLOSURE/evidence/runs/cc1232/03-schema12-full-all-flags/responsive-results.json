@@ -1,0 +1,92 @@
+[
+  {
+    "width": 390,
+    "theme": "light",
+    "section": "PASS",
+    "modal": "PASS",
+    "overflow": false,
+    "cancel": "PASS",
+    "keyboard": "PASS"
+  },
+  {
+    "width": 768,
+    "theme": "light",
+    "section": "PASS",
+    "modal": "PASS",
+    "overflow": false,
+    "cancel": "PASS",
+    "keyboard": "PASS"
+  },
+  {
+    "width": 1024,
+    "theme": "light",
+    "section": "PASS",
+    "modal": "PASS",
+    "overflow": false,
+    "cancel": "PASS",
+    "keyboard": "PASS"
+  },
+  {
+    "width": 1440,
+    "theme": "light",
+    "section": "PASS",
+    "modal": "PASS",
+    "overflow": false,
+    "cancel": "PASS",
+    "keyboard": "PASS"
+  },
+  {
+    "width": 1920,
+    "theme": "light",
+    "section": "PASS",
+    "modal": "PASS",
+    "overflow": false,
+    "cancel": "PASS",
+    "keyboard": "PASS"
+  },
+  {
+    "width": 390,
+    "theme": "dark",
+    "section": "PASS",
+    "modal": "PASS",
+    "overflow": false,
+    "cancel": "PASS",
+    "keyboard": "PASS"
+  },
+  {
+    "width": 768,
+    "theme": "dark",
+    "section": "PASS",
+    "modal": "PASS",
+    "overflow": false,
+    "cancel": "PASS",
+    "keyboard": "PASS"
+  },
+  {
+    "width": 1024,
+    "theme": "dark",
+    "section": "PASS",
+    "modal": "PASS",
+    "overflow": false,
+    "cancel": "PASS",
+    "keyboard": "PASS"
+  },
+  {
+    "width": 1440,
+    "theme": "dark",
+    "section": "PASS",
+    "modal": "PASS",
+    "overflow": false,
+    "cancel": "PASS",
+    "keyboard": "PASS"
+  },
+  {
+    "width": 1920,
+    "theme": "dark",
+    "section": "PASS",
+    "modal": "PASS",
+    "overflow": false,
+    "cancel": "PASS",
+    "keyboard": "PASS"
+  }
+]

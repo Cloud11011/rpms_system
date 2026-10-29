@@ -1,0 +1,20 @@
+{
+  "status": "FAIL",
+  "assertions": 12,
+  "cases": [
+    "Isolated database exactly matches schema v15",
+    "Isolated copied PHP application serves HTTP",
+    "Actual authenticated login admin@example.test",
+    "Actual authenticated login adviser2@example.test",
+    "Actual authenticated login student4@example.test",
+    "admin can inspect the immutable V14 contract while the current workflow stays gated",
+    "admin has no V14 HTTP mutation bypass in Batch 1",
+    "adviser can inspect the immutable V14 contract while the current workflow stays gated",
+    "adviser has no V14 HTTP mutation bypass in Batch 1",
+    "student can inspect the immutable V14 contract while the current workflow stays gated",
+    "student has no V14 HTTP mutation bypass in Batch 1",
+    "Every schema 12-15 extension table uses the legacy base collation utf8mb4_general_ci"
+  ],
+  "error": "Error: {\"ok\":false,\"type\":\"AccountLifecycleConflict\",\"message\":\"Login identity conflicts with this record. Request Admin review; retain the account using Archive.\"}",
+  "stack": "Error: {\"ok\":false,\"type\":\"AccountLifecycleConflict\",\"message\":\"Login identity conflicts with this record. Request Admin review; retain the account using Archive.\"}\n    at fx (C:\\PRISM_Workspaces\\prism-v13-release-clean\\.batch7r-worktree\\maintenance\\ierb-7r-tests\\integration.cjs:15:165)\n    at module.exports (C:\\PRISM_Workspaces\\prism-v13-release-clean\\.batch7r-worktree\\maintenance\\ierb-7r-tests\\integration.cjs:28:19)\n    at C:\\PRISM_Workspaces\\prism-v13-release-clean\\.batch7r-worktree\\maintenance\\ierb-group-tests\\run.cjs:73:98"
+}

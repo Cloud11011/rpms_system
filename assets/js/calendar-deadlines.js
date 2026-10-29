@@ -6,6 +6,7 @@ window.PrismDeadlines = (() => {
         const manager = ['admin', 'adviser'].includes(host.dataset.role);
         host.innerHTML = '<div class="panel-title"><div><span class="eyebrow">Official Deadline</span><h2>Official deadlines</h2></div></div>'
             + (manager ? '<details class="deadline-create"><summary>Create official deadline</summary><form id="deadlineForm" class="deadline-form"><label>Title<input name="title" maxlength="190" placeholder="Enter the deadline title" required></label><label>Deadline date<input name="date" type="date" required></label><label>Optional description<textarea name="description" maxlength="2000" rows="3" placeholder="Add details for recipients (optional)"></textarea></label><label>Target<select name="target"><option value="all"></option><option value="selected">Selected research groups</option></select></label><fieldset id="deadlineGroupsLabel" class="prism-group-selector" hidden><legend>Research groups</legend><label for="deadlineGroupSearch">Search authorized groups</label><input id="deadlineGroupSearch" type="search" placeholder="Search groups..." aria-controls="deadlineGroupChoices"><select name="groups" multiple hidden aria-hidden="true" tabindex="-1"></select><div id="deadlineGroupChoices" class="prism-group-choices"></div><p id="deadlineGroupCount" role="status" aria-live="polite">0 selected</p><button type="button" id="deadlineGroupClear" class="prism-btn">Clear selection</button><small id="deadlineGroupHelp">Choose one or more groups from the authorized list.</small><p id="deadlineGroupError" class="prism-field-error" role="alert"></p></fieldset><p id="deadlineGroupState" role="status">Loading research groups...</p><button type="submit" class="save-task" disabled>Create deadline</button></form></details><label class="deadline-manage"><input type="checkbox" id="deadlineManage"> Manage deadlines (including cancelled)</label>' : '')
+            + '<div class="deadline-list-controls" role="group" aria-label="Official deadline list options"><label for="deadlineView">Show <select id="deadlineView"><option value="day">Selected date</option><option value="upcoming">Upcoming (next 45 days) and overdue (last 14 days)</option></select></label><label for="deadlineSort">Sort <select id="deadlineSort"><option value="upcoming">Nearest upcoming first</option><option value="date-asc">Date (earliest first)</option><option value="date-desc">Date (latest first)</option><option value="title-asc">Title A–Z</option><option value="created-desc">Recently created</option></select></label></div>'
             + '<h3 id="officialDateLabel"></h3><p id="officialLoadState" role="status"></p><div id="officialDeadlineList" class="task-list"></div><p id="officialDeadlineCount" aria-live="polite"></p><nav id="officialDeadlinePager" class="prism-pagination" aria-label="Official deadline pages"></nav>';
         const list = host.querySelector('#officialDeadlineList');
         const state = host.querySelector('#officialLoadState');
@@ -13,6 +14,10 @@ window.PrismDeadlines = (() => {
         const count = host.querySelector('#officialDeadlineCount');
         const form = host.querySelector('#deadlineForm');
         const manage = host.querySelector('#deadlineManage');
+        const view = host.querySelector('#deadlineView'), sortSelect = host.querySelector('#deadlineSort');
+        const todayKey = () => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`; };
+        const shiftKey = (key, days) => { const d = new Date(key + 'T00:00:00'); d.setDate(d.getDate() + days); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`; };
+        [view, sortSelect].forEach(control => control?.addEventListener('change', () => { page = 1; loadList(); }));
         const pageSize = PrismUI.pageSizeControl(pager, () => { page = 1; loadList(); });
         let date, rangeKey = '', page = 1, sequence = 0, datesSequence = 0, dates = new Map();
         let dirty, initialDateSet = false;
@@ -20,24 +25,29 @@ window.PrismDeadlines = (() => {
         const displayDate = key => new Date(key + 'T00:00:00').toLocaleDateString('en-PH', { year: 'numeric', month: 'long', day: 'numeric' });
 
         async function loadList() {
-            if (!date) return;
+            const upcoming = view?.value === 'upcoming';
+            if (!date && !upcoming) return;
             const current = ++sequence;
             list.replaceChildren(); pager.replaceChildren(); count.textContent = '';
             state.textContent = 'Loading official deadlines...';
-            host.querySelector('#officialDateLabel').textContent = displayDate(date);
+            const today = todayKey(), from = upcoming ? shiftKey(today, -14) : date, to = upcoming ? shiftKey(today, 45) : date;
+            host.querySelector('#officialDateLabel').textContent = upcoming ? 'Upcoming and overdue official deadlines' : displayDate(date);
             try {
-                const data = await PrismUI.request(endpoint('list', { from: date, to: date, page, perPage: pageSize.value, manage: manage?.checked ? '1' : '0' }));
+                const data = await PrismUI.request(endpoint('list', { from, to, sort: sortSelect?.value || 'upcoming', page, perPage: pageSize.value, manage: manage?.checked ? '1' : '0' }));
                 if (current !== sequence) return;
                 if (!data.ok) throw new Error(data.message || 'Could not load official deadlines.');
                 page = data.page;
-                state.textContent = data.deadlines.length ? '' : 'No official deadlines for this date.';
+                state.textContent = data.deadlines.length ? '' : (upcoming ? 'No upcoming or recently overdue official deadlines.' : 'No official deadlines for this date.');
                 data.deadlines.forEach(deadline => {
                     const item = document.createElement('article'); item.className = 'task-item official-deadline';
                     const badge = document.createElement('small'); badge.className = 'eyebrow';
-                    badge.textContent = 'Official Deadline' + (deadline.status === 'Cancelled' ? ' · Cancelled' : '');
+                    badge.textContent = 'Official Deadline' + (deadline.status === 'Cancelled' ? ' · Cancelled' : (deadline.overdue ? ' · Overdue' : ''));
+                    if (deadline.overdue) item.classList.add('is-overdue');
                     const heading = document.createElement('h3'); heading.textContent = deadline.title;
+                    const when = upcoming ? document.createElement('p') : null; if (when) { when.className = 'task-notes'; when.textContent = 'Due ' + displayDate(deadline.deadline_date); }
                     const details = document.createElement('p'); details.className = 'task-notes'; details.textContent = deadline.description || '';
                     item.append(badge, heading, details);
+                    if (when) heading.after(when);
                     if (deadline.groups?.length) {
                         const groups = document.createElement('p'); groups.className = 'task-notes';
                         groups.textContent = 'Research groups: ' + deadline.groups.join(', '); item.append(groups);

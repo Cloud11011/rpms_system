@@ -1,9 +1,10 @@
 <?php
 if (PHP_SAPI!=='cli') exit;
 date_default_timezone_set('Asia/Manila');
+require __DIR__.'/environment.php';
 $root=dirname(__DIR__,2);
-$review=$root.'/PRISM_V13_GROUP_ADVANCEMENT_REVIEW';
-$GLOBALS['fixture_db']=new PDO('mysql:host=127.0.0.1;port=13527;dbname=prism_group_synthetic_v11;charset=utf8mb4','root','prism_synthetic_only',
+$review=PRISM_TEST_REVIEW_DIR;
+$GLOBALS['fixture_db']=new PDO('mysql:host=127.0.0.1;port='.PRISM_TEST_DB_PORT.';dbname=prism_group_synthetic_v11;charset=utf8mb4','root','prism_synthetic_only',
     [PDO::ATTR_ERRMODE=>PDO::ERRMODE_EXCEPTION,PDO::ATTR_DEFAULT_FETCH_MODE=>PDO::FETCH_ASSOC]);
 $pdo=$GLOBALS['fixture_db']; $pdo->exec("SET time_zone='+08:00'");
 if (!str_contains(strtolower(str_replace('\\','/',$pdo->query('SELECT @@datadir')->fetchColumn())),strtolower(str_replace('\\','/',$review).'/sandbox/mysql/')))

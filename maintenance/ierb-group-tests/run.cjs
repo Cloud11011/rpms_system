@@ -1,6 +1,13 @@
 const fs = require('node:fs'), path = require('node:path'), cp = require('node:child_process'), assert = require('node:assert/strict');
-const root = path.resolve(__dirname, '../..'), review = path.join(root, 'PRISM_V13_GROUP_ADVANCEMENT_REVIEW');
-const php = process.env.PRISM_TEST_PHP || 'C:/xampp/php/php.exe', base = 'http://127.0.0.1:14527', app = path.join(review, 'sandbox/app');
+const root = path.resolve(__dirname, '../..'), review = process.env.PRISM_TEST_REVIEW_DIR || path.join(root, 'PRISM_V13_GROUP_ADVANCEMENT_REVIEW');
+const appPort = process.env.PRISM_TEST_APP_PORT || '14527';
+const php = process.env.PRISM_TEST_PHP || 'C:/xampp/php/php.exe', base = 'http://127.0.0.1:' + appPort, app = path.join(review, 'sandbox/app');
+// One run at a time per fixture: an overlapping run corrupted shared fixture state in Batch 7 (B7-F11).
+const lockFile = path.join(review, 'sandbox/run.lock');
+let lockFd;
+try { lockFd = fs.openSync(lockFile, 'wx'); fs.writeSync(lockFd, String(process.pid)); }
+catch (e) { console.error('Another test run holds ' + lockFile + '. Remove it only after confirming no run is active.'); process.exit(2); }
+process.on('exit', () => { try { fs.closeSync(lockFd); fs.unlinkSync(lockFile); } catch (_) {} });
 const playwright = require(process.env.PRISM_TEST_PLAYWRIGHT || path.join(root, 'PRISM_V13_UI_REMEDIATION_AUDIT/browser-tools/node_modules/playwright-core'));
 const checks = [], contexts = [];
 const expectedSchema = process.env.PRISM_TEST_SCHEMA_VERSION || '11';
@@ -44,7 +51,7 @@ function prepareApp() {
     check(fixture({ action: 'schema' }).schemaVersion === expectedSchema, 'Isolated database exactly matches schema v' + expectedSchema);
     prepareApp();
     fs.writeFileSync(path.join(review, 'sandbox/provider-scenario.txt'), 'success');
-    server = cp.spawn(php, ['-d', 'extension=zip', '-d', 'auto_prepend_file=' + path.join(__dirname, 'runtime.php'), '-d', 'disable_functions=mail,curl_init,curl_setopt_array,curl_exec,curl_getinfo,curl_errno,curl_error,curl_close', '-d', 'session.save_path=' + path.join(app, 'sessions'), '-d', 'upload_tmp_dir=' + path.join(app, 'uploads'), '-S', '127.0.0.1:14527', '-t', app], { windowsHide: true });
+    server = cp.spawn(php, ['-d', 'extension=zip', '-d', 'auto_prepend_file=' + path.join(__dirname, 'runtime.php'), '-d', 'disable_functions=mail,curl_init,curl_setopt_array,curl_exec,curl_getinfo,curl_errno,curl_error,curl_close', '-d', 'session.save_path=' + path.join(app, 'sessions'), '-d', 'upload_tmp_dir=' + path.join(app, 'uploads'), '-S', '127.0.0.1:' + appPort, '-t', app], { windowsHide: true });
     server.stdout.on('data', d => logs += d); server.stderr.on('data', d => logs += d);
     let ready = false; for (let n = 0; n < 60; n++) { try { if ((await fetch(base + '/login.php')).ok) { ready = true; break; } } catch (_) {} await sleep(100); }
     check(ready, 'Isolated copied PHP application serves HTTP');
@@ -63,6 +70,9 @@ function prepareApp() {
     if (process.env.PRISM_TEST_BATCH5 === '1') await require('../ierb-monitor-tests/integration.cjs')(h);
     if (process.env.PRISM_TEST_BATCH4 === '1') await require('../ierb-report-tests/integration.cjs')(h);
     if (process.env.PRISM_TEST_BATCH6 === '1') await require('../ierb-ui-tests/integration.cjs')(h);
+    if (process.env.PRISM_TEST_BATCH7R === '1') await require('../ierb-7r-tests/integration.cjs')(h);
+    if (process.env.PRISM_TEST_CLOSURE === '1') await require('../ierb-7r-tests/closure.cjs')(h);
+    if (process.env.PRISM_TEST_CLEANUP_REHEARSAL) await require('../ierb-7r-tests/cleanup-rehearsal.cjs')(h);
     check(fixture({ action: 'schema' }).schemaVersion === expectedSchema, 'Full schema v' + expectedSchema + ' and version remain unchanged after all tests');
     const result = { status: 'PASS', assertions: checks.length, cases: checks, scope: 'Isolated synthetic MariaDB 10.4, actual PHP HTTP sessions and Chromium; no production data or external delivery' };
     fs.writeFileSync(path.join(review, phase === 'all' ? 'test-results.json' : `test-results-${phase}.json`), JSON.stringify(result, null, 2)); console.log(JSON.stringify({ status: 'PASS', assertions: checks.length }));

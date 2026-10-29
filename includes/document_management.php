@@ -28,10 +28,17 @@ function document_management_from(): string
 }
 
 /** Same dataset and pagination as the existing repository; SQL ordering is strictly allowlisted. */
-function document_list_query(array $user, ?int $viewerAdviserId, array $query): array
+function document_list_query(array $user, ?int $viewerAdviserId, array $query, bool $projects = false): array
 {
     $scope = document_management_from() . ' WHERE 1=1'; $params = [];
-    if ($user['role'] === 'student') { $scope .= ' AND s.email=:viewer'; $params[':viewer'] = $user['email']; }
+    if ($user['role'] === 'student') {
+        // Verified project members share the single project evidence record; nothing else widens.
+        $scope .= $projects ? ' AND (s.email=:viewer OR d.student_id IN (SELECT p.submission_holder_id FROM research_projects p
+            JOIN research_project_members pm ON pm.project_id=p.id JOIN students me ON me.id=pm.student_id WHERE me.email=:viewerMember AND me.archived_at IS NULL))'
+            : ' AND s.email=:viewer';
+        $params[':viewer'] = $user['email'];
+        if ($projects) $params[':viewerMember'] = $user['email'];
+    }
     elseif ($user['role'] === 'adviser') {
         $scope .= $viewerAdviserId !== null ? ' AND s.adviser_id=:viewerAdviser AND s.archived_at IS NULL' : ' AND 1=0';
         if ($viewerAdviserId !== null) $params[':viewerAdviser'] = $viewerAdviserId;

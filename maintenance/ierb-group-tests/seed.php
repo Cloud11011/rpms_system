@@ -1,4 +1,5 @@
 <?php
+if (PHP_SAPI !== 'cli') exit; // Test fixture: never reachable over HTTP (B7-F21).
 require __DIR__.'/bootstrap.php';
 $pdo=db();
 $pdo->exec("UPDATE students SET program_key='bsit',course='BS in Information Technology',research_group=CONCAT('AMT-BSIT-Y4-2627-G0',id)");

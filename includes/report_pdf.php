@@ -1,13 +1,49 @@
 <?php
 // --- minimal, dependency-free PDF writer (no external library required) ---
+// Text is encoded once as Windows-1252 for the standard fonts with /WinAnsiEncoding (B7-F10). That covers
+// Filipino/Spanish diacritics, dashes, curly quotes and the euro sign. Characters the standard fonts cannot
+// show become '?', and every PDF that needed a substitution says so on its first page; nothing is silently dropped.
+
+/** Unicode code points 0x80-0x9F that Windows-1252 maps to printable glyphs. */
+const REPORT_PDF_CP1252 = [0x20AC=>0x80,0x201A=>0x82,0x0192=>0x83,0x201E=>0x84,0x2026=>0x85,0x2020=>0x86,0x2021=>0x87,0x02C6=>0x88,
+    0x2030=>0x89,0x0160=>0x8A,0x2039=>0x8B,0x0152=>0x8C,0x017D=>0x8E,0x2018=>0x91,0x2019=>0x92,0x201C=>0x93,0x201D=>0x94,
+    0x2022=>0x95,0x2013=>0x96,0x2014=>0x97,0x02DC=>0x98,0x2122=>0x99,0x0161=>0x9A,0x203A=>0x9B,0x0153=>0x9C,0x017E=>0x9E,0x0178=>0x9F];
+
+/** Count of characters replaced by '?' since the current make_pdf() started. */
+function report_pdf_substitutions(?int $set = null): int
+{
+    static $count = 0;
+    if ($set !== null) $count = $set;
+    return $count;
+}
+
+/** UTF-8 text to the PDF's Windows-1252 bytes. Accepts already-encoded bytes (idempotent for ASCII and CP1252 output). */
+function report_pdf_encode(string $text): string
+{
+    if (!mb_check_encoding($text, 'UTF-8')) return preg_replace('/[\x00-\x1F\x7F\x81\x8D\x8F\x90\x9D]/', ' ', $text);
+    $out = '';
+    foreach (mb_str_split($text, 1, 'UTF-8') as $char) {
+        $code = mb_ord($char, 'UTF-8');
+        if ($code >= 0x20 && $code <= 0x7E) $out .= $char;
+        elseif ($code === 0x09 || $code === 0x0A || $code === 0x0D || $code === 0xA0) $out .= ' ';
+        elseif ($code < 0x20 || $code === 0x7F || ($code >= 0x80 && $code <= 0x9F)) continue; // Control characters are never text.
+        elseif ($code <= 0xFF) $out .= chr($code);
+        elseif (isset(REPORT_PDF_CP1252[$code])) $out .= chr(REPORT_PDF_CP1252[$code]);
+        elseif (($code >= 0x200B && $code <= 0x200F) || $code === 0xFEFF || ($code >= 0xFE00 && $code <= 0xFE0F)) continue; // Invisible formatting marks.
+        else {
+            // Latin letters outside Windows-1252 keep their base letter (for example Polish or Vietnamese diacritics).
+            $base = class_exists('Normalizer') ? preg_replace('/\p{Mn}+/u', '', (string)Normalizer::normalize($char, Normalizer::FORM_D)) : '';
+            if ($base !== '' && strlen($base) === 1 && ord($base) >= 0x20 && ord($base) <= 0x7E) $out .= $base;
+            else { $out .= '?'; report_pdf_substitutions(report_pdf_substitutions() + 1); }
+        }
+    }
+    return $out;
+}
+
+/** Escapes already-encoded PDF text (output of report_pdf_plain/report_pdf_lines or ASCII literals). */
 function pdf_escape($s)
 {
-    $s = (string)$s;
-    if (function_exists('iconv')) {
-        $converted = @iconv('UTF-8', 'ASCII//TRANSLIT//IGNORE', $s);
-        if ($converted !== false) $s = $converted;
-    }
-    $s = preg_replace('/[^\x20-\x7E]/', ' ', $s);
+    $s = preg_replace('/[\x00-\x1F\x7F]/', ' ', (string)$s);
     return str_replace(['\\', '(', ')'], ['\\\\', '\(', '\)'], $s);
 }
 function wrap_lines($text, $width = 88)
@@ -21,23 +57,28 @@ function wrap_lines($text, $width = 88)
     }
     return $out;
 }
-/** Plain ASCII for the built-in PDF fonts; all PDF strings are escaped separately. */
+/** Text as the PDF will show it (Windows-1252 bytes); all PDF strings are escaped separately. */
 function report_pdf_plain(string $text): string
 {
-    if (function_exists('iconv')) {
-        $converted = @iconv('UTF-8', 'ASCII//TRANSLIT//IGNORE', $text);
-        if ($converted !== false) $text = $converted;
-    }
-    return preg_replace('/[^\x20-\x7E]/', ' ', $text);
+    return report_pdf_encode($text);
 }
 
-/** Standard Helvetica ASCII advance widths (1/1000 em); no runtime font dependency. */
+/** Standard Helvetica advance widths (1/1000 em) for WinAnsiEncoding bytes 0x20-0xFF; no runtime font dependency. */
 function report_pdf_width(string $text, float $size = 9, bool $bold = false): float
 {
     static $regular = [278,278,355,556,556,889,667,191,333,333,389,584,278,333,278,278,556,556,556,556,556,556,556,556,556,556,278,278,584,584,584,556,1015,667,667,722,722,667,611,778,722,278,500,667,556,833,722,778,667,778,722,667,611,722,667,944,667,667,611,278,278,278,469,556,333,556,556,500,556,556,278,556,556,222,222,500,222,833,556,556,556,556,333,500,278,556,500,722,500,500,500,334,260,334,584];
     static $strong = [278,333,474,556,556,889,722,238,333,333,389,584,278,333,278,278,556,556,556,556,556,556,556,556,556,556,333,333,584,584,584,611,975,722,722,722,722,667,611,778,722,278,556,722,611,833,722,778,667,778,722,667,611,722,667,944,667,667,611,333,278,333,584,556,333,556,611,556,611,556,333,611,611,278,278,556,278,889,611,611,611,611,389,556,333,611,556,778,556,556,500,389,280,389,584];
-    $metrics = $bold ? $strong : $regular; $width = 0;
-    foreach (str_split($text) as $char) $width += $metrics[ord($char)-32] ?? 0;
+    // 0x80-0xFF from the Helvetica/Helvetica-Bold AFM files (unassigned CP1252 slots are never emitted).
+    static $regularHigh = [556,0,222,556,333,1000,556,556,333,1000,667,333,1000,0,611,0,0,222,222,333,333,350,556,1000,333,1000,500,333,944,0,500,667,
+        278,333,556,556,556,556,260,556,333,737,370,556,584,333,737,333,400,584,333,333,333,556,537,278,333,333,365,556,834,834,834,611,
+        667,667,667,667,667,667,1000,722,667,667,667,667,278,278,278,278,722,722,778,778,778,778,778,584,778,722,722,722,722,667,667,611,
+        556,556,556,556,556,556,889,500,556,556,556,556,278,278,278,278,556,556,556,556,556,556,556,584,611,556,556,556,556,500,556,500];
+    static $strongHigh = [556,0,278,556,500,1000,556,556,333,1000,667,333,1000,0,611,0,0,278,278,500,500,350,556,1000,333,1000,556,333,944,0,500,667,
+        278,333,556,556,556,556,280,556,333,737,370,556,584,333,737,333,400,584,333,333,333,611,556,278,333,333,365,556,834,834,834,611,
+        722,722,722,722,722,722,1000,722,667,667,667,667,278,278,278,278,722,722,778,778,778,778,778,584,778,722,722,722,722,667,667,611,
+        556,556,556,556,556,556,889,556,556,556,556,556,278,278,278,278,611,611,611,611,611,611,611,584,611,611,611,611,611,556,611,556];
+    $low = $bold ? $strong : $regular; $high = $bold ? $strongHigh : $regularHigh; $width = 0;
+    foreach (str_split($text) as $char) { $o = ord($char); $width += $o >= 0x80 ? $high[$o-0x80] : ($low[$o-32] ?? 0); }
     return $width * $size / 1000;
 }
 
@@ -94,7 +135,7 @@ function strip_report_markdown_tables(string $narrative): string
 /** Strings remain supported for existing report callers; table blocks are server-built facts. */
 function make_pdf($title, $lines)
 {
-    $pages = []; $stream = ''; $y = 742;
+    $pages = []; $stream = ''; $y = 742; report_pdf_substitutions(0);
     $draw = function (array $runs, float $x, float $baseline, float $size = 9, bool $bold = false) use (&$stream): void {
         foreach ($runs as [$text, $strong]) {
             $font = ($bold || $strong) ? 'F2' : 'F1';
@@ -173,9 +214,13 @@ function make_pdf($title, $lines)
         }
     }
     $pages[] = $stream;
+    if (report_pdf_substitutions() > 0) {
+        // Disclose characters outside the standard PDF fonts instead of dropping them silently.
+        $pages[0] .= "BT /F1 7 Tf 1 0 0 1 50 40 Tm (" . pdf_escape('Some characters outside the PDF font are shown as ?; see the PRISM record for the exact text.') . ") Tj ET\n";
+    }
     $objects = [1 => '<< /Type /Catalog /Pages 2 0 R >>',
-        3 => '<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>',
-        4 => '<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold >>'];
+        3 => '<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>',
+        4 => '<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold /Encoding /WinAnsiEncoding >>'];
     $kids = []; $id = 5;
     foreach ($pages as $index => $content) {
         $number = ($index+1) . ' / ' . count($pages);

@@ -1,0 +1,26 @@
+{
+    "startedAt": "2026-10-28T10:21:19+01:00",
+    "step": "v15",
+    "mode": "dry-run",
+    "php": "8.2.12",
+    "sapi": "cli",
+    "extensions": {
+        "pdo_mysql": true,
+        "mbstring": true,
+        "intl": false
+    },
+    "exit": 0,
+    "stdout": {
+        "ok": true,
+        "mode": "dry-run",
+        "to": "15",
+        "historicalYears": [
+            "2025-2026",
+            "2026-2027",
+            "2027-2028"
+        ],
+        "existingAssignmentsChanged": 0
+    },
+    "stderr": "",
+    "finishedAt": "2026-10-28T10:21:23+01:00"
+}

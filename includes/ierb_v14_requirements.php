@@ -5,6 +5,7 @@
  */
 require_once __DIR__.'/ierb_v14_workflow.php';
 require_once __DIR__.'/document_catalog.php';
+require_once __DIR__.'/ierb_v14_corrections.php';
 
 function ierb_v14_requirements(): array
 {
@@ -223,13 +224,14 @@ function ierb_v14_apply_document_event(PDO $pdo, array $actor, int $studentId, s
 {
     if (!$pdo->inTransaction()) throw new LogicException('Document events require their authoritative transaction.');
     if (!ierb_v14_schema_available($pdo)) return null;
-    [, $live, $workflow] = ierb_v14_lock($pdo, $actor, $studentId, $event !== 'final_report_submitted');
+    [, $live, $workflow] = ierb_v14_lock($pdo, $actor, $studentId, $event !== 'final_report_submitted', true);
     if (!$workflow) {
-        if (research_project_for_student($pdo,$studentId,true)) throw new AccountLifecycleConflict('Only the designated submission holder may formally submit the project Final Report.');
+        if (research_project_for_student($pdo,$studentId,true)) throw new AccountLifecycleConflict('The project Final Report belongs to its single enrolled project workflow. RPMS must reconcile the project record.');
         return null;
     }
     if (!in_array($event, ['final_report_submitted'], true)) throw new AccountLifecycleValidation('Unsupported document event.');
-    if ($event === 'final_report_submitted' && !in_array($live['role'], ['adviser','admin'], true)) throw new AccountLifecycleForbidden('Only an authorized formal submission may complete IERB.');
+    // Adviser approval, RPMS override, or a verified member's submission of an Adviser-approved version.
+    if ($event === 'final_report_submitted' && !in_array($live['role'], ['adviser','admin','student'], true)) throw new AccountLifecycleForbidden('Only an authorized formal submission may complete IERB.');
     $key = 'document-'.$event.'-'.$documentId;
     $digest = hash('sha256', json_encode([$event, $studentId, $documentId], JSON_THROW_ON_ERROR));
     if ($result = ierb_v14_replay($pdo, $workflow, $key, $digest)) return $result;
@@ -312,7 +314,6 @@ function ierb_v14_checklist(PDO $pdo, array $actor, int $studentId, bool $ownTra
     try {
         if (!ierb_v14_schema_available($pdo)) { if ($ownTransaction) $pdo->commit(); return ['ok'=>true, 'enrolled'=>false]; }
         current_workflow_student($pdo,$studentId,$actor);
-        $viewerStudentId = $studentId;
         $project = research_project_for_student($pdo,$studentId,true);
         if ($project) $studentId = (int)$project['submission_holder_id'];
         $live = current_workflow_actor($pdo,$actor);
@@ -339,8 +340,9 @@ function ierb_v14_checklist(PDO $pdo, array $actor, int $studentId, bool $ownTra
                 }
                 if ($accepted) $state = 'Accepted';
             }
+            // Verified members share the project evidence record; any other Student never reaches here.
             $rows[] = ['key'=>$key, 'label'=>$r[0], 'stage'=>$r[1], 'state'=>$state,
-                'documentId'=>$viewerStudentId === $studentId || $live['role'] !== 'student' ? ($doc['id'] ?? null) : null, 'documentType'=>$doc['document_type'] ?? null,
+                'documentId'=>$doc['id'] ?? null, 'documentType'=>$doc['document_type'] ?? null,
                 'versionNo'=>$doc ? (int)$doc['version_no'] : null, 'reviewStatus'=>$doc['review_status'] ?? null,
                 'acceptedAt'=>$accepted['acceptedAt'] ?? null, 'acceptanceEventId'=>$accepted['acceptanceEventId'] ?? null,
                 'canAccept'=>$live['role'] === 'admin' && $key !== 'final_report' && ($state === 'Formally Submitted to RPMS'
@@ -354,6 +356,10 @@ function ierb_v14_checklist(PDO $pdo, array $actor, int $studentId, bool $ownTra
             'requiresAmendment'=>(bool)$case['requires_amendment'], 'openedAt'=>$case['opened_at']] : null;
         if ($ownTransaction) $pdo->commit();
         return ['ok'=>true, 'enrolled'=>true, 'submissionScope'=>['kind'=>'project_submission_holder', 'studentId'=>$studentId,
-            'groupSynchronization'=>$project ? 'canonical' : 'requires_reconciliation', 'projectId'=>$project ? (int)$project['id'] : null, 'identifier'=>$project['public_identifier'] ?? null], 'workflow'=>$snapshot, 'requirements'=>$rows];
+            'groupSynchronization'=>$project ? 'canonical' : 'requires_reconciliation', 'projectId'=>$project ? (int)$project['id'] : null, 'identifier'=>$project['public_identifier'] ?? null,
+            'researchTitle'=>$project['research_title'] ?? null, 'principalInvestigator'=>$project ? research_project_principal_investigator($pdo,(int)$project['id']) : null,
+            'uploadPolicy'=>$project ? 'Every verified member may upload, revise and formally submit Adviser-approved project documents.' : null],
+            'workflow'=>$snapshot, 'requirements'=>$rows, 'pendingCorrectionRequest'=>ierb_v14_pending_request_summary($pdo, $workflow, $live),
+            'viewerRole'=>$live['role'], 'operationsActivated'=>ierb_v14_http_operations_enabled()];
     } catch (Throwable $e) { if ($ownTransaction && $pdo->inTransaction()) $pdo->rollBack(); throw $e; }
 }

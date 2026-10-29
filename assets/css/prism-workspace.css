@@ -512,6 +512,10 @@ body.prism-workspace .form-panel .form-grid { margin-bottom:0; }
 body.prism-workspace :is(.account-grid .account-form,.form-panel,.management-form-grid,.academic-fields-grid,.notification-form-grid,.deadline-form,.adviser-review-dialog) label:not(.check-label):not(.lifecycle-check):not(.profile-photo-button) {
     display:grid; gap:var(--prism-field-gap); min-width:0; margin:0;
 }
+/* A label that only names a separate control is one line, so its required asterisk stays beside the text. */
+body.prism-workspace :is(.account-grid .account-form,.form-panel,.management-form-grid,.academic-fields-grid,.notification-form-grid,.deadline-form,.adviser-review-dialog) label:not(.check-label):not(.lifecycle-check):not(.profile-photo-button):not(:has(input,select,textarea)) {
+    display:block;
+}
 body.prism-workspace :is(.ierb-entry-grid,.document-form-grid) > div { min-width:0; gap:var(--prism-field-gap); align-content:start; }
 body.prism-workspace :is(.account-grid .account-form,.form-panel,.management-form-grid,.ierb-entry-grid,.document-form-grid,.notification-form-grid,.deadline-form,.adviser-review-dialog,.report-modal,.add-type-form,.stage-label-row,.prism-dialog) :is(input:not([type=hidden]):not([type=checkbox]):not([type=radio]),select,textarea),
 body.prism-workspace #reminderForm :is(input:not([type=hidden]),textarea) {

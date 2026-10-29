@@ -1,0 +1,43 @@
+uid=0 node=v22.23.4
+check refuses the unredacted original and never prints the sensitive value
+stage refuses while an unredacted original is present; nothing is staged
+prepare-sanitized refuses to keep originals inside the repository and creates nothing there
+prepare-sanitized refuses a copy that is not the reviewed sanitized version
+prepare-sanitized refuses a folder inside another git working tree, where an untracked original could be committed
+prepare-sanitized refuses a linked folder (a junction on Windows) and writes nothing through it
+POSIX: an existing 0755 folder is refused and left unchanged and empty; the 0644 original stays in place, unsanitized
+POSIX: a private folder owned by another account is refused
+POSIX: a link planted at the private destination is never followed
+Exclusive creation: an existing file at the private destination is never overwritten, and no worktree file is replaced
+prepare-sanitized installs the reviewed sanitized copy and keeps the original byte-for-byte outside the repository
+POSIX: the gate creates the folder at 0700 and keeps the 0644 original at 0600 (manifest 0600), owned by this account
+check passes on the sanitized tree and stages nothing
+stage refuses an index that already holds staged changes
+stage adds exactly the allowlist: ["app.php","maintenance/release/7r-commit-allowlist.tsv","report.md"]
+Screenshots, config.local.php, cleanup evidence and unreviewed files are left out (unlike git add -A)
+The staged report is the sanitized blob, and nothing was committed
+stage verifies more than 600 files without exceeding the command-line limit: 603
+A file edited after review is refused until its pin is deliberately updated
+A private deny-term in the content is refused without printing the term; nothing stays staged
+The deny-terms file must live outside the repository
+An allowlist path that leaves the repository is refused
+A forbidden file type is refused even when allowlisted
+A tracked change missing from the allowlist is refused (no inconsistent partial commit)
+The gate refuses a branch other than the reviewed one
+A real email address is refused without being printed
+{"status":"PASS","assertions":26}
+test exit=0
+## BEFORE (pinned pre-fix gate)
+{"scenario":"existing 0755 folder, 0644 original","exit":0,"worktreeReplaced":true,"folderMode":"755","keptOriginalMode":"644"}
+{"scenario":"missing folder (created by the gate), 0644 original","exit":0,"worktreeReplaced":true,"folderMode":"700","keptOriginalMode":"644"}
+{"scenario":"folder inside another git working tree","exit":0,"worktreeReplaced":true,"folderMode":"700","keptOriginalMode":"644","createdInOtherCheckout":true}
+{"scenario":"symlinked folder","exit":0,"worktreeReplaced":true,"folderMode":"777","keptOriginalMode":"644","writtenThroughLink":true}
+{"scenario":"link planted at the destination file","exit":1,"worktreeReplaced":false,"folderMode":"700","keptOriginalMode":null,"victimOverwritten":false}
+{"scenario":"folder owned by another account","exit":0,"worktreeReplaced":true,"folderMode":"700","keptOriginalMode":"644"}
+## AFTER (REL-02 fix)
+{"scenario":"existing 0755 folder, 0644 original","exit":1,"worktreeReplaced":false,"folderMode":"755","keptOriginalMode":null}
+{"scenario":"missing folder (created by the gate), 0644 original","exit":0,"worktreeReplaced":true,"folderMode":"700","keptOriginalMode":"600"}
+{"scenario":"folder inside another git working tree","exit":1,"worktreeReplaced":false,"folderMode":null,"keptOriginalMode":null,"createdInOtherCheckout":false}
+{"scenario":"symlinked folder","exit":1,"worktreeReplaced":false,"folderMode":"777","keptOriginalMode":null,"writtenThroughLink":false}
+{"scenario":"link planted at the destination file","exit":1,"worktreeReplaced":false,"folderMode":"700","keptOriginalMode":null,"victimOverwritten":false}
+{"scenario":"folder owned by another account","exit":1,"worktreeReplaced":false,"folderMode":"700","keptOriginalMode":null}

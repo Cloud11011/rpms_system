@@ -186,16 +186,17 @@
         }
         PrismUI.statusPills(statusPills,[['','All'],...[...statusSelect.options].filter(option=>option.value).map(option=>[option.value,option.textContent])],statusSelect,null);
     }
-    const sort = studentRecordsView
-        ? {controls:[],query:()=>({sortBy:'name',direction:'ASC'}),update:()=>{}}
-        : PrismUI.recordFilters(document.getElementById('recordFilters'), [['sortBy','Sort by'],['direction','Direction']]);
+    const sort = PrismUI.recordFilters(document.getElementById('recordFilters'), [['sortBy','Sort by'],['direction','Direction']]);
     const sortOptions = isAdviser
       ? [['name','Name'],['employeeId','Employee ID'],['email','Email'],['department','Academic unit / Department'],['status','Account status'],...(archiveWorkspace ? [['archivedAt','Archived date']] : [])]
-      : [['name','Name'],['studentId','Student ID'],['email','Email'],['group','Research group'],['adviser','Research adviser'],['stage','IERB stage'],['status','Status'],['academicYear','Academic year'],...(archiveWorkspace ? [['archivedAt','Archived date']] : [])];
-    if(!studentRecordsView) {
-        sort.update({sortBy:sortOptions.map(([value,label])=>({value,label})),direction:[{value:'ASC',label:'Ascending'},{value:'DESC',label:'Descending'}]});
-        sort.controls[0].options[0].textContent = 'Name (default)';
-        sort.controls[1].options[0].textContent = 'Ascending (default)';
+      : [...(studentRecordsView ? [['updated','Last updated'],['created','Date added']] : []),['name','Name'],['studentId','Student ID'],['email','Email'],['group','Research group'],['adviser','Research adviser'],['stage','IERB stage'],['status','Status'],['academicYear','Academic year'],...(archiveWorkspace ? [['archivedAt','Archived date']] : [])];
+    sort.update({sortBy:sortOptions.map(([value,label])=>({value,label})),direction:[{value:'ASC',label:'Ascending / Oldest first'},{value:'DESC',label:'Descending / Newest first'}]});
+    sort.controls[0].options[0].textContent = studentRecordsView ? 'Newest updated (default)' : 'Name (default)';
+    sort.controls[1].options[0].textContent = studentRecordsView ? 'Default direction' : 'Ascending (default)';
+    if(studentRecordsView) {
+        // Student Records list the most recently updated record first unless another order is chosen (B7-F13).
+        const chosen=sort.query;
+        sort.query=()=>{ const q=chosen(); return q.sortBy ? {...q,direction:q.direction||(['updated','created'].includes(q.sortBy)?'DESC':'ASC')} : {sortBy:'updated',direction:'DESC'}; };
     }
     if (loggedInRole === 'admin') {
         const lifecycleFilters=PrismUI.recordFilters(document.getElementById('recordFilters'), [...(archiveWorkspace ? [['retention','Retention status']] : []),['profile','Profile status']]);

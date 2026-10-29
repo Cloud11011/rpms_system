@@ -1,0 +1,196 @@
+{
+  "email": "admin@example.test",
+  "pages": [
+    {
+      "width": 390,
+      "theme": "light",
+      "controls": 17,
+      "unlabelled": [],
+      "readOnly": [
+        {
+          "id": "accountEmail",
+          "dashed": true,
+          "note": true
+        },
+        {
+          "id": "accountRole",
+          "dashed": true,
+          "note": true
+        },
+        {
+          "id": "accountRef",
+          "dashed": true,
+          "note": true
+        }
+      ],
+      "saveDisabled": true,
+      "passwordToggles": [
+        {
+          "label": "Show current password",
+          "pressed": "false"
+        },
+        {
+          "label": "Show new password",
+          "pressed": "false"
+        },
+        {
+          "label": "Show confirm password",
+          "pressed": "false"
+        }
+      ],
+      "requiredMarked": 9,
+      "overflow": false,
+      "dark": false,
+      "heading": "Account & Activity",
+      "roleChip": null,
+      "errors": [],
+      "screenshot": "account-admin-390-light.png"
+    },
+    {
+      "width": 1440,
+      "theme": "light",
+      "controls": 17,
+      "unlabelled": [],
+      "readOnly": [
+        {
+          "id": "accountEmail",
+          "dashed": true,
+          "note": true
+        },
+        {
+          "id": "accountRole",
+          "dashed": true,
+          "note": true
+        },
+        {
+          "id": "accountRef",
+          "dashed": true,
+          "note": true
+        }
+      ],
+      "saveDisabled": true,
+      "passwordToggles": [
+        {
+          "label": "Show current password",
+          "pressed": "false"
+        },
+        {
+          "label": "Show new password",
+          "pressed": "false"
+        },
+        {
+          "label": "Show confirm password",
+          "pressed": "false"
+        }
+      ],
+      "requiredMarked": 9,
+      "overflow": false,
+      "dark": false,
+      "heading": "Account & Activity",
+      "roleChip": null,
+      "errors": [],
+      "screenshot": "account-admin-1440-light.png"
+    },
+    {
+      "width": 390,
+      "theme": "dark",
+      "controls": 17,
+      "unlabelled": [],
+      "readOnly": [
+        {
+          "id": "accountEmail",
+          "dashed": true,
+          "note": true
+        },
+        {
+          "id": "accountRole",
+          "dashed": true,
+          "note": true
+        },
+        {
+          "id": "accountRef",
+          "dashed": true,
+          "note": true
+        }
+      ],
+      "saveDisabled": true,
+      "passwordToggles": [
+        {
+          "label": "Show current password",
+          "pressed": "false"
+        },
+        {
+          "label": "Show new password",
+          "pressed": "false"
+        },
+        {
+          "label": "Show confirm password",
+          "pressed": "false"
+        }
+      ],
+      "requiredMarked": 9,
+      "overflow": false,
+      "dark": true,
+      "heading": "Account & Activity",
+      "roleChip": null,
+      "errors": [],
+      "screenshot": "account-admin-390-dark.png"
+    },
+    {
+      "width": 1440,
+      "theme": "dark",
+      "controls": 17,
+      "unlabelled": [],
+      "readOnly": [
+        {
+          "id": "accountEmail",
+          "dashed": true,
+          "note": true
+        },
+        {
+          "id": "accountRole",
+          "dashed": true,
+          "note": true
+        },
+        {
+          "id": "accountRef",
+          "dashed": true,
+          "note": true
+        }
+      ],
+      "saveDisabled": true,
+      "passwordToggles": [
+        {
+          "label": "Show current password",
+          "pressed": "false"
+        },
+        {
+          "label": "Show new password",
+          "pressed": "false"
+        },
+        {
+          "label": "Show confirm password",
+          "pressed": "false"
+        }
+      ],
+      "requiredMarked": 9,
+      "overflow": false,
+      "dark": true,
+      "heading": "Account & Activity",
+      "roleChip": null,
+      "errors": [],
+      "screenshot": "account-admin-1440-dark.png"
+    }
+  ],
+  "checks": {
+    "everyVisibleControlLabelled": true,
+    "readOnlyFieldsDashedWithNote": true,
+    "saveDisabledUntilChange": true,
+    "passwordTogglesNamedWithState": true,
+    "requiredMarkersPresent": true,
+    "noHorizontalOverflow": true,
+    "themeApplied": true,
+    "noPageErrors": true
+  },
+  "status": "PASS"
+}

@@ -1,0 +1,138 @@
+{
+    "academic_years": {
+        "rows": 6,
+        "sha256": "ba03f23ca09f73b5de1498296e8aae12674b429aeefb4f4f56e286544da58e9a"
+    },
+    "account_invitations": {
+        "rows": 0,
+        "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+    },
+    "account_purge_jobs": {
+        "rows": 0,
+        "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+    },
+    "activity_logs": {
+        "rows": 123,
+        "sha256": "06f3deb1eba0c7b93e4de4c75389b0b0061c73b8c1b9be37596c8194a5ca261a"
+    },
+    "advisers": {
+        "rows": 2,
+        "sha256": "1c23430a9424d90f8ac70a840e296e1ccc5ad14ed487117cb4389e630883a79f"
+    },
+    "ai_outputs": {
+        "rows": 0,
+        "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+    },
+    "calendar_deadline_groups": {
+        "rows": 0,
+        "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+    },
+    "calendar_deadline_recipients": {
+        "rows": 0,
+        "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+    },
+    "calendar_deadlines": {
+        "rows": 0,
+        "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+    },
+    "document_summary_versions": {
+        "rows": 0,
+        "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+    },
+    "documents": {
+        "rows": 572,
+        "sha256": "1abdc15cec4ac7216b31fe1083dbf0d27d9332acc8edb03f3b2a2bf182302b9e"
+    },
+    "ierb_correction_cases": {
+        "rows": 0,
+        "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+    },
+    "ierb_history": {
+        "rows": 314,
+        "sha256": "9dbcbe8e9633aa1146ffc9794d682752e6a8f357688b149deb83426e8575f9af"
+    },
+    "ierb_report_snapshots": {
+        "rows": 0,
+        "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+    },
+    "ierb_workflow_events": {
+        "rows": 0,
+        "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+    },
+    "ierb_workflows": {
+        "rows": 0,
+        "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+    },
+    "legal_policies": {
+        "rows": 2,
+        "sha256": "c6108aa39120921714779e3881947a1f0127541c7d7da7cfd7a45a5340ca3b86"
+    },
+    "legal_policy_approvals": {
+        "rows": 2,
+        "sha256": "1b3ae923bdfc83add441cb5fdbb74cdf4165bd171f6155ecf232255a4c46a916"
+    },
+    "legal_policy_versions": {
+        "rows": 2,
+        "sha256": "11ed7e5799e9a530dad6599e64a26176a9a4d3455efdef4358820600590dbc4d"
+    },
+    "notification_campaigns": {
+        "rows": 121,
+        "sha256": "41dd322377166d4a63b954ee8e0fad453e128d96333da71f6b9623df3cb6bb18"
+    },
+    "notifications": {
+        "rows": 122,
+        "sha256": "ba887d70dfcb931cdb33edca27fa21e37a509941c8b27b561b38f9b1d1dab42a"
+    },
+    "password_resets": {
+        "rows": 0,
+        "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+    },
+    "reports": {
+        "rows": 32,
+        "sha256": "f5eea45d5fe02d6fd0b156c60b4f28542f76ff902dc04a184de51c500b4df7ec"
+    },
+    "research_project_events": {
+        "rows": 0,
+        "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+    },
+    "research_project_identifiers": {
+        "rows": 0,
+        "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+    },
+    "research_project_member_history": {
+        "rows": 0,
+        "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+    },
+    "research_project_members": {
+        "rows": 0,
+        "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+    },
+    "research_projects": {
+        "rows": 0,
+        "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+    },
+    "schema_meta": {
+        "rows": 3,
+        "sha256": "313c5a41134213859d3943cdf9dba85fc658cbd2c1090aa315c72c5014dc6ceb"
+    },
+    "staff_registration_code": {
+        "rows": 0,
+        "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+    },
+    "stage_labels": {
+        "rows": 1,
+        "sha256": "1bb9fc3fdcbac1ad3fdf763576a1305530150a0e91d4910b71919576adbf2502"
+    },
+    "students": {
+        "rows": 311,
+        "sha256": "12cd7c0738325ab1e04944013494720de34ef54287b7f69f5e1c136404f6eca2"
+    },
+    "user_policy_acceptances": {
+        "rows": 26,
+        "sha256": "700594c3bc80ebd8e3acb860071144c0311d220ab2e234f432b1012d24656e32"
+    },
+    "users": {
+        "rows": 14,
+        "sha256": "bdd511a566286ef91ec9ff3db3a2f11d5e6e370cac8dc180662cd9ea5ed84e88"
+    }
+}

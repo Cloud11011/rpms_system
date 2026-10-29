@@ -1,0 +1,10 @@
+{
+  "variant": "test",
+  "iterations": 200,
+  "attempts": 200,
+  "misses": [],
+  "loadStalls": [],
+  "recoveredOnRetry": 0,
+  "durationP50": 1722,
+  "durationMax": 3115
+}

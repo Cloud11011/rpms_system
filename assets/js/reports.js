@@ -72,12 +72,14 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     let reports = [], listSequence = 0, reportLoadError = '';
+    document.getElementById('reportSort')?.addEventListener('change', () => { pager.reset(); loadReports(); });
     const pager = PrismUI.recordPager(document.getElementById('reportTableBody').closest('table').parentElement, document.getElementById('reportCount'), [], loadReports);
 
     async function loadReports() {
         const sequence = ++listSequence; pager.loading();
         try {
-            const data = await PrismUI.request(`reports_api.php?action=list&page=${pager.page}&perPage=${pager.pageSize}`);
+            const sort = document.getElementById('reportSort')?.value || 'newest';
+            const data = await PrismUI.request(`reports_api.php?action=list&sort=${encodeURIComponent(sort)}&page=${pager.page}&perPage=${pager.pageSize}`);
             if (sequence !== listSequence) return;
             reports = data.reports || [];
             reportLoadError = '';

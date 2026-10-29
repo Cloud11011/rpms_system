@@ -1,0 +1,7 @@
+{
+    "ok": true,
+    "mode": "apply",
+    "to": "14",
+    "extensionCollation": "utf8mb4_general_ci",
+    "existingRecordsChanged": 0
+}

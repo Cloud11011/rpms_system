@@ -1,0 +1,222 @@
+{
+  "record": {
+    "key": "project:3",
+    "projectId": 3,
+    "studentRecordId": 4,
+    "studentId": "S4",
+    "name": "Synthetic Student 4",
+    "research": "PRISM Verified Historical Project",
+    "groupId": "prism-verified-historical-project",
+    "course": "BS in Information Technology",
+    "academicYear": "2026-2027",
+    "model": "V14",
+    "stage": "ierb_completed",
+    "stageLabel": "IERB Completed",
+    "progress": 100,
+    "status": "IERB Completed",
+    "firstSubmission": "2026-10-28 22:21:03",
+    "latestSubmission": "2026-10-28 22:22:06",
+    "fulfilledCount": 15,
+    "requirementCompletionPercent": 100,
+    "acceptedCount": 14,
+    "mandatoryCount": 15,
+    "initialAcceptedCount": 13,
+    "requirements": [
+      {
+        "key": "ethics",
+        "label": "Certification of Ethics",
+        "state": "Accepted",
+        "mandatory": true,
+        "versionNo": 1
+      },
+      {
+        "key": "cv",
+        "label": "Curriculum Vitae",
+        "state": "Accepted",
+        "mandatory": true,
+        "versionNo": 1
+      },
+      {
+        "key": "questionnaire",
+        "label": "Data Collection Questionnaire",
+        "state": "Accepted",
+        "mandatory": true,
+        "versionNo": 2
+      },
+      {
+        "key": "workflow",
+        "label": "Diagrammatic Workflow",
+        "state": "Accepted",
+        "mandatory": true,
+        "versionNo": 2
+      },
+      {
+        "key": "form11",
+        "label": "Form 11 Review Checklist",
+        "state": "Accepted",
+        "mandatory": true,
+        "versionNo": 1
+      },
+      {
+        "key": "form12",
+        "label": "Form 12 Registration and Application Form",
+        "state": "Accepted",
+        "mandatory": true,
+        "versionNo": 1
+      },
+      {
+        "key": "form13",
+        "label": "Form 13 Study Protocol Assessment Form",
+        "state": "Accepted",
+        "mandatory": true,
+        "versionNo": 1
+      },
+      {
+        "key": "form14",
+        "label": "Form 14 Informed Consent Assessment Form",
+        "state": "Accepted",
+        "mandatory": true,
+        "versionNo": 1
+      },
+      {
+        "key": "consent_english",
+        "label": "Informed Consent in English",
+        "state": "Accepted",
+        "mandatory": true,
+        "versionNo": 1
+      },
+      {
+        "key": "consent_local",
+        "label": "Informed Consent in Local Language",
+        "state": "Accepted",
+        "mandatory": true,
+        "versionNo": 1
+      },
+      {
+        "key": "letter",
+        "label": "Letter to IERB Chair",
+        "state": "Accepted",
+        "mandatory": true,
+        "versionNo": 1
+      },
+      {
+        "key": "payment",
+        "label": "Payment Receipt",
+        "state": "Accepted",
+        "mandatory": true,
+        "versionNo": 1
+      },
+      {
+        "key": "protocol",
+        "label": "Study Protocol",
+        "state": "Accepted",
+        "mandatory": true,
+        "versionNo": 6
+      },
+      {
+        "key": "form33",
+        "label": "Form 33 - Certificate of Approval",
+        "state": "Accepted",
+        "mandatory": true,
+        "versionNo": 1
+      },
+      {
+        "key": "final_report",
+        "label": "Form 33-0B - Final Report Form",
+        "state": "Formally Submitted to RPMS",
+        "mandatory": true,
+        "versionNo": 2
+      }
+    ],
+    "pending": [],
+    "correction": null,
+    "notes": "Official progress and requirement acceptance are separate metrics. Final Report completion uses formal submission."
+  },
+  "history": {
+    "total": 81,
+    "page": 1,
+    "limit": 10,
+    "events": [
+      {
+        "event_id": "workflow:41",
+        "stable_id": 41,
+        "occurred_at": "2026-10-28 22:22:06.593694",
+        "event_type": "final_report_submitted",
+        "category": "approval_data_gathering → ierb_completed",
+        "detail": "Official workflow event"
+      },
+      {
+        "event_id": "completion:3",
+        "stable_id": 3,
+        "occurred_at": "2026-10-28 22:22:06.593694",
+        "event_type": "IERB completion",
+        "category": "Final Report",
+        "detail": "Automatic completion on formal Final Report submission"
+      },
+      {
+        "event_id": "audit:851",
+        "stable_id": 851,
+        "occurred_at": "2026-10-28 22:22:06.000000",
+        "event_type": "document_submitted_to_rpms",
+        "category": "Form 33-0B - Final Report Form",
+        "detail": "Document submission stamp supported by formal audit"
+      },
+      {
+        "event_id": "workflow:39",
+        "stable_id": 39,
+        "occurred_at": "2026-10-28 22:21:36.911182",
+        "event_type": "requirement_accepted",
+        "category": "approval_data_gathering → approval_data_gathering",
+        "detail": "Official workflow event"
+      },
+      {
+        "event_id": "workflow:38",
+        "stable_id": 38,
+        "occurred_at": "2026-10-28 22:21:33.706189",
+        "event_type": "resolve_correction",
+        "category": "resubmission_amendment → approval_data_gathering",
+        "detail": "Official workflow event"
+      },
+      {
+        "event_id": "case-resolved:6",
+        "stable_id": 6,
+        "occurred_at": "2026-10-28 22:21:33.705422",
+        "event_type": "Correction resolved",
+        "category": "approval_data_gathering",
+        "detail": "Case #6 resolved"
+      },
+      {
+        "event_id": "workflow:37",
+        "stable_id": 37,
+        "occurred_at": "2026-10-28 22:21:33.427180",
+        "event_type": "requirement_accepted",
+        "category": "resubmission_amendment → resubmission_amendment",
+        "detail": "Official workflow event"
+      },
+      {
+        "event_id": "workflow:36",
+        "stable_id": 36,
+        "occurred_at": "2026-10-28 22:21:33.026869",
+        "event_type": "open_correction",
+        "category": "approval_data_gathering → resubmission_amendment",
+        "detail": "Official workflow event"
+      },
+      {
+        "event_id": "case-open:6",
+        "stable_id": 6,
+        "occurred_at": "2026-10-28 22:21:33.025934",
+        "event_type": "Correction opened",
+        "category": "approval_data_gathering",
+        "detail": "Case #6; Amendment required: No; status: Resolved"
+      },
+      {
+        "event_id": "audit:824",
+        "stable_id": 824,
+        "occurred_at": "2026-10-28 22:21:33.000000",
+        "event_type": "document_resubmitted_to_rpms",
+        "category": "Other Supporting Document",
+        "detail": "Document submission stamp supported by formal audit"
+      }
+    ]
+  }
+}

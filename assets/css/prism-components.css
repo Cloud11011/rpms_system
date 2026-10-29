@@ -315,3 +315,16 @@ body.prism-workspace .prism-record-shell .ierb-stage-sequence [aria-current=step
   body.prism-workspace .student-document-card.prism-record-shell .student-document-date { grid-column:1/-1; grid-row:3; }
   body.prism-workspace .student-document-card.prism-record-shell .student-document-actions { grid-column:1/-1; grid-row:4; }
 }
+/* Batch 7R: report history sort (B7-F13). */
+body.prism-workspace .report-history-actions { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 10px; }
+body.prism-workspace .report-sort { display: flex; flex-direction: column; gap: 4px; font-size: 13px; }
+body.prism-workspace .report-sort select { min-height: 40px; max-width: 100%; }
+/* Batch 7R: official deadline list options and overdue state (B7-F13). */
+body.prism-workspace .deadline-list-controls { display: flex; flex-wrap: wrap; gap: 10px 16px; margin: 12px 0 4px; }
+body.prism-workspace .deadline-list-controls label { display: flex; flex-direction: column; gap: 4px; font-size: 13px; min-width: 0; flex: 1 1 200px; }
+body.prism-workspace .deadline-list-controls select { min-height: 40px; max-width: 100%; }
+body.prism-workspace .official-deadline.is-overdue { border-left: 3px solid var(--prism-danger-solid); }
+/* Batch 7R: correction request and decision controls. */
+.v14-correction-actions { display: flex; flex-wrap: wrap; gap: 8px; margin: 10px 0; }
+.v14-doc-choice, .v14-amendment-choice label { display: flex; align-items: center; gap: 8px; min-height: 36px; }
+.v14-amendment-choice { border: 0; padding: 0; margin: 8px 0; display: flex; flex-wrap: wrap; gap: 4px 16px; }

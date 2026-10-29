@@ -1,0 +1,92 @@
+0
+Writer creates the file with the exact content and restores the umask
+Writer never overwrites an existing file
+Writer refuses the unsafe file name ".hidden.json"
+Writer refuses the unsafe file name "bad name.json"
+Writer refuses the unsafe file name "semi;colon.json"
+Writer refuses the unsafe file name ""
+Writer refuses a missing directory
+Writer refuses a directory inside the deployed application
+Writer refuses a dangling link planted at the target and creates nothing through it
+Writer refuses a link to an existing file and leaves its target unchanged
+Writer refuses a linked directory
+POSIX: a new private file is 0600
+POSIX: the file is 0600 even under umask 000
+POSIX: a directory with mode 755 is refused
+POSIX: a directory with mode 750 is refused
+POSIX: a directory with mode 711 is refused
+POSIX: a directory with mode 701 is refused
+POSIX: a directory owned by another account is refused
+Issuer requires --out: evidence is never printed to stdout
+Issuer refuses an empty --out
+Issuer refuses evidence inside the application directory
+Issuer refuses an existing --out file and leaves it unchanged
+Issuer refuses a planted link at --out
+Issuer refuses a linked --out directory
+POSIX: issuer refuses a group/world-accessible --out directory
+Issuer creates no evidence file when issuance does not complete
+Issuer never prints the key
+Cron runner refuses a receipt directory inside the application
+Cron runner refuses a missing receipt directory
+Cron runner refuses a linked receipt directory
+POSIX: cron runner refuses a group/world-accessible receipt directory
+Cron runner refuses the unsafe mode "..\/..\/escape" that would name the receipt
+Cron runner refuses the unsafe mode "X" that would name the receipt
+Cron runner refuses the unsafe mode "a b" that would name the receipt
+Probe applies the migration runner's TLS rule: an unreadable CA is refused before connecting
+The probe receipt is stored privately with a unique name and carries no password or DSN
+POSIX: the receipt file is 0600
+Probe refuses a non-MySQL DSN through the shared connection policy
+A failed probe reports only connection_failed (no credentials)
+Configuration: a file that passes every check is read and the probe connects; the receipt records ownerAndModeVerified=true
+Configuration: an empty path is refused
+Configuration: a missing file is refused, with no receipt and no connection attempt
+Configuration: a directory is refused
+Configuration: a file inside the deployed application is refused before it is parsed
+Configuration: a file inside a public_html web root outside the application is refused
+Configuration: a non-canonical path (with "..") is refused
+Configuration: a non-canonical path (with ".") is refused
+Configuration: a symbolic link to a valid configuration file is refused
+Configuration: a valid file reached through a linked folder is refused
+Configuration: a dangling link is refused
+Configuration: invalid JSON is refused without echoing its content
+Configuration: a JSON value that is not an object is refused
+Configuration: a missing field is named without echoing any value
+Configuration: the preflight x step refuses an unsafe configuration before running anything
+Configuration: the v12 dry-run step refuses an unsafe configuration before running anything
+Configuration: the v15 apply step refuses an unsafe configuration before running anything
+Configuration: the deletion-verification x step refuses an unsafe configuration before running anything
+Receipts: a receipt directory inside public_html is refused
+Issuer refuses evidence inside public_html
+POSIX: a configuration file with mode 644 is refused before it is read, and its mode is left unchanged
+POSIX: a configuration file with mode 640 is refused before it is read, and its mode is left unchanged
+POSIX: a configuration file with mode 604 is refused before it is read, and its mode is left unchanged
+POSIX: a configuration file with mode 660 is refused before it is read, and its mode is left unchanged
+POSIX: a configuration file with mode 606 is refused before it is read, and its mode is left unchanged
+POSIX: a configuration file with mode 620 is refused before it is read, and its mode is left unchanged
+POSIX: a configuration file with mode 602 is refused before it is read, and its mode is left unchanged
+POSIX: a configuration file with mode 610 is refused before it is read, and its mode is left unchanged
+POSIX: a configuration file with mode 601 is refused before it is read, and its mode is left unchanged
+POSIX: a group/world-readable file is refused before it is parsed (its invalid JSON is never reached)
+POSIX: a configuration file with mode 600 owned by this account is accepted
+POSIX: a configuration file with mode 400 owned by this account is accepted
+POSIX: a configuration folder with mode 770 (writable by group or others) is refused
+POSIX: a configuration folder with mode 730 (writable by group or others) is refused
+POSIX: a configuration folder with mode 720 (writable by group or others) is refused
+POSIX: a configuration folder with mode 703 (writable by group or others) is refused
+POSIX: a configuration folder with mode 777 (writable by group or others) is refused
+POSIX: a configuration folder with mode 755 (only the owner can write) is accepted
+POSIX: without the posix extension the owner cannot be verified, so the runner fails closed
+POSIX: without the posix extension the issuer refuses its output directory (fails closed)
+POSIX: a mode-600 configuration file owned by another account is refused (root could read it)
+POSIX: a configuration folder owned by another account is refused
+{
+    "status": "PASS",
+    "platform": "Linux",
+    "php": "8.2.35",
+    "assertions": 81,
+    "skipped": [
+        "TLS server checks (PRISM_TEST_TLS_* not set)",
+        "connection-trap control (pdo_mysql not loaded, so no connection is possible)"
+    ]
+}

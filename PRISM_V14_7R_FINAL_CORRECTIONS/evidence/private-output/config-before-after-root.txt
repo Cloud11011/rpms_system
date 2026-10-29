@@ -1,0 +1,28 @@
+## uid=0 BEFORE (pinned pre-fix runner)
+{"case":"file mode 644","exit":1,"errorClass":"connection_failed","connectionAttempted":true,"receiptWritten":true,"secretInOutput":false}
+{"case":"file mode 640","exit":1,"errorClass":"connection_failed","connectionAttempted":true,"receiptWritten":true,"secretInOutput":false}
+{"case":"file mode 604","exit":1,"errorClass":"connection_failed","connectionAttempted":true,"receiptWritten":true,"secretInOutput":false}
+{"case":"file 0644 with invalid JSON","exit":1,"errorClass":"invalid_invocation","connectionAttempted":false,"receiptWritten":false,"secretInOutput":false}
+{"case":"control: file 0600 in folder 0700","exit":1,"errorClass":"connection_failed","connectionAttempted":true,"receiptWritten":true,"secretInOutput":false}
+{"case":"folder 0777, file 0600","exit":1,"errorClass":"connection_failed","connectionAttempted":true,"receiptWritten":true,"secretInOutput":false}
+{"case":"symbolic link to a valid file","exit":1,"errorClass":"connection_failed","connectionAttempted":true,"receiptWritten":true,"secretInOutput":false}
+{"case":"valid file through a linked folder","exit":1,"errorClass":"connection_failed","connectionAttempted":true,"receiptWritten":true,"secretInOutput":false}
+{"case":"non-canonical path (..)","exit":1,"errorClass":"connection_failed","connectionAttempted":true,"receiptWritten":true,"secretInOutput":false}
+{"case":"file inside public_html (outside the app)","exit":1,"errorClass":"connection_failed","connectionAttempted":true,"receiptWritten":true,"secretInOutput":false}
+{"case":"receiptDir inside public_html","exit":1,"errorClass":"connection_failed","connectionAttempted":true,"receiptWritten":true,"secretInOutput":false}
+{"case":"file 0600 owned by another account (run as root)","exit":1,"errorClass":"connection_failed","connectionAttempted":true,"receiptWritten":true,"secretInOutput":false}
+{"case":"posix extension unavailable","exit":1,"errorClass":"connection_failed","connectionAttempted":true,"receiptWritten":true,"secretInOutput":false}
+## uid=0 AFTER (this pass)
+{"case":"file mode 644","exit":1,"errorClass":"unsafe_configuration","connectionAttempted":false,"receiptWritten":false,"secretInOutput":false}
+{"case":"file mode 640","exit":1,"errorClass":"unsafe_configuration","connectionAttempted":false,"receiptWritten":false,"secretInOutput":false}
+{"case":"file mode 604","exit":1,"errorClass":"unsafe_configuration","connectionAttempted":false,"receiptWritten":false,"secretInOutput":false}
+{"case":"file 0644 with invalid JSON","exit":1,"errorClass":"unsafe_configuration","connectionAttempted":false,"receiptWritten":false,"secretInOutput":false}
+{"case":"control: file 0600 in folder 0700","exit":1,"errorClass":"connection_failed","connectionAttempted":true,"receiptWritten":true,"secretInOutput":false}
+{"case":"folder 0777, file 0600","exit":1,"errorClass":"unsafe_configuration","connectionAttempted":false,"receiptWritten":false,"secretInOutput":false}
+{"case":"symbolic link to a valid file","exit":1,"errorClass":"unsafe_configuration","connectionAttempted":false,"receiptWritten":false,"secretInOutput":false}
+{"case":"valid file through a linked folder","exit":1,"errorClass":"unsafe_configuration","connectionAttempted":false,"receiptWritten":false,"secretInOutput":false}
+{"case":"non-canonical path (..)","exit":1,"errorClass":"unsafe_configuration","connectionAttempted":false,"receiptWritten":false,"secretInOutput":false}
+{"case":"file inside public_html (outside the app)","exit":1,"errorClass":"unsafe_configuration","connectionAttempted":false,"receiptWritten":false,"secretInOutput":false}
+{"case":"receiptDir inside public_html","exit":1,"errorClass":"unsafe_configuration","connectionAttempted":false,"receiptWritten":false,"secretInOutput":false}
+{"case":"file 0600 owned by another account (run as root)","exit":1,"errorClass":"unsafe_configuration","connectionAttempted":false,"receiptWritten":false,"secretInOutput":false}
+{"case":"posix extension unavailable","exit":1,"errorClass":"unsafe_configuration","connectionAttempted":false,"receiptWritten":false,"secretInOutput":false}

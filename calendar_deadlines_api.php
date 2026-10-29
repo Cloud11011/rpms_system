@@ -59,10 +59,17 @@ try {
             $stmt->execute($params);
             json_out(['ok' => true, 'dates' => $stmt->fetchAll()]);
         }
+        // Nearest upcoming first: active upcoming by date, then active overdue (most recent first), then cancelled (B7-F13).
+        $orders = ['upcoming' => "d.status='Active' DESC, d.deadline_date<CURDATE() ASC, CASE WHEN d.deadline_date>=CURDATE() THEN DATEDIFF(d.deadline_date,CURDATE()) ELSE DATEDIFF(CURDATE(),d.deadline_date) END ASC, d.id DESC",
+            'date-asc' => 'd.deadline_date ASC, d.id DESC', 'date-desc' => 'd.deadline_date DESC, d.id DESC',
+            'title-asc' => 'd.title ASC, d.deadline_date ASC, d.id DESC', 'created-desc' => 'd.created_at DESC, d.id DESC'];
+        $sort = $_GET['sort'] ?? 'upcoming';
+        if (!is_string($sort) || !isset($orders[$sort])) throw new InvalidArgumentException('Choose a supported deadline sort order.');
         $page = prism_page_query($pdo, 'SELECT d.id, d.creator_user_id, d.title, d.description, d.deadline_date,
-            d.target_scope, d.status, d.created_at, d.updated_at', $scope, $params, 'd.deadline_date ASC, d.id DESC',
+            d.target_scope, d.status, d.created_at, d.updated_at', $scope, $params, $orders[$sort],
             $_GET);
         foreach ($page['rows'] as &$row) {
+            $row['overdue'] = $row['status'] === 'Active' && $row['deadline_date'] < date('Y-m-d');
             $row['canCancel'] = $row['status'] === 'Active' && ($user['role'] === 'admin'
                 || ($user['role'] === 'adviser' && (int)$row['creator_user_id'] === (int)$user['id']));
             // Do not disclose other targeted group identifiers to readers.

@@ -1,4 +1,5 @@
 <?php
+if (PHP_SAPI !== 'cli') exit; // Test fixture: never reachable over HTTP (B7-F21).
 /** Maintainer helper only: bootstrap verifies the actual disposable MariaDB datadir. */
 require dirname(__DIR__).'/ierb-group-tests/bootstrap.php';
 require_once $root.'/includes/schema_v13.php';

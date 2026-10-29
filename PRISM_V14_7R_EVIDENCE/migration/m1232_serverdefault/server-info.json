@@ -1,0 +1,50 @@
+{
+    "version": "12.3.2-MariaDB",
+    "schema": "11",
+    "collation_database": "utf8mb4_uca1400_ai_ci",
+    "collation_server": "utf8mb4_uca1400_ai_ci",
+    "anchor_collations": [
+        {
+            "TABLE_NAME": "documents",
+            "COLUMN_NAME": "id",
+            "COLLATION_NAME": "utf8mb4_uca1400_ai_ci"
+        },
+        {
+            "TABLE_NAME": "reports",
+            "COLUMN_NAME": "id",
+            "COLLATION_NAME": "utf8mb4_uca1400_ai_ci"
+        },
+        {
+            "TABLE_NAME": "students",
+            "COLUMN_NAME": "academic_year",
+            "COLLATION_NAME": "utf8mb4_uca1400_ai_ci"
+        },
+        {
+            "TABLE_NAME": "students",
+            "COLUMN_NAME": "research_group",
+            "COLLATION_NAME": "utf8mb4_uca1400_ai_ci"
+        },
+        {
+            "TABLE_NAME": "students",
+            "COLUMN_NAME": "research_title",
+            "COLLATION_NAME": "utf8mb4_uca1400_ai_ci"
+        },
+        {
+            "TABLE_NAME": "students",
+            "COLUMN_NAME": "stage",
+            "COLLATION_NAME": "utf8mb4_uca1400_ai_ci"
+        }
+    ],
+    "table_collations": [
+        {
+            "TABLE_COLLATION": "utf8mb4_uca1400_ai_ci",
+            "n": 23
+        }
+    ],
+    "check_constraints": [
+        {
+            "TABLE_NAME": "staff_registration_code",
+            "CONSTRAINT_NAME": "staff_code_singleton"
+        }
+    ]
+}

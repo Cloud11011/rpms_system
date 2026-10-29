@@ -1,0 +1,20 @@
+check refuses the unredacted original and never prints the sensitive value
+stage refuses while an unredacted original is present; nothing is staged
+prepare-sanitized refuses to keep originals inside the repository and creates nothing there
+prepare-sanitized refuses a copy that is not the reviewed sanitized version
+prepare-sanitized installs the reviewed sanitized copy and keeps the original byte-for-byte outside the repository
+check passes on the sanitized tree and stages nothing
+stage refuses an index that already holds staged changes
+stage adds exactly the allowlist: ["app.php","maintenance/release/7r-commit-allowlist.tsv","report.md"]
+Screenshots, config.local.php, cleanup evidence and unreviewed files are left out (unlike git add -A)
+The staged report is the sanitized blob, and nothing was committed
+stage verifies more than 600 files without exceeding the command-line limit: 603
+A file edited after review is refused until its pin is deliberately updated
+A private deny-term in the content is refused without printing the term; nothing stays staged
+The deny-terms file must live outside the repository
+An allowlist path that leaves the repository is refused
+A forbidden file type is refused even when allowlisted
+A tracked change missing from the allowlist is refused (no inconsistent partial commit)
+The gate refuses a branch other than the reviewed one
+A real email address is refused without being printed
+{"status":"PASS","assertions":19}

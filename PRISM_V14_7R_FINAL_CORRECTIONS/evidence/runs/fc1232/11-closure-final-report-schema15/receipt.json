@@ -1,0 +1,1 @@
+{"label":"11-closure-final-report-schema15","exit":0,"start":"2026-10-29T08:07:42+08:00","end":"2026-10-29T08:08:14+08:00","env":"PRISM_TEST_SCHEMA_VERSION=15 PRISM_TEST_PHASE=documents PRISM_TEST_CLOSURE=1","fixture":"fc1232","collation":"utf8mb4_general_ci","base":"f944220+7R working tree+closure+review corrections+final hardening"}

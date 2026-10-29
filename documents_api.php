@@ -159,6 +159,10 @@ function doc_row(array $d, array $user, ?int $viewerAdviserId): array
                 && can_review_doc($user, $viewerAdviserId, $d) && !in_array($d['review_status'], ['Denied','Resubmission Requested'], true),
             'comment' => empty($d['archived_at']) && $isCurrent && can_review_doc($user, $viewerAdviserId, $d),
             'submitToRpms' => empty($d['archived_at']) && $isCurrent && !$locked && $state === WF_READY_FOR_RPMS && $role === 'admin',
+            // Adviser approval normally forwards automatically; an Adviser approval that was not forwarded may be formally
+            // submitted by any verified project member. The server re-checks membership, version and stage under lock.
+            'memberSubmitToRpms' => empty($d['archived_at']) && $isCurrent && !$locked && $state === WF_READY_FOR_RPMS && $role === 'student'
+                && empty($d['admin_override']) && trim((string)($d['reviewed_by'] ?? '')) !== '',
             'returnForRevision' => empty($d['archived_at']) && $isCurrent && $state === WF_SUBMITTED_RPMS && $role === 'admin',
             'uploadRevision' => empty($d['archived_at']) && $isCurrent && $role === 'student' && in_array($state, [WF_NEEDS_REVISION,WF_RETURNED_REVISION], true),
             'forceSubmitToRpms' => empty($d['archived_at']) && $isCurrent && !$locked && $role === 'admin' && $state !== WF_READY_FOR_RPMS,
@@ -208,7 +212,7 @@ if (in_array($action, ['requirements', 'accept_requirement'], true)) {
 
 if ($action === 'list') {
     try {
-        $spec = document_list_query($user, $viewerAdviserId, $_GET);
+        $spec = document_list_query($user, $viewerAdviserId, $_GET, research_projects_available($pdo));
         $metadata = document_list_options($pdo, $spec, $user);
         $page = prism_page_query($pdo, $spec['select'], $spec['scope'], $spec['params'], $spec['order'], $_GET);
         $rows = array_map(fn($d) => doc_row($d, $user, $viewerAdviserId), $page['rows']);
@@ -244,6 +248,17 @@ function upload_document_file(PDO $pdo, array $user, ?int $viewerAdviserId, arra
         $studentDbId = (int)$ownRow['id'];
         $studentName = $ownRow['full_name'];
         $studentStage = $ownRow['stage'];
+        // A canonical project keeps one evidence record. Any verified member uploads to it; the
+        // uploader stays in uploaded_by and the audit actor. Revalidated under locks below.
+        $uploaderStudentId = $studentDbId;
+        $owner = research_project_evidence_owner($pdo, $studentDbId);
+        if ($owner !== $studentDbId) {
+            $holder = $pdo->prepare('SELECT id, full_name, stage FROM students WHERE id = :id AND archived_at IS NULL');
+            $holder->execute([':id' => $owner]);
+            $holderRow = $holder->fetch();
+            if (!$holderRow) throw new DocumentUploadError('Your research project record requires RPMS reconciliation before uploading.', 409);
+            $studentDbId = (int)$holderRow['id']; $studentName = $holderRow['full_name']; $studentStage = $holderRow['stage'];
+        }
     } else {
         $requestedStudentId = (int)($_POST['studentDbId'] ?? 0);
         if ($requestedStudentId > 0) {
@@ -334,7 +349,17 @@ function upload_document_file(PDO $pdo, array $user, ?int $viewerAdviserId, arra
         research_project_fence($pdo);
         $studentLock = $pdo->prepare('SELECT * FROM students WHERE id = :id FOR UPDATE');
         $studentLock->execute([':id' => $studentDbId]);
-        try { current_workflow_student($pdo,(int)$studentDbId,$user); }
+        $memberUpload = $user['role'] === 'student' && (int)$studentDbId !== (int)($uploaderStudentId ?? $studentDbId);
+        try {
+            current_workflow_student($pdo,(int)$studentDbId,$user,$memberUpload);
+            if ($memberUpload) {
+                $project = research_project_for_student($pdo,(int)$studentDbId,true);
+                $member = research_project_member_actor($pdo,(int)$studentDbId,current_workflow_actor($pdo,$user));
+                if (!$project || (int)$project['submission_holder_id'] !== (int)$studentDbId || !$member || (int)$member['id'] !== (int)$uploaderStudentId) {
+                    throw new AccountLifecycleConflict('Your research project membership changed. Refresh before uploading.');
+                }
+            }
+        }
         catch (AccountLifecycleForbidden $e) { $error=new DocumentWriteConflict($e->getMessage(),0,$e); $error->status=403; throw $error; }
         catch (AccountLifecycleConflict $e) { throw new DocumentWriteConflict($e->getMessage(),0,$e); }
         $currentStudent = $studentLock->fetch();
@@ -344,7 +369,7 @@ function upload_document_file(PDO $pdo, array $user, ?int $viewerAdviserId, arra
         catch (AccountLifecycleConflict $e) { throw new DocumentWriteConflict($e->getMessage(),0,$e); }
         }
         if (!$currentStudent || !empty($currentStudent['archived_at'])
-            || ($user['role'] === 'student' && strcasecmp((string)$currentStudent['email'], (string)$user['email']) !== 0)
+            || ($user['role'] === 'student' && !$memberUpload && strcasecmp((string)$currentStudent['email'], (string)$user['email']) !== 0)
             || ($user['role'] === 'adviser' && ((int)$currentStudent['adviser_id'] !== $viewerAdviserId || !empty($currentStudent['archived_at'])))) {
             throw new DocumentWriteConflict('The student record changed while the file was uploading. Refresh and select the student again.');
         }
@@ -399,11 +424,13 @@ function upload_document_file(PDO $pdo, array $user, ?int $viewerAdviserId, arra
         audit_log($user, 'document_uploaded', [
             'entity_type' => 'document', 'entity_id' => $id, 'student_id' => $studentDbId,
             'after' => "v$versionNo", 'details' => '"' . basename($file['name']) . '" v' . $versionNo . " ($documentType, $stage)"
-                . ($prev ? ' replaces v' . $prev['version_no'] : ''),
+                . ($prev ? ' replaces v' . $prev['version_no'] : '')
+                . ($memberUpload ? '; uploaded by project member Student record ' . (int)$uploaderStudentId : ''),
         ]);
         $origName = basename($file['name']);
         $versionText = $versionNo > 1 ? " (version $versionNo)" : '';
-        $notificationIds = $studentDbId ? workflow_queue_notices($pdo,$user,$studentDbId,
+        // The confirmation goes to the member who uploaded; the shared Adviser receives the review notice.
+        $notificationIds = $studentDbId ? workflow_queue_notices($pdo,$user,$memberUpload ? (int)$uploaderStudentId : $studentDbId,
             $user['role']==='student' ? ['subject'=>'PRISM Submission Confirmation',
                 'message'=>"Your document \"$origName\"$versionText was received and is pending adviser review.",
                 'type'=>'Submission Confirmation'] : null,
@@ -524,8 +551,8 @@ if (in_array($action, ['review','comment','return_for_revision','submit_to_rpms'
         if (array_key_exists($field,$payload)) json_out(['ok'=>false,'message'=>'Authoritative workflow fields cannot be supplied.'],422);
     }
 }
-if ($action === 'submit_to_rpms' && $user['role'] !== 'admin') {
-    json_out(['ok'=>false,'message'=>'Adviser approval automatically submits the eligible current version to RPMS. A separate Student formal submission is not permitted.'],403);
+if ($action === 'submit_to_rpms' && $user['role'] === 'adviser') {
+    json_out(['ok'=>false,'message'=>'Adviser approval automatically submits the eligible current version to RPMS.'],403);
 }
 $id = $_GET['id'] ?? $payload['id'] ?? '';
 if (!is_string($id) || $id==='' || strlen($id)>128) json_out(['ok'=>false,'message'=>'Provide a valid record reference.'],422);
@@ -534,13 +561,9 @@ if (!$doc) {
     json_out(['ok' => false, 'message' => 'Document not found. It may have been deleted.'], 404);
 }
 
-// Students may only touch their own documents (including downloading/viewing the file itself).
-if ($user['role'] === 'student') {
-    $own = $pdo->prepare('SELECT email FROM students WHERE id = :id');
-    $own->execute([':id' => $doc['student_id']]);
-    if (strcasecmp((string)$own->fetchColumn(), (string)$user['email']) !== 0) {
-        json_out(['ok' => false, 'message' => 'Not authorized.'], 403);
-    }
+// Students may only touch their own documents or their verified project's shared evidence (including the file itself).
+if ($user['role'] === 'student' && (empty($doc['student_id']) || !research_project_student_can_read($pdo, (string)$user['email'], (int)$doc['student_id']))) {
+    json_out(['ok' => false, 'message' => 'Not authorized.'], 403);
 }
 
 if ($user['role'] === 'adviser' && ($viewerAdviserId === null || (int)($doc['adviser_id'] ?? 0) !== $viewerAdviserId || !empty($doc['archived_at']))) {
@@ -556,7 +579,7 @@ $locked = document_is_locked($doc);
 if (in_array($action,['review','comment','return_for_revision','submit_to_rpms','override_review'],true)) {
     require_session_generation(true);
     if (isset($_GET['id'], $payload['id']) && $_GET['id'] !== $payload['id']) json_out(['ok'=>false,'message'=>'Conflicting document identity.'],422);
-    $operation=match($action) { 'return_for_revision'=>'return', 'submit_to_rpms'=>'submit', 'override_review'=>'override', default=>$action };
+    $operation=match($action) { 'return_for_revision'=>'return', 'submit_to_rpms'=>$user['role']==='student'?'member_submit':'submit', 'override_review'=>'override', default=>$action };
     try {
         $result=document_workflow_change($pdo,$user,(string)$id,$operation,$payload['status']??'',
             in_array($operation,['return','submit','override'],true)?($payload['reason']??''):($payload['remarks']??''),

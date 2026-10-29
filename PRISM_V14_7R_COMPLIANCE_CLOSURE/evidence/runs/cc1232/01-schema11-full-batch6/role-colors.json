@@ -1,0 +1,42 @@
+{
+  "light": {
+    "student": {
+      "active": "rgb(181, 20, 110)",
+      "activeText": "rgb(255, 255, 255)",
+      "chip": "Student portal",
+      "chipColor": "rgb(181, 20, 110)",
+      "navBg": "rgb(245, 247, 251)",
+      "border": "rgba(220, 226, 237, 0.82)",
+      "focus": "#b80b62"
+    },
+    "adviser": {
+      "active": "rgb(61, 58, 156)",
+      "activeText": "rgb(255, 255, 255)",
+      "chip": "Adviser portal",
+      "chipColor": "rgb(61, 58, 156)",
+      "navBg": "rgb(245, 247, 251)",
+      "border": "rgba(220, 226, 237, 0.82)",
+      "focus": "#b80b62"
+    }
+  },
+  "dark": {
+    "student": {
+      "active": "rgb(181, 20, 110)",
+      "activeText": "rgb(255, 255, 255)",
+      "chip": "Student portal",
+      "chipColor": "rgb(255, 141, 195)",
+      "navBg": "rgb(16, 17, 30)",
+      "border": "rgba(255, 255, 255, 0.16)",
+      "focus": "#ff88bc"
+    },
+    "adviser": {
+      "active": "rgb(75, 71, 184)",
+      "activeText": "rgb(255, 255, 255)",
+      "chip": "Adviser portal",
+      "chipColor": "rgb(185, 181, 255)",
+      "navBg": "rgb(16, 17, 30)",
+      "border": "rgba(255, 255, 255, 0.16)",
+      "focus": "#ff88bc"
+    }
+  }
+}

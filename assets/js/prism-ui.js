@@ -60,7 +60,7 @@
 
   const TIPS = {
     'Pending Adviser Review': 'Waiting for the research adviser to review this document.',
-    'Ready for Formal RPMS Submission': 'Historical or Admin-reviewed approval awaiting formal submission by RPMS.',
+    'Ready for Formal RPMS Submission': 'Approved but not yet formally submitted. Any verified project member may submit an Adviser approval; RPMS submits an Admin-reviewed approval.',
     'Returned for Revision': 'RPMS returned the submitted version. Upload a new PDF/DOCX revision for Adviser review.',
     'Submitted to RPMS': 'Formally submitted to RPMS. This record is locked.',
     'Needs Revision': 'The adviser asked for changes. Upload a corrected version.',
@@ -75,6 +75,7 @@
         'You upload a document. It shows as Pending Adviser Review.',
         'Your adviser approves it, or asks for changes.',
         'Adviser approval automatically and formally submits the current version to RPMS.',
+        'An earlier Adviser approval that was not forwarded shows Ready for Formal RPMS Submission. Any verified project member can then use Submit to RPMS.',
         'If RPMS returns it, use Upload Revision. The new version returns to Adviser review; earlier versions are kept.'
       ]
     },
@@ -214,6 +215,7 @@
    *    busyText + onConfirm(result): optional async action run while the dialog stays open; a thrown error is shown in the dialog
    *    and the user may retry or cancel. The dialog resolves only after onConfirm succeeds, with { reason, values, result }.
    */
+  let dialogErrorSequence = 0;
   function confirmDialog(o) {
     return new Promise(function (resolve) {
       const tone = o.tone || 'primary';
@@ -241,6 +243,11 @@
       if (tone === 'override') m.dialog.classList.add('prism-override-dialog');
       const err = m.dialog.querySelector('.prism-field-error');
       const reasonBox = m.dialog.querySelector('#prismReason');
+      // The inline reason error is programmatically tied to its field, and cleared once the reason is long enough.
+      err.id = 'prismDlgError' + (++dialogErrorSequence);
+      if (reasonBox) reasonBox.addEventListener('input', function () {
+        if (reasonBox.getAttribute('aria-invalid') === 'true' && reasonBox.value.trim().length >= (o.minReason || 5)) { reasonBox.removeAttribute('aria-invalid'); err.textContent = ''; }
+      });
       const dirty = dirtyForm(m.dialog);
       const close = m.close;
       m.close = () => { dirty.clean(); dirty.dispose(); close(); };
@@ -254,6 +261,7 @@
         const reason = reasonBox ? reasonBox.value.trim() : '';
         if (o.reasonRequired && reason.length < (o.minReason || 5)) {
           err.textContent = 'Add a reason (at least ' + (o.minReason || 5) + ' characters).';
+          reasonBox.setAttribute('aria-invalid', 'true'); reasonBox.setAttribute('aria-describedby', err.id);
           reasonBox.focus();
           return;
         }
@@ -387,6 +395,26 @@
       return true;
     } catch (e) {
       toast(e.message, 'error');
+      return false;
+    }
+  }
+
+  /** Any verified project member formally submits the exact Adviser-approved version that was not forwarded automatically. */
+  async function memberSubmitToRpms(doc) {
+    const res = await confirmDialog({
+      title: 'Submit to RPMS', icon: 'fa-paper-plane', confirmText: 'Submit to RPMS',
+      message: 'Formally submit “' + doc.originalName + '” version ' + doc.versionNo + ' to RPMS? Your Adviser approved this version. Any verified member of your research project may submit it once; the submitted version is then locked and the submission is recorded under your name.'
+    });
+    if (!res) return false;
+    try {
+      const data = await postJson('documents_api.php?action=submit_to_rpms&id=' + encodeURIComponent(doc.id), {versionNo: doc.versionNo});
+      toast(data.message, 'success');
+      changed();
+      return true;
+    } catch (e) {
+      // Another member may have submitted it first; refresh so the action disappears.
+      toast(e.message, 'error');
+      changed();
       return false;
     }
   }
@@ -1382,7 +1410,7 @@
     actionOrigin: control => control?.closest('.prism-action-menu')?.querySelector('.prism-action-trigger') || control,
     modal: modal, confirm: confirmDialog, request: request, handleSessionExpiry: handleSessionExpiry, debounce: debounce, recordFilters: recordFilters, filtersDisclosure: filtersDisclosure, postJson: postJson, esc: esc, pagination: pagination, pageSizeControl: pageSizeControl, clientPager: clientPager, menuDisclosure: menuDisclosure, paginationWindow: paginationWindow, busy: busy, runAction: runAction, dirtyForm: dirtyForm, recordPager: recordPager, clearFilters: clearFilters,
     confirmDocumentDelete: confirmDocumentDelete,
-    changeStudentProgress: changeStudentProgress, manageStages: manageStages, showStageGuidance: showStageGuidance, submitToRpms: submitToRpms, uploadRevision: uploadRevision, overrideStudent: overrideStudent, overrideDocument: overrideDocument, showVersions: showVersions,
+    changeStudentProgress: changeStudentProgress, manageStages: manageStages, showStageGuidance: showStageGuidance, submitToRpms: submitToRpms, memberSubmitToRpms: memberSubmitToRpms, uploadRevision: uploadRevision, overrideStudent: overrideStudent, overrideDocument: overrideDocument, showVersions: showVersions,
     enhanceTable: enhanceTable, tableFilter: tableFilter, hint: hint,
     mountStudentWorkflow: mountStudentWorkflow, mountNeedsAttention: mountNeedsAttention, init: init,
     BADGES: BADGES

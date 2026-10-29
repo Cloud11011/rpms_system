@@ -2,10 +2,11 @@
 /** Additive summary history and immutable report snapshots. Never applied by HTTP. */
 require_once __DIR__.'/schema_v13.php';
 
-function schema_v14_tables(): array
+/** Pinned DDL rendered for the legacy base collation; documents.id and reports.id are VARCHAR foreign key parents. */
+function schema_v14_tables(string $collation=SCHEMA_PINNED_COLLATION): array
 {
     $tail=' ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci';
-    return [
+    return array_map(static fn($ddl)=>schema_extension_ddl($ddl,$collation),[
         'document_summary_versions'=>"CREATE TABLE document_summary_versions (
             id BIGINT NOT NULL AUTO_INCREMENT PRIMARY KEY,
             document_id VARCHAR(40) NOT NULL,
@@ -34,7 +35,7 @@ function schema_v14_tables(): array
             CONSTRAINT report_snapshot_fk FOREIGN KEY (report_id) REFERENCES reports(id) ON DELETE CASCADE,
             CONSTRAINT report_snapshot_json CHECK (JSON_VALID(snapshot_json))
         )".$tail,
-    ];
+    ]);
 }
 
 function schema_v14_definition(PDO $pdo,string $name): string
@@ -47,12 +48,13 @@ function schema_v14_verify(PDO $pdo,bool $partial=false,array $extraTables=[]): 
 {
     schema_v13_verify($pdo,false,array_merge(array_keys(schema_v14_tables()),$extraTables));
     $contract=json_decode(file_get_contents(__DIR__.'/summary_schema_v14.json'),true,512,JSON_THROW_ON_ERROR);
+    $collation=schema_extension_collation($pdo);
     $version=$pdo->query("SELECT v FROM schema_meta WHERE k='schema_version'")->fetchColumn();
     $present=$pdo->query('SHOW TABLES')->fetchAll(PDO::FETCH_COLUMN);
     foreach (array_keys(schema_v14_tables()) as $name) {
         if (!in_array($name,$present,true)) {
             if (!$partial || in_array($version,['14','15'],true)) throw new RuntimeException('Incomplete summary schema.');
-        } elseif (schema_v14_definition($pdo,$name)!==$contract[$name]) throw new RuntimeException('Summary schema drift: '.$name);
+        } elseif (!schema_extension_matches($pdo,$name,schema_v14_definition($pdo,$name),$contract[$name],$collation)) throw new RuntimeException('Summary schema drift: '.$name.' (legacy base '.$collation.').');
     }
 }
 
@@ -72,10 +74,10 @@ function migrate_schema_v14(PDO $pdo,string $mode='dry-run'): array
             foreach (array_reverse(array_keys(schema_v14_tables())) as $name) if (in_array($name,$present,true)) $pdo->exec('DROP TABLE `'.$name.'`');
             schema_v13_verify($pdo);
         } elseif ($mode==='apply') {
-            foreach (schema_v14_tables() as $name=>$ddl) if (!in_array($name,$present,true)) $pdo->exec($ddl);
+            foreach (schema_v14_tables(schema_extension_collation($pdo)) as $name=>$ddl) if (!in_array($name,$present,true)) $pdo->exec($ddl);
             schema_v14_verify($pdo);
             $pdo->exec("UPDATE schema_meta SET v='14' WHERE k='schema_version'");
         }
-        return ['ok'=>true,'mode'=>$mode,'to'=>$mode==='rollback'?'13':'14','existingRecordsChanged'=>0];
+        return ['ok'=>true,'mode'=>$mode,'to'=>$mode==='rollback'?'13':'14','extensionCollation'=>schema_extension_collation($pdo),'existingRecordsChanged'=>0];
     } finally { $pdo->query("SELECT RELEASE_LOCK('prism_migrate')"); }
 }

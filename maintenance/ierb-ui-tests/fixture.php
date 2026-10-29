@@ -1,4 +1,5 @@
 <?php
+if (PHP_SAPI !== 'cli') exit; // Test fixture: never reachable over HTTP (B7-F21).
 /** Batch 6 unit checks. Bootstrap refuses every database outside the verified disposable datadir. */
 require dirname(__DIR__).'/ierb-group-tests/bootstrap.php';
 require_once $root.'/includes/account_onboarding.php';

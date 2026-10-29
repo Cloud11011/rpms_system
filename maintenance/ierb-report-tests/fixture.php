@@ -1,4 +1,5 @@
 <?php
+if (PHP_SAPI !== 'cli') exit; // Test fixture: never reachable over HTTP (B7-F21).
 require dirname(__DIR__).'/ierb-group-tests/bootstrap.php';
 require_once $root.'/includes/schema_v14.php';
 require_once $root.'/includes/ierb_track_report.php';
@@ -57,7 +58,7 @@ try {
             $pdo->exec('SET foreign_key_checks=0');$refuses(fn()=>migrate_schema_v14($pdo),'Migration requires foreign keys');$pdo->exec('SET foreign_key_checks=1');
             migrate_schema_v14($pdo,'apply');$checks[]='Apply replay is idempotent';
             $pdo->exec('ALTER TABLE document_summary_versions ADD drift INT NULL');$refuses(fn()=>migrate_schema_v14($pdo,'apply'),'Schema drift is rejected');$pdo->exec('ALTER TABLE document_summary_versions DROP drift');
-            $pdo->exec('DROP TABLE ierb_report_snapshots');$refuses(fn()=>migrate_schema_v14($pdo,'apply'),'Published missing table is not silently recreated');$pdo->exec(schema_v14_tables()['ierb_report_snapshots']);
+            $pdo->exec('DROP TABLE ierb_report_snapshots');$refuses(fn()=>migrate_schema_v14($pdo,'apply'),'Published missing table is not silently recreated');$pdo->exec(schema_v14_tables(schema_extension_collation($pdo))['ierb_report_snapshots']);
             migrate_schema_v14($pdo,'rollback');migrate_schema_v14($pdo,'apply');$checks[]='Empty rollback and reapply preserve exact contract';
             return $checks;
         })(),

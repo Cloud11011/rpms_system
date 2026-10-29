@@ -1,0 +1,9 @@
+{
+    "ok": true,
+    "mode": "dry-run",
+    "from": "11",
+    "to": "12",
+    "existingExtensionTables": [],
+    "extensionCollation": "utf8mb4_uca1400_ai_ci",
+    "legacyRowsChanged": 0
+}

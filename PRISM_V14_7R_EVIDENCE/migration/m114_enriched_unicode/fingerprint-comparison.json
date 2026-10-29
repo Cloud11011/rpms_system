@@ -1,0 +1,167 @@
+{
+  "preserved": [
+    {
+      "table": "account_invitations",
+      "before": 0,
+      "after": 0
+    },
+    {
+      "table": "account_purge_jobs",
+      "before": 0,
+      "after": 0
+    },
+    {
+      "table": "activity_logs",
+      "before": 123,
+      "after": 123
+    },
+    {
+      "table": "advisers",
+      "before": 2,
+      "after": 2
+    },
+    {
+      "table": "ai_outputs",
+      "before": 0,
+      "after": 0
+    },
+    {
+      "table": "calendar_deadline_groups",
+      "before": 0,
+      "after": 0
+    },
+    {
+      "table": "calendar_deadline_recipients",
+      "before": 0,
+      "after": 0
+    },
+    {
+      "table": "calendar_deadlines",
+      "before": 0,
+      "after": 0
+    },
+    {
+      "table": "documents",
+      "before": 572,
+      "after": 572
+    },
+    {
+      "table": "ierb_history",
+      "before": 314,
+      "after": 314
+    },
+    {
+      "table": "legal_policies",
+      "before": 2,
+      "after": 2
+    },
+    {
+      "table": "legal_policy_approvals",
+      "before": 2,
+      "after": 2
+    },
+    {
+      "table": "legal_policy_versions",
+      "before": 2,
+      "after": 2
+    },
+    {
+      "table": "notification_campaigns",
+      "before": 121,
+      "after": 121
+    },
+    {
+      "table": "notifications",
+      "before": 122,
+      "after": 122
+    },
+    {
+      "table": "password_resets",
+      "before": 0,
+      "after": 0
+    },
+    {
+      "table": "reports",
+      "before": 32,
+      "after": 32
+    },
+    {
+      "table": "staff_registration_code",
+      "before": 0,
+      "after": 0
+    },
+    {
+      "table": "stage_labels",
+      "before": 1,
+      "after": 1
+    },
+    {
+      "table": "students",
+      "before": 311,
+      "after": 311
+    },
+    {
+      "table": "user_policy_acceptances",
+      "before": 26,
+      "after": 26
+    },
+    {
+      "table": "users",
+      "before": 14,
+      "after": 14
+    }
+  ],
+  "changed": [
+    {
+      "table": "schema_meta",
+      "before": 3,
+      "after": 3
+    }
+  ],
+  "added": [
+    {
+      "table": "academic_years",
+      "rows": 6
+    },
+    {
+      "table": "document_summary_versions",
+      "rows": 0
+    },
+    {
+      "table": "ierb_correction_cases",
+      "rows": 0
+    },
+    {
+      "table": "ierb_report_snapshots",
+      "rows": 0
+    },
+    {
+      "table": "ierb_workflow_events",
+      "rows": 0
+    },
+    {
+      "table": "ierb_workflows",
+      "rows": 0
+    },
+    {
+      "table": "research_project_events",
+      "rows": 0
+    },
+    {
+      "table": "research_project_identifiers",
+      "rows": 0
+    },
+    {
+      "table": "research_project_member_history",
+      "rows": 0
+    },
+    {
+      "table": "research_project_members",
+      "rows": 0
+    },
+    {
+      "table": "research_projects",
+      "rows": 0
+    }
+  ]
+}

@@ -13,13 +13,9 @@ try {
     $q=$pdo->prepare('SELECT * FROM users WHERE id=?'); $q->execute([$input['actorUserId'] ?? 0]); $actor=$q->fetch(PDO::FETCH_ASSOC);
     if (!$actor) throw new RuntimeException('Live Administrator required.');
     if (($argv[1] ?? 'preview') === 'preview') {
-        $pdo->beginTransaction(); research_project_fence($pdo); research_project_admin($pdo,$actor); $mapping=[];
-        foreach ($input['studentIds'] ?? [] as $sid) {
-            $row=current_workflow_student($pdo,(int)$sid,$actor);
-            $mapping[]=['studentId'=>(int)$row['id'],'snapshotSha256'=>hash('sha256',json_encode($row,JSON_THROW_ON_ERROR)),
-                'name'=>$row['full_name'],'previousGroup'=>$row['research_group'],'previousTitle'=>$row['research_title'],'adviserId'=>(int)$row['adviser_id']];
-        }
-        $pdo->commit(); $result=['ok'=>true,'mapping'=>$mapping,'note'=>'Review every legacy association and selected submission holder before applying. No membership changed.'];
+        $result=research_project_preview($pdo,$actor,array_map('intval',$input['studentIds'] ?? []));
+    } elseif ($argv[1] === 'designate-pi') {
+        $result=research_project_designate_pi($pdo,$actor,$input['projectId'],$input['expectedRevision'],$input['studentId'],$input['reason']);
     } elseif ($argv[1] === 'apply') {
         $result=research_project_reconcile($pdo,$actor,$input['title'],$input['holderId'],$input['adviserId'],$input['mapping'],$input['reason'],$input['historicalCompletionReference'] ?? '');
     } elseif ($argv[1] === 'rename') {
