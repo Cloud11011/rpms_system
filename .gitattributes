@@ -1,3 +1,9 @@
 # PDF evidence must retain exact bytes, including xref spacing and offsets.
 PRISM_V14_BATCH_04_EVIDENCE/*.pdf binary
 PRISM_V14_BATCH_05_EVIDENCE/*.pdf binary
+
+# H3 review sources and generated JSON must retain LF on Windows.
+/.gitattributes text eol=lf
+/.htaccess text eol=lf
+/PRISM_V14_H3_SECURITY_CLOSURE/*.json text eol=lf
+/maintenance/release/public-runtime-files.json text eol=lf

@@ -2,6 +2,31 @@
 # file itself from being served.
 Options -Indexes
 
+# H3: deny non-runtime trees before any application or child-directory rules.
+# Required deliberately: a server without mod_rewrite must fail closed.
+RewriteEngine On
+# Keep ACME's /.well-known/ available; all other dot paths are private.
+RewriteRule "(^|/)\.(?!well-known(?:/|$))" - [F,L,NC]
+# PRISM_* at repository root contains development evidence/reports, not app assets.
+RewriteRule ^PRISM_ - [F,L,NC]
+RewriteRule ^(?:storage|tests|maintenance|vendor|backups?)(?:/|$) - [F,L,NC]
+RewriteRule ^config(?:\.local)?\.php(?:/|$) - [F,L,NC]
+# Child rewrite rules may replace inherited rules. mod_alias also denies the
+# evidence URL segment, including installations below a URL prefix.
+RedirectMatch 403 "(?i)(?:^|/)PRISM_[^/]*(?:/|$)"
+
+# Extend the original file protections without blocking runtime JSON, images,
+# PDFs or Markdown read by PHP (includes/legal). Downloads use PHP endpoints.
+<FilesMatch "(?i)(?:^\.env(?:\.|$)|\.(?:ini|conf|cnf|ya?ml|pem|key|p12|pfx|jks|sql|sqlite3?|db|dump|log|diff|patch|err|out|csv|tsv|bak|old|orig|save|swp|zip|7z|rar|tar|gz|bz2|xz|tgz|sh|ps1|py|cjs|map)(?:[.~].*)?$|~$)">
+    <IfModule mod_authz_core.c>
+        Require all denied
+    </IfModule>
+    <IfModule !mod_authz_core.c>
+        Order allow,deny
+        Deny from all
+    </IfModule>
+</FilesMatch>
+
 <Files ".htaccess">
     <IfModule mod_authz_core.c>
         Require all denied
