@@ -23,10 +23,11 @@ document.addEventListener('DOMContentLoaded', () => {
     document.querySelectorAll('.report-modal').forEach(m => m.addEventListener('click', e => { if (e.target === m) closeModal(m); }));
 
     const studentModal = document.getElementById('studentModal');
+    const v14Reports = window.PRISM_V14_REPORTS === true;
     const projectModal=document.getElementById('projectModal');
     const projectButton=document.createElement('button');projectButton.type='button';projectButton.className='report-tool';projectButton.textContent='Generate IERB Project Track Sheet';
-    document.querySelector('.report-tools').append(projectButton);
-    const aggregateButton=document.createElement('button');aggregateButton.type='button';aggregateButton.className='report-tool';aggregateButton.textContent='Generate Institutional Project Report';document.querySelector('.report-tools').append(aggregateButton);
+    document.querySelector('.report-tools').prepend(projectButton);
+    const aggregateButton=document.createElement('button');aggregateButton.type='button';aggregateButton.className='report-tool';aggregateButton.textContent='Generate Institutional Project Report';document.querySelector('.report-tools').append(aggregateButton);if (v14Reports) document.getElementById('openStudentReport').hidden = true;
     aggregateButton.addEventListener('click',async()=>{const release=PrismUI.busy(aggregateButton,'Generating...');if(!release)return;try{const data=await PrismUI.postJson('reports_api.php?action=project_aggregate',{});await loadReports();downloadReport(data.report.id)}catch(e){PrismUI.toast(e.message,'error')}finally{release()}});
     projectButton.addEventListener('click',async()=>{
         const release=PrismUI.busy(projectButton,'Loading projects...');if(!release)return;

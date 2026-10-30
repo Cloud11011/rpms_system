@@ -1,9 +1,9 @@
 <?php // Shared staff-only read interface; authorization is enforced by the hosting page and API. ?>
 <section class="prism-monitor" data-ierb-monitor data-admin="<?= $authUser['role']==='admin'?'true':'false' ?>" aria-label="IERB Progress Monitor">
     <h2>IERB Progress Monitor</h2>
-    <p>One record per canonical project; legacy Student records retain their historical stages. Times shown in Asia/Manila.</p>
+    <p>One record per canonical research project. Historical Student records remain available for read-only audit. Times shown in Asia/Manila.</p>
     <div class="monitor-selection">
-        <a class="prism-btn is-secondary" href="ierbprog.php#ierbTableTitle">Student records and actions</a>
+        <a class="prism-btn is-secondary" href="ierbprog.php#ierbGroupAdvancement">Group Advancement</a>
         <a class="prism-btn is-secondary" href="documents.php">Open Documents</a>
         <a class="prism-btn is-secondary" href="ierb_api.php?action=export_csv">Export Student directory CSV</a>
     </div>

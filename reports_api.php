@@ -86,6 +86,7 @@ const AI_FULL_PROMPT = "Write an IERB progress review for RPMS staff, up to 450 
     . "recorded data limitations and optional checks. Do not pad sparse data. " . AI_REPORT_RULES;
 
 if ($action === 'ai_report') {
+    if (ierb_v14_http_operations_enabled()) json_out(['ok'=>false,'message'=>'Legacy AI progress generation has been retired. Use V14 project and institutional reports.'],409);
     $mode = trim((string)($data['mode'] ?? ''));
     if (!in_array($mode, AI_REPORT_MODES, true)) {
         json_out(['ok' => false, 'message' => 'Invalid report mode.'], 422);
@@ -301,6 +302,7 @@ function local_full_narrative(array $students, string $scopeLabel = 'the institu
 }
 
 if ($action === 'generate') {
+    if (ierb_v14_http_operations_enabled()) json_out(['ok'=>false,'message'=>'Legacy Student-stage reports have been retired. Use V14 project reports.'],409);
     $type = trim((string)($data['type'] ?? 'Progress Report')); // Progress Report | Student Report
     if (!in_array($type, ['Progress Report', 'Student Report'], true)) {
         json_out(['ok' => false, 'message' => 'Invalid report type.'], 422);
