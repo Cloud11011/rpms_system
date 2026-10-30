@@ -1,6 +1,11 @@
 <?php
 require __DIR__ . '/config.php';
 $authUser = require_login('admin');
+// V14's verified project reports replace the legacy per-Student AI report page.
+if (defined('PRISM_IERB_V14_OPERATIONS') && PRISM_IERB_V14_OPERATIONS === true) {
+    header('Location: reports.php', true, 302);
+    exit;
+}
 $user_email = $authUser['email'];
 ?>
 <!DOCTYPE html>
