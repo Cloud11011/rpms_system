@@ -297,7 +297,7 @@ function ierb_v14_accept_requirements_bulk(PDO $pdo, array $actor, int $studentI
         $identifiers = []; $notices = []; $index = 0;
         foreach ($byKey as $key => $id) {
             $definition = ierb_v14_requirement_definition($pdo, $studentId, $key);
-            if (!in_array($definition[0], $allowed, true)) {
+            if (!array_intersect($definition[2], $allowed)) {
                 // Initial submissions already uploaded can still be accepted;
                 // the selector is intentionally narrower than RPMS acceptance.
                 if ($workflow['stage_key'] !== IerbStage::INITIAL || $definition[1] !== IerbStage::INITIAL) {

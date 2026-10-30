@@ -43,6 +43,72 @@
       if (data.workflow.correctionCase) {
         const policy = document.createElement('p'); policy.textContent = 'Open correction case: Amendment Form ' + (data.workflow.correctionCase.requiresAmendment ? 'required.' : 'not required.'); host.append(policy);
       }
+
+      if (!portalChecklist && data.viewerRole === 'admin') {
+        const ready = data.requirements.filter(row =>
+          row.canAccept && row.state === 'Formally Submitted to RPMS'
+          && row.key !== 'form33' && row.key !== 'final_report');
+        if (ready.length) {
+          const bulk = document.createElement('section');
+          bulk.className = 'v14-bulk-accept';
+          const label = document.createElement('p');
+          label.textContent = 'RPMS bulk review: select formally submitted requirements to accept together.';
+          bulk.append(label);
+          const selectors = [];
+          ready.forEach(row => {
+            const choice = document.createElement('label');
+            const input = document.createElement('input'); input.type = 'checkbox';
+            const name = document.createElement('span');
+            name.textContent = row.label + ' (version ' + row.versionNo + ')';
+            choice.append(input, name); bulk.append(choice);
+            selectors.push({row,input});
+          });
+          const selectAll = document.createElement('button');
+          selectAll.type = 'button'; selectAll.className = 'prism-btn is-secondary';
+          selectAll.textContent = 'Select all eligible';
+          selectAll.onclick = () => selectors.forEach(({input}) => { input.checked = true; });
+          const accept = document.createElement('button');
+          accept.type = 'button'; accept.className = 'prism-btn is-primary';
+          accept.textContent = 'Accept selected requirements';
+          accept.onclick = async () => {
+            const chosen = selectors.filter(({input}) => input.checked).map(({row}) => ({
+              requirementKey: row.key, documentId: row.documentId
+            }));
+            if (!chosen.length) {
+              PrismUI.toast('Select at least one formally submitted requirement.', 'info');
+              return;
+            }
+            const prompt = PrismUI.confirm({
+              title: 'Accept selected RPMS requirements',
+              confirmText: 'Accept ' + chosen.length + ' requirements',
+              reasonRequired: true, minReason: 5,
+              reasonLabel: 'RPMS acceptance reason',
+              message: 'Review the selected current document versions. The whole batch will either succeed or be rolled back.'
+            });
+            const dialog = host.closest('dialog'), overlay = document.querySelector('.prism-overlay');
+            if (dialog && overlay) dialog.append(overlay);
+            const answer = await prompt;
+            if (!answer) return;
+            const release = PrismUI.busy(accept, 'Accepting...');
+            if (!release) return;
+            try {
+              const result = await request('accept_requirements_bulk', {
+                method: 'POST', headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({studentId: Number(data.submissionScope.studentId),
+                  items: chosen, revision: data.workflow.revision,
+                  reason: answer.reason, requestKey: crypto.randomUUID()})
+              });
+              PrismUI.toast(result.message || 'RPMS requirements accepted.', 'success');
+              await load(studentId, host);
+            } catch (error) {
+              const alert = document.createElement('p');
+              alert.setAttribute('role', 'alert'); alert.textContent = error.message; bulk.append(alert);
+            } finally { release(); }
+          };
+          bulk.append(selectAll, accept);
+          host.append(bulk);
+        }
+      }
       corrections(data, studentId, host);
       const list = document.createElement('ul'); list.className = 'v14-requirements';
       const portalRows = !portalChecklist ? data.requirements : data.requirements.filter(row => {
