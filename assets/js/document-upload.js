@@ -26,13 +26,14 @@
     }
     return formData;
   }
-  function typeControl(file, index, value, locked = false) {
+  function typeControl(file, index, value, locked = false, availableTypes = null) {
     const label = document.createElement('label'); label.className = 'upload-file-type';
     label.textContent = `Document type for ${file.name}`;
     const select = document.createElement('select'); select.dataset.uploadType = String(index);
     select.dataset.fileKey = `${file.name}:${file.size}:${file.lastModified}`;
     select.setAttribute('aria-label', label.textContent); select.required = true; select.disabled = locked;
-    const types = [...PrismUI.documentTypes]; if (value && !types.includes(value)) types.push(value);
+    const types = availableTypes === null ? [...PrismUI.documentTypes] : [...availableTypes];
+    if (value && !types.includes(value) && availableTypes === null) types.push(value);
     types.forEach(type => select.add(new Option(type, type)));
     select.value = value || types[0]; label.append(select); return label;
   }

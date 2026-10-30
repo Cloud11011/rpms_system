@@ -631,6 +631,10 @@ document.addEventListener('DOMContentLoaded', () => {
         $('submissionProtocol').textContent = myRecord?.protocolCode || 'No protocol code yet';
     }
 
+    // Null means a historical record; an array is the server-approved V14
+    // selection for this project's current stage (empty means no new uploads).
+    let v14UploadTypes = null;
+    let preferredDocumentType = null;
     async function refreshAll() {
         const sequence = ++refreshSequence;
         ++notificationSequence;
@@ -650,12 +654,21 @@ document.addEventListener('DOMContentLoaded', () => {
         if (myRecord) {
             const checklist = await PrismRequirements.load(myRecord.id, $('v14RequirementChecklist'));
             if (myRecord.v14 && checklist?.enrolled) {
+                const stageAllowed = new Set(checklist.uploadTypes || []);
+                v14UploadTypes = checklist.requirements.filter(row =>
+                    stageAllowed.has(row.label) && row.state === 'Missing').map(row => row.label);
                 const context = checklist.workflow.correctionCase?.interruptedStage || myRecord.stage;
                 const pending = checklist.requirements.filter(row => row.key !== 'amendment' && (context === 'initial_submission'
                     ? row.stage === 'initial_submission' : ['form33','final_report'].includes(row.key)) && row.state !== 'Accepted');
                 myRecord.requirements = myRecord.stage === 'ierb_completed' || !pending.length ? 'None' : pending.map(row => row.label).join(', ');
+            } else {
+                // Fail closed if a canonical workflow cannot be read or if
+                // an approved assignment has not finished secure enrollment.
+                v14UploadTypes = myRecord.projectId || myRecord.v14 ||
+                    (myRecord.researchAssignmentState && myRecord.researchAssignmentState !== 'activated')
+                    ? [] : null;
             }
-        }
+        } else v14UploadTypes = [];
         myHistory = progress.history;
         historyState = {total:progress.total??myHistory.length,page:progress.page??1,limit:progress.limit};
         historyPager.reset();
@@ -717,14 +730,17 @@ document.addEventListener('DOMContentLoaded', () => {
     const submissionButton = submissionForm.querySelector('[type="submit"]');
     const queue = PrismUpload.createQueue();
     let uploading = false;
-    const validType = entry => revisionDocument ? entry.type === revisionDocument.documentType : PrismUI.documentTypes.includes(entry.type);
+    const validType = entry => revisionDocument ? entry.type === revisionDocument.documentType
+        : (v14UploadTypes === null ? PrismUI.documentTypes : v14UploadTypes).includes(entry.type);
     const invalidFile = file => !/\.(pdf|docx)$/i.test(file.name) ? `${file.name} is not a PDF or DOCX file.`
         : file.size > 20 * 1024 * 1024 ? `${file.name} is over the 20 MB file limit.` : file.size === 0 ? `${file.name} is empty.` : '';
 
     function updateSubmissionReadiness() {
         const entries = queue.entries;
         const hasFiles = entries.length > 0 && entries.every(e => !invalidFile(e.file));
-        const hasTypes = entries.length > 0 && entries.every(validType);
+        const selectedTypes = entries.map(e => e.type).filter(Boolean);
+        const duplicateTypes = new Set(selectedTypes).size !== selectedTypes.length;
+        const hasTypes = entries.length > 0 && entries.every(validType) && !duplicateTypes;
         const uncertain = entries.some(e => e.uncertain);
         const ready = hasFiles && hasTypes && !uncertain && !uploading;
         $('submissionTypeReady').classList.toggle('is-ready', hasTypes);
@@ -736,7 +752,12 @@ document.addEventListener('DOMContentLoaded', () => {
         submissionButton.textContent = entries.length ? `Submit ${entries.length} ${entries.length === 1 ? 'document' : 'documents'} for review` : 'Submit for review';
         const error = entries.map(e => invalidFile(e.file)).find(Boolean);
         $('submissionSubmitHint').textContent = uncertain ? 'Check My Documents to reconcile the uncertain upload before retrying.'
-            : error || (!entries.length ? 'Add documents to continue.' : !hasTypes ? 'Choose a document type for every queued file.' : `${entries.length} documents ready for review. Earlier versions stay in history.`);
+            : error || (v14UploadTypes !== null && !v14UploadTypes.length && !revisionDocument
+                ? 'No new document types are available. Check group activation and your current-stage checklist.'
+                : !entries.length ? 'Add documents to continue.'
+                : duplicateTypes ? 'Each required document type can only appear once in this upload batch.'
+                : !hasTypes ? 'Choose an available current-stage document type for every file.'
+                : `${entries.length} documents ready for review. Earlier versions stay in history.`);
         $('submissionSubmitHint').classList.toggle('has-error', Boolean(error || uncertain));
         submissionDropzone.classList.toggle('has-file', hasFiles);
         submissionDropzone.disabled = uploading; submissionFile.disabled = uploading; cancelRevision.disabled = uploading;
@@ -755,7 +776,9 @@ document.addEventListener('DOMContentLoaded', () => {
             const remove = document.createElement('button'); remove.type = 'button'; remove.className = 'submission-file-remove'; remove.textContent = 'Remove';
             remove.setAttribute('aria-label', `Remove ${file.name}`); remove.disabled = uploading;
             remove.addEventListener('click', () => { queue.remove(entry.id); renderQueue(); submissionDropzone.focus(); });
-            const label = PrismUpload.typeControl(file, index, entry.type, Boolean(revisionDocument) || uploading);
+            const types = revisionDocument ? [revisionDocument.documentType]
+                : (v14UploadTypes === null ? PrismUI.documentTypes : v14UploadTypes);
+            const label = PrismUpload.typeControl(file, index, entry.type, Boolean(revisionDocument) || uploading, types);
             const select = label.querySelector('select'); select.add(new Option('Select a document type', ''), 0); select.value = entry.type;
             select.dataset.fileKey = entry.id;
             select.addEventListener('change', () => { entry.type = select.value; updateSubmissionReadiness(); });
@@ -773,11 +796,24 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     function addFiles(files) {
         if (uploading) return;
+        const previousIds = new Set(queue.entries.map(e => e.id));
         const message = queue.add(Array.from(files), revisionDocument?.documentType);
+        const newlyAdded = queue.entries.filter(e => !previousIds.has(e.id));
+        if (preferredDocumentType && newlyAdded.length && !revisionDocument) {
+            newlyAdded[0].type = preferredDocumentType;
+            preferredDocumentType = null;
+        }
         submissionFile.value = ''; // Allows reselecting the same file after explicit removal.
         if (message) PrismUpload.render({message});
         renderQueue();
     }
+    document.addEventListener('prism:upload-requirement', event => {
+        const type = event.detail?.documentType;
+        if (!type || !Array.isArray(v14UploadTypes) || !v14UploadTypes.includes(type)) return;
+        preferredDocumentType = type;
+        go('submit');
+        submissionFile.click();
+    });
     function clearRevision() {
         revisionDocument = null; revisionNotice.hidden = true; cancelRevision.hidden = true;
         submissionFile.multiple = true; queue.clear(); renderQueue();

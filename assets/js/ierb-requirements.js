@@ -9,7 +9,8 @@
       const data = await request('requirements&studentId=' + encodeURIComponent(studentId));
       host.replaceChildren(); host.hidden = !data.enrolled;
       if (!data.enrolled) return;
-      const title = document.createElement('h2'); title.textContent = 'Research project requirements';
+      const portalChecklist = host.id === 'v14RequirementChecklist';
+      const title = document.createElement('h2'); title.textContent = portalChecklist ? 'Current-stage document checklist' : 'Research project requirements';
       const stage = document.createElement('p'); stage.textContent = `${data.workflow.stageLabel} (${data.workflow.progress}%)`;
       const scopeInfo = data.submissionScope || {};
       const scope = document.createElement('p'); scope.textContent = (scopeInfo.uploadPolicy ? scopeInfo.uploadPolicy + ' ' : '') + 'Requirements are satisfied once for the project. RPMS advances eligible groups; Final Report formal submission completes the project automatically.';
@@ -22,15 +23,47 @@
         host.append(pi);
       }
       host.append(scope, refresh);
+      if (portalChecklist) {
+        const allowed = new Set(data.uploadTypes || []);
+        const stageKey = data.workflow.stage;
+        const visible = data.requirements.filter(row => stageKey === 'initial_submission'
+          ? row.stage === 'initial_submission'
+          : stageKey === 'resubmission_amendment'
+            ? allowed.has(row.label) || row.key === 'amendment' && data.workflow.correctionCase?.requiresAmendment
+            : stageKey === 'approval_data_gathering'
+              ? ['form33', 'final_report'].includes(row.key)
+              : true);
+        const complete = visible.filter(row => row.state === 'Accepted' ||
+          (row.key === 'final_report' && row.state === 'Formally Submitted to RPMS')).length;
+        const summary = document.createElement('p');
+        summary.className = 'v14-checklist-summary';
+        summary.textContent = complete + ' of ' + visible.length + ' requirements accepted / completed for this stage';
+        host.append(summary);
+      }
       if (data.workflow.correctionCase) {
         const policy = document.createElement('p'); policy.textContent = 'Open correction case: Amendment Form ' + (data.workflow.correctionCase.requiresAmendment ? 'required.' : 'not required.'); host.append(policy);
       }
       corrections(data, studentId, host);
       const list = document.createElement('ul'); list.className = 'v14-requirements';
-      data.requirements.forEach(row => {
+      const portalRows = !portalChecklist ? data.requirements : data.requirements.filter(row => {
+        const current = data.workflow.stage;
+        if (current === 'initial_submission') return row.stage === 'initial_submission';
+        if (current === 'resubmission_amendment') return (data.uploadTypes || []).includes(row.label);
+        if (current === 'approval_data_gathering') return ['form33', 'final_report'].includes(row.key);
+        return true; // Completed projects retain a read-only record.
+      });
+      portalRows.forEach(row => {
         const item = document.createElement('li');
         const text = document.createElement('span'); text.textContent = `${row.label}: ${row.state}${row.versionNo ? ' (v' + row.versionNo + ')' : ''}`;
         item.append(text);
+        if (portalChecklist && row.state === 'Missing' && (data.uploadTypes || []).includes(row.label)) {
+          const upload = document.createElement('button');
+          upload.type = 'button'; upload.className = 'prism-btn is-secondary';
+          upload.textContent = 'Upload'; upload.setAttribute('aria-label', 'Upload ' + row.label);
+          upload.addEventListener('click', () => document.dispatchEvent(new CustomEvent('prism:upload-requirement',
+            {detail: {documentType: row.label}})));
+          item.append(upload);
+        }
         if (row.acceptanceEventId) { const evidence = document.createElement('small'); evidence.textContent = `Acceptance evidence #${row.acceptanceEventId} / ${row.acceptedAt}`; item.append(evidence); }
         if (row.canAccept) {
           const button = document.createElement('button'); button.type = 'button'; button.className = 'prism-btn is-secondary'; button.textContent = 'Accept requirement';
