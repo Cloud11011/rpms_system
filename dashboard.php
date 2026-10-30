@@ -27,10 +27,26 @@ if (research_projects_available($pdo)) $legacyCompleted.=' AND NOT EXISTS (SELEC
 $approved_ethics=(int)$pdo->query($legacyCompleted)->fetchColumn();
 $delayed_submissions = (int)$pdo->query("SELECT COUNT(*) FROM students WHERE archived_at IS NULL AND profile_completed_at IS NOT NULL AND status = 'Delayed'")->fetchColumn();
 if ($v14Enabled && research_projects_available($pdo)) {
-    // Official project metrics: count each project once, never each group member.
-    $pending_ierb = (int)$pdo->query("SELECT COUNT(*) FROM research_projects p JOIN ierb_workflows w ON w.id=p.workflow_id WHERE w.stage_key<>'ierb_completed'")->fetchColumn();
-    $approved_ethics = (int)$pdo->query("SELECT COUNT(*) FROM research_projects p JOIN ierb_workflows w ON w.id=p.workflow_id WHERE w.stage_key='ierb_completed'")->fetchColumn();
-    $delayed_submissions = (int)$pdo->query("SELECT COUNT(DISTINCT p.id) FROM research_projects p JOIN ierb_workflows w ON w.id=p.workflow_id JOIN students s ON s.id=p.submission_holder_id WHERE w.stage_key<>'ierb_completed' AND s.status='Delayed'")->fetchColumn();
+    // Official project metrics count canonical groups once, excluding archived holders.
+    $pending_ierb = (int)$pdo->query("SELECT COUNT(*) FROM research_projects p JOIN ierb_workflows w ON w.id=p.workflow_id
+        JOIN students s ON s.id=p.submission_holder_id WHERE s.archived_at IS NULL AND w.stage_key<>'ierb_completed'")->fetchColumn();
+    $approved_ethics = (int)$pdo->query("SELECT COUNT(*) FROM research_projects p JOIN ierb_workflows w ON w.id=p.workflow_id
+        JOIN students s ON s.id=p.submission_holder_id WHERE s.archived_at IS NULL AND w.stage_key='ierb_completed'")->fetchColumn();
+    // Past-dated active deadlines are attention signals, not proof of missed submissions.
+    // Use official deadline targeting and retain the submission audit separately.
+    $delayed_submissions = (int)$pdo->query("SELECT COUNT(*) FROM research_projects p
+        JOIN ierb_workflows w ON w.id=p.workflow_id
+        JOIN students s ON s.id=p.submission_holder_id
+        WHERE s.archived_at IS NULL AND w.stage_key<>'ierb_completed'
+        AND EXISTS (
+            SELECT 1 FROM calendar_deadlines d
+            WHERE d.status='Active' AND d.deadline_date<CURRENT_DATE()
+            AND (d.target_scope='all'
+                OR EXISTS (SELECT 1 FROM calendar_deadline_groups dg WHERE dg.deadline_id=d.id AND dg.research_group=p.public_identifier)
+                OR EXISTS (SELECT 1 FROM calendar_deadline_recipients dr
+                    JOIN research_project_members m ON m.student_id=dr.student_id
+                    WHERE dr.deadline_id=d.id AND m.project_id=p.id))
+        )")->fetchColumn();
 }
 ?>
 <!DOCTYPE html>
@@ -140,7 +156,7 @@ try {
 <div class="card card-alert">
 <i class="fa-solid fa-triangle-exclamation"></i>
 <h1 id="delayedSubmissionsMetric"><?php echo $delayed_submissions; ?></h1>
-<p><?= $v14Enabled ? 'Projects Marked Delayed' : 'Delayed Submissions' ?></p>
+<p title="Projects with at least one past-dated active deadline; this does not itself prove a missed submission."><?= $v14Enabled ? 'Projects Needing Deadline Review' : 'Delayed Submissions' ?></p>
 </div>
 </section>
 <!-- CONTENT GRID -->
