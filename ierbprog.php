@@ -40,7 +40,7 @@ $profile_img = 'assets/images/default-avatar.svg';
         <header class="topbar">
             <div class="ierb-heading"><h1>IERB Progress</h1><p><?= $authUser['role'] === 'adviser' ? 'See where each student is in the ethics review process.' : 'Track every research group through the IERB stages.' ?></p></div>
             <div class="top-controls">
-                <?php if ($authUser['role'] === 'admin'): ?><button type="button" class="prism-btn is-secondary" id="manageIerbStages" <?= defined('PRISM_IERB_V14_OPERATIONS') && PRISM_IERB_V14_OPERATIONS === true ? 'hidden' : '' ?>>Manage IERB Stages</button><?php endif; ?>
+                <?php if ($authUser['role'] === 'admin'): ?><button type="button" class="prism-btn is-secondary" id="manageIerbStages" ><?= defined('PRISM_IERB_V14_OPERATIONS') && PRISM_IERB_V14_OPERATIONS === true ? 'Edit V14 Stage Guidance' : 'Manage IERB Stages' ?></button><?php endif; ?>
                 <button type="button" class="theme-toggle" id="themeToggle" title="Toggle light or dark theme" aria-label="Toggle light or dark theme"><i class="fa-solid fa-sun light-icon" aria-hidden="true"></i><i class="fa-solid fa-moon dark-icon" aria-hidden="true"></i></button>
             </div>
         </header>
