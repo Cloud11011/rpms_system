@@ -135,9 +135,10 @@ function research_onboarding_activate(PDO $pdo, int $sid): array
         if (research_project_for_student($pdo,$sid,true)) throw new AccountLifecycleConflict('Student already belongs to a canonical group.');
         onboarding_active_adviser($pdo,$intent['adviserId']);
         $q=$pdo->prepare('SELECT * FROM advisers WHERE id=? FOR UPDATE'); $q->execute([$intent['adviserId']]); $adviser=$q->fetch(PDO::FETCH_ASSOC);
-        $adviserLogin=lifecycle_resolve_login($pdo,$adviser,'adviser');
-        if (!$adviserLogin || !empty($adviserLogin['must_change_password']) || legal_outstanding($pdo,(int)$adviserLogin['id'])) { $pdo->commit(); return ['state'=>'pending']; }
-        current_workflow_no_recovery($pdo,'adviser',(int)$adviser['id']);
+        // The Administrator has already selected a verified active Adviser.
+        // Do not hold up a Student's research membership because that Adviser's
+        // own password, legal acknowledgement, or recovery flow is unfinished.
+        // Adviser actions remain gated by the Adviser's own authenticated account.
         $q=$pdo->prepare('SELECT id FROM ierb_workflows WHERE student_id=? FOR UPDATE'); $q->execute([$sid]);
         if ($q->fetchColumn()) throw new AccountLifecycleConflict('An existing workflow requires reviewed evidence reconciliation.');
         $q=$pdo->prepare('SELECT COUNT(*) FROM documents WHERE student_id=?'); $q->execute([$sid]);

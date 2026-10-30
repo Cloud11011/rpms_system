@@ -13,17 +13,15 @@ function research_project_group_inspect(PDO $pdo, array $actor, int $id): array
         try {
             if (!research_project_reviewed_archive($pdo,$p,$row)) {
                 current_workflow_student($pdo,(int)$row['id'],$live);
-                $login = lifecycle_resolve_login($pdo,$row,'student');
-                if (!empty($login['must_change_password']) || legal_outstanding($pdo,(int)$login['id'])) $issues[] = 'Student account setup or legal acceptance is incomplete.';
+                // Official group advancement depends on verified project evidence,
+                // not each member's individual password/legal acknowledgement.
+                // Per-account access still requires those checks at sign-in.
             }
             if ((int)$row['adviser_id'] !== (int)$p['adviser_id'] || $row['research_group'] !== $p['public_identifier'] || $row['research_title'] !== $p['research_title']) $issues[] = 'Canonical membership or Adviser assignment requires administrative reconciliation.';
             $assigned = student_with_adviser($pdo,(int)$row['id']);
             if (empty($assigned['adviser_pk'])) $issues[] = 'Assigned Adviser is unavailable.';
-            else {
-                $recipients = notification_lock_recipients($pdo,[['type'=>'adviser','id'=>(int)$assigned['adviser_pk'],'email'=>$assigned['adviser_email'],'name'=>$assigned['adviser_name']]]);
-                if (!$recipients) $issues[] = 'Assigned Adviser notification account is unavailable.';
-                notification_recipient_user($pdo,'adviser',(int)$assigned['adviser_pk'],(string)$assigned['adviser_email']);
-            }
+            // Failed/unfinished notification delivery must not make a completed
+            // evidence checklist ineligible for RPMS advancement.
         } catch (AccountLifecycleConflict|NotificationLifecycleError $e) { $issues[] = $e->getMessage(); }
         $members[] = ['id'=>(int)$row['id'],'studentId'=>$row['student_id'],'name'=>$row['full_name'],'stage'=>$row['project_stage'],
             'stageLabel'=>IerbStage::LABELS[$row['project_stage']],'status'=>$row['archived_at']?'Archived account (membership retained)':$row['status'],'progressVersion'=>(string)$row['workflow_revision'],'eligible'=>!$issues,'issues'=>$issues];
