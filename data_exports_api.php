@@ -70,20 +70,27 @@ if ($action === 'students') {
             implode(' | ', $groups[(int)$r['id']] ?? []),$r['active_students'],$r['created_at'],$r['updated_at'],$r['profile_completed_at']===null?'Pending':'Complete']);
     $event = 'adviser_records_exported';
 } else {
-    // Explicit metadata allowlist: no storage names, paths, credentials or summary/document text.
+    // Explicit metadata allowlist: project identity and V14 stage are read-only projections.
+    // The original document storage bucket is retained for historical version tracking.
+    $hasProjects = research_projects_available($pdo);
+    $projectJoins = $hasProjects ? "LEFT JOIN research_projects p ON p.submission_holder_id=d.student_id
+        LEFT JOIN ierb_workflows w ON w.id=p.workflow_id " : "";
+    $projectTitle = $hasProjects ? "COALESCE(p.research_title,s.research_title)" : "s.research_title";
+    $projectStage = $hasProjects ? "COALESCE(w.stage_key,d.stage)" : "d.stage";
     $rows = $pdo->query("SELECT d.id,d.original_name,s.student_id,COALESCE(s.full_name,d.student_name) AS student_name,
+        $projectTitle AS research_title,$projectStage AS current_ierb_stage,
         CASE WHEN s.id IS NULL THEN 'Unlinked/Historical' WHEN s.archived_at IS NULL THEN 'Active' ELSE 'Archived' END AS record_status,
         s.research_group,s.course,s.program_key,d.document_type,d.stage,d.version_no,d.is_current,d.uploaded_by,d.uploaded_by_role,
         d.uploaded_at,d.size,d.mime,d.review_status,d.review_remarks,d.reviewed_by,d.reviewed_at,d.rpms_submitted_at,d.rpms_submitted_by,
         d.admin_override,d.override_by,d.override_at,CASE WHEN d.ai_summary IS NOT NULL AND TRIM(d.ai_summary)<>'' THEN 1 ELSE 0 END AS summary_available
-        FROM documents d LEFT JOIN students s ON s.id=d.student_id ORDER BY d.uploaded_at DESC,d.id DESC");
+        FROM documents d LEFT JOIN students s ON s.id=d.student_id $projectJoins ORDER BY d.uploaded_at DESC,d.id DESC");
     $count = prism_stream_csv('prism_document_records_'.$stamp.'.csv',
-        ['Document ID','Original File Name','Student ID','Student Name','Student Record Status','Research Group','Program / Course',
-         'Document Type','IERB Stage','Version Number','Current Version','Uploaded By','Uploaded By Role','Uploaded Date','File Size','MIME Type',
+        ['Document ID','Original File Name','Student ID','Submission Holder Name','Research Title','Student Record Status','Research Group','Program / Course',
+         'Document Type','Document Storage Stage','Current Project IERB Stage','Version Number','Current Version','Uploaded By','Uploaded By Role','Uploaded Date','File Size','MIME Type',
          'Adviser Review Status','Review Remarks','Reviewed By','Reviewed Date','Formal RPMS Submission Date','Formal Submission By',
          'Administrative Override','Override By','Override Date','AI Summary Available'], $rows,
-        static fn($r) => [$r['id'],$r['original_name'],$r['student_id'],$r['student_name'],$r['record_status'],$r['research_group'],$program($r),
-            $r['document_type'],$r['stage'],$r['version_no'],!empty($r['is_current'])?'Yes':'No',$r['uploaded_by'],$r['uploaded_by_role'],
+        static fn($r) => [$r['id'],$r['original_name'],$r['student_id'],$r['student_name'],$r['research_title'],$r['record_status'],$r['research_group'],$program($r),
+            $r['document_type'],$r['stage'],$r['current_ierb_stage'],$r['version_no'],!empty($r['is_current'])?'Yes':'No',$r['uploaded_by'],$r['uploaded_by_role'],
             $r['uploaded_at'],$r['size'],$r['mime'],$r['review_status'],$r['review_remarks'],$r['reviewed_by'],$r['reviewed_at'],
             $r['rpms_submitted_at'],$r['rpms_submitted_by'],!empty($r['admin_override'])?'Yes':'No',$r['override_by'],$r['override_at'],
             !empty($r['summary_available'])?'Yes':'No']);
