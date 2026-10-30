@@ -749,3 +749,24 @@ html.dark-theme body[data-role=adviser] .ierb-page .ierb-progress-card .prism-re
  body.prism-workspace .ierb-page .ierb-progress-card .prism-record-summary { grid-template-columns:minmax(0,1fr); grid-column:auto; }
  body.prism-workspace .ierb-page .ierb-progress-card :is(.prism-record-status,.prism-record-actions) { grid-column:1; grid-row:auto; justify-content:flex-start; }
 }
+
+
+/* V14 project monitor is primary. Historical Student stage records are read-only. */
+.ierb-legacy-archive {
+  border:1px solid var(--border-color,rgba(127,127,127,.18));
+  border-radius:14px;
+  margin:20px 0;
+  padding:14px;
+}
+.ierb-legacy-archive>summary {
+  cursor:pointer;
+  font-weight:700;
+  padding:6px;
+}
+.ierb-legacy-archive>p {
+  color:var(--text-secondary,#6b7280);
+  margin:10px 6px 14px;
+}
+.ierb-legacy-archive:not([open])>section,
+.ierb-legacy-archive:not([open])>.ierb-controls,
+.ierb-legacy-archive:not([open])>.ierb-directory { display:none; }

@@ -505,3 +505,33 @@ body.student-dashboard-page .student-recent-status { white-space:normal; overflo
  body.student-dashboard-page .student-recent-item { grid-template-columns:40px minmax(0,1fr); }
  body.student-dashboard-page .student-recent-item .prism-document-quick-actions { justify-self:start; grid-column:2; grid-row:3; }
 }
+
+
+/* V14: compact, accessible checklist next to document upload. */
+.student-dashboard-page .v14-submission-checklist {
+  min-width:0;
+  max-height:min(65vh,700px);
+  overflow-y:auto;
+  overscroll-behavior:contain;
+  border-radius:14px;
+  padding:16px;
+}
+.student-dashboard-page .v14-submission-checklist[hidden] { display:none !important; }
+.student-dashboard-page .v14-submission-checklist .v14-requirements { padding-left:20px; }
+.student-dashboard-page .v14-submission-checklist .v14-requirements li {
+  padding:8px 0;
+  margin:0;
+  border-bottom:1px solid var(--border-color,rgba(127,127,127,.18));
+}
+.student-dashboard-page .v14-submission-checklist .v14-checklist-summary {
+  font-size:.92rem;
+  font-weight:700;
+  line-height:1.5;
+}
+.student-dashboard-page .v14-submission-checklist button {
+  max-width:100%;
+  white-space:normal;
+}
+@media (max-width:900px) {
+  .student-dashboard-page .v14-submission-checklist { max-height:none; overflow:visible; }
+}
