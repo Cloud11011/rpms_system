@@ -11,7 +11,8 @@ const php=[
   'includes/ierb_v14_requirements.php','documents_api.php','ierb_api.php',
   'includes/stage_configuration.php','ierbprog.php','dashboard.php',
   'reports.php','reports_api.php','data_exports_api.php','role_portal.php',
-  'includes/ierb_monitor_view.php'
+  'includes/ierb_monitor_view.php','includes/ierb_monitor.php',
+  'admin_ai.php','includes/prism-navigation.php'
 ];
 const js=[
   'assets/js/ierb-requirements.js','assets/js/role-portal.js',
@@ -23,12 +24,14 @@ function check(name,yes){if(!yes)throw new Error('FAIL: '+name);passed++;console
 const src=p=>fs.readFileSync(path.join(root,p),'utf8');
 for(const p of php)check('PHP file exists: '+p,fs.existsSync(path.join(root,p)));
 for(const p of js){cp.execFileSync(process.execPath,['--check',path.join(root,p)],{stdio:'pipe'});check('JS syntax: '+p,true)}
-try {
-  cp.execFileSync('php',['-v'],{stdio:'ignore'});
-  for(const p of php){cp.execFileSync('php',['-l',path.join(root,p)],{stdio:'pipe'});check('PHP syntax: '+p,true)}
-} catch (e) {
-  if(e.code==='ENOENT') console.log('NOTICE: PHP executable not found; run PHP lint on your XAMPP workstation before release.');
-  else throw e;
+const phpCommand=process.env.PHP_BINARY ||
+  (process.platform==='win32' && fs.existsSync('C:/xampp/php/php.exe')
+    ? 'C:/xampp/php/php.exe' : 'php');
+try { cp.execFileSync(phpCommand,['-v'],{stdio:'ignore'}); }
+catch (e) { throw new Error('PHP unavailable. Use XAMPP PHP or set PHP_BINARY before running this release gate.'); }
+for(const p of php) {
+  cp.execFileSync(phpCommand,['-l',path.join(root,p)],{stdio:'pipe'});
+  check('PHP syntax: '+p,true);
 }
 const req=src('includes/ierb_v14_requirements.php');
 const client=src('assets/js/role-portal.js');
@@ -44,6 +47,10 @@ check('Adviser password no longer blocks membership',!onboarding.includes("$advi
 check('Single V14 bulk acceptance transaction',req.includes('function ierb_v14_accept_requirements_bulk')&&req.includes('Bulk requirement acceptance owns its transaction.'));
 check('Historical IERB actions read-only',src('ierb_api.php').includes('Legacy IERB stages are read-only'));
 check('V14 guidance has separate short storage keys',guidance.includes("'V14_INITIAL'")&&guidance.includes("'V14_COMPLETED'"));
+check('V14 monitor excludes old Student-stage records',src('includes/ierb_monitor.php').includes('p.id IS NOT NULL AND p.submission_holder_id=h.id'));
+check('V14 reports replace legacy report action',src('reports_api.php').includes('Legacy AI progress generation has been retired'));
+check('Dashboard deadline signal is derived from deadline targeting',src('dashboard.php').includes('calendar_deadline_groups')&&src('dashboard.php').includes('Projects Needing Deadline Review'));
+check('V14 exports include project workflow stages',src('data_exports_api.php').includes('COALESCE(w.stage_key,s.stage)'));
 check('No destructive schema operations in changed source',![...php,...js].some(p=>/\bDROP\s+(?:TABLE|DATABASE)\b/i.test(src(p))));
 console.log('\nV14 simplification smoke checks: '+passed+' passed. No records were changed.');
 console.log('NEXT: isolated MariaDB role workflow and browser regression are still required.');
