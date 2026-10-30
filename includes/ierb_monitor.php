@@ -44,6 +44,11 @@ function monitor_scope(PDO $pdo,array $actor): array
         FROM students h $joins LEFT JOIN (".monitor_formal_sql().") dates ON dates.student_id=h.id
         WHERE h.archived_at IS NULL AND h.profile_completed_at IS NOT NULL";
     if ($projects) $select.=' AND (m.project_id IS NULL OR p.submission_holder_id=h.id)';
+    // With V14 active, the primary monitor contains only canonical projects.
+    // Legacy and unreconciled Student history remains in dedicated read-only records.
+    if ($projects && ierb_v14_http_operations_enabled()) {
+        $select.=' AND p.id IS NOT NULL AND p.submission_holder_id=h.id AND w.id IS NOT NULL';
+    }
     $scope='FROM ('.$select.') s LEFT JOIN advisers f ON f.id=s.adviser_id WHERE 1=1'; $params=[];
     if ($actor['role']==='adviser') { $scope.=' AND f.email=:viewer AND f.archived_at IS NULL AND f.status=\'Active\''; $params[':viewer']=$actor['email']; }
     return [$scope,$params];

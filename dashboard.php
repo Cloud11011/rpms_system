@@ -297,13 +297,13 @@ themeToggle?.addEventListener('click', () => {
 });
 
 const escapeMonitorHtml = value => PrismUI.esc(value);
-// Canonical projects and legacy Students remain distinct statistical units.
+// One project per V14 row; retained historical records are not active KPIs.
 document.addEventListener('prism:monitor-loaded', event => {
     const host = document.getElementById('monitorDistribution'); host.replaceChildren();
     const rows = event.detail.overview || [];
     const semantic = rows.filter(r => Object.hasOwn(window.PRISM_V14_LABELS, r.stage));
     const legacy = rows.filter(r => !Object.hasOwn(window.PRISM_V14_LABELS, r.stage));
-    [['V14 project / enrolled records', semantic], ['Legacy Student records', legacy]].forEach(([label, entries]) => {
+    (<?= $v14Enabled ? "[['Research projects', semantic]]" : "[['V14 project / enrolled records', semantic], ['Legacy Student records', legacy]]" ?>).forEach(([label, entries]) => {
         const p = document.createElement('p'); p.textContent = label + ': ' + (entries.map(r => (window.PRISM_V14_LABELS[r.stage] || window.PRISM_STAGE_LABELS[r.stage] || r.stage) + ' (' + r.c + ')').join('; ') || 'None'); host.append(p);
     });
 });
