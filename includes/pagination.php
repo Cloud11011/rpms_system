@@ -44,7 +44,7 @@ function prism_search_clause(array $columns, string $term, array &$params): stri
 {
     $parts = [];
     foreach ($columns as $column) {
-        $key = ':search' . count($parts);
+        $key = ':search' . count($params);
         $parts[] = "LOWER(COALESCE($column, '')) LIKE $key ESCAPE '!'";
         $params[$key] = '%' . strtr(mb_strtolower($term), ['!' => '!!', '%' => '!%', '_' => '!_']) . '%';
     }

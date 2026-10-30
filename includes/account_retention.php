@@ -111,11 +111,28 @@ function retention_change(PDO $pdo,array $actor,array $data,?array $authorizedSc
     if (count($engines)!==6 || array_filter($engines,fn($t)=>$t['ENGINE']!=='InnoDB')) throw new AccountLifecycleConflict('Lifecycle changes require transactional account, assignment, token and audit tables.');
     $pdo->beginTransaction();
     try {
+        research_project_fence($pdo);
         $actor=retention_actor($pdo,$actor); $r=retention_locked_record($pdo,$type,$id);
         if ($authorizedScope!==null && !retention_scope_rows($pdo,$actor,$type,$authorizedScope,[$id])) throw new AccountLifecycleConflict('Account left the selected filter scope.');
         purge_require_no_pending($pdo,$type,$id);
         $table=retention_table($type); $identifier=retention_identifier($r,$type,true); $impact=0;
         if ($action==='archive') {
+            $archivalProject=null;
+            if (function_exists('research_onboarding_available') && research_onboarding_available($pdo)) {
+                if ($type==='adviser') {
+                    $q=$pdo->prepare('SELECT id FROM research_projects WHERE adviser_id=? FOR UPDATE');$q->execute([$id]);
+                    if($q->fetchColumn())throw new AccountLifecycleConflict('Reassign this Adviser’s canonical projects through the reviewed group controls before archiving.');
+                } else {
+                    $archivalProject=research_project_for_student($pdo,$id,true);
+                    if($archivalProject) {
+                        research_project_admin($pdo,$actor);$pi=research_project_principal_investigator($pdo,(int)$archivalProject['id']);
+                        if((int)$archivalProject['submission_holder_id']===$id || ($pi&&$pi['studentId']===$id))throw new AccountLifecycleConflict('The submission holder or designated PI requires a reviewed transition before archival.');
+                        if($bulkKey!==null)throw new AccountLifecycleConflict('Review canonical member archival individually with a reason and current project confirmation.');
+                        if((int)($data['expectedProjectRevision']??-1)!==(int)$archivalProject['revision'] || ($data['confirmed']??false)!==true || mb_strlen(trim($reason))<5)throw new AccountLifecycleConflict('Confirm the current project revision and give a reason before archiving this member.');
+                        if(!empty($r['archived_at'])&&!research_project_reviewed_archive($pdo,$archivalProject,$r))throw new AccountLifecycleConflict('An existing unreviewed archive requires institutional transition review.');
+                    }
+                }
+            }
             $login=lifecycle_resolve_login($pdo,$r,$type,true);
             if ($login) {
                 $pdo->prepare('UPDATE users SET status="Inactive" WHERE id=?')->execute([$login['id']]);
@@ -136,6 +153,10 @@ function retention_change(PDO $pdo,array $actor,array $data,?array $authorizedSc
                 $pdo->prepare("UPDATE $table SET archived_at=NOW(),retention_hold=0,retention_hold_at=NULL,retention_hold_by=NULL,
                     retention_hold_reason=NULL,purge_postponed_at=NULL,purge_postponed_reason=NULL".($type==='adviser'?',status="Inactive"':'').' WHERE id=?')->execute([$id]);
                 retention_audit($pdo,$actor,$type.'_archived',$type,$id,$identifier,'Archived; '.$impact.' Students unassigned',null,$bulkKey);
+                if($archivalProject) {
+                    $q=$pdo->prepare('SELECT archived_at FROM students WHERE id=?');$q->execute([$id]);
+                    research_project_event($pdo,$actor,$archivalProject,'member_archived',trim($reason),['studentId'=>$id,'archivedAt'=>$q->fetchColumn(),'membershipRetained'=>true,'sharedEvidenceRetained'=>true]);
+                }
             } elseif ($type==='adviser') $pdo->prepare('UPDATE advisers SET status="Inactive" WHERE id=?')->execute([$id]);
         } else {
             if (empty($r['archived_at'])) throw new AccountLifecycleConflict('Only archived accounts can be restored or placed on Retention Hold.');
@@ -220,6 +241,10 @@ function retention_notifications(PDO $pdo,array $r,string $type,array &$mutexes)
 function retention_purge_plan(PDO $pdo,array $r,string $type,?array $login,array &$mutexes): array
 {
     $id=(int)$r['id']; $docs=[]; $reports=[]; $files=[];
+    if ($type==='student' && function_exists('research_onboarding_available') && research_onboarding_available($pdo)) {
+        $q=$pdo->prepare('SELECT student_id FROM research_onboarding_assignments WHERE student_id=? FOR UPDATE'); $q->execute([$id]);
+        if ($q->fetchColumn()) throw new AccountLifecycleConflict('Retained research assignment audit requires institutional review before permanent deletion. Retain using Archive.');
+    }
     if ($type==='student' && in_array((string)$pdo->query("SELECT v FROM schema_meta WHERE k='schema_version'")->fetchColumn(),['14','15'],true)) {
         $q=$pdo->prepare('SELECT v.id FROM document_summary_versions v JOIN documents d ON d.id=v.document_id WHERE d.student_id=? LIMIT 1 FOR UPDATE'); $q->execute([$id]);
         if ($q->fetchColumn()) throw new AccountLifecycleConflict('Retained summary history prevents permanent deletion. Retain using Archive.');

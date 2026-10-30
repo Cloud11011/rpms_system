@@ -42,6 +42,14 @@ function current_workflow_student(PDO $pdo, int $id, array $actor, bool $project
     if (!$row || !empty($row['archived_at']) || empty($row['profile_completed_at'])) {
         throw new AccountLifecycleConflict('The Student record is unavailable for current workflow.');
     }
+    if (($actor['role']??'')!=='admin' && function_exists('research_onboarding_available') && research_onboarding_available($pdo)) {
+        $q=$pdo->prepare("SELECT state FROM research_onboarding_assignments WHERE student_id=? AND state<>'activated' FOR UPDATE"); $q->execute([$id]);
+        if ($q->fetchColumn()) throw new AccountLifecycleConflict('Research assignment is awaiting RPMS review or account eligibility. Shared evidence submission is available after verified group setup.');
+        if (($actor['role']??'')==='student' && !research_project_for_student($pdo,$id,true)) {
+            $q=$pdo->prepare("SELECT 1 FROM activity_logs WHERE entity_type='student' AND entity_id=? AND action='account_identity_created' AND actor_role='adviser' LIMIT 1");$q->execute([(string)$id]);
+            if($q->fetchColumn())throw new AccountLifecycleConflict('RPMS must review your research assignment before current document submission. Your account and retained records remain available.');
+        }
+    }
     current_workflow_no_recovery($pdo,'student',$id);
     $login=lifecycle_resolve_login($pdo,$row,'student');
     if (!$login || $login['status']!=='Active') throw new AccountLifecycleConflict('The Student account is inactive.');

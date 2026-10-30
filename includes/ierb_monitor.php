@@ -36,8 +36,9 @@ function monitor_scope(PDO $pdo,array $actor): array
     $dateFirst=$v14?'IF(w.id IS NULL,dates.first_submission,dates.first_verified)':'dates.first_submission';
     $dateLatest=$v14?'IF(w.id IS NULL,dates.latest_submission,dates.latest_verified)':'dates.latest_submission';
     $adviser=$projects?'COALESCE(p.adviser_id,h.adviser_id)':'h.adviser_id';
+    $protocol=$projects && function_exists('research_onboarding_available') && research_onboarding_available($pdo)?'CASE WHEN p.id IS NOT NULL THEN (SELECT rpc.protocol_code FROM research_project_protocols rpc WHERE rpc.project_id=p.id) ELSE h.protocol_code END':'h.protocol_code';
     $select="SELECT h.id,h.student_id,h.full_name,h.email,h.course,h.academic_unit_key,h.program_key,h.year_level,h.academic_year,
-        h.protocol_code,$status AS status,h.requirements,h.last_submission_date,$title AS research_title,$group AS research_group,$stage AS stage,
+        $protocol AS protocol_code,$status AS status,h.requirements,h.last_submission_date,$title AS research_title,$group AS research_group,$stage AS stage,
         $project AS project_id,$projectWorkflow AS project_workflow_id,$workflow AS workflow_id,$interrupted AS interrupted_stage,$adviser AS adviser_id,
         $dateFirst AS first_submission,$dateLatest AS latest_submission
         FROM students h $joins LEFT JOIN (".monitor_formal_sql().") dates ON dates.student_id=h.id
@@ -92,6 +93,7 @@ function monitor_row(PDO $pdo,array $actor,array $r): array
     $stage=$semantic?$check['workflow']['stage']:$r['stage'];
     return ['key'=>monitor_identity($r),'projectId'=>$r['project_id']?(int)$r['project_id']:null,'studentRecordId'=>(int)$r['id'],
         'studentId'=>$r['student_id'],'name'=>$r['full_name'],'research'=>$r['research_title'],'groupId'=>$r['research_group'],
+        'protocolCode'=>$r['protocol_code']??null,
         'course'=>$r['course'],'academicYear'=>$r['academic_year'],'model'=>$semantic?'V14':'Legacy',
         'stage'=>$stage,'stageLabel'=>$semantic?$check['workflow']['stageLabel']:stage_label($stage),
         'progress'=>$semantic?$check['workflow']['progress']:stage_progress_percent($stage),
@@ -117,7 +119,7 @@ function monitor_list(PDO $pdo,array $actor,array $query): array
         $counts=$overview->fetchAll();
         prism_apply_student_filters($scope,$params,$query,$options);
         $search=prism_record_search($query);
-        if ($search!=='') $scope.=' AND '.prism_search_clause(['s.research_title','s.research_group','s.full_name','s.student_id'],$search,$params);
+        if ($search!=='') $scope.=' AND '.prism_search_clause(['s.research_title','s.protocol_code','s.research_group','s.full_name','s.student_id'],$search,$params);
         $page=prism_page_query($pdo,'SELECT s.*',$scope,$params,monitor_order($query),$query);
         $records=array_map(fn($row)=>monitor_row($pdo,$actor,$row),$page['rows']); unset($page['rows']);
         $pdo->commit(); return ['ok'=>true,'records'=>$records,'filterOptions'=>$options,'overview'=>$counts]+$page;

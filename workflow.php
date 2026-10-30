@@ -382,6 +382,14 @@ function students_needing_attention(PDO $pdo, array $user): array
     $sql = 'SELECT s.*, a.full_name AS adviser_name FROM students s
             LEFT JOIN advisers a ON a.id = s.adviser_id WHERE s.archived_at IS NULL AND s.profile_completed_at IS NOT NULL AND s.stage <> :done';
     $params = [':done' => 'Completed'];
+    if (ierb_v14_schema_available($pdo)) {
+        $sql .= " AND NOT EXISTS (SELECT 1 FROM ierb_workflows w WHERE w.student_id=s.id AND w.stage_key='ierb_completed')";
+    }
+    if (research_projects_available($pdo)) {
+        // A canonical group's evidence belongs to its holder; avoid separate
+        // overdue alerts for members with no individual document rows.
+        $sql .= ' AND NOT EXISTS (SELECT 1 FROM research_project_members m JOIN research_projects p ON p.id=m.project_id WHERE m.student_id=s.id AND p.submission_holder_id<>s.id)';
+    }
     if ($user['role'] === 'adviser') {
         $sql .= ' AND a.email = :e';
         $params[':e'] = $user['email'];
@@ -404,6 +412,7 @@ function students_needing_attention(PDO $pdo, array $user): array
     $out = [];
     foreach ($students as $s) {
         $reasons = [];
+        $semantic = ierb_v14_read_summary($pdo, (int)$s['id']);
 
         if ($s['status'] === 'Delayed') {
             $reasons[] = ['type' => 'delayed', 'severity' => 3, 'label' => 'Marked as delayed'];
@@ -447,8 +456,9 @@ function students_needing_attention(PDO $pdo, array $user): array
             'name'         => $s['full_name'],
             'protocolCode' => $s['protocol_code'] ?? null,
             'groupId'      => $s['research_group'],
-            'stage'        => $s['stage'],
-            'stageLabel'   => stage_label($s['stage']),
+            'research'     => $s['research_title'],
+            'stage'        => $semantic['stage'] ?? $s['stage'],
+            'stageLabel'   => $semantic['stageLabel'] ?? stage_label($s['stage']),
             'status'       => $s['status'],
             'adviser'      => $s['adviser_name'],
             'topSeverity'  => $reasons[0]['severity'],

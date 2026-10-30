@@ -123,7 +123,7 @@ $profile_img = 'assets/images/default-avatar.svg';
     </div>
 </div>
 <script src="<?php echo htmlspecialchars(asset_url('assets/js/prism-ui.js'), ENT_QUOTES, 'UTF-8'); ?>"></script>
-<script>window.PRISM_ACADEMIC_CATALOG = <?php echo json_encode(academic_catalog(), JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT); ?>;</script>
+<script>window.PRISM_RESEARCH_ONBOARDING = <?php echo json_encode(research_onboarding_available(db())); ?>; window.PRISM_ACADEMIC_CATALOG = <?php echo json_encode(academic_catalog(), JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT); ?>;</script>
 <script src="<?php echo htmlspecialchars(asset_url('assets/js/academic-fields.js'), ENT_QUOTES, 'UTF-8'); ?>"></script>
 <script src="<?php echo htmlspecialchars(asset_url('assets/js/ierbprog.js'), ENT_QUOTES, 'UTF-8'); ?>"></script>
 <script src="<?= htmlspecialchars(asset_url('assets/js/ierb-monitor.js'),ENT_QUOTES,'UTF-8') ?>"></script>

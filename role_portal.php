@@ -79,6 +79,17 @@ $identityKey = hash('sha256', $portalRole . '|' . $userId);
 <main class="main-content portal-main">
 <header class="topbar"><div><h1 id="pageTitle">Dashboard</h1><p id="pageSubtitle">Your research and IERB progress at a glance.</p></div><div class="top-controls"><button type="button" class="theme-toggle" id="themeToggle" title="Toggle light or dark theme" aria-label="Toggle light or dark theme"><i class="fa-solid fa-sun light-icon" aria-hidden="true"></i><i class="fa-solid fa-moon dark-icon" aria-hidden="true"></i></button></div></header>
 <p id="studentDashboardState" class="student-dashboard-state" role="status" aria-live="polite" aria-busy="true">Loading your workspace...</p>
+<?php if(research_onboarding_available(db())):
+    $profile=onboarding_profile(db(),$authUser);
+    $pending=db()->prepare("SELECT state FROM research_onboarding_assignments WHERE student_id=? AND state<>'activated'"); $pending->execute([$profile['id']??0]);
+    $assignmentState=$pending->fetchColumn();
+    if(!$assignmentState && !research_project_for_student(db(),(int)($profile['id']??0))) {
+        $origin=db()->prepare("SELECT 1 FROM activity_logs WHERE entity_type='student' AND entity_id=? AND action='account_identity_created' AND actor_role='adviser' LIMIT 1");$origin->execute([(string)($profile['id']??0)]);
+        if($origin->fetchColumn())$assignmentState='awaiting_admin';
+    }
+    if($assignmentState): ?>
+<p class="student-dashboard-state" role="status"><?= $assignmentState==='review'?'Your academic information differs from the approved research assignment. Contact RPMS for review.':($assignmentState==='cancelled'?'Your research assignment was cancelled. Contact RPMS to arrange an approved group.':($assignmentState==='awaiting_admin'?'Your research assignment requires RPMS review before current document submission. Contact RPMS to arrange an approved research group.':'Your research assignment is pending account eligibility or institutional activation. PRISM will finish the approved setup automatically when eligible.')) ?></p>
+<?php endif; endif; ?>
 <section class="portal-page active" data-section="dashboard">
 <div class="welcome-card"><div><span><?php echo htmlspecialchars($portalRole); ?> workspace</span><h2>Welcome, <b id="welcomeName"><?php echo htmlspecialchars($userName); ?></b>!</h2><p class="dashboard-greeting-date"><i class="fa-regular fa-calendar"></i> <b id="dashboardCurrentDate"></b></p><p id="researchTitle">No research details yet.</p><p id="dashboardProtocol" class="dashboard-protocol" hidden><b>Protocol Code:</b> <span id="dashboardProtocolCode"></span></p></div><button class="primary-btn" data-go="submit"><i class="fa-solid fa-upload"></i> Submit document</button></div>
 <div data-prism-student-workflow="compact"></div>

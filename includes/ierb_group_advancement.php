@@ -44,7 +44,7 @@ function ierb_group_options(PDO $pdo): array
     if (research_projects_available($pdo)) {
         foreach ($pdo->query('SELECT p.*,(SELECT COUNT(*) FROM research_project_members m WHERE m.project_id=p.id) AS member_count FROM research_projects p')->fetchAll(PDO::FETCH_ASSOC) as $p) {
             $canonical[] = ['key'=>hash('sha256','project:'.$p['id']),'identity'=>['project_id'=>(int)$p['id']],
-                'label'=>$p['research_title'].' / '.$p['public_identifier'],'standard'=>true,'memberCount'=>(int)$p['member_count']];
+                'label'=>$p['research_title'].' / '.(function_exists('research_onboarding_available')&&research_onboarding_available($pdo)?'Protocol Code: '.(research_project_protocol($pdo,(int)$p['id'])?:'Not yet assigned'):$p['public_identifier']),'standard'=>true,'memberCount'=>(int)$p['member_count']];
         }
     }
     $rows=$pdo->query('SELECT research_group,academic_unit_key,program_key,year_level,academic_year FROM students

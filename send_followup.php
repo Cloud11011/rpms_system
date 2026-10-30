@@ -35,17 +35,7 @@ $email = (string)($student['email'] ?? '');
 
 $safeName = preg_replace('/[\r\n]+/', ' ', (string)$student['full_name']);
 $studentId = preg_replace('/[\r\n]+/', ' ', (string)$student['student_id']);
-$stage = (string)$student['stage'];
-$status = (string)$student['status'];
-$requirements = trim((string)$student['requirements']);
-
 $subject = "IERB Progress Follow-up - {$studentId}";
-$message = "Hello {$safeName},\n\nThis is an automated follow-up regarding your IERB progress.\n"
-    . "Current stage: " . stage_label($stage) . " ({$stage})\nStatus: {$status}\n";
-if ($requirements !== '') {
-    $message .= "Pending requirement: {$requirements}\n";
-}
-$message .= "\nPlease send your latest update to the RPMS office.\n\nThank you.";
 
 // The early read builds the message; authority must still hold on the locked current record.
 $pdo->beginTransaction();
@@ -83,6 +73,23 @@ try {
             throw new NotificationLifecycleError('Student progress changed. Refresh before sending a follow-up.', 409);
         }
     }
+    // Read project progress under the same membership fence as recipient validation.
+    // Legacy Student stages are retained snapshots, not current project decisions.
+    $semantic = ierb_v14_read_summary($pdo, $studentDbId);
+    $project = research_project_for_student($pdo, $studentDbId, true);
+    $stage = $semantic['stage'] ?? (string)$current['stage'];
+    $label = $semantic['stageLabel'] ?? stage_label($stage);
+    $status = $stage === IerbStage::COMPLETED ? 'IERB Completed'
+        : ($stage === IerbStage::CORRECTION ? 'Correction open' : (string)$current['status']);
+    $message = "Hello {$safeName},\n\nThis is an automated follow-up regarding your IERB progress.\n";
+    if ($project) {
+        $message .= 'Research title: '.$project['research_title']."\n";
+        if (research_onboarding_available($pdo)) $message .= 'Protocol code: '.(research_project_protocol($pdo,(int)$project['id']) ?? 'Not yet assigned')."\n";
+    }
+    $message .= "Current stage: {$label} ({$stage})\nStatus: {$status}\n";
+    if (!$semantic && trim((string)$current['requirements']) !== '') $message .= 'Pending requirement: '.trim((string)$current['requirements'])."\n";
+    $message .= $semantic ? "\nPlease review the shared project checklist for current requirements.\n\nThank you."
+        : "\nPlease send your latest update to the RPMS office.\n\nThank you.";
     $result = create_notification($pdo, 'student', $studentDbId, $email, $safeName,
         $subject, $message, 'Follow-up', $actor['full_name'], null, date('Y-m-d H:i:s'), null, 'staff');
     if (!isset($result['id'])) throw new NotificationLifecycleError('Student record changed. Refresh before sending a follow-up.', 409);

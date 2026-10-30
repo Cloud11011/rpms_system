@@ -46,6 +46,12 @@ function lifecycle_database_binding(PDO $pdo): array
 
 function lifecycle_compare_schema(PDO $pdo): void
 {
+    if ($pdo->query("SELECT v FROM schema_meta WHERE k='research_onboarding_v1'")->fetchColumn() === '1') {
+        require_once __DIR__.'/schema_research_onboarding.php';
+        try { research_onboarding_schema_verify($pdo); }
+        catch (RuntimeException $e) { throw new AccountLifecycleConflict('Research onboarding schema differs from its reviewed contract. Retain using Archive.',0,$e); }
+        return;
+    }
     if ((string)$pdo->query("SELECT v FROM schema_meta WHERE k='schema_version'")->fetchColumn()==='15') {
         require_once __DIR__.'/schema_v15.php';
         try { schema_v15_verify($pdo); }

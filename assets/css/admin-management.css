@@ -7,6 +7,13 @@
 
 .account-lifecycle { margin:24px 0; }
 .account-lifecycle p,.lifecycle-dialog p { line-height:1.7; margin:8px 0 12px; }
+.research-assignment-confirmations { display:grid; gap:12px; min-width:0; overflow-wrap:anywhere; }
+.research-assignment-confirmations [hidden] { display:none!important; }
+.research-assignment-confirmations input[type=checkbox] { width:18px!important; min-width:18px; height:18px; flex:0 0 18px; }
+.research-assignment-confirmations label { line-height:1.5; }
+.research-assignment-confirmations + .prism-sub, label:has([data-research-group]) + .prism-sub { white-space:pre-line; }
+.research-assignment-confirmations label:not(.check-label) { display:grid; gap:8px; }
+body.student-records-page .student-group-name { white-space:normal; overflow-wrap:anywhere; }
 .lifecycle-destructive { margin-top:24px; padding-top:18px; border-top:1px solid var(--border-color); }
 .lifecycle-destructive summary { cursor:pointer; font-weight:600; }
 .lifecycle-destructive form { margin-top:16px; }

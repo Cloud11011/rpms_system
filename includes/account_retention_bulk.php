@@ -22,20 +22,25 @@ function retention_list_scope(PDO $pdo,array $actor,string $type,array $query): 
     $filters=[];
     foreach ($allowed as $key) {
         $v=$query[$key]??($key==='lifecycle'?'active':'');
-        if (!is_string($v) || mb_strlen($v)>250) throw new AccountLifecycleValidation('Invalid lifecycle filter/search.');
+        if (!is_string($v) || mb_strlen($v)>(in_array($key,['q','group'],true)?500:250)) throw new AccountLifecycleValidation('Invalid lifecycle filter/search.');
         $filters[$key]=trim($v);
     }
     if ($type==='student') {
         [$scope,$params]=prism_student_scope($actor); $a='s';
         $options=prism_student_filter_options($pdo,$scope,$params);
         prism_apply_student_filters($scope,$params,$filters,$options);
-        if ($filters['q']!=='') $scope.=' AND '.prism_search_clause(['s.full_name','s.student_id','s.email','s.research_title','s.research_group','f.full_name'],$filters['q'],$params);
+        if ($filters['q']!=='') $scope.=' AND '.prism_search_clause(['s.full_name','s.student_id','s.email','s.research_title','s.protocol_code','s.research_group','f.full_name'],$filters['q'],$params);
     } else {
         $scope='FROM advisers a WHERE 1=1'; $params=[]; $a='a';
         $departments=$pdo->query('SELECT DISTINCT department FROM advisers ORDER BY department')->fetchAll(PDO::FETCH_COLUMN);
         $options=['department'=>array_map(fn($v)=>['value'=>trim((string)$v)===''?'__blank__':$v,'label'=>trim((string)$v)===''?'Not recorded':$v],$departments),
             'status'=>[['value'=>'Active','label'=>'Active'],['value'=>'Inactive','label'=>'Inactive']],
             'group'=>array_map(fn($v)=>['value'=>$v,'label'=>$v],research_group_options($pdo,$actor))];
+        if (function_exists('research_onboarding_available') && research_onboarding_available($pdo)) {
+            $labels=[];foreach(research_groups_by_adviser($pdo) as $assigned) $labels=array_merge($labels,$assigned);
+            $labels=array_values(array_unique($labels));sort($labels,SORT_NATURAL);
+            $options['group']=array_map(fn($v)=>['value'=>$v,'label'=>$v],$labels);
+        }
         foreach (['department','status','group'] as $key) {
             $v=$filters[$key]; if ($v==='') continue;
             if (!in_array($v,array_column($options[$key],'value'),true)) throw new AccountLifecycleValidation('Invalid Adviser filter.');
@@ -47,6 +52,7 @@ function retention_list_scope(PDO $pdo,array $actor,string $type,array $query): 
         }
         if ($filters['q']!=='') {
             $search=prism_search_clause(['a.full_name','a.employee_id','a.email','a.department'],$filters['q'],$params);
+            $search.=' OR EXISTS (SELECT 1 FROM students assigned WHERE assigned.adviser_id=a.id AND assigned.archived_at IS NULL AND '.prism_search_clause(['assigned.research_title','assigned.protocol_code'],$filters['q'],$params).')';
             $groups=array_values(array_filter(research_group_options($pdo,$actor),fn($g)=>mb_strpos(mb_strtolower($g),mb_strtolower($filters['q']))!==false));
             if ($groups) {
                 $keys=[]; foreach ($groups as $i=>$g) { $keys[]=':group'.$i; $params[':group'.$i]=$g; }

@@ -67,6 +67,12 @@ function research_group_options(PDO $pdo, array $user, ?array $academic = null, 
 function research_groups_by_adviser(PDO $pdo, ?array $adviserIds = null): array
 {
     if ($adviserIds === []) return [];
+    if (function_exists('research_onboarding_available') && research_onboarding_available($pdo)) {
+        $scope=$adviserIds===null?'':' AND p.adviser_id IN ('.implode(',',array_map('intval',$adviserIds)).')';
+        $rows=$pdo->query('SELECT p.adviser_id,p.research_title FROM research_projects p JOIN students s ON s.id=p.submission_holder_id WHERE s.archived_at IS NULL'.$scope.' ORDER BY p.research_title,p.id')->fetchAll();
+        $groups=[]; foreach($rows as $r)$groups[(int)$r['adviser_id']][]=$r['research_title'];
+        return $groups;
+    }
     $scope = $adviserIds === null ? '' : ' AND adviser_id IN (' . implode(',', array_map('intval', $adviserIds)) . ')';
     $rows = $pdo->query('SELECT DISTINCT adviser_id, research_group, academic_unit_key, program_key, year_level, academic_year
         FROM students WHERE archived_at IS NULL AND profile_completed_at IS NOT NULL AND adviser_id IS NOT NULL' . $scope)->fetchAll();

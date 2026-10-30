@@ -58,12 +58,14 @@ function prepareApp() {
     const sessions = { admin: await login('admin@example.test'), adviser: await login('adviser2@example.test'), student: await login('student4@example.test') };
     for (const [role, ctx] of Object.entries(sessions)) {
       const contract = await response(await ctx.get('/ierb_api.php?action=v14_contract'));
-      check(contract.status === 200 && contract.body.activeWorkflow === 'legacy' && contract.body.contract.normalPath.join(',') === 'initial_submission,approval_data_gathering,ierb_completed' && !contract.body.contract.httpActivationAvailable,
-        role + ' can inspect the immutable V14 contract while the current workflow stays gated');
+      const hasV14 = Number(expectedSchema)>=12 && sql('SELECT id FROM ierb_workflows LIMIT 1').length>0;
+      check(contract.status === 200 && contract.body.activeWorkflow === (hasV14?'mixed':'legacy') && contract.body.contract.normalPath.join(',') === 'initial_submission,approval_data_gathering,ierb_completed' && !contract.body.contract.httpActivationAvailable,
+        role + ' can inspect the immutable V14 contract and current stored workflow models');
       await expect(post(ctx, 'v14_open_correction', {}), 400, role + ' has no V14 HTTP mutation bypass in Batch 1');
     }
     const phase = process.env.PRISM_TEST_PHASE || 'all';
     const h = { root, review, php, base, app, playwright, checks, check, fixture, sql, post, response, expect, generation, sessions, login, child, locked, sleep, phase };
+    if (process.env.PRISM_TEST_INIT_INVESTIGATION === '1') await require('../onboarding-tests/init-investigation.cjs')(h);
     if (phase !== 'documents') await require('./backend.cjs')(h);
     if (!['backend','documents'].includes(phase)) { await require('./browser.cjs')(h); await require('./regression.cjs')(h); }
     if (process.env.PRISM_TEST_V14_DOCUMENTS === '1') await require('../ierb-v14-tests/documents.cjs')(h);
@@ -72,9 +74,11 @@ function prepareApp() {
     if (process.env.PRISM_TEST_BATCH6 === '1') await require('../ierb-ui-tests/integration.cjs')(h);
     if (process.env.PRISM_TEST_BATCH7R === '1') await require('../ierb-7r-tests/integration.cjs')(h);
     if (process.env.PRISM_TEST_CLOSURE === '1') await require('../ierb-7r-tests/closure.cjs')(h);
+    if (process.env.PRISM_TEST_ONBOARDING === '1') await require('../onboarding-tests/integration.cjs')(h);
+    if (process.env.PRISM_TEST_INDEPENDENT_AUDIT === '1') await require('../onboarding-tests/independent-audit.cjs')(h);
     if (process.env.PRISM_TEST_CLEANUP_REHEARSAL) await require('../ierb-7r-tests/cleanup-rehearsal.cjs')(h);
     check(fixture({ action: 'schema' }).schemaVersion === expectedSchema, 'Full schema v' + expectedSchema + ' and version remain unchanged after all tests');
-    const result = { status: 'PASS', assertions: checks.length, cases: checks, scope: 'Isolated synthetic MariaDB 10.4, actual PHP HTTP sessions and Chromium; no production data or external delivery' };
+    const result = { status: 'PASS', assertions: checks.length, cases: checks, scope: 'Isolated synthetic MariaDB, actual PHP HTTP sessions and Chromium; no production data or external delivery', databaseVersion: sql('SELECT VERSION() AS version')[0].version };
     fs.writeFileSync(path.join(review, phase === 'all' ? 'test-results.json' : `test-results-${phase}.json`), JSON.stringify(result, null, 2)); console.log(JSON.stringify({ status: 'PASS', assertions: checks.length }));
   } catch (e) {
     fs.writeFileSync(path.join(review, 'test-failure.json'), JSON.stringify({ status: 'FAIL', assertions: checks.length, cases: checks, error: String(e), stack: e.stack }, null, 2)); throw e;

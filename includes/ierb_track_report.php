@@ -111,12 +111,12 @@ function track_project_snapshot(PDO $pdo,array $actor,int $id): array
     $q=$pdo->prepare('SELECT academic_year FROM students s JOIN research_project_members m ON m.student_id=s.id WHERE m.project_id=? ORDER BY s.id FOR UPDATE'); $q->execute([$id]); $years=array_values(array_unique(array_filter($q->fetchAll(PDO::FETCH_COLUMN))));
     // PI is an RPMS-designated fact (project event), never derived from the evidence holder or membership order.
     $pi=research_project_principal_investigator($pdo,$id);
-    $identity=['Principal Investigator'=>$pi?$pi['name'].' (designated by RPMS '.substr((string)$pi['designatedAt'],0,10).')':'Not recorded','Protocol Code'=>$holder['protocol_code']?:'Not recorded','Research Category'=>'Not recorded',
+    $identity=['Principal Investigator'=>$pi?$pi['name'].' (designated by RPMS '.substr((string)$pi['designatedAt'],0,10).')':'Not recorded','Protocol Code'=>(function_exists('research_onboarding_available') && research_onboarding_available($pdo)?research_project_protocol($pdo,(int)$project['id']):$holder['protocol_code'])?:'Not yet assigned','Research Category'=>'Not recorded',
         'Research / Study Title'=>$project['research_title'],'Co-Investigators'=>'Not recorded','Research Group Identifier'=>$project['public_identifier'],
         'Academic Year'=>count($years)===1?$years[0]:'Not recorded (missing or inconsistent member records)',
         'Assigned Research Adviser'=>$adviser?:'Not recorded','Current IERB Stage'=>$checklist['workflow']['stageLabel']];
     $notes=array_merge($tracking['notes'],['The Principal Investigator is shown only when RPMS recorded a designation; it identifies a role and grants no additional permission. Co-investigator roles and research category have no authoritative fields. The project evidence record and membership order do not establish investigator roles.',
-        'Protocol code comes from the designated holder; academic year requires agreement among recorded project members.',
+        'Protocol code comes from the authoritative project assignment when the onboarding extension is installed; otherwise the retained holder field is used; academic year requires agreement among recorded project members.',
         'Submitted dates use document rpms_submitted_at with mandatory formal-submission audits; returned dates use separate document_returned_for_revision audits. Uploads, acceptances and case openings do not establish those dates.',
         'Each case contributes at most one cycle. Date Submitted is the earliest audited formal submission of an affected successor or required Amendment in that case, not proof that every correction was submitted.',
         'All times are stored database values shown in Asia/Manila. Unknown dates remain Not recorded.']);
@@ -205,6 +205,8 @@ function track_aggregate_snapshot(PDO $pdo,array $actor): array
     if (($actor['role']??'')!=='admin' || !$pdo->inTransaction()) throw new AccountLifecycleForbidden('RPMS report access required.');
     current_workflow_actor($pdo,$actor);
     $projects=$pdo->query('SELECT p.id,p.research_title,p.public_identifier,w.stage_key FROM research_projects p JOIN ierb_workflows w ON w.id=p.workflow_id JOIN students s ON s.id=p.submission_holder_id WHERE s.archived_at IS NULL AND s.profile_completed_at IS NOT NULL ORDER BY p.id FOR UPDATE')->fetchAll(PDO::FETCH_ASSOC);
+    if (function_exists('research_onboarding_available') && research_onboarding_available($pdo)) foreach($projects as &$p) $p['protocolCode']=research_project_protocol($pdo,(int)$p['id']);
+    unset($p);
     return ['formatVersion'=>1,'capturedAt'=>$pdo->query('SELECT NOW(6)')->fetchColumn(),'counts'=>track_institution_counts($pdo),'projects'=>$projects];
 }
 
@@ -217,7 +219,7 @@ function track_aggregate_blocks(array $s): array
             ['V14 enrolled projects',(string)$c['v14EnrolledProjects']],['Unreconciled Student records (including unlinked V14 holders)',(string)$c['unreconciledStudentRecords']],
             ['V14 workflows awaiting project reconciliation',(string)$c['v14UnreconciledWorkflows']]]],
         '# Canonical Research Projects', ['headers'=>['Research title / secondary identifier','Official V14 stage'],'widths'=>[325,187],
-            'rows'=>array_map(fn($p)=>[$p['research_title']."\n".$p['public_identifier'],IerbStage::LABELS[$p['stage_key']]],$s['projects'])],
+            'rows'=>array_map(fn($p)=>[$p['research_title']."\n".(array_key_exists('protocolCode',$p)?'Protocol Code: '.($p['protocolCode']?:'Not yet assigned'):$p['public_identifier']),IerbStage::LABELS[$p['stage_key']]],$s['projects'])],
         '# V14 Project Stage Distribution',['headers'=>['V14 stage','Distinct projects'],'widths'=>[370,142],
             'rows'=>array_map(fn($r)=>[IerbStage::LABELS[$r['stage_key']],(string)$r['project_count']],$c['v14ProjectStages'])],
         '# Legacy Student Stage Distribution',['headers'=>['Legacy recorded stage','Student records'],'widths'=>[370,142],

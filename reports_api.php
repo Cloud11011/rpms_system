@@ -243,15 +243,16 @@ function progress_canonical_project_table(PDO $pdo): array
 {
     if (!research_projects_available($pdo)) return [];
     $rows = [];
-    foreach ($pdo->query('SELECT p.research_title,p.public_identifier,w.stage_key,(SELECT COUNT(*) FROM research_project_members m WHERE m.project_id=p.id) AS members
+    foreach ($pdo->query('SELECT p.id,p.research_title,p.public_identifier,w.stage_key,(SELECT COUNT(*) FROM research_project_members m WHERE m.project_id=p.id) AS members
         FROM research_projects p JOIN ierb_workflows w ON w.id=p.workflow_id JOIN students h ON h.id=p.submission_holder_id
         WHERE h.archived_at IS NULL ORDER BY p.research_title, p.id')->fetchAll(PDO::FETCH_ASSOC) as $p) {
-        $rows[] = [$p['research_title'], $p['public_identifier'], (string)$p['members'], IerbStage::LABELS[$p['stage_key']]];
+        $secondary=research_onboarding_available($pdo)?(research_project_protocol($pdo,(int)$p['id'])?:'Not yet assigned'):$p['public_identifier'];
+        $rows[] = [$p['research_title'], $secondary, (string)$p['members'], IerbStage::LABELS[$p['stage_key']]];
     }
     if (!$rows) return ['# Canonical research projects', 'No canonical V14 research projects are recorded yet.'];
     $rows[] = ['Distinct canonical projects', '', '', (string)(count($rows))];
     return ['# Canonical research projects (each counted once)',
-        ['headers' => ['Research Title', 'Project identifier', 'Members', 'Official stage'], 'widths' => [200, 160, 52, 100], 'rows' => $rows]];
+        ['headers' => ['Research Title', research_onboarding_available($pdo)?'Protocol Code':'Project identifier', 'Members', 'Official stage'], 'widths' => [200, 160, 52, 100], 'rows' => $rows]];
 }
 
 /** Authoritative display labels, retrieved through the same helper used by PRISM screens. */

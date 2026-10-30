@@ -22,6 +22,7 @@ require_once __DIR__ . '/auth_rate_limit.php';
 require_once __DIR__ . '/includes/account_onboarding.php';
 require_once __DIR__ . '/includes/schema_v10.php';
 require_once __DIR__ . '/includes/legal_policy.php';
+require_once __DIR__ . '/includes/research_onboarding.php';
 install_application_security();
 
 if (session_status() !== PHP_SESSION_ACTIVE && !in_array(basename($_SERVER['SCRIPT_NAME']??''),['privacy.php','terms.php'],true)) {
@@ -1181,6 +1182,7 @@ function require_login($roles = null): array
         header('Location: complete_profile.php'); exit;
     }
     prism_publish_session_generation();
+    if (!legal_acceptance_required($user) && empty($user['must_change_password']) && onboarding_complete(db(),$user)) research_onboarding_resume(db(),$user);
     return $user;
 }
 

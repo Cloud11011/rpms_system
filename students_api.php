@@ -9,34 +9,36 @@ require_once __DIR__ . '/includes/research_groups.php';
 $user = api_require_login(['admin', 'adviser']);
 $pdo = db();
 $action = $_GET['action'] ?? 'list';
-if (in_array($action, ['save', 'delete'], true)) {
+if (in_array($action, ['save', 'delete','project_update'], true)) {
     require_post_same_origin();
-}
-
-function student_default_password(string $studentId): string
-{
-    return generate_temporary_password();
-}
-
-function describe_student_progress(string $oldStage, string $oldStatus, string $newStage, string $newStatus): string
-{
-    $parts = [];
-    if ($oldStage !== $newStage) { $parts[] = "Stage: $oldStage -> $newStage"; }
-    if ($oldStatus !== $newStatus) { $parts[] = "Status: $oldStatus -> $newStatus"; }
-    return implode('; ', $parts);
 }
 
 function row_to_student(array $r): array
 {
+    $project=research_project_for_student(db(),(int)$r['id']);
+    $projectWorkflow=null;
+    if ($project) {
+        $q=db()->prepare('SELECT w.stage_key,c.interrupted_stage FROM ierb_workflows w LEFT JOIN ierb_correction_cases c ON c.workflow_id=w.id AND c.resolved_at IS NULL WHERE w.id=?'); $q->execute([$project['workflow_id']]);
+        $projectWorkflow=$q->fetch(PDO::FETCH_ASSOC)?:null;
+    }
+    $assignment=null;
+    if (research_onboarding_available(db())) {
+        $q=db()->prepare('SELECT state,revision,assignment_json FROM research_onboarding_assignments WHERE student_id=?'); $q->execute([$r['id']]);
+        $assignment=$q->fetch(PDO::FETCH_ASSOC)?:null;
+        if ($assignment) { $assignment['intent']=json_decode($assignment['assignment_json'],true); unset($assignment['assignment_json']); }
+    }
     return [
+        'projectId'=>$project?(int)$project['id']:null,'projectRevision'=>$project?(int)$project['revision']:null,
+        'projectStage'=>$projectWorkflow['stage_key']??null,'projectStatus'=>($projectWorkflow['stage_key']??null)===IerbStage::COMPLETED?'IERB Completed':null,
+        'researchAssignment'=>$assignment,
         'id' => (int)$r['id'],
         'profileStatus' => ($r['profile_completed_at'] ?? null) === null ? 'Pending' : 'Complete',
         'profileCompletedAt' => $r['profile_completed_at'] ?? null,
         'studentId' => $r['student_id'],
         'name' => $r['full_name'],
         'email' => $r['email'],
-        'research' => $r['research_title'],
-        'group' => $r['research_group'],
+        'research' => $project['research_title'] ?? $r['research_title'],
+        'group' => $project['public_identifier'] ?? $r['research_group'],
         'course' => $r['course'],
         'academicUnitKey' => $r['academic_unit_key'] ?? null,
         'programKey' => $r['program_key'] ?? null,
@@ -45,13 +47,13 @@ function row_to_student(array $r): array
         'adviserId' => $r['adviser_id'] ? (int)$r['adviser_id'] : null,
         'adviserName' => $r['adviser_name'] ?? null,
         'stage' => $r['stage'],
-        'stageLabel' => stage_label($r['stage']),
+        'stageLabel' => $projectWorkflow?IerbStage::LABELS[$projectWorkflow['stage_key']]:stage_label($r['stage']),
         'status' => $r['status'],
         'requirements' => $r['requirements'],
-        'protocolCode' => $r['protocol_code'] ?? null,
+        'protocolCode' => $project && research_onboarding_available(db())?research_project_protocol(db(),(int)$project['id']):($r['protocol_code'] ?? null),
         'isPrincipalInvestigator' => !empty($r['is_principal_investigator']),
         'lastSubmissionDate' => $r['last_submission_date'],
-        'progress' => stage_progress_percent($r['stage']),
+        'progress' => $projectWorkflow?IerbStage::progress($projectWorkflow['stage_key'],$projectWorkflow['interrupted_stage']):stage_progress_percent($r['stage']),
         'createdAt' => $r['created_at'],
         'updatedAt' => $r['updated_at'],
         'archivedAt' => $r['archived_at'] ?? null,
@@ -81,9 +83,9 @@ if ($action === 'list' || $action === 'options') {
     $filterOptions = prism_student_filter_options($pdo, $scope, $params);
     prism_apply_student_filters($scope, $params, $_GET, $filterOptions);
     $q = prism_record_search($_GET);
-    if ($q !== '') $scope .= ' AND ' . prism_search_clause(['s.full_name', 's.student_id', 's.email', 's.research_title', 's.research_group', 'f.full_name'], $q, $params);
+    if ($q !== '') $scope .= ' AND ' . prism_search_clause(['s.full_name', 's.student_id', 's.email', 's.research_title', 's.protocol_code', 's.research_group', 'f.full_name'], $q, $params);
     }
-    $order = prism_record_order($_GET, ['updated'=>'s.updated_at','created'=>'s.created_at','name'=>'s.full_name','studentId'=>'s.student_id','email'=>'s.email','archivedAt'=>'s.archived_at','group'=>'s.research_group','adviser'=>'f.full_name','stage'=>'s.stage','status'=>'s.status','academicYear'=>'s.academic_year'], 'name', 's.id ASC');
+    $order = prism_record_order($_GET, ['updated'=>'s.updated_at','created'=>'s.created_at','name'=>'s.full_name','studentId'=>'s.student_id','email'=>'s.email','archivedAt'=>'s.archived_at','group'=>research_onboarding_available($pdo)?'s.research_title':'s.research_group','adviser'=>'f.full_name','stage'=>prism_student_stage_column($pdo),'status'=>prism_student_status_column($pdo),'academicYear'=>'s.academic_year'], 'name', 's.id ASC');
     $page = prism_page_query($pdo, 'SELECT s.*, f.full_name AS adviser_name, '.retention_projection('student','s'), $scope, $params, $order, $_GET);
     $rows = $page['rows']; unset($page['rows']);
     json_out(['ok' => true, 'students' => array_map('row_to_student', $rows), 'filterOptions'=>$filterOptions] + $page);
@@ -94,9 +96,30 @@ if ($action === 'adviser_options') {
     json_out(['ok' => true, 'advisers' => $rows]);
 }
 
+if ($action==='project_options') {
+    api_require_login('admin');
+    $q=$pdo->prepare('SELECT s.id,s.full_name FROM students s JOIN research_project_members m ON m.student_id=s.id WHERE m.project_id=? AND s.archived_at IS NULL ORDER BY s.full_name');
+    $q->execute([(int)($_GET['projectId']??0)]);
+    json_out(['ok'=>true,'members'=>$q->fetchAll(),'advisers'=>$pdo->query("SELECT id,full_name FROM advisers WHERE archived_at IS NULL AND profile_completed_at IS NOT NULL AND status='Active' ORDER BY full_name")->fetchAll()]);
+}
+
 if ($action === 'group_options') {
     try {
         $academic = academic_validate($_GET);
+        if (research_onboarding_available($pdo)) {
+            $params=[$academic['program_key'],$academic['academic_year']];
+            $scope='';
+            if ($user['role']==='adviser') { $scope=' AND a.email=?'; $params[]=$user['email']; }
+            $q=$pdo->prepare("SELECT p.id,p.research_title,a.full_name AS adviser_name,p.adviser_id,s.program_key,s.academic_year,c.protocol_code,
+                s.full_name AS submission_holder_name,s.student_id AS submission_holder_number,
+                (SELECT COUNT(*) FROM documents d WHERE d.student_id=p.submission_holder_id) AS document_count
+                FROM research_projects p JOIN students s ON s.id=p.submission_holder_id JOIN advisers a ON a.id=p.adviser_id
+                JOIN ierb_workflows w ON w.id=p.workflow_id LEFT JOIN research_project_protocols c ON c.project_id=p.id
+                WHERE s.program_key=? AND s.academic_year=? AND p.completed_at IS NULL AND w.stage_key<>'ierb_completed'
+                AND s.archived_at IS NULL AND a.archived_at IS NULL AND a.status='Active'".$scope.' ORDER BY p.research_title,p.id');
+            $q->execute($params);
+            json_out(['ok'=>true,'canonical'=>true,'groups'=>array_map(static fn($r)=>$r+['value'=>'project:'.$r['id']],$q->fetchAll())]);
+        }
         json_out(['ok' => true, 'groups' => research_group_options($pdo, $user, $academic)]);
     } catch (\InvalidArgumentException $e) {
         json_out(['ok' => false, 'message' => $e->getMessage()], 422);
@@ -104,6 +127,30 @@ if ($action === 'group_options') {
 }
 
 $data = json_body();
+
+if ($action==='project_update') {
+    try {
+        api_require_login('admin');
+        if (!research_onboarding_available($pdo)) throw new AccountLifecycleConflict('The research onboarding extension requires review.');
+        $op=$data['operation']??''; $pid=(int)($data['projectId']??0); $rev=(int)($data['expectedRevision']??-1);
+        $reason=ierb_v14_reason($data['reason']??'');
+        if ($op==='title') $result=research_project_rename($pdo,$user,$pid,$rev,$data['research']??'',$reason);
+        elseif ($op==='adviser') $result=research_project_reassign_adviser($pdo,$user,$pid,$rev,(int)($data['adviserId']??0),$reason);
+        elseif ($op==='pi') $result=research_project_designate_pi($pdo,$user,$pid,$rev,(int)($data['studentId']??0),$reason);
+        elseif ($op==='protocol') {
+            $code=research_protocol_code($data['protocolCode']??null);
+            ierb_v14_begin($pdo);
+            try {
+                research_project_fence($pdo); $admin=research_project_admin($pdo,$user);
+                $q=$pdo->prepare('SELECT * FROM research_projects WHERE id=? FOR UPDATE'); $q->execute([$pid]); $p=$q->fetch(PDO::FETCH_ASSOC);
+                if (!$p || (int)$p['revision']!==$rev) throw new AccountLifecycleConflict('Group changed. Refresh before correcting its protocol code.');
+                research_project_protocol_locked($pdo,$admin,$p,$code,$reason); $pdo->commit(); $result=['ok'=>true,'message'=>'Group protocol code updated.'];
+            } catch(Throwable $e) { if($pdo->inTransaction())$pdo->rollBack(); throw $e; }
+            finally { $pdo->query("SELECT RELEASE_LOCK('prism_migrate')"); }
+        } else throw new AccountLifecycleValidation('Choose an authorized group change.');
+        json_out($result);
+    } catch(Throwable $e) { json_out(['ok'=>false,'message'=>lifecycle_error_status($e)<500?$e->getMessage():'Group update failed safely.'],lifecycle_error_status($e)); }
+}
 
 if ($action === 'save') {
     api_require_login(['admin', 'adviser']);
@@ -123,7 +170,6 @@ if ($action === 'save') {
     $isPrincipal = array_key_exists('isPrincipalInvestigator', $data)
         ? (!empty($data['isPrincipalInvestigator']) ? 1 : 0) : null;
     if (isset($data['reason']) && !is_string($data['reason'])) json_out(['ok'=>false,'message'=>'Invalid progress change reason.'],422);
-    $reason = trim((string)($data['reason'] ?? ''));
 
     $ownAdviserId = null;
     if ($user['role'] === 'adviser') {
@@ -184,8 +230,6 @@ if ($action === 'save') {
     $newLoginUserId = null;
     $newLoginTempPassword = null;
     $setupDelivery = null;
-    $progressChanged = false;
-    $progressChangeText = '';
     try {
         $pdo->beginTransaction();
         research_project_fence($pdo);
@@ -242,7 +286,12 @@ if ($action === 'save') {
                 $academic = academic_validate($data, $before);
                 $group = research_group_assignment($pdo, $user, $data, $academic, $before);
                 $canonical = research_project_for_student($pdo,$id,true);
+                if (!$canonical && research_onboarding_available($pdo)) {
+                    $pending=$pdo->prepare("SELECT state FROM research_onboarding_assignments WHERE student_id=? AND state<>'activated' FOR UPDATE");$pending->execute([$id]);
+                    if($pending->fetchColumn() && ($research!==$titleBefore || (int)$adviserId!==(int)$before['adviser_id'] || $finalProtocolCode!==$before['protocol_code'] || $finalIsPrincipal!==(int)$before['is_principal_investigator']))throw new InvalidArgumentException('Use Review research assignment to change pending research information. Personal and academic profile corrections can be saved here.');
+                }
                 if ($canonical && ($research !== $canonical['research_title'] || (int)$adviserId !== (int)$canonical['adviser_id'])) throw new InvalidArgumentException('Use canonical project administration to update the shared research title or Adviser assignment.');
+                if ($canonical && ($academic['program_key']!==$before['program_key'] || $academic['academic_year']!==$before['academic_year'] || $finalProtocolCode!==$before['protocol_code'] || $finalIsPrincipal!==(int)$before['is_principal_investigator'])) throw new InvalidArgumentException('Use the audited group change controls for official research information. Program and academic year must remain consistent with the group.');
             } catch (\InvalidArgumentException $e) {
                 $pdo->rollBack();
                 json_out(['ok' => false, 'message' => $e->getMessage()], 422);
@@ -269,40 +318,13 @@ if ($action === 'save') {
                 sync_student_login_identity($pdo, (string)$before['email'], $studentId, $name, $email);
             }
 
-            if ($before['stage'] !== $stage || $before['status'] !== $status) {
-                if (!override_reason_valid($reason)) {
-                    if ($pdo->inTransaction()) $pdo->rollBack();
-                    research_group_release($pdo);
-                    json_out(['ok' => false, 'requiresReason' => true,
-                        'message' => 'Changing a student stage or status needs a reason for the progress history. ' . override_reason_message()], 422);
-                }
-                $progressChanged = true;
-                $progressChangeText = describe_student_progress($before['stage'], $before['status'], $stage, $status);
-                // v2 audit trail: this endpoint can also change stage/status, so it must be logged
-                // with who/what/before/after just like the IERB Override (it previously wasn't).
-                $progressAudit = [
-                    'entity_type' => 'student', 'entity_id' => $id, 'student_id' => $id,
-                    'override' => $user['role'] === 'admin',
-                    'before' => $before['stage'] . ' / ' . $before['status'], 'after' => "$stage / $status",
-                    'details' => $progressChangeText, 'reason' => $reason,
-                ];
-                if ($user['role'] === 'admin') {
-                    audit_override_atomic($pdo, $user, 'admin_override_student_progress', $progressAudit);
-                } else {
-                    audit_log($user, 'student_progress_changed', $progressAudit);
-                }
-                $pdo->prepare('INSERT INTO ierb_history (student_id, stage, status, note, requirements, actor)
-                    VALUES (:sid,:stage,:status,:note,:req,:actor)')->execute([
-                    ':sid' => $id, ':stage' => $stage, ':status' => $status,
-                    ':note' => 'Progress updated by ' . ($user['role'] === 'adviser' ? 'research adviser' : 'RPMS')
-                        . '. ' . $progressChangeText . '. Reason: ' . $reason,
-                    ':req' => ($requirementsProvided ? $requirements : $before['requirements']), ':actor' => $user['full_name'],
-                ]);
-            }
         } else {
             try {
                 $academic = academic_validate($data, null);
-                $group = research_group_assignment($pdo, $user, $data, $academic, null);
+                if ($user['role']==='admin' && research_onboarding_available($pdo)) {
+                    $intent=research_onboarding_intent($pdo,$user,$data,$academic);
+                    $group=''; $research=$intent['title']; $adviserId=$intent['adviserId']; $protocolCode=null; $isPrincipal=0;
+                } else $group = research_group_assignment($pdo, $user, $data, $academic, null);
             } catch (\InvalidArgumentException $e) {
                 $pdo->rollBack();
                 json_out(['ok' => false, 'message' => $e->getMessage()], 422);
@@ -326,7 +348,7 @@ if ($action === 'save') {
             $userStmt->execute([':e' => $email, ':u' => $studentId]);
             $existingLogin = $userStmt->fetch();
             if (!$existingLogin) {
-                $tempPassword = student_default_password($studentId);
+                $tempPassword = generate_temporary_password();
                 $newLoginTempPassword = $tempPassword;
                 $pdo->prepare('INSERT INTO users (username, password_hash, role, full_name, email, ref_id, must_change_password)
                     VALUES (:u,:p,"student",:n,:e,:ref,1)')->execute([
@@ -337,7 +359,7 @@ if ($action === 'save') {
             } elseif (($existingLogin['role'] ?? '') === 'student') {
                 $wasInactive = strcasecmp((string)($existingLogin['status'] ?? ''), 'Active') !== 0;
                 if ($wasInactive) {
-                    $tempPassword = student_default_password($studentId);
+                    $tempPassword = generate_temporary_password();
                     $newLoginTempPassword = $tempPassword;
                     $pdo->prepare("UPDATE users SET username=:u, full_name=:n, email=:e, ref_id=:ref, status='Active',
                             password_hash=:p, must_change_password=1 WHERE id=:id")
@@ -357,12 +379,11 @@ if ($action === 'save') {
             ]);
         }
         if (!isset($identityBefore)) $pdo->prepare('UPDATE students SET profile_completed_at=NOW() WHERE id=?')->execute([$id]);
+        if (isset($intent)) research_onboarding_store($pdo,$user,$id,$intent);
         academic_year_assignment_audit($pdo,$user,$id,$before['academic_year']??null,$academic['academic_year']);
         $identityRow=$pdo->prepare('SELECT * FROM students WHERE id=:id FOR UPDATE');
         $identityRow->execute([':id'=>$id]);
         lifecycle_identity_persist($pdo,$user,'student',$identityBefore??null,lifecycle_identity_capture($pdo,$identityRow->fetch(),'student'));
-        $notificationIds=$progressChanged ? workflow_queue_notices($pdo,$user,$id,
-            ['subject'=>'PRISM IERB Progress Updated','message'=>"Your IERB progress was updated. Current stage: " . stage_label($stage) . " ($stage). Status: $status."]) : [];
         $pdo->commit();
         research_group_release($pdo);
     } catch (Throwable $e) {
@@ -384,9 +405,9 @@ if ($action === 'save') {
     if ($newLoginUserId) {
         $setupDelivery = send_account_setup_email($pdo, $newLoginUserId, $email, $name);
     }
-    document_workflow_deliver($pdo,$notificationIds);
     log_activity($user['email'], 'student_saved', "student_id=$studentId");
     $response = ['ok' => true, 'id' => $id, 'message' => 'Student record saved.'];
+    if (isset($intent)) $response['message']='Student saved. Research assignment is pending secure account setup and institutional activation; PRISM will finish it automatically when eligible.';
     if ($newLoginUserId) {
         $response['accountCreated'] = true;
         $response = array_merge($response, account_setup_response_fields($setupDelivery, $newLoginTempPassword));

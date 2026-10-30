@@ -126,6 +126,8 @@ module.exports = async h => {
       await ctx.addInitScript(({ theme, keys }) => { localStorage.setItem('prismTheme', theme); keys.forEach(k => localStorage.setItem(k, 'seen')); }, { theme, keys: guideKeys });
       await ctx.route(/^https:\/\/(?:fonts\.googleapis\.com|fonts\.gstatic\.com)\//, route => route.fulfill({ contentType: 'text/css', body: '' }));
       const page = await ctx.newPage(); page.on('pageerror', e => errors.push(url + ': ' + String(e)));
+      page.prismNetworkFailures=[];
+      page.on('requestfailed',request=>page.prismNetworkFailures.push({url:request.url(),error:request.failure()?.errorText}));
       await page.goto(base + '/' + url); await page.waitForLoadState('networkidle');
       if (role === 'admin') { await page.mouse.move(width - 20, 60); await page.keyboard.press('Escape'); } // Close the hover sidebar like a user.
       return { ctx, page };
@@ -156,7 +158,7 @@ module.exports = async h => {
       try { await page.locator('#ierbEntryModal').waitFor({ state: 'visible' }); }
       catch (error) {
         await page.screenshot({ path: path.join(evidence, `ierb-entry-failure-${label}.png`) }).catch(() => {});
-        fs.writeFileSync(path.join(evidence, `ierb-entry-failure-${label}.json`), JSON.stringify({ pageErrors: errors, state: await page.evaluate(() => {
+        fs.writeFileSync(path.join(evidence, `ierb-entry-failure-${label}.json`), JSON.stringify({ pageErrors: errors, networkFailures:page.prismNetworkFailures, state: await page.evaluate(() => {
           const b = document.getElementById('addIerbEntry'), m = document.getElementById('ierbEntryModal'), r = b?.getBoundingClientRect(), hit = r && document.elementFromPoint(r.x + r.width / 2, r.y + r.height / 2);
           return { url: location.href, readyState: document.readyState, navigation: performance.getEntriesByType('navigation').map(e => e.type), modal: m && { display: m.style.display, ariaHidden: m.getAttribute('aria-hidden') },
             button: r && { rect: r.toJSON(), hit: hit && (hit.id || String(hit.className) || hit.tagName) }, sidebar: document.querySelector('.prism-sidebar')?.className, active: document.activeElement?.id || document.activeElement?.tagName,

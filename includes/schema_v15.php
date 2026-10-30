@@ -23,9 +23,9 @@ function schema_v15_definition(PDO $pdo,string $name): string
     return $pdo->query('SHOW CREATE TABLE `'.$name.'`')->fetch(PDO::FETCH_NUM)[1];
 }
 
-function schema_v15_verify(PDO $pdo,bool $partial=false): void
+function schema_v15_verify(PDO $pdo,bool $partial=false,array $extraTables=[]): void
 {
-    schema_v14_verify($pdo,false,array_keys(schema_v15_tables()));
+    schema_v14_verify($pdo,false,array_merge(array_keys(schema_v15_tables()),$extraTables));
     $version=(string)$pdo->query("SELECT v FROM schema_meta WHERE k='schema_version'")->fetchColumn();
     if (!in_array($version,['14','15'],true)) throw new RuntimeException('Reviewed schema 14 or 15 required.');
     $contract=json_decode(file_get_contents(__DIR__.'/academic_schema_v15.json'),true,512,JSON_THROW_ON_ERROR);

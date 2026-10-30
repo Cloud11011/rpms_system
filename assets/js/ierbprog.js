@@ -294,10 +294,12 @@
     let editingId = null;
 
     function openEntryModal(record) {
+        if (!record && window.PRISM_RESEARCH_ONBOARDING) { window.location.assign('admin_students.php'); return; }
         entryReturnFocus = document.activeElement;
         entryForm.reset();
         academicFields.setRecord(record);
         editingId = record ? record.id : null;
+        document.getElementById('entryResearchTitle').readOnly = !!(record?.projectId || record?.researchAssignmentState);
         document.getElementById('entryStage').value = record?.stage || 'Stage 1';
         document.getElementById('entryGroupId').required = !record;
         entryTitle.textContent = record ? 'Edit IERB Entry' : 'Add IERB Entry';

@@ -11,9 +11,11 @@ function research_project_group_inspect(PDO $pdo, array $actor, int $id): array
     foreach ($rows as $row) {
         $issues = []; $login = null;
         try {
-            current_workflow_student($pdo,(int)$row['id'],$live);
-            $login = lifecycle_resolve_login($pdo,$row,'student');
-            if (!empty($login['must_change_password']) || legal_outstanding($pdo,(int)$login['id'])) $issues[] = 'Student account setup or legal acceptance is incomplete.';
+            if (!research_project_reviewed_archive($pdo,$p,$row)) {
+                current_workflow_student($pdo,(int)$row['id'],$live);
+                $login = lifecycle_resolve_login($pdo,$row,'student');
+                if (!empty($login['must_change_password']) || legal_outstanding($pdo,(int)$login['id'])) $issues[] = 'Student account setup or legal acceptance is incomplete.';
+            }
             if ((int)$row['adviser_id'] !== (int)$p['adviser_id'] || $row['research_group'] !== $p['public_identifier'] || $row['research_title'] !== $p['research_title']) $issues[] = 'Canonical membership or Adviser assignment requires administrative reconciliation.';
             $assigned = student_with_adviser($pdo,(int)$row['id']);
             if (empty($assigned['adviser_pk'])) $issues[] = 'Assigned Adviser is unavailable.';
@@ -24,7 +26,7 @@ function research_project_group_inspect(PDO $pdo, array $actor, int $id): array
             }
         } catch (AccountLifecycleConflict|NotificationLifecycleError $e) { $issues[] = $e->getMessage(); }
         $members[] = ['id'=>(int)$row['id'],'studentId'=>$row['student_id'],'name'=>$row['full_name'],'stage'=>$row['project_stage'],
-            'stageLabel'=>IerbStage::LABELS[$row['project_stage']],'status'=>$row['status'],'progressVersion'=>(string)$row['workflow_revision'],'eligible'=>!$issues,'issues'=>$issues];
+            'stageLabel'=>IerbStage::LABELS[$row['project_stage']],'status'=>$row['archived_at']?'Archived account (membership retained)':$row['status'],'progressVersion'=>(string)$row['workflow_revision'],'eligible'=>!$issues,'issues'=>$issues];
         $fingerprints[(string)$row['id']] = hash('sha256',json_encode([$row,$login ?? null],JSON_THROW_ON_ERROR));
     }
     $q = $pdo->prepare('SELECT * FROM ierb_workflows WHERE id=? FOR UPDATE'); $q->execute([$p['workflow_id']]); $w = $q->fetch(PDO::FETCH_ASSOC);
@@ -52,7 +54,8 @@ function research_project_group_inspect(PDO $pdo, array $actor, int $id): array
     if (array_filter($members,static fn($m)=>!$m['eligible'])) $reasons[] = 'Review the listed member eligibility issues.';
     foreach ($rows as $row) if ($row['project_stage'] !== $w['stage_key'] || (int)$row['workflow_revision'] !== (int)$w['revision']) $reasons[] = 'Member progress is inconsistent with its authoritative workflow; administrative reconciliation required.';
     $fingerprints['project'] = hash('sha256',json_encode([$p,$w,$case,$evidence],JSON_THROW_ON_ERROR));
-    return ['identity'=>['project_id'=>$id],'label'=>$p['research_title'].' / '.$p['public_identifier'],'memberCount'=>count($members),'members'=>$members,
+    $secondary=function_exists('research_onboarding_available')&&research_onboarding_available($pdo)?'Protocol Code: '.(research_project_protocol($pdo,$id)?:'Not yet assigned'):$p['public_identifier'];
+    return ['identity'=>['project_id'=>$id],'label'=>$p['research_title'].' / '.$secondary,'memberCount'=>count($members),'members'=>$members,
         'currentStage'=>$w['stage_key'],'currentStageLabel'=>IerbStage::LABELS[$w['stage_key']],
         'nextStage'=>$w['stage_key'] === IerbStage::INITIAL ? IerbStage::GATHERING : null,
         'nextStageLabel'=>$w['stage_key'] === IerbStage::INITIAL ? IerbStage::LABELS[IerbStage::GATHERING] : null,

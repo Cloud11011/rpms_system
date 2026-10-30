@@ -31,7 +31,7 @@ document.addEventListener('DOMContentLoaded', () => {
     projectButton.addEventListener('click',async()=>{
         const release=PrismUI.busy(projectButton,'Loading projects...');if(!release)return;
         try{const data=await PrismUI.request('reports_api.php?action=project_options');const select=document.getElementById('reportProject');
-            select.replaceChildren(...data.projects.map(p=>new Option(p.research_title+' · '+p.public_identifier,p.id)));
+            select.replaceChildren(...data.projects.map(p=>new Option(p.research_title+' · '+(p.protocolCode!==undefined?'Protocol Code: '+(p.protocolCode||'Not yet assigned'):p.public_identifier),p.id)));
             if(!data.projects.length)select.add(new Option('No canonical projects available',''));
             const c=data.counts;document.getElementById('projectCounts').textContent=c.studentRecords+' Student records · '+c.distinctResearchProjects+' distinct research projects · '+c.v14EnrolledProjects+' V14 projects · '+c.unreconciledStudentRecords+' unreconciled Student records';openModal(projectModal);
         }catch(e){PrismUI.toast(e.message,'error')}finally{release()}

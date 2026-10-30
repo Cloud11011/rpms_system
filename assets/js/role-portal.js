@@ -407,8 +407,8 @@ document.addEventListener('DOMContentLoaded', () => {
         $('welcomeName').textContent = body.dataset.name;
         $('researchTitle').textContent = loadErrors.progress ? 'Research details are temporarily unavailable.' : myRecord?.research || 'No research details yet.';
         const dashboardProtocolCode = myRecord?.protocolCode || '';
-        $('dashboardProtocolCode').textContent = dashboardProtocolCode;
-        $('dashboardProtocol').hidden = !dashboardProtocolCode;
+        $('dashboardProtocolCode').textContent = dashboardProtocolCode || 'Not yet assigned';
+        $('dashboardProtocol').hidden = false;
         renderDashboardProgress(stageIndex, progress, status);
         const pendingCard = $('dashboardPendingCard');
         const pendingIcon = $('dashboardPendingIcon');

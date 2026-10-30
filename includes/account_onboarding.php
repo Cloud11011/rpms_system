@@ -146,7 +146,7 @@ function onboarding_invite(PDO $pdo, array $actor, array $data): array
     $role=$data['accountType']??null;
     if (!is_string($role)) throw new AccountLifecycleValidation('Choose Student or Adviser.');
     onboarding_allow_fields($data,$actor['role']==='admin' && $role==='student'
-        ?['action','accountType','email','adviserId']:['action','accountType','email']);
+        ?['action','accountType','email','adviserId','group','academicUnitKey','programKey','yearLevel','academicYear','research','protocolCode','isPrincipalInvestigator','membershipReason','membershipConfirmed','duplicateTitleConfirmed']:['action','accountType','email']);
     $email=strtolower(onboarding_text($data['email']??null,'Email',190));
     if (!filter_var($email,FILTER_VALIDATE_EMAIL) || !onboarding_invitation_email_allowed($email)) {
         throw new AccountLifecycleValidation('Use a valid institutional email address.');
@@ -154,7 +154,14 @@ function onboarding_invite(PDO $pdo, array $actor, array $data): array
     $token=bin2hex(random_bytes(32));
     $pdo->beginTransaction();
     try {
+        research_project_fence($pdo);
         [$actor,$ownAdviser]=onboarding_inviter($pdo,$actor,$role);
+        $intent=null;
+        if ($role==='student' && $actor['role']==='admin' && research_onboarding_available($pdo)) {
+            try { $academic=academic_validate($data); } catch (InvalidArgumentException $e) { throw new AccountLifecycleValidation($e->getMessage()); }
+            $intent=research_onboarding_intent($pdo,$actor,$data,$academic);
+            $data['adviserId']=$intent['adviserId'];
+        }
         $assignment=$role==='student'?onboarding_active_adviser($pdo,$ownAdviser?(int)$ownAdviser['id']:($data['adviserId']??null)):null;
         onboarding_email_available($pdo,$email);
         $pdo->prepare('INSERT INTO users (username,password_hash,role,full_name,email) VALUES (NULL,?,?,NULL,?)')
@@ -163,6 +170,7 @@ function onboarding_invite(PDO $pdo, array $actor, array $data): array
         if ($role==='student') $pdo->prepare('INSERT INTO students (student_id,full_name,email,user_id,adviser_id) VALUES (NULL,NULL,?,?,?)')->execute([$email,$uid,$assignment]);
         else $pdo->prepare('INSERT INTO advisers (employee_id,full_name,email,user_id) VALUES (NULL,NULL,?,?)')->execute([$email,$uid]);
         $id=(int)$pdo->lastInsertId();
+        if ($intent) research_onboarding_store($pdo,$actor,$id,$intent);
         $pdo->prepare('INSERT INTO account_invitations (user_id,invited_by_user_id,token_hash,expires_at,last_sent_at)
             VALUES (?,?,?,DATE_ADD(NOW(),INTERVAL 1 HOUR),NOW())')->execute([$uid,$actor['id'],hash('sha256',$token)]);
         $record=onboarding_profile($pdo,['id'=>$uid,'role'=>$role,'email'=>$email,'ref_id'=>null],true);
@@ -205,6 +213,7 @@ function onboarding_resend(PDO $pdo, array $actor, array $data): array
     $table=$role==='student'?'students':'advisers'; $token=bin2hex(random_bytes(32));
     $pdo->beginTransaction();
     try {
+        research_project_fence($pdo);
         [$actor,$ownAdviser]=onboarding_inviter($pdo,$actor,$role);
         $rows=lifecycle_rows($pdo,"SELECT * FROM $table WHERE id=? FOR UPDATE",[$id]);
         if (!$rows) throw new AccountLifecycleNotFound('Pending profile not found.');
@@ -227,22 +236,45 @@ function onboarding_resend(PDO $pdo, array $actor, array $data): array
 /** Pending Student assignment is staff-owned and independent of identity completion. */
 function onboarding_assign(PDO $pdo,array $actor,array $data): array
 {
-    onboarding_allow_fields($data,['targetId','adviserId']);
+    onboarding_allow_fields($data,['targetId','adviserId','group','academicUnitKey','programKey','yearLevel','academicYear','research','protocolCode','isPrincipalInvestigator','membershipReason','membershipConfirmed','duplicateTitleConfirmed','expectedRevision','cancelAssignment']);
     if (($actor['role']??'')!=='admin') throw new AccountLifecycleForbidden('Only Admin may reassign a Pending Student.');
     $id=$data['targetId']??null;
     if ((!is_int($id)&&!is_string($id)) || !preg_match('/\A[1-9][0-9]{0,9}\z/',(string)$id)) throw new AccountLifecycleValidation('Invalid Student.');
     $pdo->beginTransaction();
     try {
+        research_project_fence($pdo);
         [$actor]=onboarding_inviter($pdo,$actor,'student');
-        $adviser=onboarding_active_adviser($pdo,$data['adviserId']??null);
+        $adviser=null;
         $rows=lifecycle_rows($pdo,'SELECT * FROM students WHERE id=? FOR UPDATE',[$id]);
-        if (!$rows || $rows[0]['archived_at']!==null || $rows[0]['profile_completed_at']!==null) throw new AccountLifecycleConflict('Refresh the record. Reassignment here requires an active Pending Student.');
+        if (!$rows || $rows[0]['archived_at']!==null || research_project_for_student($pdo,(int)$id,true)) throw new AccountLifecycleConflict('Refresh the record. Only an unassigned, unarchived Student may receive a pending assignment.');
         if(function_exists('purge_require_no_pending')) purge_require_no_pending($pdo,'student',(int)$id);
+        if (research_onboarding_available($pdo)) {
+            research_project_admin($pdo,$actor);
+            $q=$pdo->prepare('SELECT revision FROM research_onboarding_assignments WHERE student_id=? FOR UPDATE'); $q->execute([$id]); $revision=$q->fetchColumn();
+            if ($revision && (int)($data['expectedRevision']??0)!==(int)$revision) throw new AccountLifecycleConflict('Assignment changed. Refresh before saving.');
+            if (($data['cancelAssignment']??false)===true) {
+                $pdo->prepare("UPDATE research_onboarding_assignments SET state='cancelled',revision=revision+1,updated_at=NOW(6) WHERE student_id=?")->execute([$id]);
+                onboarding_audit($pdo,$actor,'research_assignment_cancelled','student',(int)$id);
+                $pdo->commit(); return ['ok'=>true,'message'=>'Research assignment cancelled. No membership was created.'];
+            }
+            try { $academic=academic_validate($data,$rows[0]['profile_completed_at']?$rows[0]:null); } catch (InvalidArgumentException $e) { throw new AccountLifecycleValidation($e->getMessage()); }
+            $intent=research_onboarding_intent($pdo,$actor,$data,$academic,(int)$id);
+            $adviser=$intent['adviserId'];
+            research_onboarding_store($pdo,$actor,(int)$id,$intent);
+        } else {
+            if ($rows[0]['profile_completed_at']!==null) throw new AccountLifecycleConflict('This profile is already complete.');
+            $adviser=onboarding_active_adviser($pdo,$data['adviserId']??null);
+        }
         $pdo->prepare('UPDATE students SET adviser_id=? WHERE id=?')->execute([$adviser,$id]);
         onboarding_audit($pdo,$actor,'pending_student_reassigned','student',(int)$id);
         $pdo->commit();
     } catch(Throwable $e) { if($pdo->inTransaction()) $pdo->rollBack(); throw $e; }
-    return ['ok'=>true,'message'=>'Pending Student assignment updated.'];
+    $activation=null;
+    if (isset($intent)) {
+        try { $activation=research_onboarding_activate($pdo,(int)$id); }
+        catch(Throwable $e) { log_api_error('research_onboarding','Approved assignment retained for Student '.(int)$id.'; activation deferred.'); }
+    }
+    return ['ok'=>true,'researchAssignment'=>$activation,'message'=>($activation['state']??null)==='activated'?'Research group assignment verified.':'Pending Student assignment updated.'];
 }
 
 function onboarding_accept(PDO $pdo, array $data): void
@@ -285,6 +317,7 @@ function onboarding_finish(PDO $pdo, array $user, array $data): array
     if ($role==='student') onboarding_student_id($identifier);
     $pdo->beginTransaction();
     try {
+        research_project_fence($pdo);
         $r=onboarding_profile($pdo,$user,true);
         if (!$r) throw new AccountLifecycleConflict('Profile ownership requires Admin review.');
         if ($r['archived_at']!==null || $r['profile_completed_at']!==null) throw new AccountLifecycleConflict('This profile is archived or already complete.');
@@ -301,6 +334,10 @@ function onboarding_finish(PDO $pdo, array $user, array $data): array
         if ($role==='student') {
             try { $academic=academic_validate($data); } catch(InvalidArgumentException $e) { throw new AccountLifecycleValidation($e->getMessage()); }
             $title=onboarding_text($data['research']??'','Research title',255,false);
+            if (research_onboarding_available($pdo)) {
+                $q=$pdo->prepare("SELECT assignment_json FROM research_onboarding_assignments WHERE student_id=? AND state IN ('pending','review') FOR UPDATE"); $q->execute([$r['id']]);
+                if ($assignment=$q->fetchColumn()) $title=json_decode($assignment,true,512,JSON_THROW_ON_ERROR)['title'];
+            }
             $pdo->prepare('UPDATE students SET student_id=?,full_name=?,course=?,academic_unit_key=?,program_key=?,year_level=?,academic_year=?,research_title=?,profile_completed_at=NOW() WHERE id=?')
                 ->execute([$identifier,$name,$academic['course'],$academic['academic_unit_key'],$academic['program_key'],$academic['year_level'],$academic['academic_year'],$title?:null,$r['id']]);
             academic_year_assignment_audit($pdo,$login,(int)$r['id'],$r['academic_year']??null,$academic['academic_year']);
@@ -319,5 +356,10 @@ function onboarding_finish(PDO $pdo, array $user, array $data): array
         if ($e instanceof PDOException && (int)($e->errorInfo[1]??0)===1062) throw new AccountLifecycleConflict('That institutional ID was claimed concurrently. Use your own unique ID or request Admin review.');
         throw $e;
     }
-    return ['ok'=>true,'redirect'=>$role==='student'?'student.php?welcome=1':'ierbprog.php'];
+    $activation=null;
+    if ($role==='student' && research_onboarding_available($pdo)) {
+        try { $activation=research_onboarding_activate($pdo,(int)$r['id']); }
+        catch(Throwable $e) { log_api_error('research_onboarding','Completed profile retained for Student '.(int)$r['id'].'; approved assignment awaits review or retry.'); }
+    }
+    return ['ok'=>true,'researchAssignment'=>$activation,'redirect'=>$role==='student'?'student.php?welcome=1':'ierbprog.php'];
 }

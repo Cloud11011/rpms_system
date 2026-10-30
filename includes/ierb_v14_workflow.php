@@ -38,6 +38,11 @@ function ierb_v14_guard_legacy_write(PDO $pdo, int $studentId): void
 {
     if (!ierb_v14_schema_available($pdo)) return;
     if (research_project_for_student($pdo,$studentId,true)) throw new AccountLifecycleConflict('Canonical project progress must use validated Group Advancement.');
+    if (function_exists('research_onboarding_available') && research_onboarding_available($pdo)) {
+        $pending = $pdo->prepare("SELECT student_id FROM research_onboarding_assignments WHERE student_id=? AND state<>'activated' FOR UPDATE");
+        $pending->execute([$studentId]);
+        if ($pending->fetchColumn()) throw new AccountLifecycleConflict('Research setup requires RPMS review and account eligibility before official progress decisions.');
+    }
     $q = $pdo->prepare('SELECT id FROM ierb_workflows WHERE student_id=? FOR UPDATE');
     $q->execute([$studentId]);
     if ($q->fetchColumn()) throw new AccountLifecycleConflict('This Student has an explicitly enrolled V14 workflow. Legacy stage decisions cannot change it.');

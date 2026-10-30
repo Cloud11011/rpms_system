@@ -29,7 +29,9 @@ if (in_array($action,['monitor','monitor_compare','monitor_detail'],true)) {
 }
 if ($action === 'v14_contract') {
     header('Cache-Control: no-store');
-    json_out(['ok'=>true,'contract'=>IerbStage::contract(),'activeWorkflow'=>'legacy','operationsActivated'=>ierb_v14_http_operations_enabled()]);
+    $hasV14 = ierb_v14_schema_available($pdo) && (bool)$pdo->query('SELECT 1 FROM ierb_workflows LIMIT 1')->fetchColumn();
+    json_out(['ok'=>true,'contract'=>IerbStage::contract(),'activeWorkflow'=>$hasV14?'mixed':'legacy',
+        'workflowModels'=>$hasV14?['legacy','v14']:['legacy'],'operationsActivated'=>ierb_v14_http_operations_enabled()]);
 }
 if (in_array($action, ['advance', 'correct', 'status', 'override', 'save', 'note', 'delete', 'group_advance_preview', 'group_advance', 'group_advance_cancel'], true)) {
     require_post_same_origin();
@@ -123,8 +125,16 @@ function adviser_may_access_student(PDO $pdo, array $user, int $studentId): bool
 function ierb_row(array $r, array $docCounts = [], array $earlierReturns = []): array
 {
     $project=research_project_for_student(db(),(int)$r['id']);
+    $assignmentState=null;
+    if (research_onboarding_available(db())) {
+        $assignment=db()->prepare('SELECT state FROM research_onboarding_assignments WHERE student_id=?');
+        $assignment->execute([(int)$r['id']]);
+        $assignmentState=$assignment->fetchColumn() ?: null;
+    }
     return [
         'id' => (int)$r['id'],
+        'projectId' => $project ? (int)$project['id'] : null,
+        'researchAssignmentState' => $assignmentState,
         'studentId' => $r['student_id'],
         'name' => $r['full_name'],
         'email' => $r['email'],
@@ -141,7 +151,7 @@ function ierb_row(array $r, array $docCounts = [], array $earlierReturns = []): 
         'stageLabel' => stage_label($r['stage']),
         'status' => $r['status'],
         'requirements' => $r['requirements'],
-        'protocolCode' => $r['protocol_code'] ?? null,
+        'protocolCode' => $project && research_onboarding_available(db())?research_project_protocol(db(),(int)$project['id']):($r['protocol_code'] ?? null),
         'isPrincipalInvestigator' => !empty($r['is_principal_investigator']),
         'lastSubmissionDate' => $r['verified_submission'] ?? null,
         'progress' => stage_progress_percent($r['stage']),
@@ -162,13 +172,14 @@ function ierb_apply_current_filters(string &$scope, array &$params, array $query
     $q = prism_record_search($query);
     if ($q !== '') $scope .= ' AND ' . prism_search_clause(['s.protocol_code', 's.student_id', 's.full_name', 's.email', 's.research_title', 's.research_group', 's.course', 'f.full_name'], $q, $params);
     // Stage sequence has Completed last, rather than alphabetically first.
-    $stageOrder = "CASE s.stage WHEN 'Stage 1' THEN 0 WHEN 'Stage 2' THEN 1 WHEN 'Stage 3' THEN 2 WHEN 'Stage 4' THEN 3 WHEN 'Stage 5' THEN 4 WHEN 'Completed' THEN 5 ELSE 0 END";
+    $stageColumn = prism_student_stage_column(db());
+    $stageOrder = "CASE $stageColumn WHEN 'Stage 1' THEN 0 WHEN 'initial_submission' THEN 0 WHEN 'Stage 2' THEN 1 WHEN 'resubmission_amendment' THEN 1 WHEN 'Stage 3' THEN 2 WHEN 'Stage 4' THEN 3 WHEN 'approval_data_gathering' THEN 3 WHEN 'Stage 5' THEN 4 WHEN 'Completed' THEN 5 WHEN 'ierb_completed' THEN 5 ELSE 0 END";
     $sort = $query['sort'] ?? '';
     $date=ierb_v14_schema_available(db())?'IF(EXISTS(SELECT 1 FROM ierb_workflows w WHERE w.student_id='.$holder.'),formal_dates.latest_verified,formal_dates.latest_submission)':'formal_dates.latest_submission';
     $by=$query['sortBy']??'';
     if (($by==='' && !in_array($sort,['high-to-low','low-to-high'],true)) || $by==='submission') return "$date IS NULL ASC, $date ".(($query['direction']??'DESC')==='ASC'?'ASC':'DESC').', s.id ASC';
     if ($by==='title') return 's.research_title '.(($query['direction']??'ASC')==='DESC'?'DESC':'ASC').', s.id ASC';
-    return in_array($sort, ['high-to-low', 'low-to-high'], true) ? $stageOrder . ($sort === 'high-to-low' ? ' DESC' : ' ASC') . ', s.full_name ASC, s.id ASC' : prism_record_order($query, ['name'=>'s.full_name','studentId'=>'s.student_id','stage'=>$stageOrder,'status'=>'s.status','academicYear'=>'s.academic_year','group'=>'s.research_group'], 'name', 's.id ASC');
+    return in_array($sort, ['high-to-low', 'low-to-high'], true) ? $stageOrder . ($sort === 'high-to-low' ? ' DESC' : ' ASC') . ', s.full_name ASC, s.id ASC' : prism_record_order($query, ['name'=>'s.full_name','studentId'=>'s.student_id','stage'=>$stageOrder,'status'=>prism_student_status_column(db()),'academicYear'=>'s.academic_year','group'=>'s.research_group'], 'name', 's.id ASC');
 }
 
 /** Plain-language description of a stage/status change, e.g. "Stage: A -> B; Status: On Track -> Delayed". */
@@ -339,15 +350,15 @@ if ($action === 'export_csv') {
     $put = function (array $cells) use ($out) {
         fputcsv($out, array_map('csv_safe', $cells), ',', '"', '');
     };
-    $put(['Protocol Code', 'Student ID', 'Student Name', 'Email', 'Course', 'Research Group', 'Research Title',
+    $put(['Research Title', 'Protocol Code', 'Student ID', 'Student Name', 'Email', 'Course', 'Internal Research Group ID',
         'Adviser', 'Stage', 'Stage Name', 'Status', 'Progress (%)', 'Pending Requirements', 'Latest Audited Formal Submission (Asia/Manila)', 'Academic Year',
         'Docs Pending Adviser Review', 'Docs Ready for RPMS Submission', 'Docs Submitted to RPMS', 'Needs Attention']);
     foreach ($rows as $r) {
         $c = $counts[(int)$r['id']] ?? empty_doc_counts();
         $row=ierb_row($r,$counts);
         $put([
-            $r['protocol_code'] ?? '', $r['student_id'], $r['full_name'], $r['email'], $r['course'],
-            $row['groupId'], $row['research'], $r['adviser_name'] ?? '', $row['v14']['stage']??$r['stage'], $row['v14']['stageLabel']??stage_label($r['stage']),
+            $row['research'], $row['protocolCode'] ?? 'Not yet assigned', $r['student_id'], $r['full_name'], $r['email'], $r['course'],
+            $row['groupId'], $r['adviser_name'] ?? '', $row['v14']['stage']??$r['stage'], $row['v14']['stageLabel']??stage_label($r['stage']),
             $r['status'], $row['v14']['progress']??stage_progress_percent($r['stage']), $r['requirements'], $row['v14']?($r['verified_v14_submission']??null):$row['lastSubmissionDate'], $r['academic_year'],
             $c['pendingReview'], $c['readyForRpms'], $c['submittedToRpms'], $attention[(int)$r['id']] ?? '',
         ]);
@@ -380,6 +391,7 @@ if (in_array($action,['advance','correct','status','override'],true)) {
 // save (admin only)
 // ---------------------------------------------------------------------
 if ($action === 'save') {
+    if ((int)($data['id']??0)===0 && research_onboarding_available($pdo)) json_out(['ok'=>false,'message'=>'Create or invite this Student in Student Records to select an approved research assignment.','redirect'=>'admin_students.php'],422);
     api_require_login('admin');
     foreach (['stage','status'] as $field) if (isset($data[$field]) && !is_string($data[$field])) json_out(['ok'=>false,'message'=>'Invalid progress value.'],422);
     if (isset($data['reason']) && !is_string($data['reason'])) json_out(['ok'=>false,'message'=>'Invalid progress change reason.'],422);
@@ -457,7 +469,12 @@ if ($action === 'save') {
             if ($research !== '' && $research !== $titleBefore) $research = research_project_title($research);
             $canonical = research_project_for_student($pdo,$id,true);
             if ($canonical && $research !== $canonical['research_title']) {
-                throw new AccountLifecycleConflict('This Student belongs to canonical research project '.$canonical['public_identifier'].'. Change its title through the audited project rename.');
+                throw new AccountLifecycleConflict('Use Edit official group information in Student Records to change this shared research title.');
+            }
+            if (!$canonical && $research !== $titleBefore && research_onboarding_available($pdo)) {
+                $pending=$pdo->prepare("SELECT student_id FROM research_onboarding_assignments WHERE student_id=? AND state<>'activated' FOR UPDATE");
+                $pending->execute([$id]);
+                if ($pending->fetchColumn()) throw new AccountLifecycleConflict('Use Review research assignment in Student Records to change approved pending research information.');
             }
             if ($research !== $titleBefore) {
                 document_workflow_audit($pdo,$user,'research_title_changed',['entity_type'=>'student','entity_id'=>$id,'student_id'=>$id,
@@ -472,6 +489,7 @@ if ($action === 'save') {
             $identityBefore=lifecycle_identity_capture($pdo,$oldRow,'student');
             try {
                 $academic = academic_validate($data, $oldRow);
+                if ($canonical && ($academic['program_key']!==$oldRow['program_key'] || $academic['academic_year']!==$oldRow['academic_year'])) throw new InvalidArgumentException('A verified member must keep the research group program and academic year. Request an audited membership review.');
                 $groupId = research_group_assignment($pdo, $user, $data, $academic, $oldRow);
             } catch (\InvalidArgumentException $e) {
                 $pdo->rollBack();

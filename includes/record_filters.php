@@ -1,15 +1,28 @@
 <?php
 /** Scoped filter choices and fixed SQL columns shared by student record lists. */
+function prism_student_stage_column(PDO $pdo): string
+{
+    if (!function_exists('research_onboarding_available') || !research_onboarding_available($pdo)) return 's.stage';
+    return 'COALESCE((SELECT sw.stage_key FROM research_project_members sm JOIN research_projects sp ON sp.id=sm.project_id JOIN ierb_workflows sw ON sw.id=sp.workflow_id WHERE sm.student_id=s.id),s.stage)';
+}
+
+function prism_student_status_column(PDO $pdo): string
+{
+    $stage=prism_student_stage_column($pdo);
+    return $stage==='s.stage'?'s.status':"CASE WHEN $stage='ierb_completed' THEN 'IERB Completed' ELSE s.status END";
+}
+
 function prism_student_filter_options(PDO $pdo, string $scope, array $params): array
 {
     $columns = ['academicUnitKey'=>'s.academic_unit_key', 'programKey'=>'s.program_key',
         'academicYear'=>'s.academic_year', 'yearLevel'=>'s.year_level', 'group'=>'s.research_group',
         'stage'=>'s.stage', 'status'=>'s.status', 'course'=>'s.course'];
     $catalog = academic_catalog(); $options = [];
+    $columns['stage']=prism_student_stage_column($pdo);$columns['status']=prism_student_status_column($pdo);
     foreach ($columns as $key => $column) {
         $stmt = $pdo->prepare("SELECT DISTINCT $column AS value $scope ORDER BY value");
         $stmt->execute($params); $values = $stmt->fetchAll(PDO::FETCH_COLUMN);
-        if ($key === 'stage') $values = array_merge(STAGE_SEQUENCE, $values);
+        if ($key === 'stage') $values = array_merge($columns['stage']==='s.stage'?STAGE_SEQUENCE:array_keys(IerbStage::LABELS), $values);
         if ($key === 'academicYear') $values = array_merge($catalog['academicYears'], $values);
         if ($key === 'status') $values = array_merge(['On Track','Pending','Delayed'], $values);
         $options[$key] = [];
@@ -17,7 +30,11 @@ function prism_student_filter_options(PDO $pdo, string $scope, array $params): a
             $label = $value === '' ? 'Not recorded' : $value;
             if ($key === 'academicUnitKey') $label = $catalog['units'][$value]['label'] ?? $label;
             if ($key === 'programKey') $label = $catalog['programs'][$value]['label'] ?? $label;
-            if ($key === 'stage' && $value !== '') $label = $value . ' - ' . stage_label($value);
+            if ($key === 'stage' && $value !== '') $label = isset(IerbStage::LABELS[$value])?IerbStage::LABELS[$value]:$value . ' - ' . stage_label($value);
+            if ($key==='group' && $value!=='' && research_projects_available($pdo)) {
+                $q=$pdo->prepare('SELECT research_title FROM research_projects WHERE public_identifier=?'); $q->execute([$value]);
+                $label=$q->fetchColumn()?:$label;
+            }
             $options[$key][] = ['value'=>$value === '' ? '__blank__' : $value, 'label'=>$label];
         }
     }
@@ -79,6 +96,7 @@ function prism_apply_student_filters(string &$scope, array &$params, array $quer
     $columns = ['academicUnitKey'=>'s.academic_unit_key', 'programKey'=>'s.program_key',
         'academicYear'=>'s.academic_year', 'yearLevel'=>'s.year_level', 'group'=>'s.research_group',
         'adviserId'=>'s.adviser_id', 'stage'=>'s.stage', 'status'=>'s.status', 'course'=>'s.course'];
+    $columns['stage']=prism_student_stage_column(db());$columns['status']=prism_student_status_column(db());
     foreach ($columns as $key => $column) {
         $value = $query[$key] ?? '';
         if (!is_string($value) || mb_strlen($value, 'UTF-8') > 250) json_out(['ok'=>false,'message'=>'Invalid record filter.'], 422);

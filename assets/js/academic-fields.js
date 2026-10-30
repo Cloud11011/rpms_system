@@ -64,6 +64,12 @@
             }
             async function refreshGroups() {
                 if (!group) return;
+                if (original?.projectId) {
+                    group.replaceChildren(new Option(original.research || 'Assigned research group',original.group ?? original.groupId ?? ''));
+                    group.disabled=true;
+                    return;
+                }
+                group.disabled=false;
                 const request = ++groupRequest;
                 group.removeAttribute('aria-busy');
                 const selected = group.value;
@@ -83,9 +89,19 @@
                     if (request !== groupRequest) return;
                     group.replaceChildren(new Option(preserve ? 'Keep existing research group' : (data.groups.length ? 'No research group' : 'No existing groups in this cohort'), ''));
                     if (preserve) group.add(new Option('Keep existing: ' + old, old));
-                    data.groups.forEach(id => group.add(new Option(id, id)));
-                    group.add(new Option('+ Create New Group (ID assigned on save)', '__create__'));
+                    if (data.canonical) {
+                        group.replaceChildren(new Option(data.groups.length?'Choose Create New Group or Join Existing Group':'No eligible groups for this program and academic year',''));
+                        if (document.body.dataset.userRole==='admin') group.add(new Option('Create New Group','__create__'));
+                        const joins=document.createElement('optgroup'); joins.label='Join Existing Group';
+                        const titleCounts=new Map();data.groups.forEach(g=>titleCounts.set(g.research_title,(titleCounts.get(g.research_title)||0)+1));
+                        data.groups.forEach(g=>joins.append(new Option(g.research_title+' — Protocol: '+(g.protocol_code||'Not yet assigned')+(titleCounts.get(g.research_title)>1?' · Submission holder: '+g.submission_holder_name+' ('+g.submission_holder_number+')':''),'project:'+g.id)));
+                        group.append(joins); group.researchGroups=data.groups;
+                    } else {
+                        data.groups.forEach(id => group.add(new Option(id, id)));
+                        group.add(new Option('+ Create New Group (ID assigned on save)', '__create__'));
+                    }
                     group.value = [...group.options].some(o => o.value === selected) ? selected : '';
+                    group.dispatchEvent(new CustomEvent('research-groups-loaded'));
                     group.title = '';
                 } catch (e) {
                     if (request === groupRequest) {
@@ -115,6 +131,7 @@
             }
             function setRecord(record) {
                 original = record; changed = false;
+                [unit,program,ay].forEach(select=>{select.disabled=!!record?.projectId;});
                 if (group) {
                     const storedGroup = record?.group ?? record?.groupId ?? '';
                     group.replaceChildren(new Option(storedGroup || 'No research group', storedGroup));
@@ -143,8 +160,8 @@
             setRecord(null);
             return {
                 setRecord,
-                payload() {
-                    if (original && !changed) return {};
+                payload(force = false) {
+                    if (original && !changed && !force) return {};
                     return {academicUnitKey: unit.value === '__graduate__' ? null : unit.value,
                         programKey: program.value, course: selectedProgram()?.label || '',
                         yearLevel: year.disabled ? null : year.value, academicYear: ay.value};

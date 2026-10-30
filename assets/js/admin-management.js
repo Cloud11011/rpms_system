@@ -58,7 +58,7 @@
     })[char]);
 
     const searchInput = document.getElementById('recordSearch');
-    if (studentRecordsView) searchInput.placeholder = 'Search name, ID, email or group';
+    if (studentRecordsView) searchInput.placeholder = 'Search name, ID, research title or protocol code';
     const addBtn = document.getElementById('addRecord');
     const countEl = document.getElementById('recordCount');
     const rowsEl = document.getElementById('recordRows');
@@ -74,6 +74,7 @@
     const emailField = document.getElementById('recordEmail');
 
     const academicFields = isAdviser ? null : PrismAcademicFields.mount(document.getElementById('studentAcademicFields'));
+    let researchAssignment=null;
     let editIntro=null;
     let studentProfileSteps=null;
     if(studentRecordsView) {
@@ -286,7 +287,7 @@
             if(studentRecordsView && stageFilter && !stageFilter.value && Number(data.total)===records.length) {
                 stageCounts={};
                 [...stageFilter.options].filter(option=>option.value).forEach(option=>{
-                    stageCounts[option.value]=records.filter(record=>record.stage===option.value).length;
+                    stageCounts[option.value]=records.filter(record=>(record.projectStage||record.stage)===option.value).length;
                 });
             }
             syncStatusPills();
@@ -382,7 +383,7 @@
                     <td>${escapeHtml(record.employeeId || '—')}</td>
                     <td>${escapeHtml(record.department || 'N/A')}</td>
                     <td class="adviser-groups"></td>
-                    <td>${PrismUI.badge(record.status)}</td>
+                    <td>${PrismUI.badge(record.projectStatus||record.status)}</td>
                     <td class="row-actions"></td>`;
             } else {
                 const protocolBadge = record.protocolCode
@@ -395,16 +396,16 @@
                     tr.innerHTML=`
                         <td><div class="student-name-layout"><span class="student-avatar" aria-hidden="true">${escapeHtml(initials)}</span><span class="student-name-copy"><strong>${escapeHtml(record.name || 'Profile incomplete')}</strong>${record.profileStatus==='Pending'?' <span class="prism-badge">Pending Profile</span>':''}${record.archivedAt ? ' <span class="prism-badge">Archived</span>' : ''}<small>${escapeHtml(record.email)}</small></span><div class="row-actions"></div></div></td>
                         <td>${escapeHtml(record.studentId || '—')}</td>
-                        <td><span class="student-group-name">${escapeHtml(record.group || 'No group')}</span><small class="student-research-name">${escapeHtml(record.research || 'Not set')}</small></td>
+                        <td><span class="student-group-name">${escapeHtml(record.research || record.researchAssignment?.intent?.title || 'Not set')}</span><small class="student-research-name">Protocol Code: ${escapeHtml(record.protocolCode || 'Not yet assigned')}${record.researchAssignment && record.researchAssignment.state!=='activated'?' ? Assignment: '+escapeHtml(record.researchAssignment.state):''}</small></td>
                         <td>${escapeHtml(record.adviserName || 'Unassigned')}</td>
-                        <td>${record.profileStatus==='Pending'?'Complete profile first':`<div class="prism-pill-row"><span class="stage-tag" title="${escapeHtml(record.stage)}">${escapeHtml(record.stageLabel || labelForStage(record.stage))}</span>${PrismUI.badge(record.status)}</div><small class="student-protocol-meta">${protocolBadge}${piBadge}</small>`}</td>`;
+                        <td>${record.profileStatus==='Pending'?'Complete profile first':`<div class="prism-pill-row"><span class="stage-tag" title="${escapeHtml(record.projectStage||record.stage)}">${escapeHtml(record.stageLabel || labelForStage(record.stage))}</span>${PrismUI.badge(record.projectStatus||record.status)}</div><small class="student-protocol-meta">${protocolBadge}${piBadge}</small>`}</td>`;
                 } else {
                     tr.innerHTML = `
                         <td><strong>${escapeHtml(record.name || 'Profile incomplete')}</strong>${record.profileStatus==='Pending'?' <span class="prism-badge">Pending Profile</span>':''}${record.archivedAt ? ' <span class="prism-badge">Archived</span>' : ''}<br><small>${escapeHtml(record.email)}</small></td>
                         <td>${escapeHtml(record.studentId || '—')}</td>
                         <td>${escapeHtml(record.research || 'Not set')}<br><small>${escapeHtml(record.group || 'No group')}</small></td>
                         <td>${escapeHtml(record.adviserName || 'Unassigned')}</td>
-                        <td>${record.profileStatus==='Pending'?'Complete profile first':`<span class="student-record-field-label">IERB status</span><div class="prism-pill-row"><span class="stage-tag" title="${escapeHtml(record.stage)}">${escapeHtml(record.stageLabel || labelForStage(record.stage))}</span>${PrismUI.badge(record.status)}</div>`}</td>
+                        <td>${record.profileStatus==='Pending'?'Complete profile first':`<span class="student-record-field-label">IERB status</span><div class="prism-pill-row"><span class="stage-tag" title="${escapeHtml(record.projectStage||record.stage)}">${escapeHtml(record.stageLabel || labelForStage(record.stage))}</span>${PrismUI.badge(record.projectStatus||record.status)}</div>`}</td>
                         <td><div class="prism-pill-row">${protocolBadge}${piBadge}</div></td>
                         <td class="row-actions"></td>`;
                 }
@@ -446,6 +447,37 @@
             delBtn.addEventListener('click', e => PrismUI.runAction(e.currentTarget,'Processing...',() => deleteRecord(record)));
             if(!archiveWorkspace && record.profileStatus!=='Pending') actions.append(editBtn);
             invitationUI?.addActions(actions,record);
+            if(record.projectId && loggedInRole==='admin' && !archived) {
+                const change=document.createElement('button');change.type='button';change.className='icon-btn lifecycle-action';
+                change.title='Edit official group information';change.setAttribute('aria-label',change.title);change.innerHTML='<i class="fa-solid fa-users-gear" aria-hidden="true"></i>';
+                change.addEventListener('click',async()=>{
+                    let choices;try{choices=await PrismUI.request('students_api.php?action=project_options&projectId='+record.projectId);}catch(error){PrismUI.toast(error.message,'error');return;}
+                    const options=list=>list.map(item=>'<option value="'+item.id+'">'+escapeHtml(item.full_name)+'</option>').join('');
+                    const decision=PrismUI.confirm({title:'Official group change',confirmText:'Save group change',message:record.research+' — changes apply to the entire group and require a reason.',
+                        extraHtml:'<label>Change<select id="groupChangeOperation"><option value="protocol">Protocol Code</option><option value="title">Research title</option><option value="adviser">Assigned Adviser</option><option value="pi">Principal Investigator</option></select></label><label>New value<input id="groupChangeValue" maxlength="255" value="'+escapeHtml(record.protocolCode||'')+'"></label><label>Adviser<select id="groupChangeAdviser">'+options(choices.advisers)+'</select></label><label>Principal Investigator<select id="groupChangePi">'+options(choices.members)+'</select></label><label>Audit reason<textarea id="groupChangeReason" required minlength="5" maxlength="1000"></textarea></label>',
+                        collect:()=>({operation:document.getElementById('groupChangeOperation').value,value:document.getElementById('groupChangeValue').value,reason:document.getElementById('groupChangeReason').value,adviserId:Number(document.getElementById('groupChangeAdviser').value),studentId:Number(document.getElementById('groupChangePi').value)}),validate:values=>values.reason.trim().length<5?'Give a reason of at least five characters.':null});
+                    const operationField=document.getElementById('groupChangeOperation'),valueField=document.getElementById('groupChangeValue');
+                    const adviserField=document.getElementById('groupChangeAdviser'),piField=document.getElementById('groupChangePi');
+                    function syncGroupChange(){
+                        valueField.closest('label').hidden=!['title','protocol'].includes(operationField.value);
+                        adviserField.closest('label').hidden=operationField.value!=='adviser';piField.closest('label').hidden=operationField.value!=='pi';
+                        valueField.value=operationField.value==='title'?record.research:record.protocolCode||'';
+                        adviserField.value=String(record.adviserId||'');piField.value=String(record.id);
+                    }
+                    operationField.addEventListener('change',syncGroupChange);syncGroupChange();
+                    const accepted=await decision;
+                    if(!accepted)return;
+                    try {
+                        const data=accepted.values||{};
+                        const operation=data.operation||document.getElementById('groupChangeOperation')?.value;
+                        const value=data.value??document.getElementById('groupChangeValue')?.value;
+                        const reason=data.reason??document.getElementById('groupChangeReason')?.value;
+                        await PrismUI.postJson('students_api.php?action=project_update',{operation,projectId:record.projectId,expectedRevision:record.projectRevision,reason,
+                            protocolCode:operation==='protocol'?value:undefined,research:operation==='title'?value:undefined,adviserId:operation==='adviser'?data.adviserId:undefined,studentId:operation==='pi'?data.studentId:undefined});
+                        await loadRecords();PrismUI.toast('Official group information updated.','success');
+                    }catch(error){PrismUI.toast(error.message,'error');}
+                });actions.append(change);
+            }
             if (loggedInRole === 'admin') {
                 if (!archiveWorkspace) actions.append(delBtn);
                 const hardDelete=document.createElement('button');
@@ -489,7 +521,7 @@
                 details.append(academicGrid);
         const toolbar=document.createElement('div');toolbar.className='student-result-actions';
                 actionItems.forEach(item=>{item.classList.add('student-profile-action');if(item.title?.startsWith('Edit ')){item.innerHTML='<i class="fa-solid fa-pen" aria-hidden="true"></i>';item.title='Edit student profile';item.setAttribute('aria-label','Edit student profile');item.classList.add('student-profile-edit');}toolbar.append(item);});
-                card.append(identity,block('Research group',escapeHtml(record.group||'No group')),block('IERB status',cells[4].querySelector('.prism-pill-row')?.outerHTML||'Complete profile first'),block('Assigned adviser',escapeHtml(record.adviserName||'Unassigned')),toolbar,details);
+                card.append(identity,block('Research group',escapeHtml(record.research||record.researchAssignment?.intent?.title||'Not set')+'<small>Protocol Code: '+escapeHtml(record.protocolCode||'Not yet assigned')+(record.researchAssignment&&record.researchAssignment.state!=='activated'?' ? Assignment: '+escapeHtml(record.researchAssignment.state):'')+'</small>'),block('IERB status',cells[4].querySelector('.prism-pill-row')?.outerHTML||'Complete profile first'),block('Assigned adviser',escapeHtml(record.adviserName||'Unassigned')),toolbar,details);
                 const host=document.createElement('td');host.colSpan=tr.cells.length;
                 const selection=tr.querySelector('.retention-select');if(selection){const wrapper=document.createElement('span');wrapper.className='retention-select';wrapper.hidden=selection.hidden;while(selection.firstChild)wrapper.append(selection.firstChild);identity.prepend(wrapper);}
                 host.append(card);tr.replaceChildren(host);
@@ -592,6 +624,7 @@
             }
         }
         if (!isAdviser) {
+            researchAssignment?.setRecord(record);
             document.getElementById('stage').disabled=true;
             document.getElementById('recordStatus').disabled=!!record || loggedInRole==='adviser';
             let explanation=document.getElementById('studentOfficialProgressHelp');
@@ -645,9 +678,10 @@
         try {
             const fresh=await PrismUI.request('account_lifecycle_api.php?'+new URLSearchParams({action:'account_state',accountType:isAdviser?'adviser':'student',targetId:record.id}));
             const answer=await PrismUI.confirm({title:isAdviser?'Archive Adviser':'Archive Student',icon:'fa-box-archive',tone:'danger',confirmText:'Archive',
-                message:isAdviser?`This Adviser currently has ${fresh.assignedStudents} assigned Students. They will become Unassigned. Archive ${record.name}?`:`Archive ${record.name} and deactivate their login? This starts a 7-day grace period and a 6-month retention countdown. History stays available during archive.`});
+                reasonRequired:!!record.projectId,reasonLabel:record.projectId?'Reviewed member archival reason':undefined,minReason:5,maxReason:500,
+                message:isAdviser?`This Adviser currently has ${fresh.assignedStudents} assigned Students. They will become Unassigned. Archive ${record.name}?`:record.projectId?`Archive ${record.name} and deactivate their login while retaining shared membership, documents and project progress? The PI or submission holder requires a reviewed transition first.`:`Archive ${record.name} and deactivate their login? This starts a 7-day grace period and a 6-month retention countdown. History stays available during archive.`});
             if(!answer)return;
-            const data=await PrismUI.postJson('account_lifecycle_api.php',{action:'archive',accountType:isAdviser?'adviser':'student',targetId:record.id,expectedAssignedStudents:fresh.assignedStudents});
+            const data=await PrismUI.postJson('account_lifecycle_api.php',{action:'archive',accountType:isAdviser?'adviser':'student',targetId:record.id,expectedAssignedStudents:fresh.assignedStudents,confirmed:true,reason:answer.reason||'',expectedProjectRevision:record.projectRevision});
             await loadRecords();PrismUI.toast(data.message,'success');
         } catch(e) { PrismUI.toast(e.message,'error'); }
     }
@@ -779,7 +813,7 @@
                 payload.studentId = accountIdField.value.trim();
                 payload.research = document.getElementById('research').value.trim();
                 payload.group = document.getElementById('group').value.trim();
-                Object.assign(payload, academicFields.payload());
+                Object.assign(payload, academicFields.payload(), researchAssignment?.payload()||{});
                 payload.requirements = document.getElementById('requirements').value.trim();
                 payload.adviserId = document.getElementById('adviser').value || null;
                 payload.stage = document.getElementById('stage').value;
@@ -813,5 +847,6 @@
         }
     });
 
+    if(!isAdviser && loggedInRole==='admin') researchAssignment=PrismResearchAssignment.mount({form,group:document.getElementById('group'),title:document.getElementById('research'),adviser:document.getElementById('adviser'),protocol:document.getElementById('protocolCode'),pi:document.getElementById('isPrincipal')});
     loadRecords();
 })();

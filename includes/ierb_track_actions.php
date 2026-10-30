@@ -3,6 +3,8 @@
 if (!summary_history_available($pdo)) json_out(['ok'=>false,'message'=>'Project reports require the reviewed schema 14 migration. Historical reports remain available.'],503);
 if ($action==='project_options') {
     $rows=$pdo->query('SELECT p.id,p.research_title,p.public_identifier FROM research_projects p JOIN students s ON s.id=p.submission_holder_id WHERE s.archived_at IS NULL AND s.profile_completed_at IS NOT NULL ORDER BY p.research_title,p.id')->fetchAll(PDO::FETCH_ASSOC);
+    if(research_onboarding_available($pdo))foreach($rows as &$row)$row['protocolCode']=research_project_protocol($pdo,(int)$row['id']);
+    unset($row);
     json_out(['ok'=>true,'projects'=>$rows,'counts'=>track_institution_counts($pdo)]);
 }
 require_post_same_origin(); require_session_generation(true);

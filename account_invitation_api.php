@@ -7,7 +7,12 @@ try {
     if ($action==='me') {
         $profile=onboarding_profile(db(),$user);
         if (!$profile) throw new AccountLifecycleConflict('Your profile link requires Admin review.');
-        json_out(['ok'=>true,'role'=>$user['role'],'email'=>$user['email'],'complete'=>$profile['profile_completed_at']!==null]);
+        $assignment=null;
+        if ($user['role']==='student' && research_onboarding_available(db())) {
+            $q=db()->prepare('SELECT assignment_json,state FROM research_onboarding_assignments WHERE student_id=?'); $q->execute([$profile['id']]);
+            if ($a=$q->fetch(PDO::FETCH_ASSOC)) $assignment=['state'=>$a['state'],'intent'=>json_decode($a['assignment_json'],true)];
+        }
+        json_out(['ok'=>true,'role'=>$user['role'],'email'=>$user['email'],'complete'=>$profile['profile_completed_at']!==null,'researchAssignment'=>$assignment]);
     }
     require_post_same_origin();
     if (!consume_auth_attempt('onboarding_write',(string)$user['id'],20,900)) json_out(['ok'=>false,'message'=>'Too many requests. Try again later.'],429);

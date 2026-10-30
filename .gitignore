@@ -5,8 +5,14 @@
 /tests/
 /tools/
 *.sql
+!maintenance/sql/research_onboarding_v1/*.sql
 *.patch
 *.log
 *.bak
 .env
 .env.*
+/PRISM_ONBOARDING_LOCAL_EVIDENCE/sandbox/
+/PRISM_ONBOARDING_REGRESSION*/sandbox/
+/PRISM_ONBOARDING_*_EVIDENCE/sandbox/
+/PRISM_V14_INDEPENDENT_AUDIT/**/sandbox/
+/.prism-audit-runtime-preview/

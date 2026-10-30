@@ -656,7 +656,7 @@
       return;
     }
     const items = data.students.map(function (s) {
-      const title = s.protocolCode || s.groupId || s.studentId;
+      const title = s.research || s.protocolCode || s.studentId;
       return '<li class="prism-attn-item sev-' + s.topSeverity + '"><div class="prism-attn-main"><strong>' + esc(title) + '</strong>' +
         '<span class="prism-sub">' + esc(s.name) + (s.adviser ? ' \u00b7 Adviser: ' + esc(s.adviser) : '') + '</span>' +
         '<ul class="prism-attn-reasons">' + s.reasons.map(function (r) { return '<li>' + esc(r.label) + '</li>'; }).join('') + '</ul></div>' +
@@ -1269,7 +1269,7 @@
   function progressIdentityHtml(record) {
     const name = record.name || 'Student name unavailable';
     const initials = recordInitials(record.name);
-    return (record.research ? '<strong class="ierb-research-title">'+esc(record.research)+'</strong><small class="prism-sub">'+esc(record.groupId || 'Group not recorded')+'</small>' : '') + '<div class="ierb-card-identity"><span class="ierb-field-label">Student</span><div class="ierb-student-head"><span class="ierb-student-avatar" aria-hidden="true">'+esc(initials)+'</span><div><strong class="ierb-student-name">'+esc(name)+'</strong>'
+    return (record.research ? '<strong class="ierb-research-title">'+esc(record.research)+'</strong><small class="prism-sub">'+'Protocol Code: '+esc(record.protocolCode || 'Not yet assigned')+'</small>' : '') + '<div class="ierb-card-identity"><span class="ierb-field-label">Student</span><div class="ierb-student-head"><span class="ierb-student-avatar" aria-hidden="true">'+esc(initials)+'</span><div><strong class="ierb-student-name">'+esc(name)+'</strong>'
       + (record.protocolCode ? '<small class="ierb-protocol-code">Protocol code: '+esc(record.protocolCode)+'</small>' : '') + '</div></div></div>';
   }
 
@@ -1314,7 +1314,7 @@
     const statusLabel=document.createElement('span');statusLabel.className='ierb-field-label';statusLabel.textContent='Workflow Status';card.querySelector('.prism-record-status').prepend(statusLabel);
     const details=card.querySelector('.prism-record-details'),list=details.querySelector('dl');list.classList.add('prism-details-grid');
     const unit=root.PRISM_ACADEMIC_CATALOG?.units?.[record.academicUnitKey]?.label||record.academicUnitKey;
-    list.replaceChildren(...[['Student ID',record.studentId],['Program',record.course],['Research Title',record.research],['Research group',record.groupId||record.group],['Academic Unit',unit],['Year Level',record.yearLevel],['Academic Year',record.academicYear],['Principal Investigator',record.isPrincipalInvestigator==null?'Not recorded':record.isPrincipalInvestigator?'Yes':'No']].map(([label,value])=>recordField(label,value)));
+    list.replaceChildren(...[['Student ID',record.studentId],['Program',record.course],['Research Title',record.research],['Protocol Code',record.protocolCode||'Not yet assigned'],['Academic Unit',unit],['Year Level',record.yearLevel],['Academic Year',record.academicYear],['Principal Investigator',record.isPrincipalInvestigator==null?'Not recorded':record.isPrincipalInvestigator?'Yes':'No']].map(([label,value])=>recordField(label,value)));
     // This is the distinct stage journey, not a second Overall Progress metric.
     if(stages.length){const sequence=document.createElement('div'),label=document.createElement('span'),steps=document.createElement('ol');sequence.className='ierb-stage-sequence';label.className='ierb-field-label';label.textContent='IERB stage sequence';steps.setAttribute('aria-label','IERB stage sequence');const current=stages.indexOf(record.stage);stages.forEach((name,index)=>{const step=document.createElement('li');step.textContent=record.v14?.labels?.[name]||(root.PRISM_STAGE_LABELS||{})[name]||name;step.title=name;if(index===current)step.setAttribute('aria-current','step');const conditional=Boolean(record.v14)&&name==='resubmission_amendment';if(conditional){step.textContent+=' (Conditional)';step.className='is-conditional';}else if(current>=0&&index<=current)step.className='is-complete';steps.append(step);});sequence.append(label,steps);details.append(sequence);}
     return card;
