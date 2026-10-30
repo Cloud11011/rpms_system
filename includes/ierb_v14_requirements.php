@@ -61,15 +61,51 @@ function ierb_v14_requirement_definition(PDO $pdo, int $studentId, string $key):
     return $r;
 }
 
-/** Storage buckets are explicit category assignments, never enrollment/stage inference. */
+/** The authoritative per-stage upload catalog. Correction cases expose only their
+ * affected types; the Final Report becomes eligible after Form 33 acceptance.
+ * This policy is shared by the Student selector and transactional upload gate.
+ */
+function ierb_v14_stage_upload_types(PDO $pdo, array $workflow, ?array $case): array
+{
+    $stage = $workflow['stage_key'];
+    $types = [];
+    if ($stage === IerbStage::INITIAL) {
+        foreach (ierb_v14_requirements() as $requirement) {
+            if ($requirement[1] === IerbStage::INITIAL) $types[] = $requirement[0];
+        }
+    } elseif ($stage === IerbStage::CORRECTION && $case) {
+        foreach (json_decode($case['affected_documents_json'], true, 512, JSON_THROW_ON_ERROR) as $affected) {
+            if (isset($affected['document_type']) && is_string($affected['document_type'])) $types[] = $affected['document_type'];
+        }
+        if ((int)$case['requires_amendment'] === 1) $types[] = 'Amendment Form';
+    } elseif ($stage === IerbStage::GATHERING) {
+        $types[] = 'Form 33 - Certificate of Approval';
+        try {
+            ierb_v14_accepted_evidence($pdo, $workflow, 'form33');
+            $types[] = 'Form 33-0B - Final Report Form';
+        } catch (AccountLifecycleConflict $e) {
+            // Final Report is not yet eligible; RPMS first accepts Form 33.
+        }
+    }
+    return array_values(array_unique($types));
+}
+
+/** Storage buckets remain compatible with retained versions; new uploads are
+ * rejected unless their category is required by the project's CURRENT stage.
+ */
 function ierb_v14_upload_stage(PDO $pdo, int $studentId, string $type, string $fallback): string
 {
     if (!ierb_v14_schema_available($pdo)) return $fallback;
-    $q = $pdo->prepare('SELECT stage_key FROM ierb_workflows WHERE student_id=? FOR UPDATE');
+    $q = $pdo->prepare('SELECT * FROM ierb_workflows WHERE student_id=? FOR UPDATE');
     $q->execute([$studentId]);
-    $stage = $q->fetchColumn();
-    if (!$stage) return $fallback;
-    if ($stage === IerbStage::COMPLETED) throw new AccountLifecycleConflict('The completed V14 submission and its evidence are retained.');
+    $workflow = $q->fetch(PDO::FETCH_ASSOC);
+    if (!$workflow) return $fallback;
+    $stage = $workflow['stage_key'];
+    if ($stage === IerbStage::COMPLETED) throw new AccountLifecycleConflict('This project is completed; documents are read-only.');
+    $case = ierb_v14_case($pdo, (int)$workflow['id']);
+    if (!in_array($type, ierb_v14_stage_upload_types($pdo, $workflow, $case), true)) {
+        throw new AccountLifecycleConflict('This document type is not required in the current V14 stage. Refresh your checklist before uploading.');
+    }
     $key = ierb_v14_requirement_key($type);
     return $key === null ? $fallback : [IerbStage::INITIAL=>'Stage 1', IerbStage::CORRECTION=>'Stage 2',
         IerbStage::GATHERING=>'Stage 3', IerbStage::COMPLETED=>'Stage 4'][ierb_v14_requirements()[$key][1]];
@@ -350,6 +386,7 @@ function ierb_v14_checklist(PDO $pdo, array $actor, int $studentId, bool $ownTra
                     && $workflow['stage_key'] !== IerbStage::COMPLETED
                     && ($key !== 'form33' || ($case['interrupted_stage'] ?? $workflow['stage_key']) === IerbStage::GATHERING)];
         }
+        $uploadTypes = ierb_v14_stage_upload_types($pdo, $workflow, $case);
         $snapshot = ierb_v14_snapshot($pdo, $workflow);
         // No internal case reason, administrator identity, or affected-document JSON in Student reads.
         $snapshot['correctionCase'] = $case ? ['id'=>(int)$case['id'], 'interruptedStage'=>$case['interrupted_stage'],
@@ -359,7 +396,8 @@ function ierb_v14_checklist(PDO $pdo, array $actor, int $studentId, bool $ownTra
             'groupSynchronization'=>$project ? 'canonical' : 'requires_reconciliation', 'projectId'=>$project ? (int)$project['id'] : null, 'identifier'=>$project['public_identifier'] ?? null,
             'researchTitle'=>$project['research_title'] ?? null, 'principalInvestigator'=>$project ? research_project_principal_investigator($pdo,(int)$project['id']) : null,
             'uploadPolicy'=>$project ? 'Every verified member may upload, revise and formally submit Adviser-approved project documents.' : null],
-            'workflow'=>$snapshot, 'requirements'=>$rows, 'pendingCorrectionRequest'=>ierb_v14_pending_request_summary($pdo, $workflow, $live),
+            'workflow'=>$snapshot, 'requirements'=>$rows, 'uploadTypes'=>$uploadTypes,
+            'pendingCorrectionRequest'=>ierb_v14_pending_request_summary($pdo, $workflow, $live),
             'viewerRole'=>$live['role'], 'operationsActivated'=>ierb_v14_http_operations_enabled()];
     } catch (Throwable $e) { if ($ownTransaction && $pdo->inTransaction()) $pdo->rollBack(); throw $e; }
 }

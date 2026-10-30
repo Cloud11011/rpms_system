@@ -389,6 +389,12 @@ function upload_document_file(PDO $pdo, array $user, ?int $viewerAdviserId, arra
         try { $prev = document_current_version($pdo, (int)$studentDbId, $stage, $documentType); }
         catch (DocumentWorkflowError $e) { throw new DocumentWriteConflict($e->getMessage(),0,$e); }
         if ($prev) $prev = document_with_return($pdo, $prev, true);
+        // A V14 requirement has one current version. Normal upload cannot silently
+        // replace it; use the explicit revision action after a return/rejection.
+        if ($user['role'] === 'student' && $revisionOf === '' && $prev
+            && research_project_for_student($pdo, (int)$studentDbId, true)) {
+            throw new DocumentWriteConflict('This requirement already has a current document. Use Upload Revision if it was returned or rejected.');
+        }
         if ($revisionOf !== '' && (!$prev || $prev['id'] !== $revisionOf
             || !in_array(document_workflow_state($prev), [WF_NEEDS_REVISION, WF_RETURNED_REVISION], true))) {
             throw new DocumentWriteConflict('This revision was already replaced or changed. Refresh your documents.');
