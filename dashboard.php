@@ -19,12 +19,19 @@ $current_date_formatted = date('l, F j, Y');
 require_once __DIR__.'/includes/ierb_v14_workflow.php';
 $pdo = db();
 $total_researchers = (int)$pdo->query('SELECT COUNT(*) FROM students WHERE archived_at IS NULL AND profile_completed_at IS NOT NULL')->fetchColumn();
+$v14Enabled = function_exists('ierb_v14_http_operations_enabled') && ierb_v14_http_operations_enabled();
 $pending_ierb = (int)$pdo->query("SELECT COUNT(*) FROM students WHERE archived_at IS NULL AND profile_completed_at IS NOT NULL AND status = 'Pending'")->fetchColumn();
 $legacyCompleted="SELECT COUNT(*) FROM students s WHERE s.archived_at IS NULL AND s.profile_completed_at IS NOT NULL AND s.stage='Completed'";
 if (ierb_v14_schema_available($pdo)) $legacyCompleted.=' AND NOT EXISTS (SELECT 1 FROM ierb_workflows w WHERE w.student_id=s.id)';
 if (research_projects_available($pdo)) $legacyCompleted.=' AND NOT EXISTS (SELECT 1 FROM research_project_members m WHERE m.student_id=s.id)';
 $approved_ethics=(int)$pdo->query($legacyCompleted)->fetchColumn();
 $delayed_submissions = (int)$pdo->query("SELECT COUNT(*) FROM students WHERE archived_at IS NULL AND profile_completed_at IS NOT NULL AND status = 'Delayed'")->fetchColumn();
+if ($v14Enabled && research_projects_available($pdo)) {
+    // Official project metrics: count each project once, never each group member.
+    $pending_ierb = (int)$pdo->query("SELECT COUNT(*) FROM research_projects p JOIN ierb_workflows w ON w.id=p.workflow_id WHERE w.stage_key<>'ierb_completed'")->fetchColumn();
+    $approved_ethics = (int)$pdo->query("SELECT COUNT(*) FROM research_projects p JOIN ierb_workflows w ON w.id=p.workflow_id WHERE w.stage_key='ierb_completed'")->fetchColumn();
+    $delayed_submissions = (int)$pdo->query("SELECT COUNT(DISTINCT p.id) FROM research_projects p JOIN ierb_workflows w ON w.id=p.workflow_id JOIN students s ON s.id=p.submission_holder_id WHERE w.stage_key<>'ierb_completed' AND s.status='Delayed'")->fetchColumn();
+}
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -123,17 +130,17 @@ try {
 <div class="card">
 <i class="fa-solid fa-hourglass-half"></i>
 <h1 id="pendingIerbMetric"><?php echo $pending_ierb; ?></h1>
-<p>Pending Ethics Review</p>
+<p><?= $v14Enabled ? 'Active Research Projects' : 'Pending Ethics Review' ?></p>
 </div>
 <div class="card">
 <i class="fa-solid fa-circle-check"></i>
 <h1 id="approvedEthicsMetric"><?php echo $approved_ethics; ?></h1>
-<p title="Official stage recorded by RPMS; document approval does not grant institutional ethics approval.">Completed legacy Student records</p>
+<p title="Official completion follows V14 Final Report formal submission."><?= $v14Enabled ? 'IERB Completed Projects' : 'Completed legacy Student records' ?></p>
 </div>
 <div class="card card-alert">
 <i class="fa-solid fa-triangle-exclamation"></i>
 <h1 id="delayedSubmissionsMetric"><?php echo $delayed_submissions; ?></h1>
-<p>Delayed Submissions</p>
+<p><?= $v14Enabled ? 'Projects Marked Delayed' : 'Delayed Submissions' ?></p>
 </div>
 </section>
 <!-- CONTENT GRID -->

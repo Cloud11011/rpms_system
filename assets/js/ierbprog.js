@@ -1,5 +1,6 @@
 (function () {
     'use strict';
+    const v14Mode = document.body.dataset.v14Active === '1';
 
     const themeToggle = document.getElementById('themeToggle');
     if (themeToggle) {
@@ -75,7 +76,7 @@
         stageChart.setAttribute('aria-busy', 'true');
         tableBody.setAttribute('aria-busy', 'true');
         try {
-            const data = await PrismUI.request('ierb_api.php?' + new URLSearchParams({ action: 'list', page: pager.page, perPage: pager.pageSize, q: ierbSearch.value.trim(), ...filters.query(), ...sort.query() }));
+            const data = await PrismUI.request('ierb_api.php?' + new URLSearchParams({ action: 'list', ...(v14Mode ? {legacyOnly:'1'} : {}), page: pager.page, perPage: pager.pageSize, q: ierbSearch.value.trim(), ...filters.query(), ...sort.query() }));
             if (requestSequence !== recordRequestSequence) return;
             if (!Array.isArray(data.records)) throw new Error('The server returned an invalid record list.');
             records = data.records;
@@ -211,6 +212,12 @@
                 <td class="row-actions"></td>`;
             tr.className = `ierb-progress-row ${statusClass}`;
             const actions = tr.querySelector('.row-actions');
+            if (v14Mode) {
+                actions.textContent = 'Read-only';
+                tableBody.appendChild(tr);
+                PrismUI.compactProgressRecord(tr, record, 0, 5, 6, [1,2,3,4], STAGES);
+                return;
+            }
 
             const guidanceBtn = document.createElement('button');
             guidanceBtn.className = 'icon-btn'; guidanceBtn.title = 'View stage guidance';

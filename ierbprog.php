@@ -29,7 +29,7 @@ $profile_img = 'assets/images/default-avatar.svg';
 <script src="<?php echo htmlspecialchars(asset_url('assets/js/prism-workspace.js'), ENT_QUOTES, 'UTF-8'); ?>" defer></script>
 <?php prism_frontend_styles(); ?>
 </head>
-<body class="prism-workspace <?= $authUser['role'] === 'admin' ? 'admin-shell' : 'portal-shell adviser-page' ?>" data-ierb-user="<?php echo htmlspecialchars(hash('sha256', $user_email), ENT_QUOTES, 'UTF-8'); ?>" data-role="<?php echo htmlspecialchars($_SESSION['account_type'] ?? 'admin', ENT_QUOTES, 'UTF-8'); ?>">
+<body class="prism-workspace <?= $authUser['role'] === 'admin' ? 'admin-shell' : 'portal-shell adviser-page' ?>" data-ierb-user="<?php echo htmlspecialchars(hash('sha256', $user_email), ENT_QUOTES, 'UTF-8'); ?>" data-role="<?php echo htmlspecialchars($_SESSION['account_type'] ?? 'admin', ENT_QUOTES, 'UTF-8'); ?>" data-v14-active="<?= defined('PRISM_IERB_V14_OPERATIONS') && PRISM_IERB_V14_OPERATIONS === true ? '1' : '0' ?>">
 <script>window.PRISM_STAGE_LABELS = <?php echo json_encode(stage_labels_map(), JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT); ?>;</script>
 <div class="container">
     <?php if ($authUser['role'] === 'admin'): ?><aside class="sidebar prism-sidebar"><?php else: ?><header class="portal-navbar"><?php endif; ?>
@@ -40,14 +40,17 @@ $profile_img = 'assets/images/default-avatar.svg';
         <header class="topbar">
             <div class="ierb-heading"><h1>IERB Progress</h1><p><?= $authUser['role'] === 'adviser' ? 'See where each student is in the ethics review process.' : 'Track every research group through the IERB stages.' ?></p></div>
             <div class="top-controls">
-                <?php if ($authUser['role'] === 'admin'): ?><button type="button" class="prism-btn is-secondary" id="manageIerbStages">Manage IERB Stages</button><?php endif; ?>
+                <?php if ($authUser['role'] === 'admin'): ?><button type="button" class="prism-btn is-secondary" id="manageIerbStages" <?= defined('PRISM_IERB_V14_OPERATIONS') && PRISM_IERB_V14_OPERATIONS === true ? 'hidden' : '' ?>>Manage IERB Stages</button><?php endif; ?>
                 <button type="button" class="theme-toggle" id="themeToggle" title="Toggle light or dark theme" aria-label="Toggle light or dark theme"><i class="fa-solid fa-sun light-icon" aria-hidden="true"></i><i class="fa-solid fa-moon dark-icon" aria-hidden="true"></i></button>
             </div>
         </header>
 
         <?php require __DIR__.'/includes/ierb_monitor_view.php'; require __DIR__.'/includes/academic_year_manager.php'; ?>
+        <details class="ierb-legacy-archive" <?= defined('PRISM_IERB_V14_OPERATIONS') && PRISM_IERB_V14_OPERATIONS === true ? '' : 'open' ?>>
+        <summary>Historical Student Stage Records (read-only)</summary>
+        <p>Active V14 research projects are managed in the monitor above. Older stage records are retained for historical reference only.</p>
         <section class="progress-overview" aria-labelledby="progressOverviewTitle">
-            <div class="overview-heading"><div><span>IERB Progress</span><h2 id="progressOverviewTitle">Legacy Student Stage Distribution</h2></div><strong id="overviewTotal">0 students · Select a stage to filter the list</strong></div>
+            <div class="overview-heading"><div><span>IERB Progress</span><h2 id="progressOverviewTitle">Historical Student Stage Distribution</h2></div><strong id="overviewTotal">0 students · Select a stage to filter the list</strong></div>
             <div class="stage-chart" id="stageChart" role="group" aria-label="Student counts by IERB stage"></div>
         </section>
 
@@ -57,7 +60,7 @@ $profile_img = 'assets/images/default-avatar.svg';
                 <label class="ierb-control-field" for="stageFilter"><span>Stage</span><select id="stageFilter"><option value="">All Stages</option><option value="Stage 1">Stage 1</option><option value="Stage 2">Stage 2</option><option value="Stage 3">Stage 3</option><option value="Stage 4">Stage 4</option><option value="Stage 5">Stage 5</option><option value="Completed">Completed</option></select></label>
                 <label class="ierb-control-field" for="ierbStatusFilter"><span>Status</span><select id="ierbStatusFilter"><option value="">All Statuses</option><option>On Track</option><option>Pending</option><option>Delayed</option></select></label>
             </div>
-            <?php if ($authUser['role'] === 'admin'): ?><button type="button" class="ierb-add-link" id="addIerbEntry" title="Add IERB Entry" aria-label="Add IERB Entry"><i class="fa-solid fa-plus" aria-hidden="true"></i> Add IERB Entry</button><?php endif; ?>
+            <?php if ($authUser['role'] === 'admin'): ?><button type="button" class="ierb-add-link" id="addIerbEntry" title="Add IERB Entry" aria-label="Add IERB Entry" <?= defined('PRISM_IERB_V14_OPERATIONS') && PRISM_IERB_V14_OPERATIONS === true ? 'hidden' : '' ?>><i class="fa-solid fa-plus" aria-hidden="true"></i> Add IERB Entry</button><?php endif; ?>
         </section>
 
         <div id="ierbMoreFilters" class="prism-record-filters" aria-label="Academic and research filters"></div>
@@ -68,6 +71,7 @@ $profile_img = 'assets/images/default-avatar.svg';
                 <tbody id="ierbTableBody"></tbody>
             </table></div>
         </section>
+        </details>
         <?php if ($authUser['role'] === 'admin'): ?>
         <section class="ierb-group-card" id="ierbGroupAdvancement" aria-labelledby="ierbGroupTitle">
             <h2 id="ierbGroupTitle">Research Group Advancement</h2>

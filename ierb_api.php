@@ -36,6 +36,11 @@ if ($action === 'v14_contract') {
 if (in_array($action, ['advance', 'correct', 'status', 'override', 'save', 'note', 'delete', 'group_advance_preview', 'group_advance', 'group_advance_cancel'], true)) {
     require_post_same_origin();
 }
+// V14 replaces the legacy per-Student stage mutation endpoints.
+// Historical records remain readable, but cannot be changed through the old process.
+if (ierb_v14_http_operations_enabled() && in_array($action, ['advance','correct','status','override','save','note','delete'], true)) {
+    json_out(['ok'=>false,'message'=>'Legacy IERB stages are read-only. Manage active projects through V14 Group Advancement or Student Records.'],409);
+}
 
 if (in_array($action, ['group_advance_list','group_advance_preview','group_advance','group_advance_cancel'], true)) {
     api_require_login('admin');
@@ -203,6 +208,7 @@ if ($action === 'list') {
     $legacyScope=$scope;
     if (ierb_v14_schema_available($pdo)) $legacyScope.=' AND NOT EXISTS (SELECT 1 FROM ierb_workflows w WHERE w.student_id=s.id)';
     if (research_projects_available($pdo)) $legacyScope.=' AND NOT EXISTS (SELECT 1 FROM research_project_members m WHERE m.student_id=s.id)';
+    if (($_GET['legacyOnly']??null)==='1' && ierb_v14_http_operations_enabled()) $scope=$legacyScope;
     $summary = $pdo->prepare('SELECT s.stage, s.status, COUNT(*) AS c ' . $legacyScope . ' GROUP BY s.stage, s.status');
     $summary->execute($params);
     $overview = $summary->fetchAll();
