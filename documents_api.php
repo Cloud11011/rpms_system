@@ -18,7 +18,7 @@ if (in_array($action, ['summarize','summarize_preview','summarize_cancel'], true
     audit_log($user, 'document_summary_failed', ['entity_type' => 'document', 'details' => 'reason=forbidden_role']);
     json_out(['ok' => false, 'message' => 'Only RPMS Administrators may generate document summaries.'], 403);
 }
-if (in_array($action, ['accept_requirement', 'upload', 'review', 'comment', 'return_for_revision', 'submit_to_rpms', 'override_review', 'delete', 'summarize', 'summarize_preview', 'summarize_cancel', 'selection_snapshot', 'bulk_delete_preview', 'bulk_delete'], true)) {
+if (in_array($action, ['accept_requirement', 'accept_requirements_bulk', 'upload', 'review', 'comment', 'return_for_revision', 'submit_to_rpms', 'override_review', 'delete', 'summarize', 'summarize_preview', 'summarize_cancel', 'selection_snapshot', 'bulk_delete_preview', 'bulk_delete'], true)) {
     require_post_same_origin();
 }
 
@@ -186,14 +186,22 @@ function doc_row(array $d, array $user, ?int $viewerAdviserId): array
 // ---------------------------------------------------------------------
 // list
 // ---------------------------------------------------------------------
-if (in_array($action, ['requirements', 'accept_requirement'], true)) {
+if (in_array($action, ['requirements', 'accept_requirement', 'accept_requirements_bulk'], true)) {
     header('Cache-Control: no-store');
-    if ($action === 'accept_requirement') require_session_generation(true);
+    if ($action !== 'requirements') require_session_generation(true);
     try {
         $input = $action === 'requirements' ? $_GET : json_body(true);
         $sid = $input['studentId'] ?? null;
         if ((!is_string($sid) && !is_int($sid)) || !ctype_digit((string)$sid) || (int)$sid < 1) throw new AccountLifecycleValidation('Select a valid submission holder.');
         if ($action === 'requirements') json_out(ierb_v14_checklist($pdo, $user, (int)$sid));
+        if ($action === 'accept_requirements_bulk') {
+            if (!isset($input['items']) || !is_array($input['items']) || !is_int($input['revision'])
+                || !is_string($input['reason']) || !is_string($input['requestKey'])) {
+                throw new AccountLifecycleValidation('Choose the current requirements and provide a decision reason.');
+            }
+            json_out(ierb_v14_accept_requirements_bulk($pdo,$user,(int)$sid,
+                $input['items'],$input['revision'],$input['reason'],$input['requestKey']));
+        }
         foreach (['requirementKey','documentId','reason','requestKey','institutionalApprovalReference'] as $field) {
             if (isset($input[$field]) && !is_string($input[$field])) throw new AccountLifecycleValidation('Malformed acceptance request.');
         }

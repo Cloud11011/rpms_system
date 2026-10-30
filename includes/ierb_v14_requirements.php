@@ -255,6 +255,97 @@ function ierb_v14_accept_requirement(PDO $pdo, array $actor, int $studentId, str
     } catch (Throwable $e) { if ($pdo->inTransaction()) $pdo->rollBack(); throw $e; }
 }
 
+
+/** All-or-nothing RPMS acceptance for eligible current versions.
+ * Each accepted requirement receives its own immutable V14 event. The first
+ * event also stores an idempotent batch receipt, so retries never double-post.
+ */
+function ierb_v14_accept_requirements_bulk(PDO $pdo, array $actor, int $studentId, array $items,
+    int $expectedRevision, string $reason, string $requestKey): array
+{
+    if (!ierb_v14_schema_available($pdo)) throw new AccountLifecycleConflict('V14 requirements are unavailable.');
+    if (count($items) < 1 || count($items) > 13) throw new AccountLifecycleValidation('Choose 1 to 13 current requirements.');
+    $reason = ierb_v14_reason($reason);
+    ierb_v14_request_key($requestKey);
+    $byKey = [];
+    foreach ($items as $item) {
+        if (!is_array($item) || !isset($item['requirementKey'], $item['documentId'])
+            || !is_string($item['requirementKey']) || !is_string($item['documentId'])
+            || !isset(ierb_v14_requirements()[$item['requirementKey']])
+            || in_array($item['requirementKey'], ['form33', 'final_report'], true)
+            || isset($byKey[$item['requirementKey']])) {
+            throw new AccountLifecycleValidation('Choose distinct, currently eligible documents. Institutional approval remains a separate decision.');
+        }
+        $byKey[$item['requirementKey']] = $item['documentId'];
+    }
+    ksort($byKey);
+    $digest = hash('sha256', json_encode([$actor['id'],'bulk_accept',$studentId,$byKey,$expectedRevision,$reason], JSON_THROW_ON_ERROR));
+    if ($pdo->inTransaction()) throw new LogicException('Bulk requirement acceptance owns its transaction.');
+    $pdo->beginTransaction();
+    try {
+        [, $live, $workflow] = ierb_v14_lock($pdo, $actor, $studentId);
+        if (!$workflow) throw new AccountLifecycleConflict('Explicit V14 enrollment is required.');
+        if ($existing = ierb_v14_replay($pdo, $workflow, $requestKey, $digest)) {
+            $pdo->commit();
+            return $existing;
+        }
+        if ((int)$workflow['revision'] !== $expectedRevision || $workflow['stage_key'] === IerbStage::COMPLETED) {
+            throw new AccountLifecycleConflict('Project progress changed. Refresh the checklist before accepting documents.');
+        }
+        $case = ierb_v14_case($pdo, (int)$workflow['id']);
+        $allowed = ierb_v14_stage_upload_types($pdo, $workflow, $case);
+        $identifiers = []; $notices = []; $index = 0;
+        foreach ($byKey as $key => $id) {
+            $definition = ierb_v14_requirement_definition($pdo, $studentId, $key);
+            if (!in_array($definition[0], $allowed, true)) {
+                // Initial submissions already uploaded can still be accepted;
+                // the selector is intentionally narrower than RPMS acceptance.
+                if ($workflow['stage_key'] !== IerbStage::INITIAL || $definition[1] !== IerbStage::INITIAL) {
+                    throw new AccountLifecycleConflict('Selected requirement is not eligible in this stage.');
+                }
+            }
+            if ($key === 'amendment' && (!$case || !(int)$case['requires_amendment'])) throw new AccountLifecycleConflict('This case does not require an Amendment Form.');
+            $evidence = ierb_v14_document_evidence($pdo, $studentId, $id, $key)
+                + ['correctionCaseId'=>$case ? (int)$case['id'] : null, 'institutionalApprovalReference'=>''];
+            if ($key === 'amendment') ierb_v14_amendment_for_case($pdo, $workflow, $case, $evidence);
+            $previous = ierb_v14_acceptances($pdo, (int)$workflow['id'])[$key] ?? null;
+            $event = 'requirement_accepted';
+            if ($previous && $previous['documentId'] === $id
+                && ($key !== 'amendment' || (int)$previous['correctionCaseId'] === (int)$case['id'])) {
+                if ($workflow['stage_key'] !== IerbStage::INITIAL) throw new AccountLifecycleConflict('Requirement is already accepted.');
+                ierb_v14_initial_evidence($pdo, $workflow);
+                $event = 'requirement_reconfirmed';
+                $evidence['priorAcceptanceEventId'] = $previous['acceptanceEventId'];
+            }
+            $keyForEvent = $index === 0 ? $requestKey
+                : substr(hash('sha256', 'v14-bulk-item-'.$requestKey.'-'.$key), 0, 64);
+            $hashForEvent = $index === 0 ? $digest
+                : hash('sha256', json_encode([$digest, $key, $id], JSON_THROW_ON_ERROR));
+            $pdo->prepare('UPDATE ierb_workflows SET revision=revision+1,updated_at=NOW(6) WHERE id=?')->execute([$workflow['id']]);
+            $receipt = ierb_v14_event($pdo, $live, $workflow, $event, $workflow['stage_key'], $workflow['stage_key'],
+                $keyForEvent, $hashForEvent, $reason, $case ? (int)$case['id'] : null, $evidence);
+            $notices = array_merge($notices, $receipt['projectNotificationIds'] ?? []);
+            $identifiers[] = ['key'=>$key,'documentId'=>$id,'revision'=>$receipt['revision']];
+            $workflow['revision'] = (int)$receipt['revision'];
+            $index++;
+        }
+        $result = ['ok'=>true,'acceptedCount'=>count($identifiers),'accepted'=>$identifiers,
+            'revision'=>(int)$workflow['revision'],'message'=>count($identifiers).' requirements accepted.'];
+        // Replay of the batch key must return the final batch receipt, not the first item.
+        $pdo->prepare('UPDATE ierb_workflow_events SET result_json=? WHERE workflow_id=? AND request_key=?')
+            ->execute([json_encode($result, JSON_THROW_ON_ERROR), $workflow['id'], $requestKey]);
+        $student = current_workflow_student($pdo, $studentId, $live);
+        $notices = array_merge($notices, document_workflow_notifications($pdo,$live,$student,[],
+            'PRISM requirements accepted', $result['message'], false));
+        $pdo->commit();
+        document_workflow_deliver($pdo,$notices);
+        return $result;
+    } catch (Throwable $e) {
+        if ($pdo->inTransaction()) $pdo->rollBack();
+        throw $e;
+    }
+}
+
 /** Only the authorized document service calls this inside its submission transaction. */
 function ierb_v14_apply_document_event(PDO $pdo, array $actor, int $studentId, string $event, string $documentId): ?array
 {
