@@ -27,10 +27,26 @@ $unit = static fn($key) => $catalog['units'][$key ?? '']['label'] ?? ($key ?? ''
 $program = static fn(array $r) => $catalog['programs'][$r['program_key'] ?? '']['label'] ?? ($r['course'] ?: ($r['program_key'] ?? ''));
 $stamp = date('Ymd_His');
 if ($action === 'students') {
+    // V14 exports use project title, assigned Adviser, official stage and protocol
+    // for every enrolled member; pre-enrollment history remains unchanged.
+    $v14 = research_projects_available($pdo);
+    $hasProtocol = $v14 && function_exists('research_onboarding_available') && research_onboarding_available($pdo);
+    $fields = $v14
+        ? "COALESCE(p.research_title,s.research_title) AS research_title,
+           COALESCE(p.public_identifier,s.research_group) AS research_group,
+           COALESCE(w.stage_key,s.stage) AS stage,
+           CASE WHEN w.stage_key='ierb_completed' THEN 'IERB Completed' ELSE s.status END AS status,"
+        : "s.research_title,s.research_group,s.stage,s.status,";
+    $protocol = $hasProtocol ? "CASE WHEN p.id IS NOT NULL THEN rpc.protocol_code ELSE s.protocol_code END AS protocol_code," : "s.protocol_code,";
+    $joins = $v14 ? " LEFT JOIN research_project_members m ON m.student_id=s.id
+        LEFT JOIN research_projects p ON p.id=m.project_id
+        LEFT JOIN ierb_workflows w ON w.id=p.workflow_id" : "";
+    if ($hasProtocol) $joins .= " LEFT JOIN research_project_protocols rpc ON rpc.project_id=p.id";
+    $adviserJoin = $v14 ? 'COALESCE(p.adviser_id,s.adviser_id)' : 's.adviser_id';
     $rows = $pdo->query('SELECT s.student_id,s.full_name,s.email,s.academic_unit_key,s.program_key,s.course,
-        s.year_level,s.academic_year,s.research_title,s.research_group,a.full_name AS adviser_name,
-        s.stage,s.status,s.requirements,s.protocol_code,s.is_principal_investigator,s.archived_at,s.profile_completed_at,s.created_at,s.updated_at
-        FROM students s LEFT JOIN advisers a ON a.id=s.adviser_id ORDER BY s.full_name,s.id');
+        s.year_level,s.academic_year,' . $fields . 'a.full_name AS adviser_name,
+        s.requirements,' . $protocol . 's.is_principal_investigator,s.archived_at,s.profile_completed_at,s.created_at,s.updated_at
+        FROM students s' . $joins . ' LEFT JOIN advisers a ON a.id=' . $adviserJoin . ' ORDER BY s.full_name,s.id');
     $count = prism_stream_csv('prism_student_records_'.$stamp.'.csv',
         ['Student ID','Full Name','Email','Academic Unit / Department','Program / Course','Year Level','Academic Year',
          'Research Title','Research Group','Assigned Adviser','IERB Stage','IERB Status','Pending Requirements','Protocol Code',
