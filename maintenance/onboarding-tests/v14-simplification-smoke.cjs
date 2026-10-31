@@ -59,6 +59,10 @@ check('Authoritative checklist exposes RPMS resubmission usage',req.includes("$s
   && req.includes("$snapshot['officialResubmissionLimit']"));
 check('Dashboard counts all current requirements and Amendment',client.includes('myRecord.pendingRequirementsCount = pending.length')
   && client.includes("row.key === 'amendment' && correction?.requiresAmendment"));
+check('Student dashboard stays in progress while an RPMS correction case remains open',
+  client.includes('myRecord.officialCorrectionOpen = current')
+  && client.includes('Official resubmission in progress')
+  && client.includes('stageAllowed.has(row.documentType)'));
 check('Onboarding resumes beyond twenty blocked accounts',!onboarding.includes('ORDER BY r.updated_at LIMIT 20')
   && onboarding.includes('ORDER BY r.updated_at,r.student_id'));
 check('Adviser password no longer blocks membership',!onboarding.includes("$adviserLogin=lifecycle_resolve_login"));
