@@ -113,14 +113,14 @@ module.exports=async h=>{
       check(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),'Project report page fits viewport '+width+' '+theme);
       await page.locator('#projectModal .report-modal-dialog').screenshot({path:path.join(evidence,`project-${width}-${theme}.png`)});await ctx.close();
     }
-    // Real workflow writes, not manufactured dates: initial formal approval followed by four cases.
+    // Real workflow writes: initial formal approval followed by the maximum three RPMS cases.
     const oldCli=data=>JSON.parse(cp.execFileSync(php,[oldHelper],{input:JSON.stringify(data),encoding:'utf8',windowsHide:true}));
     const revision=()=>Number(sql('SELECT revision FROM ierb_workflows WHERE student_id=4')[0].revision);
     let current=id;
     await expect(post(s.adviser,'review',{id:current,status:'Approved',remarks:'Synthetic Batch4 formal initial submission'},'documents_api.php'),200,'Adviser approval records actual formal initial submission');
     check(cli({action:'snapshot',projectId}).tracking.rows[0].submittedAt===sql('SELECT rpms_submitted_at FROM documents WHERE id=?',[current])[0].rpms_submitted_at,'Track sheet initial date equals authoritative formal submission stamp');
-    for(let n=1;n<=4;n++){
-      check(oldCli({action:'open',revision:revision(),documentId:current,amendment:false,key:crypto.randomUUID()}).ok,'Actual correction case '+n+' opens without enforcing a three-case workflow limit');
+    for(let n=1;n<=3;n++){
+      check(oldCli({action:'open',revision:revision(),documentId:current,amendment:false,key:crypto.randomUUID()}).ok,'RPMS opens eligible official correction case '+n+' under the three-cycle limit');
       const opened=cli({action:'snapshot',projectId});check(opened.tracking.officialResubmissionCount===n-1,'Opening case '+n+' alone never increases resubmission count');
       await expect(post(s.admin,'return_for_revision',{id:current,reason:'Synthetic Batch4 recorded return requiring a corrected supporting document.'},'documents_api.php'),200,'Separate authoritative return event recorded for case '+n);
       const affected=current;
@@ -133,8 +133,17 @@ module.exports=async h=>{
       if(n<=3)check(now.tracking.rows[n].submittedAt===sql('SELECT rpms_submitted_at FROM documents WHERE id=?',[current])[0].rpms_submitted_at,'Correction '+n+' uses actual formal submission timestamp');
       const capture=await expect(post(s.admin,'project_report',{projectId},'reports_api.php'),200,'Report exports actual database correction cycle '+n);
       fs.writeFileSync(path.join(evidence,'track-cycles-'+n+'.pdf'),await(await s.admin.get('/reports_api.php?action=file&id='+capture.body.report.id)).body());
-      if(n===4){check(now.tracking.overflowEvidence.length===1&&now.tracking.notes.some(x=>x.includes('RPMS REVIEW REQUIRED')),'Fourth actual cycle remains preserved with an RPMS review exception and no extra tracking row');fs.writeFileSync(path.join(evidence,'fourth-cycle-exception.json'),JSON.stringify(now,null,2));}
+      check(now.tracking.overflowEvidence.length===0,'New RPMS workflow produces no historical overflow after official case '+n);
     }
+    const beforeFourth={ revision:revision(), caseCount:sql('SELECT COUNT(*) n FROM ierb_correction_cases WHERE workflow_id=(SELECT id FROM ierb_workflows WHERE student_id=4)')[0].n };
+    const fourth=oldCli({action:'open',revision:revision(),documentId:current,amendment:false,key:crypto.randomUUID()});
+    check(!fourth.ok&&fourth.type==='AccountLifecycleConflict'&&/three official IERB resubmissions/i.test(fourth.message||'')
+      && revision()===beforeFourth.revision
+      && Number(sql('SELECT COUNT(*) n FROM ierb_correction_cases WHERE workflow_id=(SELECT id FROM ierb_workflows WHERE student_id=4)')[0].n)===Number(beforeFourth.caseCount),
+      'A fourth official resubmission is rejected without changing stored project evidence');
+    const legacyOverflow=cli({action:'historical-overflow'});
+    check(legacyOverflow.historicalCycles===4&&legacyOverflow.fixedRows===4&&legacyOverflow.overflowCycles===1,
+      'Separate in-memory historical overflow fixture retains older fourth cycle for RPMS review');
     check((await s.admin.get(`/documents_api.php?action=summary_pdf&id=${id}&summaryId=${versions[0].id}`)).status()===200,'Earlier summary remains independently exportable after its source document is superseded');
     fs.writeFileSync(path.join(evidence,'batch4-integration.json'),JSON.stringify({status:'PASS',assertions:h.checks.length-start,cases:h.checks.slice(start)},null,2));
   }finally{
