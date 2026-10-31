@@ -370,15 +370,16 @@ async function remove(d){
 }
 async function reviewStatus(d,status){
     const corrective=['Denied','Resubmission Requested'].includes(status);
+    const reviewLabel = status === 'Resubmission Requested' ? 'Request Revision' : status;
     const answer=await PrismUI.confirm({
-        title:`${status} document`,icon:status==='Approved'?'fa-check':'fa-clipboard-check',
-        tone:status==='Denied'?'danger':'primary',confirmText:status,
-        message:corrective?'Explain what the student needs to correct before resubmitting.':status==='Approved'&&currentRole==='adviser'?`Approve “${d.originalName}” version ${d.versionNo} and formally submit it to RPMS?`:'You may add reviewer remarks before saving this decision.',
+        title:`${reviewLabel} document`,icon:status==='Approved'?'fa-check':'fa-clipboard-check',
+        tone:status==='Denied'?'danger':'primary',confirmText:reviewLabel,
+        message:corrective?'Explain what the Student should revise before the next document review.':status==='Approved'&&currentRole==='adviser'?`Approve “${d.originalName}” version ${d.versionNo} and formally submit it to RPMS?`:'You may add reviewer remarks before saving this decision.',
         reasonLabel:corrective?'Reviewer remarks (required)':'Reviewer remarks (optional)',
         reasonRequired:corrective,minReason:1
     });
     if(!answer)return;
-    try{const data=await api('review',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({id:d.id,status,remarks:answer.reason})});await load();toast(data.message||`Document marked as ${status}.`)}
+    try{const data=await api('review',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({id:d.id,status,remarks:answer.reason})});await load();toast(data.message||`Document marked as ${reviewLabel}.`)}
     catch(e){toast(e.message,'error')}
 }
 async function comment(d){
