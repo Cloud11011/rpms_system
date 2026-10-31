@@ -40,3 +40,10 @@ D. Execute complete regression matrix with a fresh review name after fixes; insp
 E. Review source, databases, no-data-loss invariants, permissions and rollback plan before production promotion.
 
 No deletion of historical project/document/audit records and no deployment is authorized by this audit.
+
+## Third full regression — Stage-specific dropdown synchronization
+
+- On the October 31 local run at 09:00:16, the 53 source smoke checks and the first 429/99 regression assertions passed. The V14 document fixture successfully executed all current-stage, RPMS Form 33, correction, supporting-history and bulk/retained-evidence stages before the Student browser assertion at `maintenance/ierb-v14-tests/documents.cjs:240` failed. The error label was `Data Gathering Student dropdown offers only the Final Report after Form 33 approval`.
+- **Confirmed frontend race:** `role-portal.js` initially exposed the global `PrismUI.documentTypes` catalog while the authenticated V14 checklist loaded; after stage requirements were fetched it updated `v14UploadTypes` without re-rendering already queued file selectors. A quick file selection could therefore expose obsolete options even when the server correctly restricted uploads to Final Report.
+- **Correction:** Initialize the catalog as unavailable; disable file selection and submission until the authorized checklist or legacy record is resolved; rebuild the queued selectors after refresh, clearing stale type choices without losing uploaded files. Keep legacy catalog available only after the record is confirmed as historical. Guard against an older concurrent refresh overwriting the latest record.
+- **Test update:** Wait for the explicit upload-catalog-ready signal in the V14 Student and legacy cumulative queue browser suites before selecting files. The V14 test also prints the actual selectable types on failure. Static JS syntax verified; isolated MariaDB/Chromium execution still pending.

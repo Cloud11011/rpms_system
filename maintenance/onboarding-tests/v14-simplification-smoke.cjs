@@ -42,6 +42,11 @@ check('Initial 13 defined document requirements',(req.match(/IerbStage::INITIAL,
 check('Correction-case type filter',req.includes('affected_documents_json')&&req.includes('requires_amendment'));
 check('Upload rejects superseding current version silently',src('documents_api.php').includes('Use Upload Revision'));
 check('Student dropdown uses current checklist',client.includes('v14UploadTypes = checklist.requirements.filter'));
+check('Upload catalog waits for authorized eligibility',client.includes("uploadCatalogReady = false;")
+  && client.includes("dataset.uploadCatalogReady = 'true'")
+  && client.includes("submissionFile.disabled = uploading || !uploadCatalogReady"));
+check('Queued selectors rebuild when V14 eligibility changes',client.includes('renderQueue();')
+  && client.includes("entry.type && !v14UploadTypes.includes(entry.type)"));
 check('Student has stage checklist shortcut',src('assets/js/ierb-requirements.js').includes('prism:upload-requirement'));
 check('Adviser password no longer blocks membership',!onboarding.includes("$adviserLogin=lifecycle_resolve_login"));
 check('Single V14 bulk acceptance transaction',req.includes('function ierb_v14_accept_requirements_bulk')&&req.includes('Bulk requirement acceptance owns its transaction.'));
