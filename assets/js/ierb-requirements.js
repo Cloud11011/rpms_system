@@ -228,7 +228,7 @@
         if (answer) await operate(button, 'v14_correction_decide', { ...base, requestEventId: pending.requestEventId, decision: 'reject', reason: answer.reason }, studentId, host);
       });
     }
-    if (role === 'admin' && canOpen) add('Open correction case', async button => {
+    if (canOpen) add('Open official resubmission', async button => {
       const answer = await ask(host, { title: 'Open an RPMS correction case', confirmText: 'Open case', reasonLabel: 'RPMS reason', reasonRequired: true, minReason: 5, maxReason: 1000,
         message: pending ? 'A pending Adviser request will be recorded as superseded by this RPMS case.' : 'This moves the whole project to Resubmission / Amendment.',
         extraHtml: `<fieldset><legend>Affected current documents <span class="required-marker" aria-hidden="true">*</span></legend>${docChoices(data)}</fieldset>${amendmentChoice}`,
