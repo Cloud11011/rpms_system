@@ -40,7 +40,7 @@ This work implements the user-approved six-phase V14 simplification. It intentio
 
 - Dashboard shows distinct V14 project counts and completion. Past-dated targeted deadlines are a review signal, never proof of noncompliance.
 - V14 monitoring is project-based; old individual stage-edit controls are read-only.
-- Project and aggregate reports take priority. Old per-Student AI report generation is retired when V14 is enabled; existing report history remains available. Direct legacy AI report navigation redirects to V14 reports.
+- Project and aggregate reports take priority. AI report generation remains available under V14 with one canonical research project per record; only aggregate stage counts are sent to the provider. Historical Student reports remain in legacy mode. Report history remains available.
 - Student and document exports use canonical research-title/Adviser/stage/protocol projections where available, while retaining the original document storage bucket as historical metadata.
 - The four V14 stage names and sequence are fixed. RPMS guidance is editable using short isolated keys in the existing `stage_labels` table; no new schema migration is required.
 
