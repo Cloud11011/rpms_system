@@ -297,6 +297,10 @@ module.exports = async h => {
     if(process.env.PRISM_TEST_REPORT_SCHEMA14==='1'){
       const r=JSON.parse(cp.execFileSync(php,[path.join(root,'maintenance/ierb-report-tests/fixture.php')],{input:JSON.stringify({action:'completed-evidence'}),encoding:'utf8',windowsHide:true}));
       check(r.ok&&r.result.completed&&r.result.progress===100&&r.result.trackingRows===4,'Schema14 completed project report matches actual automatic Final Report completion and fixed tracking rows');
+      check(r.result.officialCycles<=3,'Completed active project report never exceeds three official RPMS resubmission cycles');
+      const overflow=JSON.parse(cp.execFileSync(php,[path.join(root,'maintenance/ierb-report-tests/fixture.php')],{input:JSON.stringify({action:'historical-overflow'}),encoding:'utf8',windowsHide:true}));
+      check(overflow.ok&&overflow.result.historicalCycles===4&&overflow.result.fixedRows===4&&overflow.result.overflowCycles===1,
+        'Read-only synthetic legacy report preserves fourth historical cycle without permitting a new official one');
     }
     if(process.env.PRISM_TEST_MONITOR_SCHEMA15==='1'){
       const monitor=await expect(s.admin.get('/ierb_api.php?action=monitor').then(response),200,'Completed schema15 canonical project is visible in read-only monitor');
