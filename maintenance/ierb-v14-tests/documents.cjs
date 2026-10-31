@@ -86,9 +86,11 @@ module.exports = async h => {
     const foreignId=crypto.randomBytes(12).toString('hex');
     sql("INSERT INTO documents(id,student_id,student_name,uploaded_by,uploaded_by_role,original_name,stored_name,mime,size,document_type,stage,review_status,version_no,is_current) VALUES (?,5,'Synthetic Student 5','Synthetic Student 5','student','Synthetic Batch2 foreign.pdf',?,'application/pdf',1,'Study Protocol','Stage 1','Approved',1,1)",[foreignId,foreignId+'.pdf']);
     await accept('protocol',foreignId,409);
-    const final=await expect(upload('final_report'),200,'Upload Final Report before earlier-stage conditions');docs.final_report=final.body.document.id;
-    await expect(post(s.adviser,'review',{id:docs.final_report,status:'Approved',remarks:'Synthetic Batch2 Adviser approval'},'documents_api.php'),409,'Final Report submission cannot bypass initial requirements or Form 33');
-    check(sql('SELECT review_status,rpms_submitted_at FROM documents WHERE id=?',[docs.final_report])[0].review_status==='Submitted','Ineligible Final Report approval and formal submission roll back atomically');
+    const finalBeforeStage=await upload('final_report');
+    check(finalBeforeStage.status===409&&finalBeforeStage.body.uploaded===0
+      && !(finalBeforeStage.body.results||[]).some(r=>r.ok)
+      && !sql("SELECT id FROM documents WHERE original_name='Synthetic Batch2 final_report.pdf'").length,
+      'Stage 1 rejects Final Report upload without creating a document or evidence record');
     const earlyCase=cli({action:'open',revision:rev(),documentId:docs.protocol,amendment:false,key:crypto.randomUUID()});
     check(earlyCase.ok&&earlyCase.result.progress===0&&earlyCase.result.correctionCase.interrupted_stage==='initial_submission','Correction during Initial Submission preserves its zero-percent interrupted context');
     await expect(post(s.admin,'return_for_revision',{id:docs.protocol,reason:'Synthetic initial review requires protocol correction.'},'documents_api.php'),200,'Initial correction uses the existing RPMS return workflow');
@@ -110,7 +112,7 @@ module.exports = async h => {
     list=await checklist();check(list.body.requirements.filter(r=>r.stage==='initial_submission').every(r=>r.state==='Accepted'&&r.acceptanceEventId),'Every Accepted checklist state has durable version-bound evidence');
     for(const role of ['student','adviser'])check(JSON.stringify((await checklist(s[role])).body.requirements.map(r=>[r.key,r.state,r.versionNo,r.acceptanceEventId]))===JSON.stringify(list.body.requirements.map(r=>[r.key,r.state,r.versionNo,r.acceptanceEventId])),role+' uses identical authoritative checklist states');
     check(!(await checklist(s.student)).body.requirements.some(r=>r.canAccept),'Student checklist has no acceptance controls');
-    await expect(post(s.adviser,'review',{id:docs.final_report,status:'Approved',remarks:'Synthetic Batch2 Adviser approval'},'documents_api.php'),409,'All initial requirements cannot replace required institutional Form 33 acceptance');
+    await expect(upload('final_report'),409,'Data Gathering rejects Final Report upload until Form 33 is accepted');
     const approval=await expect(upload('form33'),200,'Upload Form 33 Certificate of Approval');docs.form33=approval.body.document.id;
     await review(docs.form33);await accept('form33',docs.form33,422);
     // Corrections retain their interrupted context and require accepted successor versions.
@@ -141,7 +143,13 @@ module.exports = async h => {
     check(sql('SELECT id FROM ierb_correction_cases').length===5,'Initial plus four repeated gathering corrections retain five distinct histories');
     const supportingUpload=async revisionOf=>response(await s.student.post('/documents_api.php?action=upload',{headers:{origin:base,'X-Prism-Generation':await generation(s.student)},
       multipart:{documentType:'Other Supporting Document',revisionOf,requestId:crypto.randomUUID(),document:{name:'Synthetic Batch2 supporting.pdf',mimeType:'application/pdf',buffer:pdf()}}}));
-    const supporting=await expect(supportingUpload(''),200,'Upload supporting evidence outside the 13 mandatory categories');const supportingId=supporting.body.document.id;
+    await expect(supportingUpload(''),409,'Unrequested supporting evidence is blocked in the active V14 stage');
+    // Reconstruct an old supporting document from a pre-V14 record in the disposable
+    // fixture. It must stay correctable ONLY through an explicit RPMS case.
+    const supportingId=crypto.randomBytes(12).toString('hex');
+    const supportingStored=supportingId+'.pdf';
+    fs.writeFileSync(path.join(h.app,'storage/documents',supportingStored),pdf());
+    sql("INSERT INTO documents(id,student_id,student_name,uploaded_by,uploaded_by_role,original_name,stored_name,mime,size,document_type,stage,review_status,version_no,is_current) VALUES (?,4,'Synthetic Student 4','Synthetic Student 4','student','Synthetic Batch2 supporting.pdf',?,'application/pdf',?,'Other Supporting Document','Stage 3','Submitted',1,1)",[supportingId,supportingStored,pdf().length]);
     await review(supportingId);
     check(cli({action:'open',revision:rev(),documentId:supportingId,amendment:false,key:crypto.randomUUID()}).ok,'RPMS can open a correction for a supporting category');
     await expect(post(s.admin,'return_for_revision',{id:supportingId,reason:'Synthetic supporting attachment requires a corrected version.'},'documents_api.php'),200,'Return the affected supporting version');
@@ -193,14 +201,21 @@ module.exports = async h => {
     const page=await studentCtx.newPage();page.on('pageerror',e=>errors.push(String(e)));
     await page.goto(base+'/role_portal.php#submit');
     await page.evaluate(()=>document.querySelectorAll('.prism-tour-dialog').forEach(d=>d.close()));
-    await page.locator('#documentFile').setInputFiles([{name:'first.pdf',mimeType:'application/pdf',buffer:pdf()},{name:'second.pdf',mimeType:'application/pdf',buffer:pdf()}]);
-    await page.locator('[data-upload-type]').first().selectOption('Curriculum Vitae');await page.locator('[data-upload-type]').nth(1).selectOption('Payment Receipt');
-    check((await page.locator('[data-upload-type]').evaluateAll(nodes=>nodes.map(n=>n.value))).join('|')==='Curriculum Vitae|Payment Receipt','Student UI assigns a different type to every selected file');
-    await page.locator('#documentNotes').fill('Retain category choices while editing notes');
-    check((await page.locator('[data-upload-type]').evaluateAll(nodes=>nodes.map(n=>n.value))).join('|')==='Curriculum Vitae|Payment Receipt','Per-file assignments survive readiness rerenders');
+    await page.locator('#documentFile').setInputFiles([{name:'final-report.pdf',mimeType:'application/pdf',buffer:pdf()}]);
+    const availableTypes=await page.locator('[data-upload-type]').first().locator('option').evaluateAll(options=>options.map(o=>o.value).filter(Boolean));
+    check(availableTypes.length===1&&availableTypes[0]==='Form 33-0B - Final Report Form',
+      'Data Gathering Student dropdown offers only the Final Report after Form 33 approval');
+    check(!(await page.locator('[data-upload-type]').first().locator('option').evaluateAll(options=>options.some(o=>o.value==='Curriculum Vitae'||o.value==='Payment Receipt'))),
+      'Initial Submission document types are absent from the Data Gathering dropdown');
+    await page.locator('[data-upload-type]').first().selectOption('Form 33-0B - Final Report Form');
+    await page.locator('#documentNotes').fill('Retain the current-stage document selection while editing notes');
+    check(await page.locator('[data-upload-type]').first().inputValue()==='Form 33-0B - Final Report Form',
+      'Final Report selection survives notes rerender without offering earlier-stage types');
     check((await page.locator('#currentStage').textContent())==='Approval of Data Gathering','Student official stage uses its explicit V14 summary');
     check((await page.locator('.stage-card').nth(1).textContent()).includes('Conditional'),'Student view never presents conditional Stage 2 as a completed progress milestone');
     await studentCtx.close();
+    const final=await expect(upload('final_report'),200,'Final Report is uploadable after RPMS Form 33 acceptance');
+    docs.final_report=final.body.document.id;
     await require('../ierb-project-tests/uploads.cjs')({...h,browser,pdf,guideKeys});
     check(!errors.length,'New browser checklist and per-file category controls have no JavaScript errors');
     await projectTests('beforeCompletion',docs);
