@@ -60,7 +60,7 @@ jobs:
         shell: pwsh
         run: |
           $ErrorActionPreference = 'Stop'
-          $base = 'https://mirror.mariadb.org/mariadb-12.3.2/winx64-packages'
+          $base = 'https://mirror.metanet.ch/mariadb/mariadb-12.3.2/winx64-packages'
           $zip = Join-Path $env:RUNNER_TEMP 'mariadb-12.3.2-winx64.zip'
           $sums = Join-Path $env:RUNNER_TEMP 'mariadb-sha256sums.txt'
           Invoke-WebRequest -Uri "$base/mariadb-12.3.2-winx64.zip" -OutFile $zip
