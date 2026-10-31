@@ -60,7 +60,7 @@ if (in_array($action, ['group_advance_list','group_advance_preview','group_advan
     }
 }
 
-// V14 operations: RPMS enrollment, reconciliation, PI designation and correction cases; Adviser correction requests.
+// V14 operations: RPMS-only enrollment, reconciliation, PI designation and official resubmission cases.
 // Every mutation is POST, same-origin, session-generation bound, request-key idempotent and revision checked,
 // and is refused unless the operator has activated V14 operations (ierb_v14_gate).
 const IERB_V14_OPERATIONS = ['v14_correction_queue','v14_correction_request','v14_correction_decide','v14_correction_open','v14_correction_resolve',
