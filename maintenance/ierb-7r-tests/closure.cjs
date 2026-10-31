@@ -67,17 +67,15 @@ module.exports = async h => {
     check(Object.keys(docs).every(k => doc(docs[k]).student_id === 60 && !!doc(docs[k]).rpms_submitted_at) && state().workflow.stage_key === 'initial_submission',
       'All 13 member uploads joined the evidence record, were formally submitted by Adviser approval and accepted; acceptance alone does not advance');
 
-    // 10a. Missing prerequisite: Stage 1 (no Approval of Data Gathering, no Form 33 acceptance).
-    const fr1 = (await expect(upload(m62, 'Form 33-0B - Final Report Form', 'final-report-v1'), 200, 'Non-PI member 62 uploads the Form 33-0B Final Report')).body.document.id;
-    check(doc(fr1).student_id === 60 && doc(fr1).uploaded_by === 'Synthetic Student 62', 'The Final Report joins the project evidence record with member 62 as uploader');
+    // 10a. The server must refuse new Final Reports during Initial Submission.
+    // Do not seed forbidden documents or bypass the current-stage upload gate to manufacture a submission.
     let before = completion();
-    await expect(approve(fr1), 409, 'F01.10 Adviser approval of a Final Report before institutional approval is refused (its automatic submission would complete IERB)');
-    check(doc(fr1).review_status !== 'Approved' && !doc(fr1).reviewed_by, 'The refused Adviser approval left no partial approval');
-    unchanged(before, fr1, 'F01.10 The refused Adviser approval changed nothing');
-    await expect(submit(m62, fr1, 1), 409, 'F01.10 A Final Report without Adviser approval cannot be formally submitted by a member');
-    fx({ action: 'legacy-approve', documentId: fr1 });
-    await expect(submit(m62, fr1, 1), 409, 'F01.10 An Adviser-approved Final Report cannot be formally submitted at Initial Submission');
-    unchanged(before, fr1, 'F01.10 A premature member submission at Stage 1 changed nothing');
+    const prematureInitial = await upload(m62, 'Form 33-0B - Final Report Form', 'premature-initial-final-report');
+    check(prematureInitial.status === 409 && prematureInitial.body.results?.[0]?.status === 409,
+      'F01.10 Initial Submission refuses a premature Final Report upload at the server');
+    check(JSON.stringify(completion()) === JSON.stringify(before)
+      && Number(sql("SELECT COUNT(*) n FROM documents WHERE student_id=60 AND document_type='Form 33-0B - Final Report Form'")[0].n) === 0,
+      'F01.10 Rejected Initial Submission upload creates no Final Report, submission stamp or progress event');
 
     // Group advancement to Approval of Data Gathering (RPMS-only, HTTP).
     const groupKey = crypto.createHash('sha256').update('project:' + state().project.id).digest('hex');
@@ -86,16 +84,36 @@ module.exports = async h => {
     await expect(post(s.admin, 'group_advance', { confirmationToken: preview.body.confirmationToken, reason: 'Synthetic RPMS reviewed all accepted closure evidence.', confirmed: true }), 200, 'RPMS advances the project to Approval of Data Gathering');
     check(state().members.every(m => m.stage_key === 'approval_data_gathering'), 'Every member reflects Approval of Data Gathering');
 
-    // 10b. Missing prerequisite: Stage 3 without RPMS acceptance of Form 33.
+    // 10b. Stage 3 also refuses Final Reports until RPMS accepts Form 33.
     before = completion();
-    await expect(submit(m62, fr1, 1), 409, 'F01.10 A Final Report cannot complete IERB before RPMS accepts Form 33');
-    unchanged(before, fr1, 'F01.10 The submission without Form 33 acceptance changed nothing');
+    const prematureGathering = await upload(m62, 'Form 33-0B - Final Report Form', 'premature-gathering-final-report');
+    check(prematureGathering.status === 409 && prematureGathering.body.results?.[0]?.status === 409,
+      'F01.10 Approval of Data Gathering refuses a Final Report until RPMS accepts Form 33');
+    check(JSON.stringify(completion()) === JSON.stringify(before)
+      && Number(sql("SELECT COUNT(*) n FROM documents WHERE student_id=60 AND document_type='Form 33-0B - Final Report Form'")[0].n) === 0,
+      'F01.10 Rejected pre-Form 33 upload creates no Final Report or completion evidence');
 
     // Form 33 by the holder; Adviser approval auto-forwards; RPMS accepts with the institutional reference.
     const f33 = (await expect(upload(m60, 'Form 33 - Certificate of Approval', 'form33'), 200, 'Holder member uploads Form 33')).body.document.id;
     await expect(approve(f33), 200, 'Adviser approves Form 33 (automatic formal submission)');
     await expect(accept('form33', f33), 422, 'Form 33 acceptance requires the institutional approval reference');
     await expect(accept('form33', f33, { institutionalApprovalReference: 'Synthetic IERB approval reference CC-2026-001' }), 200, 'RPMS accepts Form 33 with its institutional approval reference');
+
+    // Final Report upload becomes eligible only after Form 33 acceptance.
+    const eligible = await expect(response(await m62.get('/documents_api.php?action=requirements&studentId=62')), 200,
+      'The verified member loads the project checklist after Form 33 acceptance');
+    check(eligible.body.uploadTypes.includes('Form 33-0B - Final Report Form'),
+      'RPMS Form 33 acceptance makes Final Report an eligible stage-specific upload');
+    const fr1 = (await expect(upload(m62, 'Form 33-0B - Final Report Form', 'final-report-v1'), 200,
+      'Non-PI member 62 uploads the eligible Form 33-0B Final Report')).body.document.id;
+    check(doc(fr1).student_id === 60 && doc(fr1).uploaded_by === 'Synthetic Student 62',
+      'The Final Report joins the shared project evidence record and identifies its non-PI uploader');
+    before = completion();
+    await expect(submit(m62, fr1, 1), 409, 'F01.10 The newly uploaded Final Report cannot be submitted without Adviser approval');
+    unchanged(before, fr1, 'F01.10 An unapproved Final Report cannot complete the project');
+    await expect(post(s.adviser, 'review', { id: fr1, status: 'Resubmission Requested',
+      remarks: 'Synthetic Final Report version 1 requires a revised document.' }, 'documents_api.php'), 200,
+      'The Adviser explicitly requests a new version of the eligible Final Report');
 
     // 10c. Missing prerequisite: an open correction case blocks forward progress.
     fs.writeFileSync(flag, 'synthetic activation for closure tests');
@@ -113,12 +131,15 @@ module.exports = async h => {
     fs.rmSync(flag, { force: true });
     check(state().workflow.stage_key === 'approval_data_gathering', 'Resolution returns the project to Approval of Data Gathering');
 
-    // 10d. A newer, unapproved Final Report version is not eligible; the superseded approved one cannot be used either.
-    const fr2 = (await expect(upload(m62, 'Form 33-0B - Final Report Form', 'final-report-v2'), 200, 'Member 62 uploads Final Report version 2')).body.document.id;
-    check(doc(fr2).supersedes_id === fr1 && doc(fr2).version_no === 2, 'Final Report version 2 extends the single version chain');
+    // 10d. The revised Final Report must use explicit versioning after an Adviser return.
+    const duplicateReport = await upload(m62, 'Form 33-0B - Final Report Form', 'unrequested-final-report-replacement');
+    check(duplicateReport.status === 409, 'A normal upload cannot silently replace an existing current Final Report');
+    const fr2 = (await expect(upload(m62, 'Form 33-0B - Final Report Form', 'final-report-v2', fr1), 200,
+      'Member 62 uploads Final Report version 2 through the explicit revision path')).body.document.id;
+    check(doc(fr2).supersedes_id === fr1 && doc(fr2).version_no === 2, 'Final Report version 2 extends the single, attributed version chain');
     before = completion();
     await expect(submit(m62, fr2, 2), 409, 'F01.10 An unapproved current Final Report version cannot be formally submitted');
-    await expect(submit(m62, fr1, 1), 409, 'F01.10 A superseded Adviser-approved version cannot be formally submitted');
+    await expect(submit(m62, fr1, 1), 409, 'F01.10 A superseded returned version cannot be formally submitted');
     unchanged(before, fr2, 'F01.10 Refused submissions of v1/v2 changed nothing');
     fx({ action: 'legacy-approve', documentId: fr2 });
 
