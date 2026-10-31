@@ -1,0 +1,107 @@
+name: PRISM V14 isolated regression
+
+on:
+  push:
+    branches:
+      - feature/prism-v14-workflow-simplification-20261031
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  synthetic-regression:
+    runs-on: windows-2022
+    timeout-minutes: 90
+    env:
+      PRISM_NO_PRODUCTION: "1"
+    steps:
+      - name: Checkout development branch
+        uses: actions/checkout@v4
+
+      - name: Configure Node 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Configure PHP 8.2 and required extensions
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.2'
+          extensions: mbstring, pdo_mysql, dom, fileinfo, zip, iconv
+          tools: composer:v2
+          coverage: none
+
+      - name: Install locked PHP dependencies
+        shell: pwsh
+        run: composer install --no-ansi --no-interaction --no-progress --prefer-dist --no-dev
+
+      - name: Install Playwright Core and locate Chrome
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $browserTools = Join-Path $env:RUNNER_TEMP 'prism-browser'
+          New-Item -Path $browserTools -ItemType Directory -Force | Out-Null
+          npm install --prefix $browserTools --no-save playwright-core@1.58.2
+          if ($LASTEXITCODE -ne 0) { throw 'Playwright installation failed.' }
+          $chrome = 'C:/Program Files/Google/Chrome/Application/chrome.exe'
+          if (-not (Test-Path -LiteralPath $chrome)) {
+            $chrome = 'C:/Program Files (x86)/Google/Chrome/Application/chrome.exe'
+          }
+          if (-not (Test-Path -LiteralPath $chrome)) { throw 'Chrome was not found on the isolated runner.' }
+          $phpPath = (Get-Command php).Source
+          "PRISM_TEST_PHP=$($phpPath.Replace('\','/'))" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+          "PRISM_TEST_PLAYWRIGHT=$((Join-Path $browserTools 'node_modules/playwright-core').Replace('\','/'))" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+          "PRISM_TEST_CHROME=$($chrome.Replace('\','/'))" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+          php -v
+          node --version
+
+      - name: Download and verify MariaDB 12.3.2 portable binaries
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $base = 'https://mirror.mariadb.org/mariadb-12.3.2/winx64-packages'
+          $zip = Join-Path $env:RUNNER_TEMP 'mariadb-12.3.2-winx64.zip'
+          $sums = Join-Path $env:RUNNER_TEMP 'mariadb-sha256sums.txt'
+          Invoke-WebRequest -Uri "$base/mariadb-12.3.2-winx64.zip" -OutFile $zip
+          Invoke-WebRequest -Uri "$base/sha256sums.txt" -OutFile $sums
+          $expected = (Get-Content $sums | Where-Object { $_ -match 'mariadb-12\.3\.2-winx64\.zip' } | Select-Object -First 1) -split '\s+'
+          if (-not $expected[0]) { throw 'Missing MariaDB expected checksum.' }
+          $digest = (Get-FileHash -LiteralPath $zip -Algorithm SHA256).Hash
+          if ($digest -ine $expected[0]) { throw "MariaDB checksum mismatch: $digest" }
+          $destination = Join-Path $env:RUNNER_TEMP 'mariadb'
+          Expand-Archive -Path $zip -DestinationPath $destination
+          $bin = Join-Path $destination 'mariadb-12.3.2-winx64/bin'
+          if (-not (Test-Path (Join-Path $bin 'mariadbd.exe')) -or
+              -not (Test-Path (Join-Path $bin 'mariadb-install-db.exe'))) {
+            throw 'MariaDB portable binaries missing.'
+          }
+          "PRISM_TEST_MARIADB_BIN=$($bin.Replace('\','/'))" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+          Write-Host 'Verified MariaDB 12.3.2 SHA256 and portable binaries.'
+
+      - name: Read-only source and JS/PHP smoke checks
+        shell: pwsh
+        run: |
+          node maintenance/onboarding-tests/v14-simplification-smoke.cjs
+          if ($LASTEXITCODE -ne 0) { throw 'Source smoke checks failed.' }
+
+      - name: Execute complete isolated regression matrix
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $review = 'PRISM_V14_CI_REGRESSION_' + $env:GITHUB_RUN_ID
+          & .\maintenance\onboarding-tests\run-regression.ps1 -MariaDbBin $env:PRISM_TEST_MARIADB_BIN -ReviewName $review -DbPort 13972 -AppPort 14972
+
+      - name: Publish regression evidence and diagnostics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: prism-v14-isolated-regression
+          if-no-files-found: warn
+          retention-days: 14
+          path: |
+            PRISM_V14_CI_REGRESSION_*/regression/**
+            PRISM_V14_CI_REGRESSION_*/test-failure.json
+            PRISM_V14_CI_REGRESSION_*/test-results*.json
+            PRISM_V14_CI_REGRESSION_*/sandbox/php-server.log
+            !PRISM_V14_CI_REGRESSION_*/sandbox/mysql/**
