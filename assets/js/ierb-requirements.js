@@ -229,7 +229,7 @@
       });
     }
     if (canOpen) add('Open official resubmission', async button => {
-      const answer = await ask(host, { title: 'Open an RPMS correction case', confirmText: 'Open case', reasonLabel: 'RPMS reason', reasonRequired: true, minReason: 5, maxReason: 1000,
+      const answer = await ask(host, { title: `Open RPMS resubmission ${used + 1} of ${maximum}`, confirmText: 'Open official resubmission', reasonLabel: 'RPMS reason', reasonRequired: true, minReason: 5, maxReason: 1000,
         message: pending ? 'A pending Adviser request will be recorded as superseded by this RPMS case.' : 'This moves the whole project to Resubmission / Amendment.',
         extraHtml: `<fieldset><legend>Affected current documents <span class="required-marker" aria-hidden="true">*</span></legend>${docChoices(data)}</fieldset>${amendmentChoice}`,
         collect: dialog => ({ documentIds: pickDocs(dialog), amendment: pickAmendment(dialog) }),
