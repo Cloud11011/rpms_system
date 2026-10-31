@@ -60,7 +60,7 @@ if (in_array($action, ['group_advance_list','group_advance_preview','group_advan
     }
 }
 
-// V14 operations: RPMS enrollment, reconciliation, PI designation and correction cases; Adviser correction requests.
+// V14 operations: RPMS-only enrollment, reconciliation, PI designation and official resubmission cases.
 // Every mutation is POST, same-origin, session-generation bound, request-key idempotent and revision checked,
 // and is refused unless the operator has activated V14 operations (ierb_v14_gate).
 const IERB_V14_OPERATIONS = ['v14_correction_queue','v14_correction_request','v14_correction_decide','v14_correction_open','v14_correction_resolve',
@@ -72,7 +72,9 @@ if (in_array($action, IERB_V14_OPERATIONS, true)) {
         if ($action === 'v14_correction_queue') { api_require_login('admin'); json_out(ierb_v14_correction_queue($pdo,$user)); }
         require_post_same_origin();
         require_session_generation(true);
-        api_require_login($action === 'v14_correction_request' ? 'adviser' : 'admin');
+        api_require_login('admin');
+        // The legacy Adviser request route is deliberately retired; only RPMS may initiate resubmissions.
+        if ($action === 'v14_correction_request') json_out(['ok'=>false,'message'=>'Adviser correction requests are retired. RPMS Administrators initiate official resubmissions directly.'],410);
         $p = lifecycle_decode_body(file_get_contents('php://input'));
         $int = static function(string $k) use ($p): int {
             if (!isset($p[$k]) || !is_int($p[$k]) || $p[$k] < 0) throw new AccountLifecycleValidation('Provide a valid '.$k.'.');
@@ -97,7 +99,6 @@ if (in_array($action, IERB_V14_OPERATIONS, true)) {
             if (array_key_exists($field,$p)) throw new AccountLifecycleValidation('Authoritative workflow fields cannot be supplied.');
         }
         json_out(match ($action) {
-            'v14_correction_request' => ierb_v14_request_correction($pdo,$user,$int('studentId'),$int('revision'),$str('reason'),$ids('documentIds'),(bool)($p['suggestAmendment'] ?? false),$str('requestKey')),
             'v14_correction_decide' => ierb_v14_decide_correction_request($pdo,$user,$int('studentId'),$int('revision'),$int('requestEventId'),$str('decision'),$str('reason'),
                 ($p['decision'] ?? '') === 'approve' ? $bool('requiresAmendment') : false,$ids('documentIds',true),$str('requestKey')),
             'v14_correction_open' => ierb_v14_open_correction($pdo,$user,$int('studentId'),$int('revision'),$str('reason'),$ids('documentIds'),$bool('requiresAmendment'),$str('requestKey')),

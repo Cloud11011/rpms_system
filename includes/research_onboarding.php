@@ -212,7 +212,11 @@ function research_onboarding_resume(PDO $pdo, array $user): void
         $sql="SELECT r.student_id FROM research_onboarding_assignments r JOIN students s ON s.id=r.student_id WHERE r.state='pending' AND s.profile_completed_at IS NOT NULL AND s.archived_at IS NULL";
         $params=[];
         if ($user['role']==='adviser') { $sql.=' AND s.adviser_id IN (SELECT id FROM advisers WHERE email=?)'; $params[]=$user['email']; }
-        $q=$pdo->prepare($sql.' ORDER BY r.updated_at LIMIT 20'); $q->execute($params); $ids=$q->fetchAll(PDO::FETCH_COLUMN);
+        // The old LIMIT 20 repeatedly retried the same ineligible accounts and
+        // starved eligible assignments later in the queue. Scan all pending IDs
+        // once per staff-triggered resume; each activation keeps its existing
+        // independent transaction, locks, account checks and fail-closed rules.
+        $q=$pdo->prepare($sql.' ORDER BY r.updated_at,r.student_id'); $q->execute($params); $ids=$q->fetchAll(PDO::FETCH_COLUMN);
     } else return;
     foreach ($ids as $sid) {
         try { research_onboarding_activate($pdo,(int)$sid); }

@@ -136,81 +136,95 @@ module.exports = async h => {
     check(sql("SELECT COUNT(*) n FROM activity_logs WHERE entity_id=? AND action IN ('document_submitted_to_rpms','document_resubmitted_to_rpms')", [uiDoc.id])[0].n === 1, 'Exactly one formal-submission audit exists for the UI submission');
     await expect(post(m41, 'submit_to_rpms', { id: uiDoc.id, versionNo: 1 }, 'documents_api.php'), 409, 'Another member cannot submit the same version again after the UI submission');
 
-    // --- 7R-C: correction requests. Not activated by default.
+    // --- 7R-C: RPMS-only official resubmissions, distinct from Adviser document revisions.
     fs.rmSync(flag, { force: true });
-    const req = (ctx, extra = {}) => post(ctx, 'v14_correction_request', { studentId: 40, revision: Number(wf().revision), reason: 'Synthetic Adviser requests corrections to the protocol.', documentIds: [v2.id], suggestAmendment: true, requestKey: key(), ...extra });
-    await expect(req(s.adviser), 409, 'Correction operations are refused until V14 operations are explicitly activated');
+    const requestBody = { studentId: 40, revision: Number(wf().revision), reason: 'Synthetic formal case request.', documentIds: [v2.id], suggestAmendment: true, requestKey: key() };
+    await expect(post(s.adviser, 'v14_correction_request', requestBody), 403,
+      'Retired Adviser correction-request API denies the Adviser even before activation');
     fs.writeFileSync(flag, 'synthetic activation for Batch 7R tests');
-    // Real browser: the Adviser sees the request action in the shared requirements panel; the dialog is keyboard dismissible.
+    await expect(post(s.adviser, 'v14_correction_request', requestBody), 403,
+      'The assigned Adviser cannot request an official IERB resubmission');
+    await expect(post(m41, 'v14_correction_request', requestBody), 403,
+      'A Student cannot request an official IERB resubmission');
+    await expect(post(s.admin, 'v14_correction_request', requestBody), 410,
+      'Retired Adviser request route is unavailable even to RPMS');
+    const open = (ctx, extra = {}) => post(ctx, 'v14_correction_open', { studentId: 40, revision: Number(wf().revision),
+      reason: 'Synthetic RPMS initiates the official IERB resubmission.', documentIds: [v2.id], requiresAmendment: true,
+      requestKey: key(), ...extra });
+    await expect(open(s.adviser), 403, 'Assigned Adviser cannot directly open a formal resubmission case');
+    await expect(open(m41), 403, 'Student cannot directly open a formal resubmission case');
+    const queue = await expect(response(await s.admin.get('/ierb_api.php?action=v14_correction_queue')), 200,
+      'RPMS can read the historical correction-request queue');
+    check(!queue.body.requests.some(x => x.studentId === 40),
+      'No new Adviser correction request was recorded by any retired route');
+    await expect(response(await s.adviser.get('/ierb_api.php?action=v14_correction_queue')), 403,
+      'Advisers cannot read the RPMS request decision queue');
+    // UI on both viewport sizes: Adviser can still review document revisions, but not initiate formal resubmissions.
     const browser = await h.playwright.chromium.launch({ executablePath: process.env.PRISM_TEST_CHROME || 'C:/Program Files/Google/Chrome/Application/chrome.exe', headless: true });
     try {
       for (const width of [390, 1440]) {
-        const ctx = await browser.newContext({ viewport: { width, height: 900 }, storageState: await s.adviser.storageState(), reducedMotion: 'reduce' });
-        // The first-visit onboarding tour opens 700 ms after load and takes focus; mark it seen, as the Batch 4 browser checks do.
-        const adviserUserId = sql("SELECT id FROM users WHERE email='adviser2@example.test'")[0].id;
-        await ctx.addInitScript(tour => localStorage.setItem(tour, 'seen'), 'prismTour.adviser.' + crypto.createHash('sha256').update('adviser|' + adviserUserId).digest('hex') + '.v1');
-        const page = await ctx.newPage(); const errors = []; page.on('pageerror', e => errors.push(e.message));
-        await page.goto(base + '/documents.php'); await page.evaluate(() => window.PrismRequirements.open(40));
-        const action = page.getByRole('button', { name: 'Request correction case' }); await action.waitFor({ timeout: 10000 });
-        const piText = await page.locator('.v14-checklist-dialog').innerText();
-        await action.press('Enter'); // Focus and keypress together, so late page initialization cannot take focus in between.
-        const dialog = page.locator('.prism-overlay [role="dialog"], .prism-modal[role="dialog"], dialog.prism-modal, [aria-modal="true"]').last();
-        try { await dialog.waitFor({ timeout: 5000 }); } catch (error) {
-          await page.screenshot({ path: path.join(evidence, `correction-dialog-failure-${width}.png`) });
-          fs.writeFileSync(path.join(evidence, `correction-dialog-failure-${width}.json`), JSON.stringify(await page.evaluate(() => ({
-            active: document.activeElement?.outerHTML.slice(0, 300),
-            modals: [...document.querySelectorAll('.prism-overlay, [aria-modal="true"], dialog')].map(n => ({ tag: n.tagName, cls: n.className, open: n.open, parent: n.parentElement?.tagName, rect: n.getBoundingClientRect().toJSON(), style: (s => ({ display: s.display, visibility: s.visibility, opacity: s.opacity }))(getComputedStyle(n)) })),
-          })), null, 2));
-          throw error;
+        for (const view of [{ role: 'adviser', session: s.adviser }, { role: 'admin', session: s.admin }]) {
+          const ctx = await browser.newContext({ viewport: { width, height: 900 }, storageState: await view.session.storageState(), reducedMotion: 'reduce' });
+          const page = await ctx.newPage(); const errors = []; page.on('pageerror', e => errors.push(e.message));
+          await page.goto(base + '/documents.php');
+          await page.evaluate(() => window.PrismRequirements.open(40));
+          const dialog = page.locator('.v14-checklist-dialog'); await dialog.waitFor({ timeout: 10000 });
+          await dialog.getByText('Official RPMS resubmissions: 0 of 3 used', { exact: false }).waitFor({ timeout: 10000 });
+          const forbidden = await page.getByRole('button', { name: 'Request correction case' }).count();
+          const revisionBadge = await page.evaluate(() => window.PrismUI.badge('Resubmission Requested'));
+          check(revisionBadge.includes('Revision Requested') && !revisionBadge.includes('>Resubmission Requested<'),
+            width + 'px ' + view.role + ': legacy review enum renders as Revision Requested, not official IERB resubmission');
+          const action = dialog.getByRole('button', { name: 'Open official resubmission' });
+          const accessible = await action.count();
+          const piText = await dialog.innerText();
+          if (view.role === 'admin') {
+            await action.press('Enter');
+            const confirm = page.locator('[aria-modal="true"]:visible').last();
+            await confirm.waitFor({ timeout: 5000 });
+            const fits = await confirm.evaluate(el => el.getBoundingClientRect().width <= innerWidth + 1);
+            const hasFields = await confirm.locator('input[name="affected"]').count() > 0 && await confirm.locator('#prismReason').count() === 1;
+            await page.keyboard.press('Escape'); await page.waitForTimeout(200);
+            check(fits && hasFields && !errors.length && forbidden === 0 && accessible === 1 && piText.includes('Principal Investigator'),
+              width + 'px: only RPMS sees a keyboard-accessible official resubmission dialog with affected documents, reason and PI');
+          } else {
+            check(forbidden === 0 && accessible === 0 && !errors.length && piText.includes('Principal Investigator'),
+              width + 'px: Adviser sees shared requirements but no formal resubmission initiation action');
+          }
+          await page.screenshot({ path: path.join(evidence, 'official-resubmission-' + view.role + '-' + width + '.png') });
+          await ctx.close();
         }
-        const fits = await dialog.evaluate(el => el.getBoundingClientRect().width <= window.innerWidth);
-        const hasFields = await dialog.locator('input[name="affected"]').count() > 0 && await dialog.locator('#prismReason').count() === 1;
-        await page.keyboard.press('Escape'); await page.waitForTimeout(300);
-        const closed = !(await page.locator('[aria-modal="true"]:visible').filter({ hasText: 'Request a correction case' }).count());
-        await page.screenshot({ path: path.join(evidence, `correction-panel-${width}.png`) });
-        check(piText.includes('Principal Investigator: Synthetic Student 41') && hasFields && fits && closed && !errors.length, `${width}px: Adviser request dialog shows PI, affected versions and reason, fits, closes with Escape, no page errors ${JSON.stringify({ fits, hasFields, closed, errors })}`);
-        await ctx.close();
       }
     } finally { await browser.close(); }
-    await expect(req(adviser3), 403, 'An Adviser not assigned to the project cannot request a correction case');
-    await expect(req(m41), 403, 'Students cannot request correction cases');
-    const stageBefore = wf().stage_key;
-    const requested = await expect(req(s.adviser), 200, 'The assigned Adviser requests a correction case');
-    check(wf().stage_key === stageBefore && stageBefore === 'initial_submission' && !fx({ action: 'state' }).case, 'A pending request does not change the official IERB stage or open a case');
-    await expect(req(s.adviser), 409, 'A second request while one is pending is refused');
-    const studentView = (await response(await m41.get('/documents_api.php?action=requirements&studentId=41'))).body.pendingCorrectionRequest;
-    check(studentView?.status === 'Pending RPMS Review' && !('reason' in studentView), 'Members see the pending status without staff reasons');
-    const queue = await expect(response(await s.admin.get('/ierb_api.php?action=v14_correction_queue')), 200, 'RPMS sees the pending request in its review queue');
-    const item = queue.body.requests.find(r => r.studentId === 40);
-    check(item && item.requestEventId === requested.body.requestEventId && item.proposedDocuments[0].id === v2.id && item.suggestedAmendment === true, 'The queue shows the request, its proposed versions and the Amendment suggestion');
-    await expect(response(await s.adviser.get('/ierb_api.php?action=v14_correction_queue')), 403, 'Advisers cannot read the RPMS decision queue');
-    const decide = (ctx, decision, extra = {}) => post(ctx, 'v14_correction_decide', { studentId: 40, revision: Number(wf().revision), requestEventId: item.requestEventId, decision, reason: 'Synthetic RPMS decision with a recorded reason.', requestKey: key(), ...extra });
-    await expect(decide(s.adviser, 'approve', { requiresAmendment: true }), 403, 'An Adviser cannot approve their own correction request');
-    await expect(decide(s.admin, 'approve', { requiresAmendment: true, revision: Number(wf().revision) - 1 }), 409, 'A stale workflow revision cannot decide the request');
-    await expect(decide(s.admin, 'approve'), 422, 'Approval requires an explicit per-case Amendment Form decision');
-    await expect(decide(s.admin, 'reject'), 200, 'RPMS rejects the request with a recorded reason');
-    check(wf().stage_key === 'initial_submission' && !fx({ action: 'state' }).case, 'Rejection keeps the official stage and opens no case');
-    await expect(decide(s.admin, 'approve', { requiresAmendment: true }), 409, 'A decided request cannot be decided again');
-    const second = await expect(req(s.adviser, { suggestAmendment: false }), 200, 'The Adviser may submit a new request after a rejection');
-    const approved = await expect(post(s.admin, 'v14_correction_decide', { studentId: 40, revision: Number(wf().revision), requestEventId: second.body.requestEventId, decision: 'approve', requiresAmendment: true,
-      reason: 'Synthetic RPMS approved the correction request.', requestKey: key() }), 200, 'RPMS approves the request');
+    await expect(open(s.admin, { revision: Number(wf().revision) - 1 }), 409,
+      'Stale RPMS stage revision cannot open a case');
+    await expect(open(s.admin, { requiresAmendment: undefined }), 422,
+      'RPMS must explicitly choose whether an Amendment Form is required');
+    const prior = fx({ action: 'seed-prior-resubmissions' });
+    check(prior.count === 2, 'Two completed official RPMS resubmission cycles consume exactly two slots');
+    const opened = await expect(open(s.admin), 200, 'RPMS opens the third and final official resubmission');
     const after = fx({ action: 'state' });
-    check(after.workflow.stage_key === 'resubmission_amendment' && Number(after.case.requires_amendment) === 1 && after.case.interrupted_stage === 'initial_submission', 'Approval opens the official case (Stage 2) with the RPMS Amendment decision, overriding the Adviser suggestion');
-    const openEvent = sql("SELECT evidence_json FROM ierb_workflow_events WHERE event_key='open_correction' ORDER BY id DESC LIMIT 1")[0];
-    check(JSON.parse(openEvent.evidence_json).requestEventId === second.body.requestEventId, 'The opened case is linked to the approved request in the immutable ledger');
+    check(after.workflow.stage_key === 'resubmission_amendment' && Number(after.case.requires_amendment) === 1 && after.case.interrupted_stage === 'initial_submission',
+      'Third RPMS resubmission is entered with the required Amendment decision and its interrupted stage retained');
+    const count = sql('SELECT COUNT(*) n FROM ierb_correction_cases WHERE workflow_id=?', [after.workflow.id])[0].n;
+    check(Number(count) === 3, 'Three official cycles exist for the one canonical project; ordinary file revision versions do not add a cycle');
     const members = sql('SELECT stage_key FROM research_project_members WHERE project_id=?', [after.project.id]);
-    check(members.length === 3 && members.every(m => m.stage_key === 'resubmission_amendment'), 'All verified members reflect Stage 2 consistently');
-    check(sql("SELECT COUNT(*) n FROM notifications WHERE recipient_type='student' AND recipient_id IN (40,41,42) AND subject LIKE 'PRISM correction request%'")[0].n >= 6, 'Members receive transparent request and decision notices');
-    await expect(post(s.admin, 'v14_correction_open', { studentId: 40, revision: Number(wf().revision), reason: 'Synthetic duplicate case attempt.', documentIds: [v2.id], requiresAmendment: false, requestKey: key() }), 409, 'RPMS cannot open a second concurrent case');
-    await expect(post(s.admin, 'v14_correction_resolve', { studentId: 40, revision: Number(wf().revision), reason: 'Synthetic premature resolution.', requestKey: key() }), 409, 'A case cannot be resolved before accepted corrected evidence exists');
-    const replayKey = key();
-    const replayBody = { studentId: 40, revision: Number(wf().revision), reason: 'Synthetic resolution attempt.', requestKey: replayKey };
-    await expect(post(s.admin, 'v14_correction_resolve', replayBody), 409, 'Resolution stays validated on retry');
-    check(sql("SELECT COUNT(*) n FROM ierb_workflow_events WHERE event_key='open_correction'")[0].n >= 1 && sql("SELECT COUNT(*) n FROM ierb_correction_cases WHERE resolved_at IS NULL")[0].n === 1, 'Exactly one open correction case exists');
-    // V14 must stay activated for the retired legacy-route and V14 report checks below.
-    // The finally block removes this disposable fixture flag after all assertions.
+    check(members.length === 3 && members.every(m => m.stage_key === 'resubmission_amendment'), 'All verified members reflect formal correction stage consistently');
+    await expect(open(s.admin), 409, 'RPMS cannot open a concurrent correction case');
+    await expect(post(s.admin, 'v14_correction_resolve', { studentId: 40, revision: Number(wf().revision), reason: 'Synthetic premature resolution.', requestKey: key() }), 409,
+      'A case cannot be resolved before corrected document evidence is accepted');
+    const current = (await response(await m41.get('/documents_api.php?action=requirements&studentId=41'))).body;
+    check(current.workflow.officialResubmissionCount === 3 && current.workflow.officialResubmissionLimit === 3,
+      'All verified members can read that the RPMS three-cycle maximum has been reached');
+    check(fx({ action: 'cap-close-open-case' }).closed,
+      'Isolated fixture closes the third case without affecting production data');
+    const rejected = await expect(open(s.admin), 409,
+      'A fourth official resubmission is rejected after the previous three are closed');
+    check(/three official IERB resubmissions/.test(rejected.body.message) &&
+      Number(sql('SELECT COUNT(*) n FROM ierb_correction_cases WHERE workflow_id=?', [after.workflow.id])[0].n) === 3,
+      'The fourth-cycle attempt is refused by the shared server guard without inserting a case');
+    // V14 remains activated for report and retired-route checks below.
     const activeContract = await expect(response(await s.admin.get('/ierb_api.php?action=v14_contract')), 200,
-      'The isolated V14 contract is readable before retired-route assertions');
+      'The isolated V14 contract is readable with official-case limits active');
     check(activeContract.body.operationsActivated === true,
       'Legacy-route checks run with V14 HTTP operations explicitly activated');
 

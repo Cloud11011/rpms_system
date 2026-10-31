@@ -23,13 +23,18 @@
         host.append(pi);
       }
       host.append(scope, refresh);
+      const used = Number(data.workflow.officialResubmissionCount || 0);
+      const limit = Number(data.workflow.officialResubmissionLimit || 3);
+      const cycleInfo = document.createElement('p'); cycleInfo.className = 'v14-resubmission-usage';
+      cycleInfo.textContent = `Official RPMS resubmissions: ${used} of ${limit} used. Ordinary Adviser document revisions do not count.`;
+      host.append(cycleInfo);
       if (portalChecklist) {
         const allowed = new Set(data.uploadTypes || []);
         const stageKey = data.workflow.stage;
         const visible = data.requirements.filter(row => stageKey === 'initial_submission'
           ? row.stage === 'initial_submission'
           : stageKey === 'resubmission_amendment'
-            ? allowed.has(row.label) || row.key === 'amendment' && data.workflow.correctionCase?.requiresAmendment
+            ? allowed.has(row.label) || allowed.has(row.documentType) || row.key === 'amendment' && data.workflow.correctionCase?.requiresAmendment
             : stageKey === 'approval_data_gathering'
               ? ['form33', 'final_report'].includes(row.key)
               : true);
@@ -169,7 +174,7 @@
       }); host.append(list); return data;
     } catch (error) { host.textContent = 'Requirements unavailable: ' + error.message; }
   }
-  // Correction requests (Adviser) and decisions (RPMS). The server re-checks every role, assignment and revision.
+  // Official resubmissions are RPMS-initiated. Adviser document revisions stay in the normal document review UI.
   const docChoices = data => data.requirements.filter(row => row.documentId && row.key !== 'final_report')
     .map(row => `<label class="v14-doc-choice"><input type="checkbox" name="affected" value="${PrismUI.esc(row.documentId)}"> ${PrismUI.esc(row.label)} (v${row.versionNo})</label>`).join('');
   const amendmentChoice = '<fieldset class="v14-amendment-choice"><legend>Amendment Form for this case <span class="required-marker" aria-hidden="true">*</span></legend>'
@@ -193,26 +198,25 @@
     const pending = data.pendingCorrectionRequest, role = data.viewerRole, base = { studentId: Number(data.submissionScope.studentId), revision: data.workflow.revision };
     if (pending) {
       const note = document.createElement('p'); note.setAttribute('role', 'status');
-      note.textContent = `Correction request pending RPMS review since ${pending.requestedAt}. The official IERB stage is unchanged until RPMS decides.`
+      note.textContent = `Historical Adviser correction request pending RPMS review since ${pending.requestedAt}. Only RPMS may initiate a new official resubmission. The official IERB stage is unchanged until RPMS decides.`
         + (pending.reason ? ` Requested by ${pending.requestedBy}: ${pending.reason}` : '');
       host.append(note);
     }
-    if (!data.operationsActivated || !['adviser', 'admin'].includes(role)) return;
-    const canOpen = !data.workflow.correctionCase && ['initial_submission', 'approval_data_gathering'].includes(data.workflow.stage);
+    if (!data.operationsActivated || role !== 'admin') return;
+    const used = Number(data.workflow.officialResubmissionCount || 0);
+    const maximum = Number(data.workflow.officialResubmissionLimit || 3);
+    const canOpen = used < maximum && !data.workflow.correctionCase && ['initial_submission', 'approval_data_gathering'].includes(data.workflow.stage);
+    if (used >= maximum && !data.workflow.correctionCase) {
+      const limitNote = document.createElement('p'); limitNote.setAttribute('role', 'status');
+      limitNote.textContent = 'Maximum of three official resubmissions reached. RPMS cannot open another case; ordinary document revision remains separate.';
+      host.append(limitNote);
+    }
     const actions = document.createElement('div'); actions.className = 'v14-correction-actions'; actions.setAttribute('role', 'group'); actions.setAttribute('aria-label', 'Correction case actions');
     const add = (label, handler, tone = 'secondary') => { const b = document.createElement('button'); b.type = 'button'; b.className = 'prism-btn is-' + tone; b.textContent = label; b.onclick = () => handler(b); actions.append(b); };
     const pickDocs = dialog => [...dialog.querySelectorAll('input[name="affected"]:checked')].map(input => input.value);
     const pickAmendment = dialog => dialog.querySelector('input[name="amendment"]:checked')?.value;
-    if (role === 'adviser' && canOpen && !pending) add('Request correction case', async button => {
-      const answer = await ask(host, { title: 'Request a correction case', confirmText: 'Send request to RPMS', reasonLabel: 'Reason for the correction request', reasonRequired: true, minReason: 5, maxReason: 1000,
-        message: 'RPMS reviews this request. The official IERB stage does not change unless RPMS approves it.',
-        extraHtml: `<fieldset><legend>Affected current documents <span class="required-marker" aria-hidden="true">*</span></legend>${docChoices(data) || '<p>No current documents are available.</p>'}</fieldset><label><input type="checkbox" id="suggestAmendment"> Suggest that an Amendment Form is required</label>`,
-        collect: dialog => ({ documentIds: pickDocs(dialog), suggestAmendment: dialog.querySelector('#suggestAmendment').checked }),
-        validate: values => values.documentIds.length ? null : 'Select at least one affected current document.' });
-      if (answer) await operate(button, 'v14_correction_request', { ...base, reason: answer.reason, ...answer.values }, studentId, host);
-    });
     if (role === 'admin' && pending) {
-      add('Approve request', async button => {
+      if (used < maximum) add('Approve request', async button => {
         const answer = await ask(host, { title: 'Approve correction request', confirmText: 'Approve and open case', reasonLabel: 'RPMS decision reason', reasonRequired: true, minReason: 5, maxReason: 1000,
           message: 'Approval opens the official Resubmission / Amendment case for the whole project.', extraHtml: amendmentChoice,
           collect: dialog => ({ amendment: pickAmendment(dialog) }), validate: values => values.amendment ? null : 'Decide whether an Amendment Form is required.' });
@@ -224,8 +228,8 @@
         if (answer) await operate(button, 'v14_correction_decide', { ...base, requestEventId: pending.requestEventId, decision: 'reject', reason: answer.reason }, studentId, host);
       });
     }
-    if (role === 'admin' && canOpen) add('Open correction case', async button => {
-      const answer = await ask(host, { title: 'Open an RPMS correction case', confirmText: 'Open case', reasonLabel: 'RPMS reason', reasonRequired: true, minReason: 5, maxReason: 1000,
+    if (canOpen) add('Open official resubmission', async button => {
+      const answer = await ask(host, { title: `Open RPMS resubmission ${used + 1} of ${maximum}`, confirmText: 'Open official resubmission', reasonLabel: 'RPMS reason', reasonRequired: true, minReason: 5, maxReason: 1000,
         message: pending ? 'A pending Adviser request will be recorded as superseded by this RPMS case.' : 'This moves the whole project to Resubmission / Amendment.',
         extraHtml: `<fieldset><legend>Affected current documents <span class="required-marker" aria-hidden="true">*</span></legend>${docChoices(data)}</fieldset>${amendmentChoice}`,
         collect: dialog => ({ documentIds: pickDocs(dialog), amendment: pickAmendment(dialog) }),
