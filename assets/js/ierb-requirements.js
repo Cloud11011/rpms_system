@@ -198,7 +198,7 @@
     const pending = data.pendingCorrectionRequest, role = data.viewerRole, base = { studentId: Number(data.submissionScope.studentId), revision: data.workflow.revision };
     if (pending) {
       const note = document.createElement('p'); note.setAttribute('role', 'status');
-      note.textContent = `Correction request pending RPMS review since ${pending.requestedAt}. The official IERB stage is unchanged until RPMS decides.`
+      note.textContent = `Historical Adviser correction request pending RPMS review since ${pending.requestedAt}. Only RPMS may initiate a new official resubmission. The official IERB stage is unchanged until RPMS decides.`
         + (pending.reason ? ` Requested by ${pending.requestedBy}: ${pending.reason}` : '');
       host.append(note);
     }
