@@ -70,7 +70,14 @@ module.exports=async h=>{
         await button.click();await page.getByRole('button',{name:'I checked My Documents; this file still needs uploading'}).waitFor();
         check(await types.count()===1&&await button.isDisabled(),'Unknown network outcome retains the queue and blocks accidental resubmission');
         await page.getByRole('button',{name:'I checked My Documents; this file still needs uploading'}).click();
-        check(await button.isEnabled(),'Explicit reconciliation restores retry readiness');
+        // The failed request also triggers a fresh authorized Student record refresh.
+        // File retry becomes eligible after that async policy refresh finishes,
+        // rather than synchronously inside the reconciliation click handler.
+        await page.locator('#submissionForm[data-upload-catalog-ready="true"]').waitFor();
+        await page.waitForFunction(() => !document.querySelector('#submissionForm [type=submit]').disabled,
+          null, {timeout:15000});
+        check(await button.isEnabled() && (await types.first().inputValue())==='Other Supporting Document',
+          'Explicit reconciliation restores retry readiness after authorized record refresh');
         await page.unroute('**/documents_api.php?action=upload');
         const success=page.waitForResponse(r=>r.url().includes('documents_api.php?action=upload'));await button.click();
         check((await (await success).json()).outcome==='complete_success','An explicitly reconciled remaining file can be successfully submitted');
