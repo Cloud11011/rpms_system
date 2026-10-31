@@ -72,40 +72,14 @@ function ierb_v14_event_id(PDO $pdo, int $workflowId, string $key): int
     return (int)$q->fetchColumn();
 }
 
-/** Assigned Adviser only. Records a pending request; the official IERB stage does not change. */
+/** Retired entry point retained only to fail closed for older internal callers.
+ * Adviser review/revision of individual documents remains in document_workflow.php.
+ * Only an RPMS Administrator may initiate an official IERB resubmission.
+ */
 function ierb_v14_request_correction(PDO $pdo, array $actor, int $studentId, int $expectedRevision, string $reason,
     array $documentIds, bool $suggestAmendment, string $key): array
 {
-    if (($actor['role'] ?? '') !== 'adviser') throw new AccountLifecycleForbidden('Only the assigned Adviser may request a correction case.');
-    ierb_v14_gate($pdo); $reason = ierb_v14_reason($reason); ierb_v14_request_key($key);
-    $documentIds = ierb_v14_document_ids($documentIds);
-    $digest = hash('sha256', json_encode([$actor['id'], 'request_correction', $studentId, $expectedRevision, $reason, $documentIds, $suggestAmendment], JSON_THROW_ON_ERROR));
-    if ($pdo->inTransaction()) throw new LogicException('Correction requests own their transaction.');
-    ierb_v14_begin($pdo);
-    try {
-        [, $live, $workflow] = ierb_v14_lock($pdo, $actor, $studentId, false);
-        if (!$workflow) throw new AccountLifecycleConflict('Explicit V14 enrollment is required.');
-        if ($result = ierb_v14_replay($pdo, $workflow, $key, $digest)) { $pdo->commit(); return $result; }
-        $project = research_project_for_student($pdo, $studentId, true);
-        if ($project && (int)$project['submission_holder_id'] !== $studentId) throw new AccountLifecycleConflict('Request corrections on the project evidence record.');
-        if ((int)$workflow['revision'] !== $expectedRevision) throw new AccountLifecycleConflict('The workflow changed. Refresh before requesting a correction.');
-        try { IerbStage::transition($workflow['stage_key'], 'open_correction'); }
-        catch (InvalidArgumentException $e) { throw new AccountLifecycleConflict('A correction case cannot be requested at the current official stage.'); }
-        if (ierb_v14_case($pdo, (int)$workflow['id'])) throw new AccountLifecycleConflict('A correction case is already open for this project.');
-        if (ierb_v14_pending_request($pdo, (int)$workflow['id'])) throw new AccountLifecycleConflict('A correction request is already pending RPMS review.');
-        $proposed = ierb_v14_affected_documents($pdo, $studentId, $documentIds, true);
-        // Revision advances so concurrent RPMS decisions refresh; the stage is unchanged.
-        $pdo->prepare('UPDATE ierb_workflows SET revision=revision+1,updated_at=NOW(6) WHERE id=?')->execute([$workflow['id']]);
-        $result = ierb_v14_event($pdo, $live, $workflow, 'correction_requested', $workflow['stage_key'], $workflow['stage_key'], $key, $digest, $reason, null,
-            ['proposedDocuments' => $proposed, 'suggestedAmendment' => $suggestAmendment, 'status' => 'pending_rpms_review']);
-        $result['requestEventId'] = ierb_v14_event_id($pdo, (int)$workflow['id'], $key);
-        $label = $project['public_identifier'] ?? ('Student record '.$studentId);
-        $ids = array_merge($result['projectNotificationIds'] ?? [], ierb_v14_correction_notices($pdo, $live, $studentId, 'PRISM correction request pending RPMS review',
-            'The assigned Adviser requested a correction case for '.$label.'. It is pending RPMS review; the official IERB stage has not changed.', false, true));
-        $pdo->prepare('UPDATE ierb_workflow_events SET result_json=? WHERE id=?')->execute([json_encode($result, JSON_THROW_ON_ERROR), $result['requestEventId']]);
-        $pdo->commit(); document_workflow_deliver($pdo, $ids); return $result;
-    } catch (Throwable $e) { if ($pdo->inTransaction()) $pdo->rollBack(); throw $e; }
-    finally { $pdo->query("SELECT RELEASE_LOCK('prism_migrate')"); }
+    throw new AccountLifecycleForbidden('Advisers cannot initiate official IERB resubmissions. RPMS Administrators must open the case directly.');
 }
 
 /** RPMS only. Approval opens the official case (Stage 2) atomically; rejection keeps the stage. Both are recorded with a reason. */

@@ -479,6 +479,12 @@ function ierb_v14_checklist(PDO $pdo, array $actor, int $studentId, bool $ownTra
         }
         $uploadTypes = ierb_v14_stage_upload_types($pdo, $workflow, $case);
         $snapshot = ierb_v14_snapshot($pdo, $workflow);
+        // One official RPMS-opened case is one resubmission, regardless of how
+        // many ordinary document revisions its evidence contains.
+        $cycleCount = $pdo->prepare('SELECT COUNT(*) FROM ierb_correction_cases WHERE workflow_id=?');
+        $cycleCount->execute([(int)$workflow['id']]);
+        $snapshot['officialResubmissionCount'] = (int)$cycleCount->fetchColumn();
+        $snapshot['officialResubmissionLimit'] = 3;
         // No internal case reason, administrator identity, or affected-document JSON in Student reads.
         $snapshot['correctionCase'] = $case ? ['id'=>(int)$case['id'], 'interruptedStage'=>$case['interrupted_stage'],
             'requiresAmendment'=>(bool)$case['requires_amendment'], 'openedAt'=>$case['opened_at']] : null;

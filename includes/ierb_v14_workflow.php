@@ -186,6 +186,14 @@ function ierb_v14_open_correction_locked(PDO $pdo, array $live, array $workflow,
     try { $to = IerbStage::transition($workflow['stage_key'], 'open_correction'); }
     catch (InvalidArgumentException $e) { throw new AccountLifecycleConflict($e->getMessage()); }
     if (ierb_v14_case($pdo, (int)$workflow['id'])) throw new AccountLifecycleConflict('Resolve the open correction case first.');
+    // Official resubmission means an RPMS-opened correction case, not a document revision.
+    // The shared Student/workflow locks serialize competing RPMS decisions. Locking the
+    // case rows makes this count current even after a previous transaction commits.
+    $caseQuery = $pdo->prepare('SELECT id FROM ierb_correction_cases WHERE workflow_id=? ORDER BY id FOR UPDATE');
+    $caseQuery->execute([(int)$workflow['id']]);
+    if (count($caseQuery->fetchAll(PDO::FETCH_COLUMN)) >= 3) {
+        throw new AccountLifecycleConflict('Maximum of three official IERB resubmissions reached. RPMS cannot open a fourth case. Ordinary document revisions remain available under the current-stage rules.');
+    }
     $affected = ierb_v14_affected_documents($pdo, $studentId, $documentIds, $requiresAmendment);
     $pdo->prepare('INSERT INTO ierb_correction_cases(workflow_id,interrupted_stage,reason,affected_documents_json,requires_amendment,opened_by_user_id)
         VALUES (?,?,?,?,?,?)')->execute([$workflow['id'], $workflow['stage_key'], $reason, json_encode($affected, JSON_THROW_ON_ERROR), (int)$requiresAmendment, $live['id']]);

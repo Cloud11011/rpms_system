@@ -277,7 +277,7 @@ function renderTable(){
         const statusLabel=document.createElement('span');statusLabel.className='prism-record-label';statusLabel.textContent='Document status';card.querySelector('.prism-record-status').prepend(statusLabel);
         const details=card.querySelector('.prism-record-details'),fields=details.querySelector('dl');
         fields.replaceChildren(...[['Uploaded by',d.uploadedBy],['File size',size(d.size)],['Program',d.course],['Protocol code',d.protocolCode],['RPMS submission',d.rpmsSubmittedAt?date(d.rpmsSubmittedAt):'Not submitted to RPMS']].map(([label,value])=>PrismUI.recordField(label,value)));
-        if(d.reviewStatus&&d.reviewStatus!==d.workflowState)fields.append(PrismUI.recordField(d.adminOverride?'RPMS override status':'Adviser review decision',d.reviewStatus));
+        if(d.reviewStatus&&d.reviewStatus!==d.workflowState)fields.append(PrismUI.recordField(d.adminOverride?'RPMS override status':'Adviser review decision',d.reviewStatus==='Resubmission Requested'?'Revision Requested':d.reviewStatus));
         const feedback=PrismUI.recordFeedback(d);
         if(feedback){card.insertBefore(feedback,details);if(feedback.classList.contains('prism-feedback-indicator'))fields.append(PrismUI.recordField('Reviewer remarks',d.reviewRemarks));}
     });
@@ -370,15 +370,16 @@ async function remove(d){
 }
 async function reviewStatus(d,status){
     const corrective=['Denied','Resubmission Requested'].includes(status);
+    const reviewLabel = status === 'Resubmission Requested' ? 'Request Revision' : status;
     const answer=await PrismUI.confirm({
-        title:`${status} document`,icon:status==='Approved'?'fa-check':'fa-clipboard-check',
-        tone:status==='Denied'?'danger':'primary',confirmText:status,
-        message:corrective?'Explain what the student needs to correct before resubmitting.':status==='Approved'&&currentRole==='adviser'?`Approve “${d.originalName}” version ${d.versionNo} and formally submit it to RPMS?`:'You may add reviewer remarks before saving this decision.',
+        title:`${reviewLabel} document`,icon:status==='Approved'?'fa-check':'fa-clipboard-check',
+        tone:status==='Denied'?'danger':'primary',confirmText:reviewLabel,
+        message:corrective?'Explain what the Student should revise before the next document review.':status==='Approved'&&currentRole==='adviser'?`Approve “${d.originalName}” version ${d.versionNo} and formally submit it to RPMS?`:'You may add reviewer remarks before saving this decision.',
         reasonLabel:corrective?'Reviewer remarks (required)':'Reviewer remarks (optional)',
         reasonRequired:corrective,minReason:1
     });
     if(!answer)return;
-    try{const data=await api('review',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({id:d.id,status,remarks:answer.reason})});await load();toast(data.message||`Document marked as ${status}.`)}
+    try{const data=await api('review',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({id:d.id,status,remarks:answer.reason})});await load();toast(data.message||`Document marked as ${reviewLabel}.`)}
     catch(e){toast(e.message,'error')}
 }
 async function comment(d){
@@ -391,14 +392,14 @@ async function comment(d){
 }
 async function review(d){
     const allowed=['Under Review','Received','Verified','Resubmission Requested','Approved','Denied'];
-    const options=allowed.map(s=>`<option${s===d.reviewStatus?' selected':''}>${esc(s)}</option>`).join('');
+    const options=allowed.map(s=>`<option value="${esc(s)}"${s===d.reviewStatus?' selected':''}>${esc(s==='Resubmission Requested'?'Request Revision':s)}</option>`).join('');
     const answer=await PrismUI.confirm({
         title:'Review document',icon:'fa-clipboard-check',confirmText:'Save review',dialogClass:'document-review-dialog',
         message:`Update the review status for “${d.originalName}”. ${currentRole==='adviser'?'Approve also formally submits this current version to RPMS.':''}`,
         extraHtml:`<label for="prismReviewStatus">Review status</label><select id="prismReviewStatus">${options}</select>`,
         reasonLabel:'Reviewer remarks',reasonRequired:false,
         collect:dlg=>({status:dlg.querySelector('#prismReviewStatus').value}),
-        validate:(v,remarks)=>['Denied','Resubmission Requested'].includes(v.status)&&!remarks?'Add remarks explaining what the student needs to correct or resubmit.':null
+        validate:(v,remarks)=>['Denied','Resubmission Requested'].includes(v.status)&&!remarks?'Add remarks explaining what the Student needs to revise.':null
     });
     if(!answer)return;
     try{const data=await api('review',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({id:d.id,status:answer.values.status,remarks:answer.reason})});await load();toast(data.message||'Document review saved.')}

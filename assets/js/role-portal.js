@@ -401,7 +401,9 @@ document.addEventListener('DOMContentLoaded', () => {
         const status = loadErrors.progress ? 'Unavailable' : myRecord?.status || 'No record yet';
         const stageText = loadErrors.progress ? 'Unavailable' : myRecord
             ? `${stageIndex ? `Stage ${stageIndex} of ${STAGES.length} - ` : ''}${labelForStage(myRecord.stage)}` : 'No IERB record yet';
-        const pendingCount = myRecord && myRecord.requirements && myRecord.requirements !== 'None' ? 1 : 0;
+        const pendingCount = Number.isInteger(myRecord?.pendingRequirementsCount) ? myRecord.pendingRequirementsCount
+            : myRecord?.requirements && myRecord.requirements !== 'None' ? 1 : 0;
+        const correctionOpen = Boolean(myRecord?.officialCorrectionOpen);
         const latestDoc = myDocuments[0];
 
         $('welcomeName').textContent = body.dataset.name;
@@ -412,16 +414,16 @@ document.addEventListener('DOMContentLoaded', () => {
         renderDashboardProgress(stageIndex, progress, status);
         const pendingCard = $('dashboardPendingCard');
         const pendingIcon = $('dashboardPendingIcon');
-        pendingCard.classList.toggle('is-clear', !loadErrors.progress && pendingCount === 0);
-        pendingCard.classList.toggle('is-pending', !loadErrors.progress && pendingCount > 0);
+        pendingCard.classList.toggle('is-clear', !loadErrors.progress && pendingCount === 0 && !correctionOpen);
+        pendingCard.classList.toggle('is-pending', !loadErrors.progress && (pendingCount > 0 || correctionOpen));
         pendingCard.classList.toggle('is-unavailable', loadErrors.progress);
-        pendingIcon.className = `dashboard-pending-icon fa-solid ${loadErrors.progress || pendingCount > 0 ? 'fa-triangle-exclamation' : 'fa-circle-check'}`;
+        pendingIcon.className = `dashboard-pending-icon fa-solid ${loadErrors.progress || pendingCount > 0 || correctionOpen ? 'fa-triangle-exclamation' : 'fa-circle-check'}`;
         $('dashboardPendingTitle').textContent = loadErrors.progress ? 'Pending requirements unavailable'
-            : pendingCount === 0 ? 'You have no pending requirements'
+            : pendingCount === 0 ? (correctionOpen ? 'Official resubmission in progress' : 'You have no pending requirements')
                 : `${pendingCount} pending requirement${pendingCount === 1 ? '' : 's'}`;
         $('dashboardPendingDescription').textContent = loadErrors.progress
             ? 'Your progress could not be loaded. Please try again shortly.'
-            : pendingCount === 0 ? "You're all caught up. Tap to review past requirements."
+            : pendingCount === 0 ? (correctionOpen ? 'RPMS is reviewing the official correction case. Open your checklist for updates.' : "You're all caught up. Tap to review past requirements.")
                 : 'Tap to review the requirements and actions still needed.';
         $('dashboardSubmissionValue').innerHTML = loadErrors.documents ? 'Unavailable' : dashboardDocumentTotal
             ? `${dashboardDocumentTotal} <small>${dashboardDocumentTotal === 1 ? 'document' : 'documents'}</small>` : 'Nothing uploaded yet';
@@ -430,9 +432,9 @@ document.addEventListener('DOMContentLoaded', () => {
             ? `${latestDoc.documentType || latestDoc.originalName} · ${latestDoc.stageLabel || latestDoc.stage || 'Research submission'}`
             : 'Submit your first requirement to start your review.';
         const submissionTag = $('dashboardSubmissionStatus');
-        submissionTag.textContent = loadErrors.documents ? 'Status unavailable' : latestDoc?.workflowState || latestDoc?.reviewStatus || '';
+        submissionTag.textContent = loadErrors.documents ? 'Status unavailable' : latestDoc?.workflowState || (latestDoc?.reviewStatus === 'Resubmission Requested' ? 'Revision Requested' : latestDoc?.reviewStatus) || '';
         submissionTag.hidden = !loadErrors.documents && !latestDoc;
-        const reviewState = latestDoc?.workflowState || latestDoc?.reviewStatus || '';
+        const reviewState = latestDoc?.workflowState || (latestDoc?.reviewStatus === 'Resubmission Requested' ? 'Revision Requested' : latestDoc?.reviewStatus) || '';
         $('studentReviewState').textContent = loadErrors.documents ? 'Unavailable' : !latestDoc ? 'No review yet'
             : /pending adviser review|under review/i.test(reviewState) ? 'In review' : reviewState;
         $('studentReviewRemarks').textContent = loadErrors.documents ? 'Reviewer updates could not be loaded.' : latestDoc
@@ -452,13 +454,14 @@ document.addEventListener('DOMContentLoaded', () => {
             ? `Stage ${stageIndex} of ${STAGES.length}` : 'No IERB stage assigned yet';
         const hasPendingRequirement = Boolean(myRecord?.requirements && myRecord.requirements !== 'None');
         const actionStatus = $('progressActionStatus');
-        actionStatus.classList.toggle('is-pending', hasPendingRequirement || myRecord?.status === 'Delayed');
+        actionStatus.classList.toggle('is-pending', hasPendingRequirement || correctionOpen || myRecord?.status === 'Delayed');
         actionStatus.classList.toggle('is-unavailable', loadErrors.progress || !myRecord);
-        actionStatus.querySelector('i').className = loadErrors.progress || !myRecord || hasPendingRequirement || myRecord?.status === 'Delayed'
+        actionStatus.querySelector('i').className = loadErrors.progress || !myRecord || hasPendingRequirement || correctionOpen || myRecord?.status === 'Delayed'
             ? 'fa-solid fa-circle-exclamation' : 'fa-solid fa-circle-check';
         actionStatus.querySelector('span').textContent = loadErrors.progress ? 'Your current requirements could not be loaded.'
             : !myRecord ? 'No current IERB record is available.'
                 : hasPendingRequirement ? `Pending requirement: ${myRecord.requirements}`
+                    : correctionOpen ? 'Official resubmission is in progress. Review the checklist for your next action.'
                     : myRecord.status === 'Delayed' ? 'Your progress is delayed. Please check with your adviser.'
                         : 'Nothing is needed from you right now.';
         $('progressResearchTitle').textContent = myRecord?.research || 'Not recorded';
@@ -663,10 +666,28 @@ document.addEventListener('DOMContentLoaded', () => {
                 const stageAllowed = new Set(checklist.uploadTypes || []);
                 v14UploadTypes = checklist.requirements.filter(row =>
                     stageAllowed.has(row.label) && row.state === 'Missing').map(row => row.label);
-                const context = checklist.workflow.correctionCase?.interruptedStage || myRecord.stage;
-                const pending = checklist.requirements.filter(row => row.key !== 'amendment' && (context === 'initial_submission'
-                    ? row.stage === 'initial_submission' : ['form33','final_report'].includes(row.key)) && row.state !== 'Accepted');
-                myRecord.requirements = myRecord.stage === 'ierb_completed' || !pending.length ? 'None' : pending.map(row => row.label).join(', ');
+                // Count authoritative current-stage requirements, not a boolean summary.
+                // An RPMS-required Amendment Form is part of the official correction case;
+                // it must not disappear while an ordinary document revision is in progress.
+                const correction = checklist.workflow.correctionCase;
+                const current = myRecord.stage;
+                myRecord.officialCorrectionOpen = current === 'resubmission_amendment' && Boolean(correction);
+                const pending = checklist.requirements.filter(row => {
+                    if (current === 'ierb_completed') return false;
+                    if (current === 'resubmission_amendment') {
+                        return (stageAllowed.has(row.label) || stageAllowed.has(row.documentType) || (row.key === 'amendment' && correction?.requiresAmendment))
+                            && row.state !== 'Accepted';
+                    }
+                    if (current === 'initial_submission') return row.stage === 'initial_submission' && row.state !== 'Accepted';
+                    if (current === 'approval_data_gathering') {
+                        return ['form33', 'final_report'].includes(row.key)
+                            && (row.key !== 'final_report' || stageAllowed.has(row.label))
+                            && row.state !== 'Accepted' && !(row.key === 'final_report' && row.state === 'Formally Submitted to RPMS');
+                    }
+                    return false;
+                });
+                myRecord.pendingRequirementsCount = pending.length;
+                myRecord.requirements = pending.length ? pending.map(row => row.label).join(', ') : 'None';
             } else {
                 // Fail closed if a canonical workflow cannot be read or if
                 // an approved assignment has not finished secure enrollment.

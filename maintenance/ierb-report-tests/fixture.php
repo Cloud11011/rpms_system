@@ -44,10 +44,38 @@ try {
             $id=(int)$pdo->query('SELECT id FROM research_projects LIMIT 1')->fetchColumn();
             $pdo->beginTransaction();research_project_fence($pdo);$s=track_project_snapshot($pdo,$GLOBALS['actor'],$id);$pdo->commit();
             if ($s['workflow']['stage_key']!==IerbStage::COMPLETED || !$s['project']['completed_at'] || $s['checklist']['workflow']['progress']!==100)throw new RuntimeException('Completion report mismatch');
-            if (!$s['tracking']['overflowEvidence'])throw new RuntimeException('Historical overflow not retained');
+            if (count($s['tracking']['overflowEvidence']) !== 0 || $s['tracking']['officialResubmissionCount'] > 3)
+                throw new RuntimeException('New RPMS workflow exceeded the three official resubmission limit');
             file_put_contents($evidence.'/completed-project.pdf',make_pdf('CEU RPMS - IERB Track Sheet',track_report_blocks($s)));
             file_put_contents($evidence.'/completed-project.json',json_encode($s,JSON_PRETTY_PRINT|JSON_THROW_ON_ERROR));
             return ['completed'=>true,'progress'=>100,'trackingRows'=>count($s['tracking']['rows']),'officialCycles'=>$s['tracking']['officialResubmissionCount']];
+        })(),
+        // Legacy-only report compatibility: preserve old over-limit evidence in a
+        // synthetic in-memory snapshot. This does NOT open a fourth official case
+        // and does not modify the fixture or production database.
+        'historical-overflow'=>(function(){
+            $cases=[]; $audits=[]; $documents=[];
+            foreach(range(1,4) as $n){
+                $id=2000+$n;
+                $day=sprintf('2024-04-%02d',$n);
+                $open=$day.' 09:00:00';
+                $submitted=$day.' 11:00:00';
+                $docId='synthetic-amendment-'.$n;
+                $cases[]=['id'=>$id,'opened_at'=>$open,'resolved_at'=>$day.' 12:00:00',
+                    'affected_documents_json'=>'[]','requires_amendment'=>1];
+                $audits[]=['id'=>$n*10,'action'=>'ierb_v14_open_correction','details'=>'synthetic correction case '.$id,
+                    'after_value'=>null,'entity_id'=>null,'created_at'=>$open];
+                $audits[]=['id'=>$n*10+1,'action'=>'document_submitted_to_rpms','details'=>'synthetic historical amendment',
+                    'after_value'=>WF_SUBMITTED_RPMS,'entity_id'=>$docId,'created_at'=>$submitted];
+                $documents[$docId]=['id'=>$docId,'version_no'=>$n,'document_type'=>'Amendment Form',
+                    'rpms_submitted_at'=>$submitted,'supersedes_id'=>null];
+            }
+            $report=track_submission_cycles($cases,$audits,$documents);
+            if ($report['officialResubmissionCount']!==4 || count($report['rows'])!==4 ||
+                count($report['overflowEvidence'])!==1 || !$report['overflowEvidence'][0]['submittedAt'])
+                throw new RuntimeException('Synthetic historical overflow was not retained outside the three official report slots');
+            return ['historicalCycles'=>4,'fixedRows'=>4,'overflowCycles'=>count($report['overflowEvidence']),
+                'notes'=>$report['notes']];
         })(),
         'retained-rollback'=>(function()use($pdo){try{migrate_schema_v14($pdo,'rollback');}catch(RuntimeException $e){return ['refused'=>true];}throw new RuntimeException('Retained rollback accepted');})(),
         'migration-tests'=>(function()use($pdo){

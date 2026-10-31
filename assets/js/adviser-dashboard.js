@@ -80,7 +80,7 @@ document.addEventListener('DOMContentLoaded', () => {
             ? 'Add a comment for the student. The current review status will stay the same.'
             : reviewStatus.value==='Approved'
             ? 'Approve this current version and formally submit it to RPMS. No additional Student submission is needed.'
-            : 'Choose a review outcome and add feedback. Request Revision / Resubmission and Deny do not formally submit to RPMS.';
+            : 'Choose a review outcome and add feedback. Request Revision and Deny do not formally submit to RPMS or open an official IERB resubmission.';
     }
     function setSaving(pending) {
         saving = pending;
@@ -104,14 +104,15 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     async function saveQuickReview(doc, reviewState) {
         const corrective=['Denied','Resubmission Requested'].includes(reviewState);
+        const reviewLabel = reviewState === 'Resubmission Requested' ? 'Request Revision' : reviewState;
         const answer=await PrismUI.confirm({
-            title:`${reviewState} document`,icon:reviewState==='Approved'?'fa-check':'fa-clipboard-check',
-            tone:reviewState==='Denied'?'danger':'primary',confirmText:reviewState,
-            message:corrective?'Explain what the student needs to correct before resubmitting.':reviewState==='Approved'?`Approve “${doc.originalName}” version ${doc.versionNo} and formally submit it to RPMS?`:'You may add reviewer remarks before saving this decision.',
+            title:`${reviewLabel} document`,icon:reviewState==='Approved'?'fa-check':'fa-clipboard-check',
+            tone:reviewState==='Denied'?'danger':'primary',confirmText:reviewLabel,
+            message:corrective?'Explain what the Student should revise before the next document review.':reviewState==='Approved'?`Approve “${doc.originalName}” version ${doc.versionNo} and formally submit it to RPMS?`:'You may add reviewer remarks before saving this decision.',
             reasonLabel:corrective?'Reviewer remarks (required)':'Reviewer remarks (optional)',reasonRequired:corrective,minReason:1
         });
         if(!answer)return;
-        try{const data=await PrismUI.postJson('documents_api.php?action=review',{id:doc.id,status:reviewState,remarks:answer.reason||''});await reload();PrismUI.toast(data.message||`Document marked as ${reviewState}.`,'success');}
+        try{const data=await PrismUI.postJson('documents_api.php?action=review',{id:doc.id,status:reviewState,remarks:answer.reason||''});await reload();PrismUI.toast(data.message||`Document marked as ${reviewLabel}.`,'success');}
         catch(error){PrismUI.toast(error.message,'error');}
     }
     async function deleteDocument(doc) {
@@ -184,7 +185,7 @@ document.addEventListener('DOMContentLoaded', () => {
             field(meta, 'Document ID', doc.id);
             field(meta, 'Uploaded by', doc.uploadedBy);
             field(meta, 'RPMS submission', doc.rpmsSubmittedAt ? 'Submitted to RPMS · '+dateText(doc.rpmsSubmittedAt) : 'Not submitted to RPMS');
-            if(doc.reviewStatus&&doc.reviewStatus!==doc.workflowState)field(meta, 'Adviser review decision', doc.reviewStatus);
+            if(doc.reviewStatus&&doc.reviewStatus!==doc.workflowState)field(meta, 'Adviser review decision', doc.reviewStatus==='Resubmission Requested'?'Revision Requested':doc.reviewStatus);
             const details = node('details', null, 'adviser-document-details');
             const summary = node('summary', null);
             summary.append(node('span','Show details and remarks'));

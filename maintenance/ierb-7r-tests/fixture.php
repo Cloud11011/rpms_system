@@ -39,6 +39,30 @@ try {
         // Synthetic legacy approval that was never forwarded (the "Ready for Formal RPMS Submission" state).
         'legacy-approve' => $pdo->prepare("UPDATE documents SET review_status='Approved',reviewed_by='Synthetic Adviser 2',reviewed_at=NOW(),admin_override=? WHERE id=? AND rpms_submitted_at IS NULL")
             ->execute([(int)!empty($in['override']), $in['documentId']]),
+        // Isolated synthetic-only cap setup. These rows model two previously
+        // completed official RPMS resubmissions (not document revisions).
+        'seed-prior-resubmissions' => (function () use ($pdo, $actor) {
+            $w=$pdo->query('SELECT id FROM ierb_workflows WHERE student_id=40')->fetchColumn();
+            if (!$w) throw new RuntimeException('Synthetic V14 workflow missing.');
+            $count=$pdo->prepare('SELECT COUNT(*) FROM ierb_correction_cases WHERE workflow_id=?');
+            $count->execute([$w]);
+            if ((int)$count->fetchColumn() !== 0) throw new RuntimeException('Cap fixture must start with no correction cases.');
+            $q=$pdo->prepare('INSERT INTO ierb_correction_cases(workflow_id,interrupted_stage,reason,affected_documents_json,requires_amendment,opened_by_user_id,resolved_at,resolved_by_user_id,resolution_evidence_json) VALUES (?,?,?,?,?,?,NOW(6),?,?)');
+            foreach ([1,2] as $n) $q->execute([$w,IerbStage::INITIAL,'Synthetic historical RPMS resubmission '. $n,'[]',0,$actor['id'],$actor['id'],'{}']);
+            $count->execute([$w]); return ['count'=>(int)$count->fetchColumn()];
+        })(),
+        // Close the third synthetic case so the fourth-attempt check exercises
+        // the official lifetime cap, not just the existing-open-case guard.
+        'cap-close-open-case' => (function () use ($pdo, $actor) {
+            $w=$pdo->query('SELECT * FROM ierb_workflows WHERE student_id=40')->fetch();
+            if (!$w || $w['stage_key']!==IerbStage::CORRECTION) throw new RuntimeException('Expected synthetic correction stage.');
+            $q=$pdo->prepare('UPDATE ierb_correction_cases SET resolved_at=NOW(6),resolved_by_user_id=?,resolution_evidence_json=? WHERE workflow_id=? AND resolved_at IS NULL');
+            $q->execute([$actor['id'],'{}',$w['id']]);
+            if ($q->rowCount()!==1) throw new RuntimeException('Expected exactly one synthetic open case.');
+            $pdo->prepare('UPDATE ierb_workflows SET stage_key=?,revision=revision+1 WHERE id=?')->execute([IerbStage::INITIAL,$w['id']]);
+            $pdo->prepare('UPDATE research_project_members SET stage_key=?,workflow_revision=workflow_revision+1 WHERE student_id IN (40,41,42)')->execute([IerbStage::INITIAL]);
+            return ['closed'=>true];
+        })(),
         'slug' => ['slug' => research_project_slug(str_repeat('Community health literacy among senior residents ', 8)), 'short' => research_project_slug('Ñuñoa – Study!')],
         'collation' => ['anchor' => schema_extension_collation($pdo), 'extension' => $pdo->query("SELECT TABLE_NAME,TABLE_COLLATION FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_SCHEMA=DATABASE()
             AND TABLE_NAME IN ('ierb_workflows','ierb_correction_cases','ierb_workflow_events','research_projects','research_project_identifiers','research_project_members','research_project_events','research_project_member_history','document_summary_versions','ierb_report_snapshots','academic_years') ORDER BY 1")->fetchAll(PDO::FETCH_KEY_PAIR)],

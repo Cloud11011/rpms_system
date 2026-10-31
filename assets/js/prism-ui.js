@@ -85,7 +85,7 @@
     },
     'adviser-documents': {
       title: 'Reviewing your students\u2019 documents',
-      text: 'Approve the eligible current version to formally submit it to RPMS in the same operation. Deny or Request Revision / Resubmission requires feedback and does not formally submit. The Student can upload a new revision.'
+      text: 'Approve the eligible current version to formally submit it to RPMS in the same operation. Deny or Request Revision requires feedback and does not formally submit. The Student can upload a new revision.'
     },
     'admin-dashboard': {
       title: 'Students Needing Attention',
@@ -116,6 +116,9 @@
   // ------------------------------------------------------------------ badges
   function badge(label, opts) {
     opts = opts || {};
+    // Stored pre-V14 review status remains unchanged; never label an ordinary
+    // Adviser document revision as an official RPMS IERB resubmission.
+    if (label === 'Resubmission Requested' && opts.text == null) opts = { ...opts, text: 'Revision Requested' };
     const meta = BADGES[label] || (/^Stage \d/.test(label) ? ['neutral', 'fa-layer-group'] : ['neutral', 'fa-circle']);
     const text = opts.text != null ? opts.text : label;
     const title = opts.title || TIPS[label] || '';
@@ -509,7 +512,7 @@
   /** Admin: change a document's review status. Reason is required and logged. */
   async function overrideDocument(doc) {
     const statuses = ['Submitted', 'Under Review', 'Received', 'Verified', 'Resubmission Requested', 'Approved', 'Denied'];
-    const opts = statuses.map(function (s) { return '<option' + (s === doc.reviewStatus ? ' selected' : '') + '>' + esc(s) + '</option>'; }).join('');
+    const opts = statuses.map(function (s) { return '<option value="' + esc(s) + '"' + (s === doc.reviewStatus ? ' selected' : '') + '>' + esc(s === 'Resubmission Requested' ? 'Request Revision' : s) + '</option>'; }).join('');
     const res = await confirmDialog({
       title: 'Admin Override', icon: 'fa-user-shield', tone: 'override', confirmText: 'Save override',
       message: 'You are overriding the adviser review of \u201c' + doc.originalName + '\u201d. The student and assigned adviser are notified. This does not itself formally submit the file to RPMS. The official IERB stage remains unchanged.',
@@ -547,7 +550,7 @@
         const items = data.versions.map(function (v) {
           return '<li><div><strong>Version ' + esc(v.versionNo) + (v.isCurrent ? ' (current)' : '') + '</strong>' +
             '<small>' + esc(v.originalName) + ' \u00b7 uploaded ' + esc(fmtDate(v.uploadedAt)) + ' by ' + esc(v.uploadedBy) + '</small>' +
-            (v.reviewedAt ? '<small>Reviewed: ' + esc(v.reviewStatus) + ' by ' + esc(v.reviewedBy) + ' · ' + esc(fmtDate(v.reviewedAt)) + '</small>' : '') +
+            (v.reviewedAt ? '<small>Reviewed: ' + esc(v.reviewStatus === 'Resubmission Requested' ? 'Revision Requested' : v.reviewStatus) + ' by ' + esc(v.reviewedBy) + ' · ' + esc(fmtDate(v.reviewedAt)) + '</small>' : '') +
             (v.rpmsSubmittedAt ? '<small>Formally submitted: ' + esc(fmtDate(v.rpmsSubmittedAt)) + ' by ' + esc(v.rpmsSubmittedBy) + '</small>' : '') +
             (v.rpmsReturnedAt ? '<small>RPMS returned for revision: ' + esc(fmtDate(v.rpmsReturnedAt)) + ' by ' + esc(v.rpmsReturnedBy) + '. Reason: ' + esc(v.rpmsReturnReason) + '</small>' : '') +
             (v.adminOverride ? '<small>Admin Override by '+esc(v.overrideBy)+' at '+esc(fmtDate(v.overrideAt))+'. Reason: '+esc(v.overrideReason)+'</small>' : '') +
