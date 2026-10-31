@@ -85,7 +85,7 @@
     },
     'adviser-documents': {
       title: 'Reviewing your students\u2019 documents',
-      text: 'Approve the eligible current version to formally submit it to RPMS in the same operation. Deny or Request Revision / Resubmission requires feedback and does not formally submit. The Student can upload a new revision.'
+      text: 'Approve the eligible current version to formally submit it to RPMS in the same operation. Deny or Request Revision requires feedback and does not formally submit. The Student can upload a new revision.'
     },
     'admin-dashboard': {
       title: 'Students Needing Attention',
