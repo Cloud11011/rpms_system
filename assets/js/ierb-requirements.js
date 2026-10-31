@@ -202,8 +202,15 @@
         + (pending.reason ? ` Requested by ${pending.requestedBy}: ${pending.reason}` : '');
       host.append(note);
     }
-    if (!data.operationsActivated || !['adviser', 'admin'].includes(role)) return;
-    const canOpen = !data.workflow.correctionCase && ['initial_submission', 'approval_data_gathering'].includes(data.workflow.stage);
+    if (!data.operationsActivated || role !== 'admin') return;
+    const used = Number(data.workflow.officialResubmissionCount || 0);
+    const maximum = Number(data.workflow.officialResubmissionLimit || 3);
+    const canOpen = used < maximum && !data.workflow.correctionCase && ['initial_submission', 'approval_data_gathering'].includes(data.workflow.stage);
+    if (used >= maximum && !data.workflow.correctionCase) {
+      const limitNote = document.createElement('p'); limitNote.setAttribute('role', 'status');
+      limitNote.textContent = 'Maximum of three official resubmissions reached. RPMS cannot open another case; ordinary document revision remains separate.';
+      host.append(limitNote);
+    }
     const actions = document.createElement('div'); actions.className = 'v14-correction-actions'; actions.setAttribute('role', 'group'); actions.setAttribute('aria-label', 'Correction case actions');
     const add = (label, handler, tone = 'secondary') => { const b = document.createElement('button'); b.type = 'button'; b.className = 'prism-btn is-' + tone; b.textContent = label; b.onclick = () => handler(b); actions.append(b); };
     const pickDocs = dialog => [...dialog.querySelectorAll('input[name="affected"]:checked')].map(input => input.value);
