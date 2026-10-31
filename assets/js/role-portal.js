@@ -739,7 +739,9 @@ document.addEventListener('DOMContentLoaded', () => {
         const entries = queue.entries;
         const hasFiles = entries.length > 0 && entries.every(e => !invalidFile(e.file));
         const selectedTypes = entries.map(e => e.type).filter(Boolean);
-        const duplicateTypes = new Set(selectedTypes).size !== selectedTypes.length;
+        // V14 requirements have one current document per category. Historical
+        // pre-enrollment queues retain their multi-file category/version behavior.
+        const duplicateTypes = v14UploadTypes !== null && new Set(selectedTypes).size !== selectedTypes.length;
         const hasTypes = entries.length > 0 && entries.every(validType) && !duplicateTypes;
         const uncertain = entries.some(e => e.uncertain);
         const ready = hasFiles && hasTypes && !uncertain && !uploading;

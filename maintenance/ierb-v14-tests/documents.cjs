@@ -245,6 +245,16 @@ module.exports = async h => {
     await page.locator('#documentNotes').fill('Retain the current-stage document selection while editing notes');
     check(await page.locator('[data-upload-type]').first().inputValue()==='Form 33-0B - Final Report Form',
       'Final Report selection survives notes rerender without offering earlier-stage types');
+    await page.locator('#documentFile').setInputFiles([{name:'redundant-report.pdf',mimeType:'application/pdf',buffer:pdf()}]);
+    check(await page.locator('[data-upload-type]').count()===2,
+      'V14 file queue supports multiple selections before category validation');
+    await page.locator('[data-upload-type]').nth(1).selectOption('Form 33-0B - Final Report Form');
+    check(await page.locator('#submissionForm [type=submit]').isDisabled()
+      && (await page.locator('#submissionSubmitHint').textContent()).includes('only appear once'),
+      'V14 duplicate required document types cannot be submitted together');
+    await page.getByRole('button',{name:'Remove redundant-report.pdf',exact:true}).click();
+    check(await page.locator('#submissionForm [type=submit]').isEnabled(),
+      'Removing a duplicate V14 requirement restores valid upload readiness');
     check((await page.locator('#currentStage').textContent())==='Approval of Data Gathering','Student official stage uses its explicit V14 summary');
     check((await page.locator('.stage-card').nth(1).textContent()).includes('Conditional'),'Student view never presents conditional Stage 2 as a completed progress milestone');
     await studentCtx.close();
