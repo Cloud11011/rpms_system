@@ -87,8 +87,21 @@ module.exports=h=>{
       fs.writeFileSync(path.join(evidence,'group-advancement.json'),JSON.stringify({concurrentResults:parsed,memberProgress:sql('SELECT * FROM research_project_members WHERE project_id=?',[p().id])},null,2));
     }
     if(phase==='beforeCompletion'){
-      const attempt=await response(await partner.post('/documents_api.php?action=upload',{headers:{origin:h.base,'X-Prism-Generation':await h.generation(partner)},multipart:{documentType:'Form 33-0B - Final Report Form',requestId:require('node:crypto').randomUUID(),document:{name:'Synthetic Batch2 partner-final.pdf',mimeType:'application/pdf',buffer:h.pdf()}}}));
-      check(attempt.status===200,'A non-PI verified member uploads the project Final Report');
+      // Final Report already has a current version from the holder. A verified
+      // member can revise it after Adviser return, never silently overwrite it.
+      const multipart=revisionOf=>({documentType:'Form 33-0B - Final Report Form',
+        ...(revisionOf ? {revisionOf} : {}),
+        requestId:require('node:crypto').randomUUID(),
+        document:{name:'Synthetic Batch2 partner-final.pdf',mimeType:'application/pdf',buffer:h.pdf()}});
+      const uploadMember=async revisionOf=>response(await partner.post('/documents_api.php?action=upload',
+        {headers:{origin:h.base,'X-Prism-Generation':await h.generation(partner)},multipart:multipart(revisionOf)}));
+      const blocked=await uploadMember('');
+      check(blocked.status===409,'A non-PI member cannot silently overwrite another current Final Report');
+      await expect(post(s.adviser,'review',
+        {id:docs.final_report,status:'Resubmission Requested',remarks:'Synthetic Final Report requires a corrected member revision.'},
+        'documents_api.php'),200,'Adviser explicitly returns Final Report for revision');
+      const attempt=await uploadMember(docs.final_report);
+      check(attempt.status===200,'A non-PI verified member uploads an authorized Final Report revision');
       const memberDoc=sql('SELECT * FROM documents WHERE id=?',[attempt.body.document.id])[0];
       check(memberDoc.student_id===4&&memberDoc.supersedes_id===docs.final_report&&memberDoc.is_current===1&&memberDoc.uploaded_by==='Synthetic Student 6'&&memberDoc.uploaded_by_role==='student','The member upload joins the single project version chain and preserves the individual uploader');
       check(sql("SELECT user_email FROM activity_logs WHERE action='document_uploaded' AND entity_id=?",[memberDoc.id])[0]?.user_email==='student6@example.test','The upload audit records the uploading member, not the evidence record');
