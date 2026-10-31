@@ -391,7 +391,7 @@ async function comment(d){
 }
 async function review(d){
     const allowed=['Under Review','Received','Verified','Resubmission Requested','Approved','Denied'];
-    const options=allowed.map(s=>`<option${s===d.reviewStatus?' selected':''}>${esc(s)}</option>`).join('');
+    const options=allowed.map(s=>`<option value="${esc(s)}"${s===d.reviewStatus?' selected':''}>${esc(s==='Resubmission Requested'?'Request Revision':s)}</option>`).join('');
     const answer=await PrismUI.confirm({
         title:'Review document',icon:'fa-clipboard-check',confirmText:'Save review',dialogClass:'document-review-dialog',
         message:`Update the review status for “${d.originalName}”. ${currentRole==='adviser'?'Approve also formally submits this current version to RPMS.':''}`,
