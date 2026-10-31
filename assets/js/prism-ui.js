@@ -509,7 +509,7 @@
   /** Admin: change a document's review status. Reason is required and logged. */
   async function overrideDocument(doc) {
     const statuses = ['Submitted', 'Under Review', 'Received', 'Verified', 'Resubmission Requested', 'Approved', 'Denied'];
-    const opts = statuses.map(function (s) { return '<option' + (s === doc.reviewStatus ? ' selected' : '') + '>' + esc(s) + '</option>'; }).join('');
+    const opts = statuses.map(function (s) { return '<option value="' + esc(s) + '"' + (s === doc.reviewStatus ? ' selected' : '') + '>' + esc(s === 'Resubmission Requested' ? 'Request Revision' : s) + '</option>'; }).join('');
     const res = await confirmDialog({
       title: 'Admin Override', icon: 'fa-user-shield', tone: 'override', confirmText: 'Save override',
       message: 'You are overriding the adviser review of \u201c' + doc.originalName + '\u201d. The student and assigned adviser are notified. This does not itself formally submit the file to RPMS. The official IERB stage remains unchanged.',
