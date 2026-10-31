@@ -45,6 +45,9 @@ module.exports = async h => {
     await projectTests('setup');
     check(initial.length===13,'Exactly the approved 13 Initial Submission requirements');
     let list=await checklist();check(list.body.requirements.filter(r=>r.stage==='initial_submission').every(r=>r.state==='Missing'),'Missing requirements never count as accepted');
+    check(list.body.uploadTypes.length===13&&!list.body.uploadTypes.includes('Form 33-0B - Final Report Form')
+      && !list.body.uploadTypes.includes('Form 33 - Certificate of Approval'),
+      'Initial Submission has exactly 13 eligible upload categories, excluding Form 33 and Final Report');
     check(!sql('SELECT id FROM ierb_workflows WHERE student_id=5').length,'Project partner is not implicitly enrolled');
     const other=await response(await s.student.get('/documents_api.php?action=requirements&studentId=5'));
     check(other.status===403,'Student cannot inspect another submission holder checklist');
@@ -137,12 +140,19 @@ module.exports = async h => {
     for(const role of ['student','adviser'])check(JSON.stringify((await checklist(s[role])).body.requirements.map(r=>[r.key,r.state,r.versionNo,r.acceptanceEventId]))===JSON.stringify(list.body.requirements.map(r=>[r.key,r.state,r.versionNo,r.acceptanceEventId])),role+' uses identical authoritative checklist states');
     check(!(await checklist(s.student)).body.requirements.some(r=>r.canAccept),'Student checklist has no acceptance controls');
     await expect(upload('final_report'),409,'Data Gathering rejects Final Report upload until Form 33 is accepted');
+    const gatheringBefore=(await checklist()).body;
+    check(gatheringBefore.uploadTypes.length===1&&gatheringBefore.uploadTypes[0]==='Form 33 - Certificate of Approval',
+      'Data Gathering offers only Form 33 while institutional acceptance is missing');
     const approval=await expect(upload('form33'),200,'Upload Form 33 Certificate of Approval');docs.form33=approval.body.document.id;
     await review(docs.form33);await accept('form33',docs.form33,422);
     // Corrections retain their interrupted context and require accepted successor versions.
     for (const amendment of [false,true,true,false]) {
       const opened=cli({action:'open',revision:rev(),documentId:docs.protocol,amendment,key:crypto.randomUUID()});
       check(opened.ok&&opened.result.stage==='resubmission_amendment'&&opened.result.progress===50,'RPMS opens repeated correction; progress remains interrupted 50%, Amendment '+amendment);
+      const caseTypes=(await checklist()).body.uploadTypes;
+      check(caseTypes.includes('Study Protocol')&&caseTypes.includes('Amendment Form')===amendment
+        && !caseTypes.includes('Curriculum Vitae')&&!caseTypes.includes('Form 33-0B - Final Report Form'),
+        'Correction stage offers only affected Study Protocol and optional required Amendment Form');
       const caseId=Number(opened.result.correctionCase.id);
       const blocked=cli({action:'resolve',revision:rev(),key:crypto.randomUUID()});check(!blocked.ok&&blocked.type==='AccountLifecycleConflict','Uncorrected affected version blocks resolution');
       await expect(post(s.admin,'return_for_revision',{id:docs.protocol,reason:'Synthetic case requires corrected protocol version.'},'documents_api.php'),200,'RPMS returns exact affected version through existing workflow');
@@ -257,6 +267,9 @@ module.exports = async h => {
     check(submitted.map(JSON.parse).every(r=>r.ok),'Concurrent Final Report approval requests succeed once and replay safely');
     check(submitted.map(JSON.parse).some(r=>r.result.providerAttempts>0),'Notification provider failure is exercised after successful completion commits');
     check(state().stage_key==='ierb_completed'&&sql("SELECT id FROM ierb_workflow_events WHERE event_key='final_report_submitted'").length===1,'Successful authorized formal Final Report submission automatically completes exactly once');
+    check((await checklist()).body.uploadTypes.length===0,
+      'Completed V14 projects provide a read-only checklist with no available new upload types');
+    await expect(upload('ethics'),409,'Completed V14 project blocks new Stage 1 uploads');
     check(!!sql('SELECT rpms_submitted_at FROM documents WHERE id=?',[docs.final_report])[0].rpms_submitted_at,'Completion retains successful formal-submission evidence');
     check(!sql('SELECT id FROM ierb_workflows WHERE student_id=5').length,'Automatic completion never declares the unenrolled partner completed');
     await review(docs.final_report);check(sql("SELECT id FROM ierb_workflow_events WHERE event_key='final_report_submitted'").length===1,'HTTP retry after successful completion creates no extra completion event');
