@@ -130,6 +130,18 @@
             {detail: {documentType: row.label}})));
           item.append(upload);
         }
+        if (portalChecklist && row.state === 'Returned for Revision' && row.documentId
+            && (data.uploadTypes || []).includes(row.label)) {
+          const revise = document.createElement('button');
+          revise.type = 'button'; revise.className = 'prism-btn is-secondary';
+          revise.textContent = 'Upload revision';
+          revise.addEventListener('click', () => document.dispatchEvent(new CustomEvent('prism:upload-revision', {
+            detail: { id: row.documentId, originalName: row.label,
+              documentType: row.documentType || row.label, versionNo: row.versionNo,
+              stage: 'Stage 1', actions: { uploadRevision: true } }
+          })));
+          item.append(revise);
+        }
         if (row.acceptanceEventId) { const evidence = document.createElement('small'); evidence.textContent = `Acceptance evidence #${row.acceptanceEventId} / ${row.acceptedAt}`; item.append(evidence); }
         if (row.canAccept) {
           const button = document.createElement('button'); button.type = 'button'; button.className = 'prism-btn is-secondary'; button.textContent = 'Accept requirement';
