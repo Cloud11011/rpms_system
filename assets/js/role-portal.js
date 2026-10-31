@@ -431,9 +431,9 @@ document.addEventListener('DOMContentLoaded', () => {
             ? `${latestDoc.documentType || latestDoc.originalName} · ${latestDoc.stageLabel || latestDoc.stage || 'Research submission'}`
             : 'Submit your first requirement to start your review.';
         const submissionTag = $('dashboardSubmissionStatus');
-        submissionTag.textContent = loadErrors.documents ? 'Status unavailable' : latestDoc?.workflowState || latestDoc?.reviewStatus || '';
+        submissionTag.textContent = loadErrors.documents ? 'Status unavailable' : latestDoc?.workflowState || (latestDoc?.reviewStatus === 'Resubmission Requested' ? 'Revision Requested' : latestDoc?.reviewStatus) || '';
         submissionTag.hidden = !loadErrors.documents && !latestDoc;
-        const reviewState = latestDoc?.workflowState || latestDoc?.reviewStatus || '';
+        const reviewState = latestDoc?.workflowState || (latestDoc?.reviewStatus === 'Resubmission Requested' ? 'Revision Requested' : latestDoc?.reviewStatus) || '';
         $('studentReviewState').textContent = loadErrors.documents ? 'Unavailable' : !latestDoc ? 'No review yet'
             : /pending adviser review|under review/i.test(reviewState) ? 'In review' : reviewState;
         $('studentReviewRemarks').textContent = loadErrors.documents ? 'Reviewer updates could not be loaded.' : latestDoc
