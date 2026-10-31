@@ -188,7 +188,9 @@ module.exports=async h=>{
  check(count()===beforeFailure && !project(retry.id) && sql('SELECT COUNT(*) n FROM ierb_workflows WHERE student_id=?',[retry.id])[0].n===0,'Failed transaction leaves no project, workflow or membership');
  check(activate(retry.id).state==='activated','Retry safely recovers the interrupted assignment');
  check(!raw({action:'retained-rollback'}).ok,'Retained assignment and protocol evidence prevents extension rollback');
- await expect(post(s.admin,'save',payload(),'ierb_api.php'),422,'Add IERB Entry routes creation through Student Records');
+ const projectsBeforeLegacyAttempt=count();
+ await expect(post(s.admin,'save',payload(),'ierb_api.php'),409,'V14 retires legacy IERB Entry creation; create groups through Student Records');
+ check(count()===projectsBeforeLegacyAttempt,'Rejected legacy IERB creation cannot change canonical project records');
 
  // All four stages on the automatically created project, through the unchanged document APIs.
  const checklist=await response(await m2.get('/documents_api.php?action=requirements&studentId='+second.id));
