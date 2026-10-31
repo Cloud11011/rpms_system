@@ -174,7 +174,7 @@
       }); host.append(list); return data;
     } catch (error) { host.textContent = 'Requirements unavailable: ' + error.message; }
   }
-  // Correction requests (Adviser) and decisions (RPMS). The server re-checks every role, assignment and revision.
+  // Official resubmissions are RPMS-initiated. Adviser document revisions stay in the normal document review UI.
   const docChoices = data => data.requirements.filter(row => row.documentId && row.key !== 'final_report')
     .map(row => `<label class="v14-doc-choice"><input type="checkbox" name="affected" value="${PrismUI.esc(row.documentId)}"> ${PrismUI.esc(row.label)} (v${row.versionNo})</label>`).join('');
   const amendmentChoice = '<fieldset class="v14-amendment-choice"><legend>Amendment Form for this case <span class="required-marker" aria-hidden="true">*</span></legend>'
