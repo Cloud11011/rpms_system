@@ -146,7 +146,7 @@ module.exports = async h => {
     const approval=await expect(upload('form33'),200,'Upload Form 33 Certificate of Approval');docs.form33=approval.body.document.id;
     await review(docs.form33);await accept('form33',docs.form33,422);
     // Corrections retain their interrupted context and require accepted successor versions.
-    for (const amendment of [false,true,true,false]) {
+    for (const amendment of [true]) {
       const opened=cli({action:'open',revision:rev(),documentId:docs.protocol,amendment,key:crypto.randomUUID()});
       check(opened.ok&&opened.result.stage==='resubmission_amendment'&&opened.result.progress===50,'RPMS opens repeated correction; progress remains interrupted 50%, Amendment '+amendment);
       const caseTypes=(await checklist()).body.uploadTypes;
@@ -174,7 +174,7 @@ module.exports = async h => {
       check(resolved.ok&&resolved.result.stage==='approval_data_gathering'&&resolved.result.progress===50,'Correction resolves from authoritative evidence and resumes interrupted context');
       const stored=sql('SELECT * FROM ierb_correction_cases WHERE id=?',[caseId])[0];check(stored.resolved_at&&stored.resolution_evidence_json,'Correction retains its exact version snapshots, resolution and administrator');
     }
-    check(sql('SELECT id FROM ierb_correction_cases').length===5,'Initial plus four repeated gathering corrections retain five distinct histories');
+    check(sql('SELECT id FROM ierb_correction_cases').length===2,'Initial and one gathering correction consume two of the three official resubmission cycles');
     const supportingUpload=async revisionOf=>response(await s.student.post('/documents_api.php?action=upload',{headers:{origin:base,'X-Prism-Generation':await generation(s.student)},
       multipart:{documentType:'Other Supporting Document',revisionOf,requestId:crypto.randomUUID(),document:{name:'Synthetic Batch2 supporting.pdf',mimeType:'application/pdf',buffer:pdf()}}}));
     await expect(supportingUpload(''),409,'Unrequested supporting evidence is blocked in the active V14 stage');
@@ -191,6 +191,12 @@ module.exports = async h => {
     await accept('affected:'+supportingId,supportingRevision.body.document.id);
     check(cli({action:'resolve',revision:rev(),key:crypto.randomUUID()}).ok,'Supporting-category correction resolves from case-bound current acceptance evidence');
     check(!(await checklist()).body.requirements.some(r=>r.key.startsWith('affected:')),'Supporting-case evidence never becomes an additional permanent mandatory requirement');
+    check(sql('SELECT id FROM ierb_correction_cases').length===3,'Initial, gathering and supporting corrections consume all three official RPMS resubmission slots');
+    const beforeFourth = { stage: state().stage_key, revision: rev(), cases: sql('SELECT id FROM ierb_correction_cases').length };
+    const fourth = cli({action:'open',revision:rev(),documentId:docs.protocol,amendment:false,key:crypto.randomUUID()});
+    check(!fourth.ok && fourth.type==='AccountLifecycleConflict' && /three official IERB resubmissions/i.test(fourth.message||'') &&
+      state().stage_key===beforeFourth.stage && rev()===beforeFourth.revision && sql('SELECT id FROM ierb_correction_cases').length===beforeFourth.cases,
+      'RPMS fourth official resubmission is blocked and changes no workflow state, revision or historical cases');
     // Multi-file actual multipart upload: several categories plus one invalid per-file type.
     const batchId=crypto.randomUUID();
     const multipart=requestId=>sendBatch(s.admin,5,[['Curriculum Vitae','multi-cv'],['Payment Receipt','multi-payment'],['Fabricated acceptance','invalid-category']],requestId);
