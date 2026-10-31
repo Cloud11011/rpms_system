@@ -104,14 +104,15 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     async function saveQuickReview(doc, reviewState) {
         const corrective=['Denied','Resubmission Requested'].includes(reviewState);
+        const reviewLabel = reviewState === 'Resubmission Requested' ? 'Request Revision' : reviewState;
         const answer=await PrismUI.confirm({
-            title:`${reviewState} document`,icon:reviewState==='Approved'?'fa-check':'fa-clipboard-check',
-            tone:reviewState==='Denied'?'danger':'primary',confirmText:reviewState,
+            title:`${reviewLabel} document`,icon:reviewState==='Approved'?'fa-check':'fa-clipboard-check',
+            tone:reviewState==='Denied'?'danger':'primary',confirmText:reviewLabel,
             message:corrective?'Explain what the Student should revise before the next document review.':reviewState==='Approved'?`Approve “${doc.originalName}” version ${doc.versionNo} and formally submit it to RPMS?`:'You may add reviewer remarks before saving this decision.',
             reasonLabel:corrective?'Reviewer remarks (required)':'Reviewer remarks (optional)',reasonRequired:corrective,minReason:1
         });
         if(!answer)return;
-        try{const data=await PrismUI.postJson('documents_api.php?action=review',{id:doc.id,status:reviewState,remarks:answer.reason||''});await reload();PrismUI.toast(data.message||`Document marked as ${reviewState}.`,'success');}
+        try{const data=await PrismUI.postJson('documents_api.php?action=review',{id:doc.id,status:reviewState,remarks:answer.reason||''});await reload();PrismUI.toast(data.message||`Document marked as ${reviewLabel}.`,'success');}
         catch(error){PrismUI.toast(error.message,'error');}
     }
     async function deleteDocument(doc) {
