@@ -10,7 +10,23 @@ function run(label,file,flags={},input=null){
  fs.writeFileSync(path.join(out,'console.txt'),result.stdout+'\n'+result.stderr);
  for(const f of ['test-results.json','test-results-documents.json','test-failure.json'])if(fs.existsSync(path.join(review,f)))fs.copyFileSync(path.join(review,f),path.join(out,f));
  console.log(label, result.status, result.stdout.trim().split('\n').slice(-1)[0]);
- if(result.status!==0)throw Error(label+' failed; inspect '+out);
+ if(result.status!==0){
+  // The final stdout line may be successful cleanup from a finally block,
+  // masking the failure that preceded it. Preserve AND surface both streams.
+  const lastLines=s=>String(s||'').split(/\r?\n/).slice(-65).join('\n');
+  const failurePath=path.join(review,'test-failure.json');
+  console.error('FAILED SUBSUITE: '+label+'; saved diagnostic: '+path.join(out,'console.txt'));
+  if(fs.existsSync(failurePath)){
+   try{
+    const failure=JSON.parse(fs.readFileSync(failurePath,'utf8'));
+    console.error('ASSERTION / STACK: '+String(failure.stack||failure.error||'unknown'));
+   }catch(e){console.error('Saved failure summary unreadable: '+e.message);}
+  }
+  if(result.error)console.error('PROCESS ERROR: '+result.error.message);
+  console.error('STDERR (tail):\n'+lastLines(result.stderr));
+  console.error('STDOUT (tail):\n'+lastLines(result.stdout));
+  throw Error(label+' failed; inspect '+out);
+ }
  if(file.endsWith('.php') && JSON.parse(result.stdout).ok===false)throw Error(label+' refused; inspect '+out);
 }
 const suite='maintenance/ierb-group-tests/run.cjs',documents={PRISM_TEST_PHASE:'documents'};
