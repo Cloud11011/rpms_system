@@ -232,7 +232,8 @@ function document_workflow_change(PDO $pdo, array $actor, string $id, string $op
             if ($status==='Approved') $action='document_approved';
             document_workflow_audit($pdo,$live,$action,$audit+['before'=>$doc['review_status'],'after'=>$status]);
             $after=$status==='Approved'?WF_READY_FOR_RPMS:(in_array($status,['Denied','Resubmission Requested'],true)?WF_NEEDS_REVISION:WF_PENDING_REVIEW);
-            $message='Document "'.$doc['original_name'].'" ('.$doc['document_type'].', version '.$doc['version_no'].') is now '.$status.'.';
+            $displayStatus = $status === 'Resubmission Requested' ? 'Revision Requested' : $status;
+            $message='Document "'.$doc['original_name'].'" ('.$doc['document_type'].', version '.$doc['version_no'].') is now '.$displayStatus.'.';
             if ($status==='Approved') {
                 [$advanced,$ids,$message]=document_formal_submission($pdo,$live,$student,$doc,$audit);
                 $after=WF_SUBMITTED_RPMS;
