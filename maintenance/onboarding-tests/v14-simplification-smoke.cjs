@@ -8,7 +8,8 @@ const cp=require('node:child_process');
 const root=path.resolve(__dirname,'../..');
 const php=[
   'includes/research_onboarding.php','includes/research_project_advancement.php',
-  'includes/ierb_v14_requirements.php','documents_api.php','ierb_api.php',
+  'includes/ierb_v14_requirements.php','includes/ierb_v14_workflow.php',
+  'includes/ierb_v14_corrections.php','documents_api.php','ierb_api.php',
   'includes/stage_configuration.php','ierbprog.php','dashboard.php',
   'reports.php','reports_api.php','data_exports_api.php','role_portal.php',
   'includes/ierb_monitor_view.php','includes/ierb_monitor.php',
@@ -48,6 +49,15 @@ check('Upload catalog waits for authorized eligibility',client.includes("uploadC
 check('Queued selectors rebuild when V14 eligibility changes',client.includes('renderQueue();')
   && client.includes("entry.type && !v14UploadTypes.includes(entry.type)"));
 check('Student has stage checklist shortcut',src('assets/js/ierb-requirements.js').includes('prism:upload-requirement'));
+check('Only RPMS may initiate resubmissions',src('includes/ierb_v14_workflow.php').includes('Maximum of three official IERB resubmissions reached')
+  && src('ierb_api.php').includes('Adviser correction requests are retired')
+  && !src('assets/js/ierb-requirements.js').includes("add('Request correction case'"));
+check('Authoritative checklist exposes RPMS resubmission usage',req.includes("$snapshot['officialResubmissionCount']")
+  && req.includes("$snapshot['officialResubmissionLimit']"));
+check('Dashboard counts all current requirements and Amendment',client.includes('myRecord.pendingRequirementsCount = pending.length')
+  && client.includes("row.key === 'amendment' && correction?.requiresAmendment"));
+check('Onboarding resumes beyond twenty blocked accounts',!onboarding.includes('ORDER BY r.updated_at LIMIT 20')
+  && onboarding.includes('ORDER BY r.updated_at,r.student_id'));
 check('Adviser password no longer blocks membership',!onboarding.includes("$adviserLogin=lifecycle_resolve_login"));
 check('Single V14 bulk acceptance transaction',req.includes('function ierb_v14_accept_requirements_bulk')&&req.includes('Bulk requirement acceptance owns its transaction.'));
 check('Historical IERB actions read-only',src('ierb_api.php').includes('Legacy IERB stages are read-only'));
