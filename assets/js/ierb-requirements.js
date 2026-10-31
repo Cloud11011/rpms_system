@@ -215,14 +215,6 @@
     const add = (label, handler, tone = 'secondary') => { const b = document.createElement('button'); b.type = 'button'; b.className = 'prism-btn is-' + tone; b.textContent = label; b.onclick = () => handler(b); actions.append(b); };
     const pickDocs = dialog => [...dialog.querySelectorAll('input[name="affected"]:checked')].map(input => input.value);
     const pickAmendment = dialog => dialog.querySelector('input[name="amendment"]:checked')?.value;
-    if (role === 'adviser' && canOpen && !pending) add('Request correction case', async button => {
-      const answer = await ask(host, { title: 'Request a correction case', confirmText: 'Send request to RPMS', reasonLabel: 'Reason for the correction request', reasonRequired: true, minReason: 5, maxReason: 1000,
-        message: 'RPMS reviews this request. The official IERB stage does not change unless RPMS approves it.',
-        extraHtml: `<fieldset><legend>Affected current documents <span class="required-marker" aria-hidden="true">*</span></legend>${docChoices(data) || '<p>No current documents are available.</p>'}</fieldset><label><input type="checkbox" id="suggestAmendment"> Suggest that an Amendment Form is required</label>`,
-        collect: dialog => ({ documentIds: pickDocs(dialog), suggestAmendment: dialog.querySelector('#suggestAmendment').checked }),
-        validate: values => values.documentIds.length ? null : 'Select at least one affected current document.' });
-      if (answer) await operate(button, 'v14_correction_request', { ...base, reason: answer.reason, ...answer.values }, studentId, host);
-    });
     if (role === 'admin' && pending) {
       add('Approve request', async button => {
         const answer = await ask(host, { title: 'Approve correction request', confirmText: 'Approve and open case', reasonLabel: 'RPMS decision reason', reasonRequired: true, minReason: 5, maxReason: 1000,
