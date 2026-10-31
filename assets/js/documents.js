@@ -398,7 +398,7 @@ async function review(d){
         extraHtml:`<label for="prismReviewStatus">Review status</label><select id="prismReviewStatus">${options}</select>`,
         reasonLabel:'Reviewer remarks',reasonRequired:false,
         collect:dlg=>({status:dlg.querySelector('#prismReviewStatus').value}),
-        validate:(v,remarks)=>['Denied','Resubmission Requested'].includes(v.status)&&!remarks?'Add remarks explaining what the student needs to correct or resubmit.':null
+        validate:(v,remarks)=>['Denied','Resubmission Requested'].includes(v.status)&&!remarks?'Add remarks explaining what the Student needs to revise.':null
     });
     if(!answer)return;
     try{const data=await api('review',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({id:d.id,status:answer.values.status,remarks:answer.reason})});await load();toast(data.message||'Document review saved.')}
