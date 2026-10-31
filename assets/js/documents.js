@@ -277,7 +277,7 @@ function renderTable(){
         const statusLabel=document.createElement('span');statusLabel.className='prism-record-label';statusLabel.textContent='Document status';card.querySelector('.prism-record-status').prepend(statusLabel);
         const details=card.querySelector('.prism-record-details'),fields=details.querySelector('dl');
         fields.replaceChildren(...[['Uploaded by',d.uploadedBy],['File size',size(d.size)],['Program',d.course],['Protocol code',d.protocolCode],['RPMS submission',d.rpmsSubmittedAt?date(d.rpmsSubmittedAt):'Not submitted to RPMS']].map(([label,value])=>PrismUI.recordField(label,value)));
-        if(d.reviewStatus&&d.reviewStatus!==d.workflowState)fields.append(PrismUI.recordField(d.adminOverride?'RPMS override status':'Adviser review decision',d.reviewStatus));
+        if(d.reviewStatus&&d.reviewStatus!==d.workflowState)fields.append(PrismUI.recordField(d.adminOverride?'RPMS override status':'Adviser review decision',d.reviewStatus==='Resubmission Requested'?'Revision Requested':d.reviewStatus));
         const feedback=PrismUI.recordFeedback(d);
         if(feedback){card.insertBefore(feedback,details);if(feedback.classList.contains('prism-feedback-indicator'))fields.append(PrismUI.recordField('Reviewer remarks',d.reviewRemarks));}
     });
