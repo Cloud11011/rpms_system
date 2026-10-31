@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - feature/prism-v14-workflow-simplification-20261031
+      - fix/prism-v14-admin-only-resubmission-20261031
   workflow_dispatch:
 
 permissions:
