@@ -16,8 +16,8 @@ module.exports = async h => {
   const flag = path.join(review, 'sandbox/v14-operations.flag');
   const evidence = path.resolve(process.env.PRISM_TEST_EVIDENCE_DIR || path.join(root, 'PRISM_V14_7R_EVIDENCE'));
   fs.mkdirSync(evidence, { recursive: true });
-  const upload = async (ctx, type, label) => response(await ctx.post('/documents_api.php?action=upload', { headers: { origin: base, 'X-Prism-Generation': await generation(ctx) },
-    multipart: { documentType: type, requestId: crypto.randomUUID(), document: { name: `Synthetic Batch7R ${label}.pdf`, mimeType: 'application/pdf', buffer: pdf(label) } } }));
+  const upload = async (ctx, type, label, revisionOf = '') => response(await ctx.post('/documents_api.php?action=upload', { headers: { origin: base, 'X-Prism-Generation': await generation(ctx) },
+    multipart: { documentType: type, revisionOf, requestId: crypto.randomUUID(), document: { name: `Synthetic Batch7R ${label}.pdf`, mimeType: 'application/pdf', buffer: pdf(label) } } }));
   const key = () => 'b7r-' + crypto.randomUUID();
   const wf = () => fx({ action: 'state' }).workflow;
   try {
@@ -47,7 +47,12 @@ module.exports = async h => {
     const d41 = sql('SELECT * FROM documents WHERE id=?', [up41.body.document.id])[0], d42 = sql('SELECT * FROM documents WHERE id=?', [up42.body.document.id])[0];
     check(d41.student_id === 40 && d42.student_id === 40 && d41.uploaded_by === 'Synthetic Student 41' && d42.uploaded_by === 'Synthetic Student 42', 'Both uploads join the one project evidence record and keep their individual uploaders');
     check(sql("SELECT user_email FROM activity_logs WHERE action='document_uploaded' AND entity_id=?", [d42.id])[0].user_email === 'student42@example.test', 'The upload audit identifies the uploading member');
-    const up42v2 = await expect(upload(m42, 'Study Protocol', 'protocol-v2-by-member'), 200, 'A different member uploads the next version of the same requirement');
+    await expect(upload(m42, 'Study Protocol', 'unrequested-replacement'), 409,
+      'A second member cannot silently replace an existing current group document');
+    await expect(post(s.adviser,'review',{id:d41.id,status:'Resubmission Requested',remarks:'Synthetic protocol needs a corrected version.'},'documents_api.php'),200,
+      'Assigned Adviser requests an explicit versioned revision of the shared document');
+    const up42v2 = await expect(upload(m42, 'Study Protocol', 'protocol-v2-by-member',d41.id), 200,
+      'A different verified member uploads the explicitly requested successor version');
     const v2 = sql('SELECT * FROM documents WHERE id=?', [up42v2.body.document.id])[0];
     check(v2.supersedes_id === d41.id && v2.version_no === 2 && sql('SELECT is_current FROM documents WHERE id=?', [d41.id])[0].is_current === 0, 'Per-document version chains stay single and correct across members');
     const list40 = await response(await m40.get('/documents_api.php?action=list'));
@@ -206,13 +211,15 @@ module.exports = async h => {
 
     // --- 7R-D: Research Title policy (B7-F09), sorting (B7-F13) and AI report titles (B7-F08).
     const row = id => { const r = sql('SELECT * FROM students WHERE id=?', [id])[0]; return { id, studentId: r.student_id, name: r.full_name, email: r.email, groupId: r.research_group, academicUnitKey: r.academic_unit_key, programKey: r.program_key, yearLevel: r.year_level, academicYear: r.academic_year, requirements: r.requirements || '' }; };
-    await expect(post(s.admin, 'save', { ...row(43), research: '' }), 422, 'An existing Research Title cannot be erased through record editing');
-    await expect(post(s.admin, 'save', { ...row(43), research: 'ab' }), 422, 'A Research Title needs at least 3 characters');
-    const titled = await response(await s.admin.post('/ierb_api.php?action=save', { data: { ...row(43), research: 'Batch 7R Outsider Study – Revised' }, headers: { origin: base, 'X-Prism-Generation': await generation(s.admin) } }));
-    check(titled.status === 200, 'A valid title change is saved: ' + JSON.stringify(titled.body).slice(0, 200));
-    const titleAudit = sql("SELECT before_value,after_value FROM activity_logs WHERE action='research_title_changed' AND entity_id='43' ORDER BY id DESC LIMIT 1")[0];
-    check(titleAudit?.before_value === 'Batch 7R Outsider Study' && titleAudit?.after_value === 'Batch 7R Outsider Study – Revised', 'The before and after Research Title are audited');
-    await expect(post(s.admin, 'save', { ...row(41), research: 'Unaudited canonical rename attempt' }), 409, 'A canonical project title changes only through the audited project rename');
+    for (const attemptedTitle of ['', 'ab', 'Batch 7R Outsider Study – Revised']) {
+      await expect(post(s.admin,'save',{...row(43),research:attemptedTitle},'ierb_api.php'),409,
+        'Legacy IERB title editing is read-only under active V14');
+    }
+    check(sql("SELECT research_title FROM students WHERE id=43")[0].research_title === 'Batch 7R Outsider Study'
+      && !sql("SELECT id FROM activity_logs WHERE action='research_title_changed' AND entity_id='43'").length,
+      'Rejected legacy IERB title edits preserve original data without audit mutations');
+    await expect(post(s.admin, 'save', { ...row(41), research: 'Unaudited canonical rename attempt' }), 409,
+      'Canonical project titles cannot be changed by the retired individual-stage endpoint');
     // Closure (B7C-01): the Student Records edit path applies the same Research Title policy as IERB entry.
     // Same payload shape as the Student Records modal: the stored group is sent unchanged (row().groupId).
     const recordEdit = research => post(s.admin, 'save', { ...row(43), adviserId: 2, stage: 'Stage 1', status: 'Pending', research }, 'students_api.php');
@@ -221,7 +228,7 @@ module.exports = async h => {
     check(/cannot be erased/.test(erased.body.message) && /3–255/.test(short.body.message), 'Both refusals come from the Research Title policy: ' + JSON.stringify([erased.body.message, short.body.message]));
     await expect(recordEdit('Batch 7R Outsider Study – Records Edit'), 200, 'Student Records saves a valid Research Title change');
     const recordAudit = sql("SELECT before_value,after_value,details FROM activity_logs WHERE action='research_title_changed' AND entity_id='43' ORDER BY id DESC LIMIT 1")[0];
-    check(recordAudit?.before_value === 'Batch 7R Outsider Study – Revised' && recordAudit?.after_value === 'Batch 7R Outsider Study – Records Edit' && recordAudit.details.includes('Student Records edit'),
+    check(recordAudit?.before_value === 'Batch 7R Outsider Study' && recordAudit?.after_value === 'Batch 7R Outsider Study – Records Edit' && recordAudit.details.includes('Student Records edit'),
       'The Student Records title change is audited before/after');
     const reportsList = await expect(response(await s.admin.get('/reports_api.php?action=list&sort=oldest')), 200, 'Reports list accepts an allowlisted sort');
     await expect(response(await s.admin.get('/reports_api.php?action=list&sort=random')), 422, 'Unsupported report sort orders are refused');
