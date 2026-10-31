@@ -235,10 +235,11 @@ module.exports = async h => {
     const page=await studentCtx.newPage();page.on('pageerror',e=>errors.push(String(e)));
     await page.goto(base+'/role_portal.php#submit');
     await page.evaluate(()=>document.querySelectorAll('.prism-tour-dialog').forEach(d=>d.close()));
+    await page.locator('#submissionForm[data-upload-catalog-ready="true"]').waitFor();
     await page.locator('#documentFile').setInputFiles([{name:'final-report.pdf',mimeType:'application/pdf',buffer:pdf()}]);
     const availableTypes=await page.locator('[data-upload-type]').first().locator('option').evaluateAll(options=>options.map(o=>o.value).filter(Boolean));
     check(availableTypes.length===1&&availableTypes[0]==='Form 33-0B - Final Report Form',
-      'Data Gathering Student dropdown offers only the Final Report after Form 33 approval');
+      'Data Gathering Student dropdown offers only the Final Report after Form 33 approval: '+JSON.stringify(availableTypes));
     check(!(await page.locator('[data-upload-type]').first().locator('option').evaluateAll(options=>options.some(o=>o.value==='Curriculum Vitae'||o.value==='Payment Receipt'))),
       'Initial Submission document types are absent from the Data Gathering dropdown');
     await page.locator('[data-upload-type]').first().selectOption('Form 33-0B - Final Report Form');

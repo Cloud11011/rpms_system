@@ -633,10 +633,15 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Null means a historical record; an array is the server-approved V14
     // selection for this project's current stage (empty means no new uploads).
-    let v14UploadTypes = null;
+    // No global catalog is shown until the authorized stage is resolved.
+    let v14UploadTypes = [];
+    let uploadCatalogReady = false;
     let preferredDocumentType = null;
     async function refreshAll() {
         const sequence = ++refreshSequence;
+        uploadCatalogReady = false;
+        $('submissionForm').dataset.uploadCatalogReady = 'false';
+        updateSubmissionReadiness();
         ++notificationSequence;
         ++documentSequence; ++historySequence;
         $('studentDashboardState').setAttribute('aria-busy', 'true');
@@ -653,6 +658,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         if (myRecord) {
             const checklist = await PrismRequirements.load(myRecord.id, $('v14RequirementChecklist'));
+            if (sequence !== refreshSequence) return;
             if (myRecord.v14 && checklist?.enrolled) {
                 const stageAllowed = new Set(checklist.uploadTypes || []);
                 v14UploadTypes = checklist.requirements.filter(row =>
@@ -683,7 +689,15 @@ document.addEventListener('DOMContentLoaded', () => {
         loadErrors = { progress: progress.error, history: progress.historyError, documents: documents.error, notifications: notifications.error };
         render();
         fillSubmissionRecord();
-        updateSubmissionReadiness();
+        // Rebuild selectors when eligibility changes; do not discard queued files.
+        // A stale type selection is cleared rather than offered outside its stage.
+        for (const entry of queue.entries) {
+            if (!revisionDocument && v14UploadTypes !== null
+                && entry.type && !v14UploadTypes.includes(entry.type)) entry.type = '';
+        }
+        uploadCatalogReady = true;
+        renderQueue();
+        $('submissionForm').dataset.uploadCatalogReady = 'true';
         const unavailable = Object.entries(loadErrors).filter(([, failed]) => failed).map(([area]) => area === 'history' ? 'progress history' : area);
         $('studentDashboardState').textContent = unavailable.length ? `Unable to load ${unavailable.join(', ')}. Please refresh to try again.` : '';
         $('studentDashboardState').setAttribute('aria-busy', 'false');
@@ -744,7 +758,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const duplicateTypes = v14UploadTypes !== null && new Set(selectedTypes).size !== selectedTypes.length;
         const hasTypes = entries.length > 0 && entries.every(validType) && !duplicateTypes;
         const uncertain = entries.some(e => e.uncertain);
-        const ready = hasFiles && hasTypes && !uncertain && !uploading;
+        const ready = uploadCatalogReady && hasFiles && hasTypes && !uncertain && !uploading;
         $('submissionTypeReady').classList.toggle('is-ready', hasTypes);
         $('submissionFileReady').classList.toggle('is-ready', hasFiles);
         $('submissionStepFile').classList.toggle('is-done', ready);
@@ -753,7 +767,8 @@ document.addEventListener('DOMContentLoaded', () => {
         submissionButton.disabled = !ready;
         submissionButton.textContent = entries.length ? `Submit ${entries.length} ${entries.length === 1 ? 'document' : 'documents'} for review` : 'Submit for review';
         const error = entries.map(e => invalidFile(e.file)).find(Boolean);
-        $('submissionSubmitHint').textContent = uncertain ? 'Check My Documents to reconcile the uncertain upload before retrying.'
+        $('submissionSubmitHint').textContent = !uploadCatalogReady ? 'Loading eligible document types for this research record...'
+            : uncertain ? 'Check My Documents to reconcile the uncertain upload before retrying.'
             : error || (v14UploadTypes !== null && !v14UploadTypes.length && !revisionDocument
                 ? 'No new document types are available. Check group activation and your current-stage checklist.'
                 : !entries.length ? 'Add documents to continue.'
@@ -762,7 +777,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 : `${entries.length} documents ready for review. Earlier versions stay in history.`);
         $('submissionSubmitHint').classList.toggle('has-error', Boolean(error || uncertain));
         submissionDropzone.classList.toggle('has-file', hasFiles);
-        submissionDropzone.disabled = uploading; submissionFile.disabled = uploading; cancelRevision.disabled = uploading;
+        submissionDropzone.disabled = uploading || !uploadCatalogReady;
+        submissionFile.disabled = uploading || !uploadCatalogReady;
+        cancelRevision.disabled = uploading;
         $('submissionNotesCount').textContent = `${submissionNotes.value.length} / 500`;
     }
     function renderQueue() {

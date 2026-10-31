@@ -12,6 +12,7 @@ module.exports=async h=>{
       await ctx.route(/^https:\/\/(?:fonts\.googleapis\.com|fonts\.gstatic\.com|cdnjs\.cloudflare\.com)\//,r=>r.fulfill({contentType:'text/css',body:''}));
       const page=await ctx.newPage();page.on('pageerror',e=>errors.push(String(e)));
       await page.goto(base+'/role_portal.php#submit');await page.evaluate(()=>document.querySelectorAll('.prism-tour-dialog').forEach(d=>d.close()));
+      await page.locator('#submissionForm[data-upload-catalog-ready="true"]').waitFor();
       const input=page.locator('#documentFile'),types=page.locator('[data-upload-type]'),button=page.locator('#submissionForm [type=submit]');
       await input.evaluate(node=>node.addEventListener('change',()=>{window.__batch3Files=[...node.files];},true));
       const file=name=>({name,mimeType:'application/pdf',buffer:pdf()});
