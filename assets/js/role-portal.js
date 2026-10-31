@@ -663,10 +663,27 @@ document.addEventListener('DOMContentLoaded', () => {
                 const stageAllowed = new Set(checklist.uploadTypes || []);
                 v14UploadTypes = checklist.requirements.filter(row =>
                     stageAllowed.has(row.label) && row.state === 'Missing').map(row => row.label);
-                const context = checklist.workflow.correctionCase?.interruptedStage || myRecord.stage;
-                const pending = checklist.requirements.filter(row => row.key !== 'amendment' && (context === 'initial_submission'
-                    ? row.stage === 'initial_submission' : ['form33','final_report'].includes(row.key)) && row.state !== 'Accepted');
-                myRecord.requirements = myRecord.stage === 'ierb_completed' || !pending.length ? 'None' : pending.map(row => row.label).join(', ');
+                // Count authoritative current-stage requirements, not a boolean summary.
+                // An RPMS-required Amendment Form is part of the official correction case;
+                // it must not disappear while an ordinary document revision is in progress.
+                const correction = checklist.workflow.correctionCase;
+                const current = myRecord.stage;
+                const pending = checklist.requirements.filter(row => {
+                    if (current === 'ierb_completed') return false;
+                    if (current === 'resubmission_amendment') {
+                        return (stageAllowed.has(row.label) || (row.key === 'amendment' && correction?.requiresAmendment))
+                            && row.state !== 'Accepted';
+                    }
+                    if (current === 'initial_submission') return row.stage === 'initial_submission' && row.state !== 'Accepted';
+                    if (current === 'approval_data_gathering') {
+                        return ['form33', 'final_report'].includes(row.key)
+                            && (row.key !== 'final_report' || stageAllowed.has(row.label))
+                            && row.state !== 'Accepted' && !(row.key === 'final_report' && row.state === 'Formally Submitted to RPMS');
+                    }
+                    return false;
+                });
+                myRecord.pendingRequirementsCount = pending.length;
+                myRecord.requirements = pending.length ? pending.map(row => row.label).join(', ') : 'None';
             } else {
                 // Fail closed if a canonical workflow cannot be read or if
                 // an approved assignment has not finished secure enrollment.
