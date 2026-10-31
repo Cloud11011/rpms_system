@@ -99,7 +99,6 @@ if (in_array($action, IERB_V14_OPERATIONS, true)) {
             if (array_key_exists($field,$p)) throw new AccountLifecycleValidation('Authoritative workflow fields cannot be supplied.');
         }
         json_out(match ($action) {
-            'v14_correction_request' => ierb_v14_request_correction($pdo,$user,$int('studentId'),$int('revision'),$str('reason'),$ids('documentIds'),(bool)($p['suggestAmendment'] ?? false),$str('requestKey')),
             'v14_correction_decide' => ierb_v14_decide_correction_request($pdo,$user,$int('studentId'),$int('revision'),$int('requestEventId'),$str('decision'),$str('reason'),
                 ($p['decision'] ?? '') === 'approve' ? $bool('requiresAmendment') : false,$ids('documentIds',true),$str('requestKey')),
             'v14_correction_open' => ierb_v14_open_correction($pdo,$user,$int('studentId'),$int('revision'),$str('reason'),$ids('documentIds'),$bool('requiresAmendment'),$str('requestKey')),
