@@ -403,6 +403,7 @@ document.addEventListener('DOMContentLoaded', () => {
             ? `${stageIndex ? `Stage ${stageIndex} of ${STAGES.length} - ` : ''}${labelForStage(myRecord.stage)}` : 'No IERB record yet';
         const pendingCount = Number.isInteger(myRecord?.pendingRequirementsCount) ? myRecord.pendingRequirementsCount
             : myRecord?.requirements && myRecord.requirements !== 'None' ? 1 : 0;
+        const correctionOpen = Boolean(myRecord?.officialCorrectionOpen);
         const latestDoc = myDocuments[0];
 
         $('welcomeName').textContent = body.dataset.name;
@@ -413,16 +414,16 @@ document.addEventListener('DOMContentLoaded', () => {
         renderDashboardProgress(stageIndex, progress, status);
         const pendingCard = $('dashboardPendingCard');
         const pendingIcon = $('dashboardPendingIcon');
-        pendingCard.classList.toggle('is-clear', !loadErrors.progress && pendingCount === 0);
-        pendingCard.classList.toggle('is-pending', !loadErrors.progress && pendingCount > 0);
+        pendingCard.classList.toggle('is-clear', !loadErrors.progress && pendingCount === 0 && !correctionOpen);
+        pendingCard.classList.toggle('is-pending', !loadErrors.progress && (pendingCount > 0 || correctionOpen));
         pendingCard.classList.toggle('is-unavailable', loadErrors.progress);
-        pendingIcon.className = `dashboard-pending-icon fa-solid ${loadErrors.progress || pendingCount > 0 ? 'fa-triangle-exclamation' : 'fa-circle-check'}`;
+        pendingIcon.className = `dashboard-pending-icon fa-solid ${loadErrors.progress || pendingCount > 0 || correctionOpen ? 'fa-triangle-exclamation' : 'fa-circle-check'}`;
         $('dashboardPendingTitle').textContent = loadErrors.progress ? 'Pending requirements unavailable'
-            : pendingCount === 0 ? 'You have no pending requirements'
+            : pendingCount === 0 ? (correctionOpen ? 'Official resubmission in progress' : 'You have no pending requirements')
                 : `${pendingCount} pending requirement${pendingCount === 1 ? '' : 's'}`;
         $('dashboardPendingDescription').textContent = loadErrors.progress
             ? 'Your progress could not be loaded. Please try again shortly.'
-            : pendingCount === 0 ? "You're all caught up. Tap to review past requirements."
+            : pendingCount === 0 ? (correctionOpen ? 'RPMS is reviewing the official correction case. Open your checklist for updates.' : "You're all caught up. Tap to review past requirements.")
                 : 'Tap to review the requirements and actions still needed.';
         $('dashboardSubmissionValue').innerHTML = loadErrors.documents ? 'Unavailable' : dashboardDocumentTotal
             ? `${dashboardDocumentTotal} <small>${dashboardDocumentTotal === 1 ? 'document' : 'documents'}</small>` : 'Nothing uploaded yet';
@@ -453,13 +454,14 @@ document.addEventListener('DOMContentLoaded', () => {
             ? `Stage ${stageIndex} of ${STAGES.length}` : 'No IERB stage assigned yet';
         const hasPendingRequirement = Boolean(myRecord?.requirements && myRecord.requirements !== 'None');
         const actionStatus = $('progressActionStatus');
-        actionStatus.classList.toggle('is-pending', hasPendingRequirement || myRecord?.status === 'Delayed');
+        actionStatus.classList.toggle('is-pending', hasPendingRequirement || correctionOpen || myRecord?.status === 'Delayed');
         actionStatus.classList.toggle('is-unavailable', loadErrors.progress || !myRecord);
-        actionStatus.querySelector('i').className = loadErrors.progress || !myRecord || hasPendingRequirement || myRecord?.status === 'Delayed'
+        actionStatus.querySelector('i').className = loadErrors.progress || !myRecord || hasPendingRequirement || correctionOpen || myRecord?.status === 'Delayed'
             ? 'fa-solid fa-circle-exclamation' : 'fa-solid fa-circle-check';
         actionStatus.querySelector('span').textContent = loadErrors.progress ? 'Your current requirements could not be loaded.'
             : !myRecord ? 'No current IERB record is available.'
                 : hasPendingRequirement ? `Pending requirement: ${myRecord.requirements}`
+                    : correctionOpen ? 'Official resubmission is in progress. Review the checklist for your next action.'
                     : myRecord.status === 'Delayed' ? 'Your progress is delayed. Please check with your adviser.'
                         : 'Nothing is needed from you right now.';
         $('progressResearchTitle').textContent = myRecord?.research || 'Not recorded';
@@ -669,6 +671,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 // it must not disappear while an ordinary document revision is in progress.
                 const correction = checklist.workflow.correctionCase;
                 const current = myRecord.stage;
+                myRecord.officialCorrectionOpen = current === 'resubmission_amendment' && Boolean(correction);
                 const pending = checklist.requirements.filter(row => {
                     if (current === 'ierb_completed') return false;
                     if (current === 'resubmission_amendment') {
