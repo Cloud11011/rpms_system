@@ -150,7 +150,8 @@ module.exports=h=>{
           const identity=require('node:crypto').createHash('sha256').update('Student|S6').digest('hex');
           await ctx.addInitScript(({theme,identity})=>{localStorage.setItem('prismTheme',theme);localStorage.setItem(`prismTour.student.${identity}.v1`,'seen');},{theme,identity});
           await ctx.route(/^https:\/\/(?:fonts\.googleapis\.com|fonts\.gstatic\.com|cdnjs\.cloudflare\.com)\//,r=>r.fulfill({contentType:'text/css',body:''}));
-          const page=await ctx.newPage();await page.goto(h.base+'/role_portal.php#documents');
+          const page=await ctx.newPage();await page.goto(h.base+'/role_portal.php#submit');
+          await page.locator('#submissionForm[data-upload-catalog-ready="true"]').waitFor();
           await page.waitForFunction(()=>document.querySelector('#v14RequirementChecklist')?.textContent.includes('IERB Completed'));
           await page.locator('#v14RequirementChecklist').getByRole('button',{name:'Refresh requirements'}).click();
           await page.waitForFunction(()=>document.querySelector('#v14RequirementChecklist')?.textContent.includes('IERB Completed'));
