@@ -72,7 +72,9 @@ if (in_array($action, IERB_V14_OPERATIONS, true)) {
         if ($action === 'v14_correction_queue') { api_require_login('admin'); json_out(ierb_v14_correction_queue($pdo,$user)); }
         require_post_same_origin();
         require_session_generation(true);
-        api_require_login($action === 'v14_correction_request' ? 'adviser' : 'admin');
+        api_require_login('admin');
+        // The legacy Adviser request route is deliberately retired; only RPMS may initiate resubmissions.
+        if ($action === 'v14_correction_request') json_out(['ok'=>false,'message'=>'Adviser correction requests are retired. RPMS Administrators initiate official resubmissions directly.'],410);
         $p = lifecycle_decode_body(file_get_contents('php://input'));
         $int = static function(string $k) use ($p): int {
             if (!isset($p[$k]) || !is_int($p[$k]) || $p[$k] < 0) throw new AccountLifecycleValidation('Provide a valid '.$k.'.');
