@@ -49,6 +49,9 @@ check('Upload catalog waits for authorized eligibility',client.includes("uploadC
 check('Queued selectors rebuild when V14 eligibility changes',client.includes('renderQueue();')
   && client.includes("entry.type && !v14UploadTypes.includes(entry.type)"));
 check('Student has stage checklist shortcut',src('assets/js/ierb-requirements.js').includes('prism:upload-requirement'));
+check('Legacy Adviser document revision is never labeled official resubmission',
+  src('assets/js/prism-ui.js').includes("text: 'Revision Requested'")
+  && src('research_adviser.php').includes('value="Resubmission Requested">Request Revision</option>'));
 check('Only RPMS may initiate resubmissions',src('includes/ierb_v14_workflow.php').includes('Maximum of three official IERB resubmissions reached')
   && src('ierb_api.php').includes('Adviser correction requests are retired')
   && !src('assets/js/ierb-requirements.js').includes("add('Request correction case'"));
