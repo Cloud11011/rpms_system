@@ -207,7 +207,12 @@ module.exports = async h => {
     const replayBody = { studentId: 40, revision: Number(wf().revision), reason: 'Synthetic resolution attempt.', requestKey: replayKey };
     await expect(post(s.admin, 'v14_correction_resolve', replayBody), 409, 'Resolution stays validated on retry');
     check(sql("SELECT COUNT(*) n FROM ierb_workflow_events WHERE event_key='open_correction'")[0].n >= 1 && sql("SELECT COUNT(*) n FROM ierb_correction_cases WHERE resolved_at IS NULL")[0].n === 1, 'Exactly one open correction case exists');
-    fs.rmSync(flag, { force: true });
+    // V14 must stay activated for the retired legacy-route and V14 report checks below.
+    // The finally block removes this disposable fixture flag after all assertions.
+    const activeContract = await expect(response(await s.admin.get('/ierb_api.php?action=v14_contract')), 200,
+      'The isolated V14 contract is readable before retired-route assertions');
+    check(activeContract.body.operationsActivated === true,
+      'Legacy-route checks run with V14 HTTP operations explicitly activated');
 
     // --- 7R-D: Research Title policy (B7-F09), sorting (B7-F13) and AI report titles (B7-F08).
     const row = id => { const r = sql('SELECT * FROM students WHERE id=?', [id])[0]; return { id, studentId: r.student_id, name: r.full_name, email: r.email, groupId: r.research_group, academicUnitKey: r.academic_unit_key, programKey: r.program_key, yearLevel: r.year_level, academicYear: r.academic_year, requirements: r.requirements || '' }; };
