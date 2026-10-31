@@ -216,7 +216,7 @@
     const pickDocs = dialog => [...dialog.querySelectorAll('input[name="affected"]:checked')].map(input => input.value);
     const pickAmendment = dialog => dialog.querySelector('input[name="amendment"]:checked')?.value;
     if (role === 'admin' && pending) {
-      add('Approve request', async button => {
+      if (used < maximum) add('Approve request', async button => {
         const answer = await ask(host, { title: 'Approve correction request', confirmText: 'Approve and open case', reasonLabel: 'RPMS decision reason', reasonRequired: true, minReason: 5, maxReason: 1000,
           message: 'Approval opens the official Resubmission / Amendment case for the whole project.', extraHtml: amendmentChoice,
           collect: dialog => ({ amendment: pickAmendment(dialog) }), validate: values => values.amendment ? null : 'Decide whether an Amendment Form is required.' });
