@@ -138,7 +138,7 @@
           revise.addEventListener('click', () => document.dispatchEvent(new CustomEvent('prism:upload-revision', {
             detail: { id: row.documentId, originalName: row.label,
               documentType: row.documentType || row.label, versionNo: row.versionNo,
-              stage: 'Stage 1', actions: { uploadRevision: true } }
+              stage: row.stage === 'initial_submission' ? 'Stage 1' : row.stage === 'resubmission_amendment' ? 'Stage 2' : 'Stage 3', actions: { uploadRevision: true } }
           })));
           item.append(revise);
         }
