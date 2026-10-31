@@ -401,7 +401,8 @@ document.addEventListener('DOMContentLoaded', () => {
         const status = loadErrors.progress ? 'Unavailable' : myRecord?.status || 'No record yet';
         const stageText = loadErrors.progress ? 'Unavailable' : myRecord
             ? `${stageIndex ? `Stage ${stageIndex} of ${STAGES.length} - ` : ''}${labelForStage(myRecord.stage)}` : 'No IERB record yet';
-        const pendingCount = myRecord && myRecord.requirements && myRecord.requirements !== 'None' ? 1 : 0;
+        const pendingCount = Number.isInteger(myRecord?.pendingRequirementsCount) ? myRecord.pendingRequirementsCount
+            : myRecord?.requirements && myRecord.requirements !== 'None' ? 1 : 0;
         const latestDoc = myDocuments[0];
 
         $('welcomeName').textContent = body.dataset.name;
