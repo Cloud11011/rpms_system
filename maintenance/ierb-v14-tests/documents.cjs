@@ -73,9 +73,9 @@ module.exports = async h => {
         try { await accept(key,docs[key],500); } finally { sql('DROP TRIGGER batch2_acceptance_fault'); }
         check(rev()===beforeRevision&&!sql("SELECT id FROM ierb_workflow_events WHERE event_key='requirement_accepted'").length,'RPMS acceptance audit failure rolls back its decision, evidence and revision');
       }
-      if (key!=='protocol') await accept(key,docs[key]);
+      if (key!=='protocol' && key!=='payment') await accept(key,docs[key]);
     }
-    check(state().stage_key==='initial_submission','Twelve accepted requirements cannot advance Stage 1');
+    check(state().stage_key==='initial_submission','Eleven accepted requirements cannot advance Stage 1');
     if(process.env.PRISM_TEST_REPORT_SCHEMA14==='1'){
       const privacy=JSON.parse(cp.execFileSync(php,[path.join(root,'maintenance/ierb-report-tests/fixture.php')],{input:JSON.stringify({action:'privacy',documentId:docs.protocol}),encoding:'utf8',windowsHide:true}));
       check(privacy.ok&&privacy.result.includes(sql('SELECT full_name FROM students WHERE id=6')[0].full_name),'Canonical investigator identities remain de-identified even if a legacy group label is stale');
@@ -99,6 +99,30 @@ module.exports = async h => {
     check(state().stage_key==='resubmission_amendment','All 13 accepted during correction do not create forward progress');
     const earlyResolution=cli({action:'resolve',revision:rev(),key:crypto.randomUUID()});
     check(earlyResolution.ok&&earlyResolution.result.stage==='initial_submission'&&earlyResolution.result.progress===0,'Initial correction resumes Initial Submission before normal advancement');
+    // The NEW bulk endpoint must accept the formally submitted Payment Receipt and
+    // reconfirm current Study Protocol in the same transaction. The suite checks
+    // role denial, atomic rollback, stale version, replay, and revision increments.
+    const bulkItems=[{requirementKey:'payment',documentId:docs.payment},{requirementKey:'protocol',documentId:docs.protocol}];
+    const bulkBase={studentId:4,items:bulkItems,revision:rev(),reason:'Synthetic RPMS verified two current Initial Submission requirements',requestKey:crypto.randomUUID()};
+    const bulkPost=(actor,data)=>post(actor,'accept_requirements_bulk',data,'documents_api.php');
+    for(const actor of [s.student,s.adviser])await expect(bulkPost(actor,bulkBase),403,'Only RPMS may bulk-accept document requirements');
+    await expect(bulkPost(s.admin,{...bulkBase,items:[bulkItems[0],bulkItems[0]]}),422,'Bulk acceptance rejects duplicate requirement keys');
+    await expect(bulkPost(s.admin,{...bulkBase,items:[{requirementKey:'form33',documentId:docs.payment}]}),422,'Bulk acceptance excludes institutional Form 33');
+    const revisionBeforeBulk=rev();
+    const acceptedBeforeBulk=sql("SELECT COUNT(*) AS n FROM ierb_workflow_events WHERE event_key IN ('requirement_accepted','requirement_reconfirmed')")[0].n;
+    sql("CREATE TRIGGER batch2_bulk_fault BEFORE INSERT ON activity_logs FOR EACH ROW BEGIN IF NEW.action='ierb_v14_requirement_accepted' THEN SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT='Synthetic bulk acceptance audit failure'; END IF; END");
+    try { await expect(bulkPost(s.admin,bulkBase),500,'Injected RPMS bulk acceptance audit failure rejects entire transaction'); }
+    finally {sql('DROP TRIGGER batch2_bulk_fault');}
+    check(rev()===revisionBeforeBulk
+      && sql("SELECT COUNT(*) AS n FROM ierb_workflow_events WHERE event_key IN ('requirement_accepted','requirement_reconfirmed')")[0].n===acceptedBeforeBulk,
+      'Failed bulk acceptance rolls back both document events and workflow revision');
+    const bulk=await expect(bulkPost(s.admin,bulkBase),200,'RPMS bulk-accepts two current Initial Submission requirements');
+    check(bulk.body.acceptedCount===2 && rev()===revisionBeforeBulk+2
+      && (await checklist()).body.requirements.find(x=>x.key==='payment').state==='Accepted',
+      'Bulk acceptance stores two audited decisions and updates accepted checklist states atomically');
+    const bulkReplay=await expect(bulkPost(s.admin,bulkBase),200,'Duplicate bulk request replays committed result');
+    check(bulkReplay.body.acceptedCount===2&&rev()===revisionBeforeBulk+2,'Replayed bulk request creates no additional events');
+    await expect(bulkPost(s.admin,{...bulkBase,requestKey:crypto.randomUUID()}),409,'Stale bulk revision cannot accept a changed project');
     // Independent connections accepting the last requirement serialize and persist one result.
     const payload={action:'accept',requirementKey:'protocol',documentId:docs.protocol,revision:rev(),key:'batch2-concurrent-acceptance-0001'};
     const hold=worker({action:'hold'});await h.locked(hold);
