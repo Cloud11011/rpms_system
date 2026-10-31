@@ -171,6 +171,9 @@ module.exports = async h => {
           const dialog = page.locator('.v14-checklist-dialog'); await dialog.waitFor({ timeout: 10000 });
           await dialog.getByText('Official RPMS resubmissions: 0 of 3 used', { exact: false }).waitFor({ timeout: 10000 });
           const forbidden = await page.getByRole('button', { name: 'Request correction case' }).count();
+          const revisionBadge = await page.evaluate(() => window.PrismUI.badge('Resubmission Requested'));
+          check(revisionBadge.includes('Revision Requested') && !revisionBadge.includes('>Resubmission Requested<'),
+            width + 'px ' + view.role + ': legacy review enum renders as Revision Requested, not official IERB resubmission');
           const action = dialog.getByRole('button', { name: 'Open official resubmission' });
           const accessible = await action.count();
           const piText = await dialog.innerText();
