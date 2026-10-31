@@ -34,7 +34,7 @@
         const visible = data.requirements.filter(row => stageKey === 'initial_submission'
           ? row.stage === 'initial_submission'
           : stageKey === 'resubmission_amendment'
-            ? allowed.has(row.label) || row.key === 'amendment' && data.workflow.correctionCase?.requiresAmendment
+            ? allowed.has(row.label) || allowed.has(row.documentType) || row.key === 'amendment' && data.workflow.correctionCase?.requiresAmendment
             : stageKey === 'approval_data_gathering'
               ? ['form33', 'final_report'].includes(row.key)
               : true);
