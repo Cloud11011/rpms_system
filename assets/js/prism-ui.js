@@ -116,6 +116,9 @@
   // ------------------------------------------------------------------ badges
   function badge(label, opts) {
     opts = opts || {};
+    // Stored pre-V14 review status remains unchanged; never label an ordinary
+    // Adviser document revision as an official RPMS IERB resubmission.
+    if (label === 'Resubmission Requested' && opts.text == null) opts = { ...opts, text: 'Revision Requested' };
     const meta = BADGES[label] || (/^Stage \d/.test(label) ? ['neutral', 'fa-layer-group'] : ['neutral', 'fa-circle']);
     const text = opts.text != null ? opts.text : label;
     const title = opts.title || TIPS[label] || '';
@@ -547,7 +550,7 @@
         const items = data.versions.map(function (v) {
           return '<li><div><strong>Version ' + esc(v.versionNo) + (v.isCurrent ? ' (current)' : '') + '</strong>' +
             '<small>' + esc(v.originalName) + ' \u00b7 uploaded ' + esc(fmtDate(v.uploadedAt)) + ' by ' + esc(v.uploadedBy) + '</small>' +
-            (v.reviewedAt ? '<small>Reviewed: ' + esc(v.reviewStatus) + ' by ' + esc(v.reviewedBy) + ' · ' + esc(fmtDate(v.reviewedAt)) + '</small>' : '') +
+            (v.reviewedAt ? '<small>Reviewed: ' + esc(v.reviewStatus === 'Resubmission Requested' ? 'Revision Requested' : v.reviewStatus) + ' by ' + esc(v.reviewedBy) + ' · ' + esc(fmtDate(v.reviewedAt)) + '</small>' : '') +
             (v.rpmsSubmittedAt ? '<small>Formally submitted: ' + esc(fmtDate(v.rpmsSubmittedAt)) + ' by ' + esc(v.rpmsSubmittedBy) + '</small>' : '') +
             (v.rpmsReturnedAt ? '<small>RPMS returned for revision: ' + esc(fmtDate(v.rpmsReturnedAt)) + ' by ' + esc(v.rpmsReturnedBy) + '. Reason: ' + esc(v.rpmsReturnReason) + '</small>' : '') +
             (v.adminOverride ? '<small>Admin Override by '+esc(v.overrideBy)+' at '+esc(fmtDate(v.overrideAt))+'. Reason: '+esc(v.overrideReason)+'</small>' : '') +
