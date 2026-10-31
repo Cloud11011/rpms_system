@@ -672,7 +672,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 const pending = checklist.requirements.filter(row => {
                     if (current === 'ierb_completed') return false;
                     if (current === 'resubmission_amendment') {
-                        return (stageAllowed.has(row.label) || (row.key === 'amendment' && correction?.requiresAmendment))
+                        return (stageAllowed.has(row.label) || stageAllowed.has(row.documentType) || (row.key === 'amendment' && correction?.requiresAmendment))
                             && row.state !== 'Accepted';
                     }
                     if (current === 'initial_submission') return row.stage === 'initial_submission' && row.state !== 'Accepted';
