@@ -1,11 +1,8 @@
 <?php
 require __DIR__ . '/config.php';
 $authUser = require_login('admin');
-// V14's verified project reports replace the legacy per-Student AI report page.
-if (defined('PRISM_IERB_V14_OPERATIONS') && PRISM_IERB_V14_OPERATIONS === true) {
-    header('Location: reports.php', true, 302);
-    exit;
-}
+// The existing AI report interface is retained. In V14 mode the endpoint
+// summarizes canonical research projects rather than legacy Student records.
 $user_email = $authUser['email'];
 ?>
 <!DOCTYPE html>
@@ -37,7 +34,7 @@ $user_email = $authUser['email'];
 <?php if ($authUser['role'] === 'admin'): ?></aside><?php else: ?></header><?php endif; ?>
     <main class="main-content management-page">
         <header class="topbar">
-            <div><h1>AI Progress Reports</h1></div>
+            <div><h1><?= defined('PRISM_IERB_V14_OPERATIONS') && PRISM_IERB_V14_OPERATIONS === true ? 'AI V14 Project Progress Reports' : 'AI Progress Reports' ?></h1></div>
             <div class="top-controls"><button type="button" class="theme-toggle" id="themeToggle" title="Toggle light or dark theme" aria-label="Toggle light or dark theme"><i class="fa-solid fa-sun light-icon" aria-hidden="true"></i><i class="fa-solid fa-moon dark-icon" aria-hidden="true"></i></button></div>
         </header>
 

@@ -227,7 +227,8 @@ module.exports = async h => {
     await expect(response(await s.admin.get('/reports_api.php?action=list&sort=random')), 422, 'Unsupported report sort orders are refused');
     const generated = await expect(post(s.admin, 'ai_report', { mode: 'full' }, 'reports_api.php'), 200, 'AI Full report generates');
     const text = fx({ action: 'pdf-text', filename: 'ai_v2_' + generated.body.report.id + '.pdf' }).text;
-    check(text.includes('Research Title') && text.includes('Batch 7R Outsider Study') && text.includes('Peñaflor') && text.includes('each counted once'), 'The AI report prints Research Titles (with diacritics) and counts canonical projects once');
+    check(text.includes('Canonical research projects') && text.includes('Peñaflor') && text.includes('each counted once') && !text.includes('Batch 7R Outsider Study'),
+      'V14 AI report contains canonical research titles with accents, counts projects once, and excludes unrelated legacy Student records');
     check(text.includes('Limitations and human verification'), 'The AI report states its limitations and the human verification step');
     const newest = (await response(await s.admin.get('/reports_api.php?action=list'))).body.reports[0];
     check(newest?.id === generated.body.report.id && reportsList.status === 200, 'Reports default to newest generated first');

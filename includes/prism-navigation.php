@@ -60,7 +60,7 @@ $prismNavGroups = [
     'Reporting' => ['Reports & Communication', 'fa-chart-line', [
         ...($authUser['role'] === 'admin'
             ? ((defined('PRISM_IERB_V14_OPERATIONS') && PRISM_IERB_V14_OPERATIONS === true)
-                ? [['reports.php', 'V14 Project Reports'], ['data_export.php', 'Data Export']]
+                ? [['admin_ai.php', 'AI V14 Project Reports'], ['reports.php', 'V14 Project Reports'], ['data_export.php', 'Data Export']]
                 : [['admin_ai.php', 'AI Progress Reports'], ['reports.php', 'Generated Reports'], ['data_export.php', 'Data Export']])
             : []),
         ['admin_notifications.php', 'Notifications'],

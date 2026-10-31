@@ -85,8 +85,96 @@ const AI_SUMMARY_PROMPT = "Write a concise IERB progress snapshot for RPMS staff
 const AI_FULL_PROMPT = "Write an IERB progress review for RPMS staff, up to 450 words; cover observed stage/status distribution, "
     . "recorded data limitations and optional checks. Do not pad sparse data. " . AI_REPORT_RULES;
 
+/** An independently scoped V14 project-level AI report.
+ * Provider receives aggregates only; no Student, Adviser, title, identifier,
+ * notes, source document or personal data is transmitted to the AI provider.
+ */
+function v14_report_projects(PDO $pdo): array
+{
+    if (!research_projects_available($pdo) || !ierb_v14_schema_available($pdo)) {
+        throw new AccountLifecycleConflict('V14 reporting requires the canonical project and workflow schemas.');
+    }
+    return $pdo->query("SELECT p.id,p.research_title,p.public_identifier,w.stage_key,w.revision,
+        h.academic_year,(SELECT COUNT(*) FROM research_project_members m WHERE m.project_id=p.id) AS member_count
+        FROM research_projects p
+        JOIN ierb_workflows w ON w.id=p.workflow_id
+        JOIN students h ON h.id=p.submission_holder_id
+        WHERE h.archived_at IS NULL
+        ORDER BY p.research_title,p.id")->fetchAll(PDO::FETCH_ASSOC);
+}
+function v14_report_ai_facts(array $projects): string
+{
+    $counts=[]; $memberTotal=0;
+    foreach ($projects as $p) {
+        $stage=(string)$p['stage_key'];
+        if (!isset(IerbStage::LABELS[$stage])) throw new AccountLifecycleConflict('The project report encountered an unknown workflow stage.');
+        $counts[IerbStage::LABELS[$stage]]=($counts[IerbStage::LABELS[$stage]]??0)+1;
+        $memberTotal+=(int)$p['member_count'];
+    }
+    return json_encode(['scope'=>'verified canonical V14 research projects, counted once per project',
+        'projectCount'=>count($projects),'verifiedGroupMemberships'=>$memberTotal,
+        'stageCounts'=>$counts,
+        'limitations'=>'A current workflow stage alone does not prove approval, delay or compliance. No personal or document-level data is provided.'],
+        JSON_THROW_ON_ERROR);
+}
+function v14_report_ai_lines(PDO $pdo, array $projects, bool $usedAi, string $narrative): array
+{
+    $facts=json_decode(v14_report_ai_facts($projects),true,512,JSON_THROW_ON_ERROR);
+    $rows=[];
+    foreach ($facts['stageCounts'] as $label=>$count) $rows[]=[$label,(string)$count];
+    $rows[]=['Total canonical research projects',(string)$facts['projectCount']];
+    $lines=[
+        $usedAi?'Narrative source: AI-assisted; verify against the project evidence.':'Narrative source: Local aggregate fallback (AI unavailable).',
+        'Scope: authoritative enrolled V14 research projects. Each canonical project is counted once regardless of group size. Historical Student records are excluded from these project counts.',
+        'Only aggregate stage counts were transmitted to the AI provider. Research titles, protocol codes, member identities, document contents and audit histories remain local.',
+        '# V14 project stage distribution',
+        ['headers'=>['Official V14 stage','Projects'],'widths'=>[370,142],'rows'=>$rows]
+    ];
+    return array_merge($lines,progress_canonical_project_table($pdo),
+        ['# Narrative',$narrative,
+        '# Limitations and human verification',
+        'Counts represent a point-in-time workflow snapshot, not a trend or proof of institutional ethics approval. A current stage is not sufficient to infer delays, compliance or missing requirements. RPMS must verify every conclusion against the project record before distribution.']);
+}
+function v14_generate_ai_report(PDO $pdo, array $user, string $mode): never
+{
+    if (!in_array($mode,AI_REPORT_MODES,true)) json_out(['ok'=>false,'message'=>'Invalid report mode.'],422);
+    $projects=v14_report_projects($pdo);
+    if (!$projects) json_out(['ok'=>false,'message'=>'No active canonical research projects are available to report.'],422);
+    $facts=v14_report_ai_facts($projects);
+    $prompt=($mode==='full'?'Write up to 450 words about the recorded canonical-project stage distribution. ':'Summarize the recorded canonical-project stage distribution in up to 180 words. ')
+        .'Use ONLY the supplied aggregate JSON. Do not infer deadlines, causes, eligibility, missing documents, ethics approval, trends or outcomes. Do not create names or examples. No tables.';
+    $narrative=openrouter_generate($prompt,$facts);
+    $forbiddenNames=$pdo->query('SELECT full_name FROM students WHERE archived_at IS NULL')->fetchAll(PDO::FETCH_ASSOC);
+    if ($narrative!==null && !ai_narrative_excludes_names($narrative,$forbiddenNames)) $narrative=null;
+    if ($narrative!==null) { $narrative=strip_report_markdown_tables($narrative); if ($narrative==='') $narrative=null; }
+    $usedAi=$narrative!==null;
+    if (!$usedAi) $narrative='The report covers '.count($projects).' canonical research projects. '
+        .'The stage counts above come directly from PRISM project records, not AI estimates. '
+        .'Review individual project evidence before any institutional decision.';
+    $title=$mode==='full'?'AI Full V14 Project Progress Report':'AI Summary V14 Project Progress Report';
+    $lines=v14_report_ai_lines($pdo,$projects,$usedAi,$narrative);
+    $reportId=bin2hex(random_bytes(12)); $filename='ai_v2_'.$reportId.'.pdf';
+    if (file_put_contents(REPORTS_DIR.DIRECTORY_SEPARATOR.$filename,make_pdf($title,$lines),LOCK_EX)===false) {
+        json_out(['ok'=>false,'message'=>'PDF could not be generated.'],500);
+    }
+    $type=$mode==='full'?'AI Full Report':'AI Summarized Report'; $outcome=null;
+    try {
+        // An institution-wide aggregate has no single Student owner. Its fixed
+        // factual PDF is retained as an audit snapshot at generation time.
+        report_persist_snapshot($pdo,[],[':id'=>$reportId,':title'=>$title,':type'=>$type,
+            ':file'=>$filename,':by'=>$user['full_name'],':uid'=>$user['id']],null,$outcome);
+    } catch (Throwable $error) {
+        if (in_array($outcome,['not_started','rolled_back'],true)) @unlink(REPORTS_DIR.DIRECTORY_SEPARATOR.$filename);
+        json_out(['ok'=>false,'message'=>'The project report outcome could not be confirmed. Refresh report history before retrying.'],500);
+    }
+    audit_log($user,'ai_report_generated',['entity_type'=>'report','entity_id'=>$reportId,
+        'after'=>$mode,'details'=>'Scope: canonical V14 projects. External model used: '.($usedAi?'yes':'no')]);
+    json_out(['ok'=>true,'report'=>['id'=>$reportId,'name'=>$title,'type'=>$type,
+        'generatedAt'=>date(DATE_ATOM)],'aiUsed'=>$usedAi]);
+}
+
 if ($action === 'ai_report') {
-    if (ierb_v14_http_operations_enabled()) json_out(['ok'=>false,'message'=>'Legacy AI progress generation has been retired. Use V14 project and institutional reports.'],409);
+    if (ierb_v14_http_operations_enabled()) v14_generate_ai_report($pdo,$user,(string)($data['mode']??''));
     $mode = trim((string)($data['mode'] ?? ''));
     if (!in_array($mode, AI_REPORT_MODES, true)) {
         json_out(['ok' => false, 'message' => 'Invalid report mode.'], 422);
