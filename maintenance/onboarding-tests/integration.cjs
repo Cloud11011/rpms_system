@@ -49,7 +49,14 @@ module.exports=async h=>{
  await expect(post(s.admin,'save',{...first.p,id:first.id,groupId:'',research:'Silent IERB pending replacement'},'ierb_api.php'),409,'IERB record editing cannot silently replace an approved pending research title');
  check(fx({action:'gated-activate',id:first.id}).state==='pending'&&!project(first.id),'An eligible account cannot bypass the existing institutional activation gate');
  sql("UPDATE users SET must_change_password=1 WHERE email='adviser2@example.test'");
- try{check(activate(first.id).state==='pending'&&!project(first.id),'Incomplete Adviser password setup defers project creation');}finally{sql("UPDATE users SET must_change_password=0 WHERE email='adviser2@example.test'");}
+ try {
+  // Administrator-approved assignment belongs to the eligible Student. An
+  // Adviser's independent password setup must never block group enrollment.
+  const activated = activate(first.id), created = project(first.id);
+  check(activated.state==='activated' && !!created && created.stage_key==='initial_submission'
+    && count()===initialCount+1,
+    'Eligible Student creates one canonical project even while Adviser password setup is incomplete');
+ } finally { sql("UPDATE users SET must_change_password=0 WHERE email='adviser2@example.test'"); }
  const active=activate(first.id),p=project(first.id);
  check(active.state==='activated' && p.stage_key==='initial_submission','Eligible first Add Student automatically creates Initial Submission');
  check(p.public_identifier.startsWith('onboarding-penaflor') && !p.public_identifier.endsWith('-'),'Full accented title is preserved with a safe title-derived internal identifier');
