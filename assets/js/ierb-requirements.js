@@ -23,6 +23,11 @@
         host.append(pi);
       }
       host.append(scope, refresh);
+      const used = Number(data.workflow.officialResubmissionCount || 0);
+      const limit = Number(data.workflow.officialResubmissionLimit || 3);
+      const cycleInfo = document.createElement('p'); cycleInfo.className = 'v14-resubmission-usage';
+      cycleInfo.textContent = `Official RPMS resubmissions: ${used} of ${limit} used. Ordinary Adviser document revisions do not count.`;
+      host.append(cycleInfo);
       if (portalChecklist) {
         const allowed = new Set(data.uploadTypes || []);
         const stageKey = data.workflow.stage;
