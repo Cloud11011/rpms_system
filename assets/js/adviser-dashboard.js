@@ -185,7 +185,7 @@ document.addEventListener('DOMContentLoaded', () => {
             field(meta, 'Document ID', doc.id);
             field(meta, 'Uploaded by', doc.uploadedBy);
             field(meta, 'RPMS submission', doc.rpmsSubmittedAt ? 'Submitted to RPMS · '+dateText(doc.rpmsSubmittedAt) : 'Not submitted to RPMS');
-            if(doc.reviewStatus&&doc.reviewStatus!==doc.workflowState)field(meta, 'Adviser review decision', doc.reviewStatus);
+            if(doc.reviewStatus&&doc.reviewStatus!==doc.workflowState)field(meta, 'Adviser review decision', doc.reviewStatus==='Resubmission Requested'?'Revision Requested':doc.reviewStatus);
             const details = node('details', null, 'adviser-document-details');
             const summary = node('summary', null);
             summary.append(node('span','Show details and remarks'));
