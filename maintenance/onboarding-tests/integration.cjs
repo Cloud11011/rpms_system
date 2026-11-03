@@ -15,7 +15,8 @@ module.exports=async h=>{
  const a={academicUnitKey:'amt',programKey:'bsit',yearLevel:'4th Year',academicYear:'2026-2027'};
  const tag=Date.now().toString().slice(-7),code1='CEU-IERB-2026-ONB001-'+tag,code2='CEU-IERB-2026-ONB002-'+tag;
  let serial=81000000+Number(tag)*100;
- const payload=(extra={})=>{const n=++serial;return {id:0,studentId:String(n),name:'Onboarding Student '+n,email:'onboarding'+n+'@example.test',research:'Onboarding Peñaflor: café, santé & community research '+tag,group:'__create__',adviserId:2,stage:'Stage 1',status:'On Track',...a,...extra};};
+ const formattedId=n=>'2023-'+String(n%100000).padStart(5,'0');
+ const payload=(extra={})=>{const n=++serial;return {id:0,studentId:formattedId(n),name:'Onboarding Student '+n,email:'onboarding'+n+'@example.test',research:'Onboarding Peñaflor: café, santé & community research '+tag,group:'__create__',adviserId:2,stage:'Stage 1',status:'On Track',...a,...extra};};
  const saved=async(p,label)=>{const r=await expect(post(s.admin,'save',p,'students_api.php'),200,label);return {id:r.body.id,p};};
  const ready=id=>fx({action:'ready',id});
  const activate=id=>fx({action:'activate',id});
@@ -133,7 +134,7 @@ module.exports=async h=>{
  await expect(update(p,'title',first.p.research+' - reviewed'),200,'Official research title changes use the audited group operation');
  check(sql('SELECT DISTINCT research_title FROM students WHERE id IN (?,?,?)',[first.id,second.id,third.id]).map(r=>r.research_title).join()===first.p.research+' - reviewed','Shared research title changes reach every member');
  check(sql('SELECT snapshot_sha256 FROM ierb_report_snapshots WHERE report_id=?',[report.body.report.id])[0].snapshot_sha256===snapshot.snapshot_sha256,'Title and Adviser corrections preserve historical report snapshots');
- const invite=async(extra,label)=>{const n=++serial;const r=await expect(post(s.admin,'invite',{accountType:'student',email:'invited'+n+'@example.test',group:'__create__',research:'Invited research '+n,adviserId:2,...a,...extra},'account_invitation_api.php'),200,label);return {id:r.body.id,email:'invited'+n+'@example.test',studentId:String(n)};};
+ const invite=async(extra,label)=>{const n=++serial;const r=await expect(post(s.admin,'invite',{accountType:'student',email:'invited'+n+'@example.test',group:'__create__',research:'Invited research '+n,adviserId:2,...a,...extra},'account_invitation_api.php'),200,label);return {id:r.body.id,email:'invited'+n+'@example.test',studentId:formattedId(n)};};
  const invited=await invite({},'Invite Student stores a new-group assignment with secure invitation');
  check(!project(invited.id) && sql('SELECT COUNT(*) n FROM research_onboarding_assignments WHERE student_id=?',[invited.id])[0].n===1,'An abandoned invitation owns no project and grants no shared access');
  const token=fx({action:'token',id:invited.id}).token;
@@ -162,7 +163,7 @@ module.exports=async h=>{
  const adviserInvite=await expect(post(s.adviser,'invite',{accountType:'student',email:'adviser-invited-'+tag+'@example.test'},'account_invitation_api.php'),200,'Existing Adviser invitation capability is retained');
  check(!assign(adviserInvite.body.id)&&!project(adviserInvite.body.id),'Adviser invitation alone never approves official canonical project membership');
  fx({action:'accept',token:fx({action:'token',id:adviserInvite.body.id}).token});ready(adviserInvite.body.id);const adviserInvitedCtx=await login('adviser-invited-'+tag+'@example.test');
- await expect(post(adviserInvitedCtx,'complete',{name:'Adviser Invited Synthetic Student',studentId:String(++serial),...a,research:'Typed title cannot grant project membership'},'account_invitation_api.php'),200,'An Adviser-invited Student can complete the existing account workflow');
+ await expect(post(adviserInvitedCtx,'complete',{name:'Adviser Invited Synthetic Student',studentId:formattedId(++serial),...a,research:'Typed title cannot grant project membership'},'account_invitation_api.php'),200,'An Adviser-invited Student can complete the existing account workflow');
  check(!project(adviserInvite.body.id),'A completed profile and typed title never invent canonical membership');
  await expect(upload(adviserInvitedCtx,'Study Protocol'),409,'An Adviser invitation cannot start a competing individual submission before RPMS research approval');
  await expect(post(s.admin,'assign',{targetId:adviserInvite.body.id,group:'__create__',research:'RPMS reviewed Adviser invitation '+tag,adviserId:2,...a},'account_invitation_api.php'),200,'Admin may approve an eligible complete Student through the existing research-assignment controls');
