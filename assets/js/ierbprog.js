@@ -267,7 +267,9 @@
             const known = [/At least two/, /different official/, /Review the ineligible/, /standardized/];
             const extra = reasons.filter(r => !known.some(k => k.test(r)));
             const rows = [
-                [count >= 2, 'The group has at least 2 students', `Only ${count} student${count === 1 ? ' is' : 's are'} linked to this group. Group Advancement is for groups of 2 or more. Check that the other members were added with this exact group code, or advance the student on their own.`],
+                ...(data.identity?.project_id
+                    ? [[count >= 1, 'The project has a verified Student member', 'No verified Student is linked to this research project.']]
+                    : [[count >= 2, 'The legacy group has at least 2 students', `Only ${count} student${count === 1 ? ' is' : 's are'} linked to this legacy group. Verify its membership before advancing.`]]),
                 [blocked === 0, 'Every student can be advanced', `${blocked} student${blocked === 1 ? ' needs' : 's need'} attention. See the list below.`],
                 [!reasons.some(r => /different official/.test(r)), 'Everyone is at the same stage', 'Group members are at different official stages. Review their records first.'],
                 [!reasons.some(r => /standardized/.test(r)), 'The group code is valid', 'Legacy or inconsistent academic identifiers need record review.'],
