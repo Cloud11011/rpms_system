@@ -1,0 +1,21 @@
+﻿Running bootstrap
+Creating my.ini file
+Removing default user
+Setting root password
+Creation of the database was successful
+{
+    "database": "prism_group_synthetic_v11",
+    "server": "127.0.0.1:14072",
+    "legacy_collation": "utf8mb4_general_ci",
+    "version": "12.3.2-MariaDB",
+    "schema_version": "11",
+    "table_count": 23,
+    "exact_manifest_and_v11_structure": "PASS",
+    "source": "Full current v11 manifest plus present generated-column and singleton definitions; synthetic fixture, not a migration or deployed-schema snapshot."
+}
+Synthetic policy fixtures and valid academic groups prepared.
+02-foundation 0 {"status":"PASS","assertions":99}
+install15 0 {"ok":true,"result":{"dryRunUnchanged":true,"studentsPreserved":true,"catalog":["2025-2026","2026-2027","2027-2028"]}}
+06-schema15-ui 0 {"status":"PASS","assertions":134}
+07-schema15-7r 1 Advisers cannot read the RPMS request decision queue
+Disposable group test MariaDB stopped.

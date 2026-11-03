@@ -168,8 +168,8 @@ module.exports = async h => {
           const page = await ctx.newPage(); const errors = []; page.on('pageerror', e => errors.push(e.message));
           await page.goto(base + '/documents.php');
           await page.evaluate(() => window.PrismRequirements.open(40));
-          const dialog = page.locator('.v14-checklist-dialog'); await dialog.waitFor({ timeout: 10000 });
-          await dialog.getByText('Official RPMS resubmissions: 0 of 3 used', { exact: false }).waitFor({ timeout: 10000 });
+          const dialog = page.locator('dialog.prq-dialog'); // ZIP shared requirements dialog await dialog.waitFor({ timeout: 10000 });
+          await dialog.getByText('Official resubmissions: 0 of 3 used', { exact: false }).waitFor({ timeout: 10000 });
           const forbidden = await page.getByRole('button', { name: 'Request correction case' }).count();
           const revisionBadge = await page.evaluate(() => window.PrismUI.badge('Resubmission Requested'));
           check(revisionBadge.includes('Revision Requested') && !revisionBadge.includes('>Resubmission Requested<'),
@@ -184,10 +184,10 @@ module.exports = async h => {
             const fits = await confirm.evaluate(el => el.getBoundingClientRect().width <= innerWidth + 1);
             const hasFields = await confirm.locator('input[name="affected"]').count() > 0 && await confirm.locator('#prismReason').count() === 1;
             await page.keyboard.press('Escape'); await page.waitForTimeout(200);
-            check(fits && hasFields && !errors.length && forbidden === 0 && accessible === 1 && piText.includes('Principal Investigator'),
+            check(fits && hasFields && !errors.length && forbidden === 0 && accessible === 1 && /Principal investigator/i.test(piText),
               width + 'px: only RPMS sees a keyboard-accessible official resubmission dialog with affected documents, reason and PI');
           } else {
-            check(forbidden === 0 && accessible === 0 && !errors.length && piText.includes('Principal Investigator'),
+            check(forbidden === 0 && accessible === 0 && !errors.length && /Principal investigator/i.test(piText),
               width + 'px: Adviser sees shared requirements but no formal resubmission initiation action');
           }
           await page.screenshot({ path: path.join(evidence, 'official-resubmission-' + view.role + '-' + width + '.png') });
@@ -231,13 +231,13 @@ module.exports = async h => {
     // --- 7R-D: Research Title policy (B7-F09), sorting (B7-F13) and AI report titles (B7-F08).
     const row = id => { const r = sql('SELECT * FROM students WHERE id=?', [id])[0]; return { id, studentId: r.student_id, name: r.full_name, email: r.email, groupId: r.research_group, academicUnitKey: r.academic_unit_key, programKey: r.program_key, yearLevel: r.year_level, academicYear: r.academic_year, requirements: r.requirements || '' }; };
     for (const attemptedTitle of ['', 'ab', 'Batch 7R Outsider Study – Revised']) {
-      await expect(post(s.admin,'save',{...row(43),research:attemptedTitle},'ierb_api.php'),409,
-        'Legacy IERB title editing is read-only under active V14');
+      await expect(post(s.admin,'save',{...row(43),research:attemptedTitle},'ierb_api.php'),410,
+        'Retired legacy IERB title editing is refused (410)');
     }
     check(sql("SELECT research_title FROM students WHERE id=43")[0].research_title === 'Batch 7R Outsider Study'
       && !sql("SELECT id FROM activity_logs WHERE action='research_title_changed' AND entity_id='43'").length,
       'Rejected legacy IERB title edits preserve original data without audit mutations');
-    await expect(post(s.admin, 'save', { ...row(41), research: 'Unaudited canonical rename attempt' }), 409,
+    await expect(post(s.admin, 'save', { ...row(41), research: 'Unaudited canonical rename attempt' }), 410,
       'Canonical project titles cannot be changed by the retired individual-stage endpoint');
     // Closure (B7C-01): the Student Records edit path applies the same Research Title policy as IERB entry.
     // Same payload shape as the Student Records modal: the stored group is sent unchanged (row().groupId).

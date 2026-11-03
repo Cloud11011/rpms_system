@@ -17,6 +17,7 @@ $user_email = $authUser['email'];
     <link rel="stylesheet" href="<?php echo htmlspecialchars(asset_url('assets/css/admin-management.css'), ENT_QUOTES, 'UTF-8'); ?>">
     <link rel="stylesheet" href="<?php echo htmlspecialchars(asset_url('assets/css/reports.css'), ENT_QUOTES, 'UTF-8'); ?>">
     <link rel="stylesheet" href="<?php echo htmlspecialchars(asset_url('assets/css/prism-ui.css'), ENT_QUOTES, 'UTF-8'); ?>">
+    <link rel="stylesheet" href="<?php echo htmlspecialchars(asset_url('assets/css/report-records.css'), ENT_QUOTES, 'UTF-8'); ?>">
     <link rel="stylesheet" href="<?php echo htmlspecialchars(asset_url('assets/css/workspace-pages.css'), ENT_QUOTES, 'UTF-8'); ?>">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.6.0/css/all.min.css">
 <link rel="stylesheet" href="<?php echo htmlspecialchars(asset_url('assets/css/dashboard-sidebar.css'), ENT_QUOTES, 'UTF-8'); ?>">
@@ -34,26 +35,26 @@ $user_email = $authUser['email'];
 <?php if ($authUser['role'] === 'admin'): ?></aside><?php else: ?></header><?php endif; ?>
     <main class="main-content management-page">
         <header class="topbar">
-            <div><h1><?= defined('PRISM_IERB_V14_OPERATIONS') && PRISM_IERB_V14_OPERATIONS === true ? 'AI V14 Project Progress Reports' : 'AI Progress Reports' ?></h1></div>
+            <div><h1>AI Progress Reports</h1></div>
             <div class="top-controls"><button type="button" class="theme-toggle" id="themeToggle" title="Toggle light or dark theme" aria-label="Toggle light or dark theme"><i class="fa-solid fa-sun light-icon" aria-hidden="true"></i><i class="fa-solid fa-moon dark-icon" aria-hidden="true"></i></button></div>
         </header>
 
         <section class="report-tools ai-report-tools" aria-label="AI report types">
             <button class="report-tool" id="generateSummarizedReport">
                 <span class="report-tool-icon"><i class="fa-solid fa-file-lines"></i></span>
-                <span class="report-tool-copy"><span class="report-tool-kicker">Quick overview</span><strong>Generate Summarized Report</strong><small>A concise progress overview of all active students.</small></span>
+                <span class="report-tool-copy"><strong>Generate Summarized Report</strong></span>
                 <i class="fa-solid fa-arrow-right"></i>
             </button>
             <button class="report-tool" id="generateFullReport">
                 <span class="report-tool-icon"><i class="fa-solid fa-file-contract"></i></span>
-                <span class="report-tool-copy"><span class="report-tool-kicker">Complete analysis</span><strong>Generate Full Report</strong><small>A detailed analysis with complete progress information for all active students.</small></span>
+                <span class="report-tool-copy"><strong>Generate Full Report</strong></span>
                 <i class="fa-solid fa-arrow-right"></i>
             </button>
         </section>
         <p class="report-ai-note" id="reportAiNote" aria-live="polite"></p>
 
         <section class="management-card ai-history-card">
-            <div class="management-card-head"><div><h2>Generated AI Reports</h2><p id="aiHistoryCount">0 reports</p></div></div>
+            <div class="management-card-head"><div><h2>Generated AI Reports</h2><p id="aiHistoryCount">0 reports</p></div><div class="ai-report-selection-controls"><label><input id="aiSelectPage" type="checkbox" disabled> Select this page</label><span id="aiSelectedCount" aria-live="polite">0 selected</span><button id="aiDeleteSelected" type="button" class="prism-btn is-danger" aria-label="Delete selected reports" title="Delete selected reports" disabled><i class="fa-solid fa-trash-can" aria-hidden="true"></i></button></div></div>
             <div id="aiHistory" class="admin-history"></div>
         </section>
     <?php require __DIR__ . '/includes/ceu_footer.php'; ?>

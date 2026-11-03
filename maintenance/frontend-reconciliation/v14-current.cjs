@@ -138,6 +138,8 @@ module.exports=async h=>{
   check(!errors.length,'Current V14 browser matrix has no JavaScript errors: '+JSON.stringify(errors));
   await require('./current-pages.cjs')(h,browser);
   await require('./settings-pages.cjs')(h,browser);
-  fs.writeFileSync(path.join(review,'v14-current-results.json'),JSON.stringify({status:'PASS',assertions:h.checks.length-start,cases:h.checks.slice(start),scope:'Schema-15 synthetic canonical projects; actual PHP HTTP sessions and Chromium; no legacy HTTP workflow dependencies.'},null,2));
+  await require('./reports-pages.cjs')(h,browser);
+  await require('./security-audit.cjs')(h);
+  fs.writeFileSync(path.join(review,'v14-current-results.json'),JSON.stringify({status:'PASS',assertions:h.checks.length-start,cases:h.checks.slice(start),scope:'Schema-'+process.env.PRISM_TEST_SCHEMA_VERSION+' synthetic canonical projects; actual PHP HTTP sessions and Chromium; no legacy HTTP workflow dependencies.'},null,2));
  }finally{if(browser)await browser.close();await partner.dispose();}
 };

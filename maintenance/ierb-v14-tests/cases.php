@@ -42,7 +42,8 @@ try {
         check(migrate_schema_v12($pdo,'apply')['to']==='12', 'Additive migration applies to the canonical v11 fixture');
         schema_v12_verify($pdo); lifecycle_compare_schema($pdo);
         check(stage_guidance_available($pdo), 'Legacy stage guidance remains available on schema 12');
-        check(stage_configuration_list($pdo)['order']===STAGE_SEQUENCE, 'Existing stage configuration keeps every legacy identifier');
+        // Presentation is exclusively V14 (approved cleanup); stored legacy identifiers are verified byte for byte below.
+        check(stage_configuration_list($pdo)['order']===array_keys(stage_v14_guidance_keys()), 'Stage configuration presents exactly the four V14 stages');
         check(retained()===$before, 'Migration preserves all legacy Students, documents, histories and labels byte for byte');
         check(!rows('SELECT * FROM ierb_workflows'), 'Migration never maps or enrolls existing stage numbers');
         $after = lifecycle_schema_inventory($pdo); migrate_schema_v12($pdo,'apply');

@@ -1,5 +1,5 @@
 {
-  "passed": 264,
+  "passed": 272,
   "failed": 0,
   "scope": "PHP lint and standalone JavaScript parsing only; no runtime or visual claim.",
   "checks": [
@@ -720,6 +720,30 @@
       "status": "PASS"
     },
     {
+      "file": "maintenance/frontend-reconciliation/mail-provider-harness.php",
+      "status": "PASS"
+    },
+    {
+      "file": "maintenance/frontend-reconciliation/mail-provider-simulator.php",
+      "status": "PASS"
+    },
+    {
+      "file": "maintenance/frontend-reconciliation/notification-worker-child.php",
+      "status": "PASS"
+    },
+    {
+      "file": "maintenance/frontend-reconciliation/notification-worker-tests.php",
+      "status": "PASS"
+    },
+    {
+      "file": "maintenance/frontend-reconciliation/reports-pages.cjs",
+      "status": "PASS"
+    },
+    {
+      "file": "maintenance/frontend-reconciliation/security-audit.cjs",
+      "status": "PASS"
+    },
+    {
       "file": "maintenance/frontend-reconciliation/settings-fixture.php",
       "status": "PASS"
     },
@@ -737,6 +761,14 @@
     },
     {
       "file": "maintenance/frontend-reconciliation/v14-fixture.php",
+      "status": "PASS"
+    },
+    {
+      "file": "maintenance/frontend-reconciliation/visual-parity.cjs",
+      "status": "PASS"
+    },
+    {
+      "file": "maintenance/frontend-reconciliation/zip-long-status-probe.cjs",
       "status": "PASS"
     },
     {

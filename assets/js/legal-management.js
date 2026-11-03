@@ -4,18 +4,22 @@ document.addEventListener('DOMContentLoaded', () => {
     const tabs = [...document.querySelectorAll('[data-policy-tab]')];
     const panels = [...document.querySelectorAll('[data-policy-panel]')];
     const selected = document.getElementById('versionDetails')?.dataset.policy;
-    const initial = selected || new URLSearchParams(location.search).get('policy') || 'privacy';
+    const initial = selected || new URLSearchParams(location.search).get('policy') || location.hash.match(/^#history-(privacy|terms)$/)?.[1] || 'privacy';
     function activate(policy, focus = false) {
         if (!['privacy','terms'].includes(policy)) policy = 'privacy';
         if(selected && selected!==policy){document.querySelector(`[data-legal-cancel][data-policy="${policy}"]`)?.click();return;}
         tabs.forEach(tab => { const active=tab.dataset.policyTab===policy;tab.setAttribute('aria-selected',String(active));tab.tabIndex=active?0:-1;if(active&&focus)tab.focus(); });
         panels.forEach(panel => { panel.hidden=panel.dataset.policyPanel!==policy; });
+        const url=new URL(location.href);url.searchParams.set('policy',policy);
+        if (/^#history-(privacy|terms)$/.test(url.hash)) url.hash='history-'+policy;
+        history.replaceState(history.state,'',url);
     }
     tabs.forEach((tab,index) => {
         tab.addEventListener('click',()=>activate(tab.dataset.policyTab));
         tab.addEventListener('keydown',event=>{if(!['ArrowLeft','ArrowRight','Home','End'].includes(event.key))return;event.preventDefault();const n=event.key==='Home'?0:event.key==='End'?tabs.length-1:(index+(event.key==='ArrowRight'?1:-1)+tabs.length)%tabs.length;activate(tabs[n].dataset.policyTab,true);});
     });
     activate(initial);
+    document.querySelectorAll('[data-page-auto-submit] select').forEach(select=>select.addEventListener('change',()=>select.form.requestSubmit()));
     const form=document.querySelector('[data-legal-draft]');
     if(!form)return;
     const fields=[...form.querySelectorAll('input:not([type=hidden]),textarea')];

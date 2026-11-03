@@ -1,0 +1,67 @@
+﻿Running bootstrap
+Creating my.ini file
+Removing default user
+Setting root password
+Creation of the database was successful
+{
+    "database": "prism_group_synthetic_v11",
+    "server": "127.0.0.1:14064",
+    "legacy_collation": "utf8mb4_general_ci",
+    "version": "12.3.2-MariaDB",
+    "schema_version": "11",
+    "table_count": 23,
+    "exact_manifest_and_v11_structure": "PASS",
+    "source": "Full current v11 manifest plus present generated-column and singleton definitions; synthetic fixture, not a migration or deployed-schema snapshot."
+}
+Synthetic policy fixtures and valid academic groups prepared.
+{"ok":true,"result":{"projects":{"4":{"ok":true,"projectId":1,"identifier":"synthetic-v14-study-4","memberCount":2},"5":{"ok":true,"projectId":2,"identifier":"synthetic-v14-study-5","memberCount":1}},"schema":"15","catalog":{"ethics":["Certification of Ethics","initial_submission",["Certification of Ethics","Certificate of Ethics"]],"cv":["Curriculum Vitae","initial_submission",["Curriculum Vitae"]],"questionnaire":["Data Collection Questionnaire","initial_submission",["Data Collection Questionnaire"]],"workflow":["Diagrammatic Workflow","initial_submission",["Diagrammatic Workflow"]],"form11":["Form 11 Review Checklist","initial_submission",["Form 11 Review Checklist"]],"form12":["Form 12 Registration and Application Form","initial_submission",["Form 12 Registration and Application Form"]],"form13":["Form 13 Study Protocol Assessment Form","initial_submission",["Form 13 Study Protocol Assessment Form"]],"form14":["Form 14 Informed Consent Assessment Form","initial_submission",["Form 14 Informed Consent Assessment Form","Form 14 Informed Consent Assessment"]],"consent_english":["Informed Consent in English","initial_submission",["Informed Consent in English","Informed Consent - English"]],"consent_local":["Informed Consent in Local Language","initial_submission",["Informed Consent in Local Language","Informed Consent - Local Language"]],"letter":["Letter to IERB Chair","initial_submission",["Letter to IERB Chair"]],"payment":["Payment Receipt","initial_submission",["Payment Receipt","Payment"]],"protocol":["Study Protocol","initial_submission",["Study Protocol"]],"amendment":["Amendment Form","resubmission_amendment",["Amendment Form"]],"form33":["Form 33 - Certificate of Approval","approval_data_gathering",["Form 33 - Certificate of Approval"]],"final_report":["Form 33-0B - Final Report Form","ierb_completed",["Form 33-0B - Final Report Form"]]}}}
+Isolated database exactly matches schema v15
+Isolated copied PHP application serves HTTP
+Actual authenticated login admin@example.test
+Actual authenticated login adviser2@example.test
+Actual authenticated login student4@example.test
+admin can inspect the immutable, exclusively active V14 workflow contract
+admin has no V14 HTTP mutation bypass in Batch 1
+adviser can inspect the immutable, exclusively active V14 workflow contract
+adviser has no V14 HTTP mutation bypass in Batch 1
+student can inspect the immutable, exclusively active V14 workflow contract
+student has no V14 HTTP mutation bypass in Batch 1
+Shared server Student ID rule accepts "2026123456"
+Shared server Student ID rule accepts "0026123456"
+Shared server Student ID rule rejects "2026ABC123"
+Shared server Student ID rule rejects "STUDENT-123"
+Shared server Student ID rule rejects "2026 123"
+Shared server Student ID rule rejects "１２３"
+Shared server Student ID rule rejects "-123"
+Shared server Student ID rule rejects "12.5"
+Unchanged historical alphanumeric ID remains valid; a changed ID must be numeric
+Student profile completion rejects a non-numeric new Student ID before any write
+schema 15: Student Records rejects non-numeric new Student ID 2026ABC123
+schema 15: Retired IERB entry save is refused before validation for 2026ABC123
+schema 15: Student Records rejects non-numeric new Student ID STUDENT-123
+schema 15: Retired IERB entry save is refused before validation for STUDENT-123
+schema 15: Student Records rejects non-numeric new Student ID 2026 123
+schema 15: Retired IERB entry save is refused before validation for 2026 123
+schema 15: Rejected IDs create no Student or login rows
+schema 15: Valid numeric Student ID with leading zeros is saved
+schema 15: Leading zeros are preserved in the Student record and login identity
+schema 15: Duplicate Student ID is rejected
+schema 15: Retired IERB entry save stays refused for incomplete records
+schema 15: Retired IERB entry cannot create records or groups
+schema 15: Retired IERB entry endpoint created no Student rows
+schema 15: A changed Student ID may be corrected to another numeric value
+schema 15: A changed Student ID cannot become alphanumeric
+schema 15: Historical alphanumeric Student ID record can still be edited when its ID is unchanged
+schema 15: Legacy identifier is preserved, never rewritten
+schema 15: Changing a historical ID still requires a numeric value
+schema 15: Seeded legacy Student ID S5 is untouched by Batch 6
+schema 15: Legacy-ID Student can still sign in
+schema 15: Student cannot open a staff deletion confirmation
+Actual authenticated login adviser3@example.test
+schema 15: Unassigned Adviser cannot view deletion details
+schema 15: Unassigned Adviser cannot delete
+schema 15: Anonymous deletion preview is denied
+schema 15: Assigned Adviser loads the authoritative deletion record
+schema 15: Preview returns exact filename, recorded uploader, type, version and previous-version restoration
+schema 15: Missing uploader metadata is reported as not recorded, never invented
+Disposable group test MariaDB stopped.

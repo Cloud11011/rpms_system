@@ -45,52 +45,73 @@ if ($isAdmin && legal_admin_eligible($authUser)) {
 <main class="main-content management-page">
 <header class="topbar"><div><h1>Account & Activity</h1><p>Manage your PRISM account and review the audit activity available to your role.</p></div><div class="top-controls"><button type="button" class="theme-toggle" id="themeToggle" title="Toggle light or dark theme" aria-label="Toggle light or dark theme"><i class="fa-solid fa-sun light-icon" aria-hidden="true"></i><i class="fa-solid fa-moon dark-icon" aria-hidden="true"></i></button></div></header>
 <div class="account-grid">
-<section class="management-card account-card" id="profile"><div class="management-card-head"><div><h2>Profile</h2><p>Your account identity in PRISM.</p></div></div>
+<div class="account-profile-column">
+<section class="management-card account-card" id="profile"><div class="management-card-head"><div><h2>Profile</h2><p>How your name appears in PRISM.</p></div></div>
 <form id="accountProfileForm" class="account-form" data-prism-gate="dirty" data-prism-gate-unchanged="Edit your name to enable saving.">
-<p class="prism-required-legend"><span class="prism-required-mark" aria-hidden="true">*</span>Required field. Fields marked read only are managed by PRISM and RPMS.</p>
-<label>Full name<input id="accountName" maxlength="190" placeholder="Enter full name" autocomplete="name" required></label>
-<label>Email<input id="accountEmail" type="email" readonly aria-describedby="accountEmailNote"><span class="prism-readonly-note" id="accountEmailNote">Read only &middot; institutional sign-in email</span></label>
-<label>Role<input id="accountRole" readonly aria-describedby="accountRoleNote"><span class="prism-readonly-note" id="accountRoleNote">Read only &middot; assigned by RPMS</span></label>
-<label>Account ID<input id="accountRef" readonly aria-describedby="accountRefNote"><span class="prism-readonly-note" id="accountRefNote">Read only &middot; corrections require RPMS review</span></label>
+<div class="account-name-field">
+<label for="accountName">Full name</label><p id="accountNameNote">Shown on records and in Activity Logs.</p>
+<div class="account-name-edit"><input id="accountName" maxlength="190" placeholder="Enter full name" autocomplete="name" aria-describedby="accountNameNote" required>
 <button class="management-primary" type="submit"><i class="fa-solid fa-floppy-disk" aria-hidden="true"></i> Save name</button>
-</form></section>
-<section class="management-card account-card" id="security"><div class="management-card-head"><div><h2>Security</h2><p>Change your password.</p></div></div>
-<form id="accountPasswordForm" class="account-form" data-prism-gate="valid">
-<div class="lifecycle-form-group"><label for="accountCurrentPassword">Current password</label><div class="lifecycle-password"><input id="accountCurrentPassword" type="password" autocomplete="current-password" maxlength="200" placeholder="Enter your current password" required><button type="button" class="toggle-password lifecycle-password-toggle" data-lifecycle-password aria-label="Show current password" aria-controls="accountCurrentPassword" aria-pressed="false"><i id="accountCurrentPasswordEye" class="fa-solid fa-eye" aria-hidden="true"></i></button></div></div>
-<div class="lifecycle-form-group"><label for="accountNewPassword">New password</label><div class="lifecycle-password"><input id="accountNewPassword" type="password" minlength="12" maxlength="200" autocomplete="new-password" placeholder="At least 12 characters" aria-describedby="accountPasswordRule" required><button type="button" class="toggle-password lifecycle-password-toggle" data-lifecycle-password aria-label="Show new password" aria-controls="accountNewPassword" aria-pressed="false"><i id="accountNewPasswordEye" class="fa-solid fa-eye" aria-hidden="true"></i></button></div></div>
-<div class="lifecycle-form-group"><label for="accountConfirmPassword">Confirm new password</label><div class="lifecycle-password"><input id="accountConfirmPassword" type="password" minlength="12" maxlength="200" autocomplete="new-password" placeholder="Re-enter the new password" data-prism-match="#accountNewPassword" data-prism-match-message="New passwords do not match." required><button type="button" class="toggle-password lifecycle-password-toggle" data-lifecycle-password aria-label="Show confirm password" aria-controls="accountConfirmPassword" aria-pressed="false"><i id="accountConfirmPasswordEye" class="fa-solid fa-eye" aria-hidden="true"></i></button></div></div>
-<button class="management-primary" type="submit"><i class="fa-solid fa-key" aria-hidden="true"></i> Change password</button>
-</form><p class="account-note" id="accountPasswordRule">Use at least 12 characters and choose a password different from your current one.</p></section>
-</div>
-<?php if ($showStaffRegistration): ?>
-<?php $staffEntryOnly = true; require __DIR__ . '/includes/staff_registration_card.php'; ?>
-<?php endif; ?>
+</div></div>
+</form>
+<p class="account-identity-note"><i class="fa-solid fa-lock" aria-hidden="true"></i> Set by PRISM and RPMS. You can&rsquo;t edit these.</p>
+<dl class="account-identity">
+<div><dt>Email</dt><dd><strong id="accountEmail">&mdash;</strong></dd></div>
+<div><dt>Role</dt><dd><strong id="accountRole">&mdash;</strong></dd></div>
+<div><dt>Account ID</dt><dd><strong id="accountRef">&mdash;</strong></dd></div>
+</dl></section>
 <?php if ($isAdmin): ?>
-<section class="management-card account-card account-lifecycle" id="lifecycle" data-user-id="<?php echo (int)$authUser['id']; ?>">
-<div class="management-card-head"><div><h2>My account lifecycle</h2><p>Archive is the recommended option. Another active Admin must remain.</p></div></div>
+<section class="management-card account-card account-lifecycle" id="lifecycle" data-user-id="<?php echo (int)$authUser['id']; ?>" aria-labelledby="adminLifecycleHeading">
+<div class="management-card-head"><div><h2 id="adminLifecycleHeading">My account lifecycle</h2></div></div>
+<div class="lifecycle-panels">
+<article class="lifecycle-panel lifecycle-archive-panel">
 <form id="adminArchiveForm" class="account-form lifecycle-form">
-<h3>Archive my Admin account</h3><p>Your login will be deactivated and you will be signed out. Institutional records and your historical attribution will remain.</p>
+<h3>Archive my Admin account</h3><p>Your login will be deactivated and you will be signed out. Institutional records and your historical attribution will remain. Another active Admin must remain.</p>
 <div class="lifecycle-form-group"><label for="adminArchivePassword">Current password</label><div class="lifecycle-password"><input id="adminArchivePassword" name="currentPassword" type="password" autocomplete="current-password" maxlength="200" placeholder="Enter your current password" required><button type="button" class="toggle-password lifecycle-password-toggle" data-lifecycle-password aria-label="Show password" aria-controls="adminArchivePassword" aria-pressed="false"><i id="adminArchivePasswordEye" class="fa-solid fa-eye" aria-hidden="true"></i></button></div></div>
 <label class="lifecycle-check"><input name="confirmed" type="checkbox" required><span>I confirm that I want to archive my own Admin account.</span></label>
 <p data-lifecycle-result role="alert" aria-live="polite"></p><button type="submit" class="management-primary"><i class="fa-solid fa-box-archive" aria-hidden="true"></i> Archive my account</button>
 </form>
-<details class="lifecycle-destructive"><summary>Permanently delete my Admin account</summary>
+</article>
+<hr class="lifecycle-divider">
+<details class="lifecycle-panel lifecycle-panel-danger lifecycle-delete-panel lifecycle-destructive">
+<summary><h3>Permanently delete my Admin account</h3><i class="fa-solid fa-chevron-down lifecycle-disclosure-icon" aria-hidden="true"></i></summary>
 <form id="adminDeleteForm" class="account-form lifecycle-form"><p><strong>This cannot be undone.</strong> Your own login and password reset/setup tokens will be removed. Institutional history and audit evidence remain. Accounts needed by official deadlines cannot be deleted; use Archive.</p>
 <p id="adminDeleteAvailability" role="status">Checking permanent-deletion availability...</p>
 <div class="lifecycle-form-group"><label for="adminDeletePassword">Current password</label><div class="lifecycle-password"><input id="adminDeletePassword" name="currentPassword" type="password" autocomplete="current-password" maxlength="200" placeholder="Enter your current password" required><button type="button" class="toggle-password lifecycle-password-toggle" data-lifecycle-password aria-label="Show password" aria-controls="adminDeletePassword" aria-pressed="false"><i id="adminDeletePasswordEye" class="fa-solid fa-eye" aria-hidden="true"></i></button></div></div>
 <div class="lifecycle-form-group"><label for="adminDeleteConfirmation">Type DELETE to confirm</label><input id="adminDeleteConfirmation" name="confirmation" autocomplete="off" maxlength="100" placeholder="Type DELETE" required></div>
 <label class="lifecycle-check"><input name="confirmed" type="checkbox" required><span>I understand that permanent deletion cannot be undone.</span></label>
 <p data-lifecycle-result role="alert" aria-live="polite"></p><button type="submit" class="lifecycle-danger" disabled>Permanently delete my account</button></form>
-</details><p id="adminLifecycleResult" role="status" aria-live="polite"></p>
+</details>
+</div>
+<p id="adminLifecycleResult" role="status" aria-live="polite"></p>
 </section>
 <?php endif; ?>
+</div>
+<div class="account-security-column">
+<section class="management-card account-card" id="security"><div class="management-card-head"><div><h2>Password</h2><p>Change the password you use to sign in.</p></div></div>
+<form id="accountPasswordForm" class="account-form" data-prism-gate="valid">
+<div class="lifecycle-form-group"><label for="accountCurrentPassword">Current password</label><div class="lifecycle-password"><input id="accountCurrentPassword" type="password" autocomplete="current-password" maxlength="200" required><button type="button" class="toggle-password lifecycle-password-toggle" data-lifecycle-password aria-label="Show current password" aria-controls="accountCurrentPassword" aria-pressed="false"><i id="accountCurrentPasswordEye" class="fa-solid fa-eye" aria-hidden="true"></i></button></div></div>
+<div class="lifecycle-form-group"><label for="accountNewPassword">New password</label><div class="lifecycle-password"><input id="accountNewPassword" type="password" minlength="12" maxlength="200" autocomplete="new-password" aria-describedby="accountPasswordRule" required><button type="button" class="toggle-password lifecycle-password-toggle" data-lifecycle-password aria-label="Show new password" aria-controls="accountNewPassword" aria-pressed="false"><i id="accountNewPasswordEye" class="fa-solid fa-eye" aria-hidden="true"></i></button></div></div>
+<div class="lifecycle-form-group"><label for="accountConfirmPassword">Type the new password again</label><div class="lifecycle-password"><input id="accountConfirmPassword" type="password" minlength="12" maxlength="200" autocomplete="new-password" aria-describedby="accountPasswordRule" data-prism-match="#accountNewPassword" data-prism-match-message="New passwords do not match." required><button type="button" class="toggle-password lifecycle-password-toggle" data-lifecycle-password aria-label="Show confirm password" aria-controls="accountConfirmPassword" aria-pressed="false"><i id="accountConfirmPasswordEye" class="fa-solid fa-eye" aria-hidden="true"></i></button></div></div>
+<ul class="account-password-rules" id="accountPasswordRule" aria-label="Password requirements">
+<li data-password-rule="length"><i class="fa-regular fa-circle" aria-hidden="true"></i><span class="prism-sr-only" data-password-rule-state>Not met: </span><span>At least 12 characters</span></li>
+<li data-password-rule="different"><i class="fa-regular fa-circle" aria-hidden="true"></i><span class="prism-sr-only" data-password-rule-state>Not met: </span><span>Different from your current password</span></li>
+<li data-password-rule="match"><i class="fa-regular fa-circle" aria-hidden="true"></i><span class="prism-sr-only" data-password-rule-state>Not met: </span><span>Both new passwords match</span></li>
+</ul>
+<button class="management-primary" type="submit"><i class="fa-solid fa-key" aria-hidden="true"></i> Change password</button>
+</form></section>
+<?php if ($showStaffRegistration): ?>
+<?php $staffEntryOnly = true; require __DIR__ . '/includes/staff_registration_card.php'; ?>
+<?php endif; ?>
+</div>
+</div>
 <section class="management-card account-card activity-card" id="activity">
-<div class="management-card-head"><div><h2>Activity Logs</h2><p><?php echo $isAdmin ? 'Audit activity across PRISM.' : 'Audit activity for students assigned to you.'; ?></p></div><p id="activityCount">0 entries</p></div>
+<div class="management-card-head"><div><h2>Activity Logs</h2></div><p id="activityCount" hidden></p></div>
 <form id="activityFilterForm" class="activity-filters">
 <label class="activity-field activity-search-field" for="activitySearch"><span>Search</span><input id="activitySearch" type="search" placeholder="Action, student, protocol code, or details"></label>
-<fieldset class="activity-date-group"><legend>Date range</legend><div class="activity-date-fields"><label for="activityFrom"><span>From</span><input id="activityFrom" type="date"></label><label for="activityTo"><span>To</span><input id="activityTo" type="date"></label></div></fieldset>
-<label class="activity-field" for="activityOverride"><span>Log type</span><span class="activity-override-control"><input id="activityOverride" type="checkbox"><span>Overrides only</span></span></label>
-<div class="activity-submit-field"><span class="activity-control-label">Apply filters</span><button class="management-primary" type="submit"><i class="fa-solid fa-filter"></i> Apply</button></div>
+<label class="activity-field" for="activityFrom"><span>From</span><input id="activityFrom" type="date"></label>
+<label class="activity-field" for="activityTo"><span>To</span><input id="activityTo" type="date"></label>
+<label class="activity-field activity-override-field" for="activityOverride"><span>Log type</span><span class="activity-override-control"><input id="activityOverride" type="checkbox"><span>Overrides only</span></span></label>
 </form>
 <div id="activityList" class="activity-list"></div>
 <nav id="activityPagination" class="prism-pagination" aria-label="Activity log pages"></nav>

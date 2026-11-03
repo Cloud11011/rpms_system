@@ -1,6 +1,12 @@
 /* Admin "Legal Policies": cleaner, friendlier layout. CSS only: admin_legal_policies.php and legal-management.js are unchanged.
    Load AFTER admin-legal.css and batch11.css (add 'admin-legal-clean' to the end of the $style list in admin_legal_policies.php). */
 
+/* Keep the move into Settings reversible and easy to navigate. */
+.legal-management .legal-settings-breadcrumb{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin:0 0 16px;color:var(--prism-muted);font-size:var(--prism-font-meta,13px)}
+.legal-management .legal-settings-breadcrumb a{color:var(--prism-focus);font-weight:700;text-decoration:none}
+.legal-management .legal-settings-breadcrumb a:hover{text-decoration:underline}
+.legal-management .legal-settings-breadcrumb a:focus-visible{outline:3px solid var(--prism-focus);outline-offset:3px;border-radius:3px}
+
 /* How publishing works: calm lavender callout */
 .legal-management .legal-publishing-guide{margin:4px 0 20px;padding:18px 22px;border:0;border-radius:18px;background:#EFE8FB;color:#3E3A52}
 .legal-management .legal-publishing-guide h2{margin:0 0 6px;font-size:15px;font-weight:800;color:#3E1F85}
@@ -117,3 +123,25 @@ body.legal-management .legal-publishing-guide { padding:12px 40px 12px 16px; mar
 body.legal-management .legal-publishing-guide h2 { font-size:13px; margin-bottom:4px; }
 body.legal-management .legal-publishing-guide ul { font-size:12px; line-height:1.6; margin-top:4px; }
 @media(max-width:1000px){body.legal-management .legal-card[data-policy-panel]{grid-template-columns:minmax(0,1fr);}body.legal-management .legal-card[data-policy-panel]>.legal-policy-actions{grid-column:1;grid-row:auto;justify-content:flex-start;margin-top:8px;}}
+
+/* Compact version-history pagination; row-size changes apply directly. */
+.legal-management section[id^="history-"]{scroll-margin-top:20px}
+.legal-management section[id^="history-"] .prism-record-footer{display:flex;align-items:center;flex-wrap:wrap;gap:12px;margin-top:20px;padding-top:16px;border-top:1px solid var(--prism-border)}
+.legal-management .prism-record-footer form[data-page-auto-submit]{display:flex;flex-direction:row;align-items:center;gap:8px;flex:none;margin:0}
+.legal-management .prism-record-footer .prism-row-size{display:flex;align-items:center;gap:8px;margin:0;color:var(--prism-muted);font-size:12px;font-weight:500}
+.legal-management .prism-record-footer .prism-row-size select{min-height:34px;width:auto;padding:6px 10px;border:1px solid var(--prism-border);border-radius:9px;background:var(--prism-card);color:var(--prism-text);font:inherit}
+.legal-management .prism-record-footer .prism-pagination{display:flex;align-items:center;justify-content:flex-end;gap:6px;flex-wrap:wrap;order:3;margin-left:auto}
+body.prism-workspace.legal-management .prism-record-footer .prism-pagination :is(a,button,.prism-page-current){display:inline-flex;align-items:center;justify-content:center;min-width:34px;min-height:34px;padding:6px 10px;border:1px solid var(--prism-border);border-radius:9px;background:var(--prism-card);color:var(--prism-text);font:700 12px/1.4 'Montserrat',sans-serif;text-decoration:none}
+body.prism-workspace.legal-management .prism-record-footer .prism-pagination .prism-page-current{border-color:#b5146e;background:#b5146e;color:#fff}
+body.prism-workspace.legal-management .prism-record-footer .prism-pagination :is(a,button):disabled{opacity:.4;cursor:default}
+.legal-management .prism-record-footer>p{margin:0;color:var(--prism-muted);font-size:12px;line-height:1.6}
+@media(max-width:700px){.legal-management .prism-record-footer .prism-pagination{justify-content:flex-start;margin-left:0;flex-basis:100%}}
+
+/* Published text fills its own reading area beneath the management actions. */
+body.legal-management .legal-card[data-policy-panel]>.prism-policy-document{grid-column:1/-1;width:100%;max-width:88ch;margin:22px auto 0;padding:clamp(22px,4vw,48px);border:1px solid var(--prism-border);border-radius:14px;background:var(--prism-card);font-size:14px;line-height:1.85}
+body.legal-management .legal-policy-text.prism-policy-document>.prism-policy-title{margin:6px 0 32px;font-size:clamp(26px,3vw,36px);line-height:1.3;text-align:center;font-weight:800}
+body.legal-management .legal-policy-text.prism-policy-document>p{margin:0 0 20px;font-size:14px;line-height:1.85;text-align:justify;text-justify:inter-word}
+body.legal-management .legal-policy-text.prism-policy-document>:is(h2,h3):not(.prism-policy-title){margin:34px 0 14px;font-size:19px;line-height:1.5;font-weight:800;text-align:left}
+body.legal-management .legal-policy-text.prism-policy-document>:is(ul,ol){margin:12px 0 24px;padding-left:28px;text-align:left}
+body.legal-management .legal-policy-text.prism-policy-document li{margin:7px 0;padding-left:3px;line-height:1.8}
+@media(max-width:600px){body.legal-management .legal-card[data-policy-panel]>.prism-policy-document{padding:18px 14px;margin-top:18px}body.legal-management .legal-policy-text.prism-policy-document>p{font-size:13px;margin-bottom:18px}body.legal-management .legal-policy-text.prism-policy-document>:is(h2,h3):not(.prism-policy-title){font-size:17px;margin-top:28px}}

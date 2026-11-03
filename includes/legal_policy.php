@@ -33,6 +33,18 @@ function legal_render(string $source): string
     return $html.($list?'</ul>':'');
 }
 
+/** The surrounding document supplies its title; omit only an identical leading source title. */
+function legal_render_policy_body(string $source, string $title): string
+{
+    $lines=preg_split('/\r\n|\r|\n/',$source);
+    foreach ($lines as $index=>$line) {
+        if (trim($line)==='') continue;
+        if (preg_match('/^#\s+(?:PRISM\s+)?'.preg_quote($title,'/').'\s*$/iu',trim($line))) unset($lines[$index]);
+        break;
+    }
+    return legal_render(implode("\n",$lines));
+}
+
 function legal_rows(PDO $pdo, string $sql, array $params=[]): array
 {
     $q=$pdo->prepare($sql); $q->execute($params); return $q->fetchAll(PDO::FETCH_ASSOC);

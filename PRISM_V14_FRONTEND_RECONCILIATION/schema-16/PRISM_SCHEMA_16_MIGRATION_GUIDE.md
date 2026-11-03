@@ -37,10 +37,14 @@ The migration is **additive only**:
 ## 2. Before you run anything
 
 1. Get written approval for this production change.
-2. **Deploy the reconciled code first.** It runs correctly on schema 15, so deploying it does not depend on this migration. It also contains the verifiers that confirm the result.
+2. **Deploy the reconciled code first, built from the reviewed allowlist.** It runs correctly on schema 15, so deploying it does not depend on this migration. It also contains the verifiers that confirm the result.
+   - Build it with `maintenance/release/build-public-runtime.py`. The allowlist now includes the Settings, schema-16 and Settings-extension files, and the two migrator scripts that Option A's `v16` and `settings` steps launch.
+   - Check the built tree with `maintenance/frontend-reconciliation/runtime-closure-check.py`. The only reference it may report is the baseline `migration_v9_verify()` read of the git-ignored `tools/schema-v9-contract.json`.
+   - **The previous code cannot run on schema 16** (see §6, "Code rollback"). Deploy the new code, and confirm it, before this migration.
 3. **Take a faithful backup.** Use hPanel → Files → Backups → Database backups. Do not rely on a phpMyAdmin Export: the project's 7R review showed that it drops a CHECK constraint.
-4. Choose a quiet window. Pause the hPanel cron job that runs `notification-dispatch.php` until step 4.5 is complete.
-5. Open phpMyAdmin and select **only** the PRISM database.
+4. Confirm the cron PHP has the `zip`, `mbstring` and `pdo_mysql` extensions. The `preflight` step reports `ext-zip` as a required capability and fails without it. This development PHP had no `zip`, so the rehearsal asserts on the database section of that step only.
+5. Choose a quiet window. Pause the hPanel cron job that runs `notification-dispatch.php` until step 4.5 is complete.
+6. Open phpMyAdmin and select **only** the PRISM database.
 
 ## 3. Option A — the project's reviewed runner (no SSH)
 
@@ -72,7 +76,7 @@ Run each file in the **SQL** tab:
    - `prism_settings_v1` = 1
    - `table list` = `schema16 exact`
 4. Optional but recommended: run the runtime preflight (Option A's `preflight` step). It applies the application's exact contract comparison, which plain SQL cannot fully reproduce.
-5. Re-enable the notification cron job.
+5. Re-enable the notification cron job if you paused it. With the reconciled code this does **not** start delivery: the worker prints `disabled` and exits unless `config.local.php` enables it, which needs its own approval (see `notification-worker/NOTIFICATION_WORKER_ACTIVATION_GUIDE.md`).
 6. Sign in as an RPMS Administrator, open **Settings**, and save one harmless value (for example, set the reminder intervals to their current values). A save that succeeds confirms the application accepted the schema.
 
 Save every result grid as CSV for the evidence log.
@@ -117,6 +121,8 @@ The application runs both checks whenever it uses Settings, and fails closed: on
 
 DDL cannot be rolled back by MariaDB. If the script stops after creating tables, the version stays at 15. The application then refuses the unexpected tables until `PRISM_SCHEMA_16_ROLLBACK.sql` removes them; it removes only empty tables.
 
+A half-installed state was rehearsed (schema 15, no marker, two of the four tables present): the migration script refuses it and changes nothing, `VERIFY` reports `FAIL`, the rollback script returns the database to the exact schema-15 table set, and a fresh migration then succeeds.
+
 ## 6. Non-reversible effects and recovery
 
 - **Historical catalog rows.** As in the PHP migrator, any `students.academic_year` value missing from `academic_years` is added as a `historical` catalog row. Rollback keeps these rows: they only describe existing assignments.
@@ -129,6 +135,11 @@ DDL cannot be rolled back by MariaDB. If the script stops after creating tables,
 
   After Settings has been used, the recovery path is **not** to roll back. Keep the data, and if needed restore defaults through the Settings page or redeploy the previous code. Never delete Settings data or audit records to make a rollback pass.
 - **Permanent-deletion verification.** The account-lifecycle verification hash now includes the schema-16 and Settings contracts. Any existing deletion-verification evidence (`PRISM_HARD_DELETE_SCHEMA_VERIFIED`) becomes invalid after migration. Reissue it with the reviewed `deletion-verification` step. Until then, permanent deletion stays unavailable; archiving still works.
+- **Code rollback.** The code that is currently in production rejects schema 16: `config.php` `migrate()` accepts only schemas 11-15 and throws for 16, and its runtime preflight lists only 10-15. After this migration the old files therefore cannot serve requests.
+  - Rolling back the code alone is not an option.
+  - If no Settings data exists yet, run `PRISM_SCHEMA_16_ROLLBACK.sql` first, then redeploy the old files.
+  - If Settings data exists, keep the data and fix forward with the new code.
+  - Alternatively restore the hPanel backup together with the old files, which loses everything written after the backup.
 - **Full restore.** If anything unexpected happens, restore the hPanel backup from step 2.3.
 
 ## 7. Rehearsal evidence (disposable databases only)
@@ -137,9 +148,10 @@ Each run built a fresh synthetic schema-11 database, migrated it to 15 with the 
 
 | Scenario | Server / collation | Result |
 | --- | --- | --- |
-| SQL route: refuse partial state, migrate, VERIFY, refuse re-run, roll back, re-migrate, use Settings, refuse rollback with data | MariaDB 12.3.2 / general_ci | 50 / 50 pass |
-| Same SQL route | MariaDB 10.4.32 / unicode_ci | 50 / 50 pass (after fixing a VERIFY report collation issue found here) |
-| Same SQL route | MariaDB 12.3.2 / uca1400_ai_ci | 50 / 50 pass |
+| SQL route: refuse partial state, migrate, VERIFY, refuse re-run, roll back, re-migrate, **half-installed cleanup**, use Settings, refuse rollback with data | MariaDB 12.3.2 / general_ci | 60 / 60 pass |
+| Same SQL route | MariaDB 10.4.32 / unicode_ci | 60 / 60 pass |
+| Same SQL route | MariaDB 12.3.2 / uca1400_ai_ci | 60 / 60 pass |
+| **Option A**: the real `hostinger-cron-runner.php` (probe, wrong-database refusal, preflight, `settings` refused before 16, `v16` dry-run and apply, `settings` dry-run and apply, preflight at 16, VERIFY.sql agreement, re-apply refused, private receipts with no password or connection string) | MariaDB 12.3.2 / general_ci | 16 / 16 pass |
 | PHP route: schema 15 behaviour, v16 + Settings, drift, authorization/audit, academic years, registration enforcement, reminders, blocked rollbacks, onboarding added afterwards, VERIFY.sql on the PHP result | MariaDB 12.3.2 / general_ci | 75 / 75 pass |
 | PHP route: onboarding first, then v16 + Settings | MariaDB 12.3.2 / general_ci | 36 / 36 pass |
 | PHP route: clean rollback, custom-setting refusal | MariaDB 12.3.2 / general_ci | 17 / 17 pass |

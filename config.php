@@ -94,6 +94,14 @@ if (!defined('PRISM_HARD_DELETE_VERIFICATION')) define('PRISM_HARD_DELETE_VERIFI
 // Set a unique random 64-character lowercase hex key in protected config.local.php.
 if (!defined('PRISM_HARD_DELETE_VERIFICATION_KEY')) define('PRISM_HARD_DELETE_VERIFICATION_KEY', '');
 
+// The hPanel notification cron stays disabled until an operator enables it in config.local.php after
+// reviewing the queue. Notification ids at or below the release fence are never touched by the worker.
+if (!defined('PRISM_NOTIFICATION_WORKER_ENABLED')) define('PRISM_NOTIFICATION_WORKER_ENABLED', false);
+if (!defined('PRISM_NOTIFICATION_WORKER_RELEASE_AFTER_ID')) define('PRISM_NOTIFICATION_WORKER_RELEASE_AFTER_ID', null);
+// With Gmail configured, PHP mail() is used only if this is true AND no Gmail send request was made
+// (token or connection failure). It is never used after Gmail rejected or may have accepted a message.
+if (!defined('PRISM_MAIL_FALLBACK_WHEN_GMAIL_NOT_ATTEMPTED')) define('PRISM_MAIL_FALLBACK_WHEN_GMAIL_NOT_ATTEMPTED', false);
+
 // Canonical public URL used for security-sensitive absolute links (for example password resets).
 // Never derive these links from the request Host header.
 if (!defined('APP_BASE_URL')) {
@@ -1572,12 +1580,16 @@ function gmail_access_token(): ?string
     return $cachedToken;
 }
 
-/** Sends a message through the Gmail API (users.messages.send) using an OAuth 2.0 access token. */
-function gmail_api_send(string $to, string $subject, string $body, bool $sensitive = false): bool
+/**
+ * Sends a message through the Gmail API (users.messages.send) using an OAuth 2.0 access token.
+ * Returns 'sent', 'rejected' (Gmail refused it), 'not_attempted' (no send request reached Gmail) or
+ * 'uncertain' (Gmail may have accepted it despite the error, e.g. a timeout or server error).
+ */
+function gmail_api_send(string $to, string $subject, string $body, bool $sensitive = false): string
 {
     $accessToken = gmail_access_token();
     if (!$accessToken) {
-        return false;
+        return 'not_attempted';
     }
 
     $mime = notification_email_mime($body);
@@ -1605,51 +1617,70 @@ function gmail_api_send(string $to, string $subject, string $body, bool $sensiti
     $response  = curl_exec($ch);
     $status    = curl_getinfo($ch, CURLINFO_HTTP_CODE);
     $curlError = curl_error($ch);
+    $curlErrno = curl_errno($ch);
     curl_close($ch);
 
-    $ok = $response !== false && $status < 300;
-    if (!$ok) {
-        log_api_error('gmail_send', $sensitive ? "Sensitive email delivery failed (HTTP $status)." : ($curlError !== '' ? $curlError : "HTTP $status: " . substr((string)$response, 0, 500)));
+    if ($response !== false && $status >= 200 && $status < 300) {
+        return 'sent';
     }
-    return $ok;
+    log_api_error('gmail_send', $sensitive ? "Sensitive email delivery failed (HTTP $status)." : ($curlError !== '' ? $curlError : "HTTP $status: " . substr((string)$response, 0, 500)));
+    // An error is not proof that Gmail did not accept the message. Only an unreachable endpoint
+    // (proxy/host resolution or connection failure: curl errors 5, 6, 7) or an explicit 4xx refusal is.
+    if ($response === false) {
+        return in_array($curlErrno, [5, 6, 7], true) ? 'not_attempted' : 'uncertain';
+    }
+    return $status >= 400 && $status < 500 && $status !== 408 ? 'rejected' : 'uncertain';
 }
 
 /**
- * Sends an email via the Gmail API when credentials are configured;
- * otherwise falls back to the server's mail() transport, and finally to
- * logging the message to storage/mail.log so the notification workflow can
- * still be demonstrated/tested end-to-end without any live credentials.
+ * Sends an email via the Gmail API when credentials are configured, otherwise via the server's mail()
+ * transport, and finally (non-sensitive only, and only when Gmail is not configured) logs it to
+ * storage/mail.log so the notification workflow can still be demonstrated without live credentials.
+ * Once a Gmail send request has been made, mail() is never used: a rejected or uncertain Gmail attempt
+ * is reported as such, so an accepted-but-unconfirmed message is never sent twice. mail() stands in for
+ * Gmail only when no send request reached Gmail and PRISM_MAIL_FALLBACK_WHEN_GMAIL_NOT_ATTEMPTED is true.
+ * 'outcome' is one of: sent, logged, rejected, not_attempted, uncertain.
  */
 function send_notification_email(string $to, string $subject, string $body, bool $sensitive = false,
                                  bool $fallbackLogContent = true): array
 {
     if (!filter_var($to, FILTER_VALIDATE_EMAIL)) {
-        return ['ok' => false, 'message' => 'A valid recipient email is required.'];
+        return ['ok' => false, 'outcome' => 'rejected', 'channel' => 'none', 'message' => 'A valid recipient email is required.'];
     }
 
-    if (gmail_api_available()) {
-        if (gmail_api_send($to, $subject, $body, $sensitive || !$fallbackLogContent)) {
-            return ['ok' => true, 'message' => 'Email delivered via the Gmail API.', 'channel' => 'gmail_api'];
+    $gmail = gmail_api_available();
+    if ($gmail) {
+        $outcome = gmail_api_send($to, $subject, $body, $sensitive || !$fallbackLogContent);
+        if ($outcome === 'sent') {
+            return ['ok' => true, 'outcome' => 'sent', 'message' => 'Email delivered via the Gmail API.', 'channel' => 'gmail_api'];
         }
-        // fall through to the local fallbacks below so the attempt is not silently lost
+        if ($outcome !== 'not_attempted' || PRISM_MAIL_FALLBACK_WHEN_GMAIL_NOT_ATTEMPTED !== true) {
+            return ['ok' => false, 'outcome' => $outcome, 'channel' => 'gmail_api', 'message' => match ($outcome) {
+                'uncertain' => 'Gmail did not confirm delivery; the message may already have been sent.',
+                'rejected' => 'Gmail rejected the message.',
+                default => 'Gmail could not be reached; nothing was sent.',
+            }];
+        }
     }
 
     $mime = notification_email_mime($body);
     $headers = "From: " . MAIL_FROM_NAME . " <" . (GMAIL_SENDER_EMAIL ?: 'rpms@ceu.edu.ph') . ">\r\nMIME-Version: 1.0\r\nContent-Type: " . $mime['contentType'] . "\r\n";
     $delivered = @mail($to, $subject, $mime['body'], $headers);
     if ($delivered) {
-        return ['ok' => true, 'message' => 'Email delivered via server mail transport.', 'channel' => 'mail'];
+        return ['ok' => true, 'outcome' => 'sent', 'message' => 'Email delivered via server mail transport.', 'channel' => 'mail'];
     }
 
-    if ($sensitive) return ['ok' => false, 'channel' => 'none', 'message' => 'The credential email could not be delivered. Contact the RPMS office.'];
+    if ($sensitive) return ['ok' => false, 'outcome' => 'rejected', 'channel' => 'none', 'message' => 'The credential email could not be delivered. Contact the RPMS office.'];
+    // With Gmail configured, a local record is not a delivery: report the failure so it can be retried.
+    if ($gmail) return ['ok' => false, 'outcome' => 'rejected', 'channel' => 'mail', 'message' => 'The server mail transport did not accept the message.'];
 
     // Notifications keep the controlled Logged fallback, with no second persistent content copy.
     if (!$fallbackLogContent) {
         $entry = sprintf("[%s] notification_delivery_fallback status=Logged\n", date(DATE_ATOM));
         $written = @file_put_contents(MAIL_LOG, $entry, FILE_APPEND | LOCK_EX);
         return $written === false
-            ? ['ok'=>false, 'channel'=>'none', 'message'=>'External delivery failed; the fallback record could not be written.']
-            : ['ok'=>true, 'channel'=>'log', 'message'=>'External delivery unavailable; a metadata-only fallback record was logged.'];
+            ? ['ok'=>false, 'outcome'=>'rejected', 'channel'=>'none', 'message'=>'External delivery failed; the fallback record could not be written.']
+            : ['ok'=>true, 'outcome'=>'logged', 'channel'=>'log', 'message'=>'External delivery unavailable; a metadata-only fallback record was logged.'];
     }
 
     // No live mail transport configured/reachable in this environment: log it instead of failing the workflow.
@@ -1662,5 +1693,5 @@ function send_notification_email(string $to, string $subject, string $body, bool
         str_repeat('-', 60)
     );
     @file_put_contents(MAIL_LOG, $entry, FILE_APPEND | LOCK_EX);
-    return ['ok' => true, 'message' => 'No live mail transport configured; the message was logged to storage/mail.log for review.', 'channel' => 'log'];
+    return ['ok' => true, 'outcome' => 'logged', 'message' => 'No live mail transport configured; the message was logged to storage/mail.log for review.', 'channel' => 'log'];
 }

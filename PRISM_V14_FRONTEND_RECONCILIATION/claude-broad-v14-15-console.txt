@@ -1,0 +1,28 @@
+﻿Running bootstrap
+Creating my.ini file
+Removing default user
+Setting root password
+Creation of the database was successful
+{
+    "database": "prism_group_synthetic_v11",
+    "server": "127.0.0.1:14077",
+    "legacy_collation": "utf8mb4_general_ci",
+    "version": "12.3.2-MariaDB",
+    "schema_version": "11",
+    "table_count": 23,
+    "exact_manifest_and_v11_structure": "PASS",
+    "source": "Full current v11 manifest plus present generated-column and singleton definitions; synthetic fixture, not a migration or deployed-schema snapshot."
+}
+Synthetic policy fixtures and valid academic groups prepared.
+02-foundation 0 {"status":"PASS","assertions":99}
+install15 0 {"ok":true,"result":{"dryRunUnchanged":true,"studentsPreserved":true,"catalog":["2025-2026","2026-2027","2027-2028"]}}
+06-schema15-ui 0 {"status":"PASS","assertions":134}
+07-schema15-7r 0 {"status":"PASS","assertions":120}
+08-schema15-closure 0 {"status":"PASS","assertions":96}
+11-extension-migration 0 {"ok":true,"result":["Migration requires explicit opt-in","Migration requires exact database binding","Migration refuses open transaction","Migration refuses disabled foreign keys","Dry run preserves the complete schema","Restarted apply is idempotent","Empty extension rolls back to exact schema 15","Extension composes with the exact schema 15 lifecycle contract"]}
+11b-migration-approval-race 0 {"status":"PASS","assertions":4,"elapsedMs":3189,"cases":["Approval commits a pending assignment","Racing rollback refuses retained data","Rollback waits for the independent approval transaction","Committed assignment survives rollback refusal"]}
+12-extended-schema15-7r 0 {"status":"PASS","assertions":120}
+13-extended-schema15-closure 0 {"status":"PASS","assertions":96}
+13b-historical-guards 0 {"ok":true,"result":{"status":"PASS","assertions":3,"cases":["historical-stage is refused without enrollment or canonical membership","legacy-association is refused without enrollment or canonical membership","changed-after-approval is refused without enrollment or canonical membership"]}}
+14-empty-extension-rollback 0 {"ok":true,"result":{"ok":true,"mode":"rollback","baseSchema":"15","extension":"research_onboarding_v1","existingRowsChanged":0}}
+Disposable group test MariaDB stopped.

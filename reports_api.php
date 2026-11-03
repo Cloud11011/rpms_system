@@ -390,6 +390,18 @@ function local_full_narrative(array $students, string $scopeLabel = 'the institu
 }
 
 if ($action === 'generate') {
+    // The ZIP "Student Progress Report" tool is served by the Student's canonical V14 project track sheet,
+    // exactly as V14 delegated it; legacy Student-stage report generation itself stays retired.
+    if (($data['type'] ?? null) === 'Student Report' && summary_history_available($pdo)) {
+        $stmt = $pdo->prepare('SELECT id FROM students WHERE id = :id AND archived_at IS NULL AND profile_completed_at IS NOT NULL');
+        $stmt->execute([':id' => (int)($data['studentId'] ?? 0)]);
+        $studentDbId = (int)$stmt->fetchColumn();
+        if ($studentDbId && ($canonical = research_project_for_student($pdo, $studentDbId))) {
+            $action = 'project_report'; $trackInput = ['projectId' => (int)$canonical['id']];
+            require __DIR__ . '/includes/ierb_track_actions.php';
+        }
+        json_out(['ok' => false, 'message' => 'This Student has no V14 research project yet, so no project report can be generated.'], 409);
+    }
     json_out(['ok'=>false,'message'=>'Obsolete Student-stage reports are retired. Use V14 project reports.'],410);
     $type = trim((string)($data['type'] ?? 'Progress Report')); // Progress Report | Student Report
     if (!in_array($type, ['Progress Report', 'Student Report'], true)) {

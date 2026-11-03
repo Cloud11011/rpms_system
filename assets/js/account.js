@@ -9,6 +9,33 @@ document.addEventListener('DOMContentLoaded', () => {
     let activityPage = 1;
     const profileDirty = PrismUI.dirtyForm($('accountProfileForm'));
     const passwordDirty = PrismUI.dirtyForm($('accountPasswordForm'));
+    const passwordForm = $('accountPasswordForm');
+
+    function refreshPasswordRequirements() {
+        const current = $('accountCurrentPassword').value;
+        const next = $('accountNewPassword').value;
+        const confirm = $('accountConfirmPassword').value;
+        const rules = {
+            length: next.length >= 12,
+            different: current.length > 0 && next.length > 0 && next !== current,
+            match: next.length > 0 && next === confirm
+        };
+        passwordForm.querySelectorAll('[data-password-rule]').forEach(item => {
+            const met = rules[item.dataset.passwordRule];
+            item.classList.toggle('is-met', met);
+            const icon = item.querySelector('i');
+            icon.classList.toggle('fa-circle', !met);
+            icon.classList.toggle('fa-circle-check', met);
+            item.querySelector('[data-password-rule-state]').textContent = met ? 'Met: ' : 'Not met: ';
+        });
+        window.PrismForms?.refresh(passwordForm);
+    }
+    passwordForm.prismGateCheck = () => $('accountNewPassword').value !== ''
+        && $('accountNewPassword').value === $('accountCurrentPassword').value
+        ? 'Choose a password different from your current one.' : '';
+    ['input', 'change'].forEach(type => passwordForm.addEventListener(type, refreshPasswordRequirements));
+    passwordForm.addEventListener('reset', () => setTimeout(refreshPasswordRequirements));
+    refreshPasswordRequirements();
 
     function renderActivityState(host, iconClass, titleText, descriptionText) {
         host.replaceChildren();
@@ -35,9 +62,9 @@ document.addEventListener('DOMContentLoaded', () => {
             const data = await PrismUI.request('profile_api.php?action=me');
             const u = data.user || {};
             $('accountName').value = u.name || '';
-            $('accountEmail').value = u.email || '';
-            $('accountRole').value = u.role || '';
-            $('accountRef').value = u.refId || '';
+            $('accountEmail').textContent = u.email || '\u2014';
+            $('accountRole').textContent = u.role || '\u2014';
+            $('accountRef').textContent = u.refId || '\u2014';
             profileDirty.clean();
         } catch (e) {
             PrismUI.toast(e.message, 'error');
@@ -81,7 +108,6 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     const activitySize = PrismUI.pageSizeControl($('activityPagination'), () => loadActivity(1));
-    PrismUI.clearFilters([$('activitySearch'),$('activityFrom'),$('activityTo'),$('activityOverride')],loadActivity);
     async function loadActivity(page = activityPage) {
         const requestId = ++activityRequest;
         const qs = new URLSearchParams({ action: 'list', page: String(page), perPage: String(activitySize.value) });
@@ -188,11 +214,11 @@ document.addEventListener('DOMContentLoaded', () => {
         // Invalidate the previous page immediately, including during the search debounce.
         ++activityRequest;
         $('activityPagination').querySelectorAll('button').forEach(button => { button.disabled = true; });
-        filterTimer = setTimeout(() => loadActivity(), 200);
+        filterTimer = setTimeout(() => loadActivity(1), 200);
     }
     $('activitySearch').addEventListener('input', filtersChanged);
     ['activityFrom', 'activityTo', 'activityOverride'].forEach(id => $(id).addEventListener('change', filtersChanged));
-    $('activityFilterForm').addEventListener('submit', e => { e.preventDefault(); clearTimeout(filterTimer); loadActivity(); });
+    $('activityFilterForm').addEventListener('submit', e => { e.preventDefault(); clearTimeout(filterTimer); loadActivity(1); });
     loadProfile();
     loadActivity();
     if($('adminDeleteForm')) {

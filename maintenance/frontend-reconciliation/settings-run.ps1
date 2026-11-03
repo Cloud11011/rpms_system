@@ -1,7 +1,7 @@
 param([string]$ReviewName='tests/settings-run',[int]$DbPort=13987,[int]$AppPort=14987,
-    [ValidateSet('settings-first','onboarding-first','rollback','sql','manifest')][string]$Scenario='settings-first',
+    [ValidateSet('settings-first','onboarding-first','rollback','sql','manifest','runner','worker15','worker16')][string]$Scenario='settings-first',
     [string]$Collation='')
-# Fresh disposable schema15 fixture, one Settings/schema16 scenario, then shutdown. Existing datadirs are refused.
+# Fresh disposable schema15 fixture, one Settings/schema16 or notification-worker scenario, then shutdown. Existing datadirs are refused.
 $ErrorActionPreference='Stop'
 . (Join-Path $PSScriptRoot '../onboarding-tests/local-env.ps1') -ReviewName $ReviewName -DbPort $DbPort -AppPort $AppPort
 if ($Collation) { $env:PRISM_TEST_DB_COLLATION=$Collation }
@@ -17,8 +17,10 @@ try{
     [IO.File]::WriteAllText((Join-Path $stdin 'scenario.json'),('{"scenario":"'+$Scenario+'"}'))
     cmd /s /c ('""'+$env:PRISM_TEST_PHP+'" "'+(Join-Path $PSScriptRoot 'v14-fixture.php')+'" < "'+(Join-Path $stdin 'prepare.json')+'""') | Out-Null
     if($LASTEXITCODE -ne 0){throw 'Synthetic V14 setup failed.'}
-    $out=Join-Path $env:PRISM_TEST_REVIEW_DIR 'settings-results.json'
-    cmd /s /c ('""'+$env:PRISM_TEST_PHP+'" "'+(Join-Path $PSScriptRoot 'settings-tests.php')+'" < "'+(Join-Path $stdin 'scenario.json')+'" > "'+$out+'""')
+    # worker* scenarios exercise the notification cron worker with a simulated provider.
+    $tests=if($Scenario -like 'worker*'){'notification-worker-tests.php'}else{'settings-tests.php'}
+    $out=Join-Path $env:PRISM_TEST_REVIEW_DIR ($(if($Scenario -like 'worker*'){'worker-results.json'}else{'settings-results.json'}))
+    cmd /s /c ('""'+$env:PRISM_TEST_PHP+'" "'+(Join-Path $PSScriptRoot $tests)+'" < "'+(Join-Path $stdin 'scenario.json')+'" > "'+$out+'""')
     $status=$LASTEXITCODE
     Get-Content -LiteralPath $out -Encoding UTF8
     if($status -ne 0){throw 'Settings scenario failed; preserve and inspect the evidence.'}

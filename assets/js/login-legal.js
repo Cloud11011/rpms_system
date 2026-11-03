@@ -42,6 +42,7 @@
         dialog.className = 'login-policy-dialog';
         const heading = document.createElement('h2');
         heading.id = 'loginPolicyTitle';
+        heading.className = 'prism-policy-title';
         heading.textContent = link.textContent;
         dialog.setAttribute('aria-labelledby', heading.id);
         const content = document.createElement('div');

@@ -45,6 +45,15 @@ try {
             return ['projects'=>$projects,'schema'=>'15','catalog'=>ierb_v14_requirements()];
         })(),
         'catalog'=>ierb_v14_requirements(),
+        // Schema 16 plus the Settings extension, through the same reviewed migrators an operator would run.
+        'schema16'=>(function()use($pdo,$root){
+            require_once $root.'/includes/schema_v16.php';
+            require_once $root.'/includes/admin_settings_schema.php';
+            foreach (['SCHEMA_V16','SETTINGS'] as $name) { putenv('PRISM_ALLOW_'.$name.'_MIGRATION=1'); putenv('PRISM_'.$name.'_EXPECT_DB=prism_group_synthetic_v11'); }
+            migrate_schema_v16($pdo,'apply'); migrate_prism_admin_settings($pdo,'apply');
+            schema_v16_verify($pdo); prism_admin_settings_schema_verify($pdo);
+            return ['schema'=>(string)$pdo->query("SELECT v FROM schema_meta WHERE k='schema_version'")->fetchColumn()];
+        })(),
         'audit-fault'=>(function()use($pdo,$input){
             if(!empty($input['enabled'])) $pdo->exec("CREATE TRIGGER synthetic_reconciliation_audit_fault BEFORE INSERT ON activity_logs FOR EACH ROW
                 BEGIN IF NEW.action='ierb_v14_final_report_submitted' THEN SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT='Synthetic rollback verification'; END IF; END");

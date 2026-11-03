@@ -19,6 +19,12 @@ function log_api_error(string $scope,string $message): void { $GLOBALS['fixture_
 function send_notification_email(string $email,string $subject,string $body,bool $a=false,bool $b=false): array {
     if (db()->inTransaction()) throw new RuntimeException('Provider called inside a transaction.');
     $GLOBALS['provider_calls'][]=$email;
+    // Optional notification-worker controls: cross-process call log, slow provider, per-recipient failure, crash after acceptance.
+    if (getenv('PRISM_TEST_PROVIDER_LOG')) file_put_contents(getenv('PRISM_TEST_PROVIDER_LOG'),getmypid()."\t".$email."\n",FILE_APPEND|LOCK_EX);
+    if (!empty($GLOBALS['provider_delay_ms'])) usleep((int)$GLOBALS['provider_delay_ms']*1000);
+    if (!empty($GLOBALS['provider_crash'])) exit(9);
+    if (in_array($email,$GLOBALS['provider_fail_for']??[],true)) return ['ok'=>false,'outcome'=>'rejected','channel'=>'synthetic'];
+    if (in_array($email,$GLOBALS['provider_uncertain_for']??[],true)) return ['ok'=>false,'outcome'=>'uncertain','channel'=>'synthetic'];
     if (!empty($GLOBALS['provider_failure'])) throw new RuntimeException('Synthetic Gmail failure after commit');
     return ['ok'=>true,'channel'=>'synthetic'];
 }

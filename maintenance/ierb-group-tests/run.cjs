@@ -71,6 +71,7 @@ function prepareApp() {
     if (process.env.PRISM_TEST_FRONTEND_COMPATIBILITY === '1') await require('../frontend-reconciliation/compatibility.cjs')(h);
     if (process.env.PRISM_TEST_FRONTEND_DASHBOARD === '1') await require('../frontend-reconciliation/dashboard.cjs')(h);
     if (process.env.PRISM_TEST_V14_ACTIVE_ONLY === '1') await require('../frontend-reconciliation/v14-current.cjs')(h);
+    if (process.env.PRISM_TEST_VISUAL_PARITY === '1') await require('../frontend-reconciliation/visual-parity.cjs')(h);
     if (process.env.PRISM_TEST_INIT_INVESTIGATION === '1') await require('../onboarding-tests/init-investigation.cjs')(h);
     if (phase !== 'documents') await require('./backend.cjs')(h);
     if (!['backend','documents'].includes(phase)) { await require('./browser.cjs')(h); await require('./regression.cjs')(h); }

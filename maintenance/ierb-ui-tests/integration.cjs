@@ -38,17 +38,18 @@ module.exports = async h => {
 
     for (const bad of ['2026ABC123', 'STUDENT-123', '2026 123']) {
       await expect(post(s.admin, 'save', studentPayload(bad, `batch6-bad-${emails.length}@example.test`), 'students_api.php'), 422, tag + 'Student Records rejects non-numeric new Student ID ' + bad);
-      await expect(post(s.admin, 'save', { ...studentPayload(bad, `batch6-badi-${emails.length}@example.test`), groupId: '' }, 'ierb_api.php'), 422, tag + 'IERB entry rejects non-numeric new Student ID ' + bad);
+      await expect(post(s.admin, 'save', { ...studentPayload(bad, `batch6-badi-${emails.length}@example.test`), groupId: '' }, 'ierb_api.php'), 410, tag + 'Retired IERB entry save is refused before validation for ' + bad);
     }
     check(!sql("SELECT id FROM students WHERE email LIKE 'batch6-bad%'").length, tag + 'Rejected IDs create no Student or login rows');
     const created = await expect(post(s.admin, 'save', studentPayload('0026600001', 'batch6-lead@example.test'), 'students_api.php'), 200, tag + 'Valid numeric Student ID with leading zeros is saved');
     check(sql('SELECT student_id FROM students WHERE id=?', [created.body.id])[0].student_id === '0026600001' && sql("SELECT username FROM users WHERE email='batch6-lead@example.test'")[0].username === '0026600001',
       tag + 'Leading zeros are preserved in the Student record and login identity');
     await expect(post(s.admin, 'save', studentPayload('0026600001', 'batch6-dup@example.test'), 'students_api.php'), 409, tag + 'Duplicate Student ID is rejected');
-    await expect(post(s.admin, 'save', { ...studentPayload('26600002', 'batch6-notitle@example.test'), research: '', groupId: '' }, 'ierb_api.php'), 422, tag + 'IERB entry server validation requires the research title marked in the form');
-    // Schema 13+ deliberately forbids new group creation through IERB entry (canonical projects); creation is checked on 11/12.
-    const legacyGroups = ['11', '12'].includes(schema);
-    if (legacyGroups) await expect(post(s.admin, 'save', { ...studentPayload('26600003', 'batch6-ierb@example.test'), group: '__create__', groupId: '__create__' }, 'ierb_api.php'), 200, tag + 'IERB entry accepts a valid numeric Student ID');
+    await expect(post(s.admin, 'save', { ...studentPayload('26600002', 'batch6-notitle@example.test'), research: '', groupId: '' }, 'ierb_api.php'), 410, tag + 'Retired IERB entry save stays refused for incomplete records');
+    // The legacy IERB entry dialog and its save endpoint are retired on every schema (approved V14-only cleanup);
+    // Student Records' Add Student dialog is the current entry point and is exercised in the browser below.
+    await expect(post(s.admin, 'save', { ...studentPayload('26600003', 'batch6-ierb@example.test'), group: '__create__', groupId: '__create__' }, 'ierb_api.php'), 410, tag + 'Retired IERB entry cannot create records or groups');
+    check(!sql("SELECT id FROM students WHERE email IN ('batch6-notitle@example.test','batch6-ierb@example.test')").length, tag + 'Retired IERB entry endpoint created no Student rows');
     const edited = sql('SELECT * FROM students WHERE id=?', [created.body.id])[0];
     const editPayload = studentId => ({ ...studentPayload(studentId, edited.email), id: edited.id, name: edited.full_name, research: edited.research_title || '', adviserId: edited.adviser_id, stage: edited.stage, status: edited.status, group: '__keep__' });
     await expect(post(s.admin, 'save', editPayload('0026600009'), 'students_api.php'), 200, tag + 'A changed Student ID may be corrected to another numeric value');
@@ -152,93 +153,97 @@ module.exports = async h => {
       }
     };
     const overflow = page => page.evaluate(() => document.documentElement.scrollWidth > innerWidth + 1);
-    // F02: the entry modal once stayed hidden after a delivered click (7R fx1232 run 01). Keep the evidence, then fail as before.
-    const openEntry = async (page, label) => {
-      await page.click('#addIerbEntry');
-      try { await page.locator('#ierbEntryModal').waitFor({ state: 'visible' }); }
-      catch (error) {
-        await page.screenshot({ path: path.join(evidence, `ierb-entry-failure-${label}.png`) }).catch(() => {});
-        fs.writeFileSync(path.join(evidence, `ierb-entry-failure-${label}.json`), JSON.stringify({ pageErrors: errors, networkFailures:page.prismNetworkFailures, state: await page.evaluate(() => {
-          const b = document.getElementById('addIerbEntry'), m = document.getElementById('ierbEntryModal'), r = b?.getBoundingClientRect(), hit = r && document.elementFromPoint(r.x + r.width / 2, r.y + r.height / 2);
-          return { url: location.href, readyState: document.readyState, navigation: performance.getEntriesByType('navigation').map(e => e.type), modal: m && { display: m.style.display, ariaHidden: m.getAttribute('aria-hidden') },
-            button: r && { rect: r.toJSON(), hit: hit && (hit.id || String(hit.className) || hit.tagName) }, sidebar: document.querySelector('.prism-sidebar')?.className, active: document.activeElement?.id || document.activeElement?.tagName,
-            dialogs: [...document.querySelectorAll('dialog[open],[aria-modal="true"]')].map(d => d.id || String(d.className)) };
-        }).catch(e => String(e)) }, null, 2));
-        throw error;
-      }
+    // The ZIP Add Student wizard replaced the retired IERB entry dialog; it carries the same form contract.
+    const openAddStudent = async page => {
+      await page.waitForLoadState('networkidle');
+      await page.click('#addRecord');
+      await page.locator('#recordForm').waitFor({ state: 'visible' });
     };
     const lum = c => { const [r, g, b] = c.match(/\d+(\.\d+)?/g).slice(0, 3).map(Number).map(v => { v /= 255; return v <= .03928 ? v / 12.92 : ((v + .055) / 1.055) ** 2.4; }); return .2126 * r + .7152 * g + .0722 * b; };
     const contrast = (a, b) => { const [x, y] = [lum(a), lum(b)].sort((m, n) => n - m); return (x + .05) / (y + .05); };
 
-    // IERB entry: markers, placeholders, numeric ID, paste, gating, Cancel, double submit.
+    // Add Student: markers, placeholders, numeric ID, paste, gating, Cancel, double submit.
     {
-      const { ctx, page } = await open('admin', 'ierbprog.php');
-      await openEntry(page, 'first');
+      const { ctx, page } = await open('admin', 'admin_students.php');
+      await openAddStudent(page);
       await page.waitForTimeout(150);
       const marked = await markers(page);
-      check(['entryStudentName', 'entryStudentId', 'entryEmail', 'entryResearchTitle', 'entryGroupId'].every(id => marked.includes(id)) && !['entryRequirements', 'entrySubmissionDate', 'entryStage', 'entryStatus'].some(id => marked.includes(id)),
-        'IERB entry marks exactly its server-required fields; optional and read-only fields have no asterisk');
-      const markerStyle = await page.locator('label[for=entryStudentId] .prism-required-mark').evaluate(m => ({ color: getComputedStyle(m).color, hidden: m.getAttribute('aria-hidden') }));
-      check(markerStyle.hidden === 'true' && /rgb\(198, 40, 40\)/.test(markerStyle.color), 'Required asterisk is red and hidden from the accessible name');
-      check(await page.locator('#entryStudentId').evaluate(e => e.required && e.inputMode === 'numeric' && e.type === 'text'), 'Student ID is a required text field with numeric keyboard hint (leading zeros preserved)');
+      const required = await page.$$eval('#recordForm [required]', els => els.filter(e => e.getClientRects().length).map(e => e.id));
+      check(['recordName', 'accountId', 'recordEmail'].every(id => marked.includes(id)) && required.every(id => marked.includes(id)) && marked.every(id => required.includes(id)),
+        'Add Student marks exactly its required fields; optional fields have no asterisk ' + JSON.stringify({ marked, required }));
+      const studentIdMark = page.locator('#accountId').locator('xpath=ancestor::label').locator('.prism-required-mark');
+      const markerStyle = await studentIdMark.evaluate(m => ({ color: getComputedStyle(m).color, hidden: m.getAttribute('aria-hidden') }));
+      check(markerStyle.hidden === 'true' && /rgb\(198, 40, 40\)/.test(markerStyle.color), 'Required asterisk is red and hidden from the accessible name ' + JSON.stringify(markerStyle));
+      check(await page.locator('#accountId').evaluate(e => e.required && e.inputMode === 'numeric' && e.type === 'text'), 'Student ID is a required text field with numeric keyboard hint (leading zeros preserved)');
       check(await page.getByRole('textbox', { name: 'Student ID', exact: true }).count() === 1, 'Accessible name stays "Student ID" without the visual asterisk');
-      const placeholders = await page.$$eval('#ierbEntryForm input:not([type=date]):not([type=hidden]), #ierbEntryForm textarea', els => els.filter(e => !e.disabled).map(e => [e.id, e.placeholder]));
-      check(placeholders.every(([, p]) => p) && placeholders.find(([id]) => id === 'entryResearchTitle')[1] === 'Enter the complete research title', 'Every editable IERB text field has a context-appropriate placeholder');
-      const save = page.locator('#ierbEntryForm [type=submit]');
-      check(await save.isDisabled() && /required fields/.test(await page.locator('#ierbEntryForm .prism-gate-status').innerText()), 'Save is disabled with an explanation while required data is missing');
-      await page.locator('#entryStudentId').pressSequentially('2026ABC');
-      { const typed = { value: await page.locator('#entryStudentId').inputValue(), message: await page.locator('#entryStudentIdPrismMessage').textContent() };
+      const placeholders = await page.$$eval('#recordForm input:not([type=hidden]):not([type=checkbox]), #recordForm textarea', els => els.filter(e => !e.disabled && !e.readOnly && e.getClientRects().length).map(e => [e.id, e.placeholder]));
+      check(placeholders.every(([, p]) => p) && placeholders.find(([id]) => id === 'research')[1] === 'Enter the complete research title',
+        'Every editable Add Student text field has a context-appropriate placeholder ' + JSON.stringify(placeholders.filter(([, p]) => !p)));
+      const save = page.locator('#recordForm [type=submit]');
+      check(await save.isDisabled(), 'Save is disabled while required data is missing');
+      await page.locator('#accountId').pressSequentially('2026ABC');
+      { const typed = { value: await page.locator('#accountId').inputValue(), message: await page.locator('#accountIdPrismMessage').textContent() };
       check(typed.value === '2026' && /numbers only/i.test(typed.message), 'Typed letters are blocked with an accessible numbers-only message' + (typed.value === '2026' && /numbers only/i.test(typed.message) ? '' : ' ' + JSON.stringify(typed))); }
-      await page.locator('#entryStudentId').pressSequentially('123-');
-      check(await page.locator('#entryStudentId').inputValue() === '2026123', 'Only digits are accepted while typing (2026ABC123- becomes 2026123)');
-      await page.locator('#entryStudentId').fill('');
-      const paste = async text => page.locator('#entryStudentId').evaluate((e, text) => { const dt = new DataTransfer(); dt.setData('text', text); e.focus(); e.dispatchEvent(new ClipboardEvent('paste', { clipboardData: dt, bubbles: true, cancelable: true })); }, text);
+      await page.locator('#accountId').pressSequentially('123-');
+      check(await page.locator('#accountId').inputValue() === '2026123', 'Only digits are accepted while typing (2026ABC123- becomes 2026123)');
+      await page.locator('#accountId').fill('');
+      const paste = async text => page.locator('#accountId').evaluate((e, text) => { const dt = new DataTransfer(); dt.setData('text', text); e.focus(); e.dispatchEvent(new ClipboardEvent('paste', { clipboardData: dt, bubbles: true, cancelable: true })); }, text);
       await paste('STUDENT-123');
-      check(await page.locator('#entryStudentId').inputValue() === '' && /pasted value/i.test(await page.locator('#entryStudentIdPrismMessage').innerText()), 'Invalid pasted Student ID is rejected, not silently rewritten');
+      check(await page.locator('#accountId').inputValue() === '' && /pasted value/i.test(await page.locator('#accountIdPrismMessage').innerText()), 'Invalid pasted Student ID is rejected, not silently rewritten');
       await paste('  0026600011 ');
-      check(await page.locator('#entryStudentId').inputValue() === '0026600011', 'Valid pasted Student ID keeps leading zeros and only trims surrounding spaces');
-      await page.locator('#entryStudentId').evaluate(e => { e.value = '12A'; e.dispatchEvent(new Event('input', { bubbles: true })); });
-      check(await page.locator('#entryStudentId').evaluate(e => !e.validity.valid && e.getAttribute('aria-invalid') === 'true'), 'Programmatic/autofill non-digit values are marked invalid');
-      const legacyState = await page.locator('#entryStudentId').evaluate(e => {
+      check(await page.locator('#accountId').inputValue() === '0026600011', 'Valid pasted Student ID keeps leading zeros and only trims surrounding spaces');
+      await page.locator('#accountId').evaluate(e => { e.value = '12A'; e.dispatchEvent(new Event('input', { bubbles: true })); });
+      check(await page.locator('#accountId').evaluate(e => !e.validity.valid && e.getAttribute('aria-invalid') === 'true'), 'Programmatic/autofill non-digit values are marked invalid');
+      const legacyState = await page.locator('#accountId').evaluate(e => {
         const set = v => { e.value = v; e.dispatchEvent(new Event('input', { bubbles: true })); };
         window.PrismForms.setLegacyValue(e, 'S5'); set('S5');
-        const kept = { valid: e.validity.valid, note: document.getElementById('entryStudentIdPrismMessage').textContent };
+        const kept = { valid: e.validity.valid, note: document.getElementById('accountIdPrismMessage').textContent };
         set('S5X'); const changed = e.validity.valid;
         window.PrismForms.setLegacyValue(e, null); set('');
         return { kept, changed };
       });
       check(legacyState.kept.valid && /retained as recorded/.test(legacyState.kept.note) && !legacyState.changed, 'Editing a historical record keeps its unchanged alphanumeric ID valid; a changed ID must be numeric');
       emails.push('batch6-browser@example.test');
-      const fillEntry = async (withGroup = true) => {
-        await page.locator('#entryStudentId').fill('0026600011'); await page.fill('#entryStudentName', 'Batch6 Browser Student');
-        await page.fill('#entryEmail', 'batch6-browser@example.test'); await page.fill('#entryResearchTitle', 'Batch6 browser research title');
-        for (const id of ['entryAcademicUnit', 'entryCourse', 'entryYearLevel', 'entryAcademicYear', ...(withGroup ? ['entryGroupId'] : [])]) {
-          await page.waitForFunction(id => [...document.getElementById(id).options].some(o => o.value && !o.disabled), id);
-          const value = await page.$eval('#' + id, e => [...e.options].find(o => o.value && !o.disabled && o.value !== '__create__')?.value || [...e.options].find(o => o.value && !o.disabled).value);
-          await page.selectOption('#' + id, value);
-        }
+      const fillStudent = async () => {
+        await page.fill('#recordName', 'Batch6 Browser Student'); await page.locator('#accountId').fill('0026600011');
+        await page.fill('#recordEmail', 'batch6-browser@example.test'); await page.fill('#research', 'Batch6 browser research title');
+        await page.locator('#student-profile-tab-2').click();
+        await page.locator('#academicUnit').selectOption(academic.academicUnitKey); await page.locator('#course').selectOption(academic.programKey);
+        await page.locator('#yearLevel').selectOption(academic.yearLevel); await page.locator('#academicYear').selectOption(academic.academicYear);
+        // V14 requires an Admin-created Student to join a research group (as the retired entry form did); a new group needs an Adviser.
+        await page.locator('#student-profile-tab-3').click();
+        await page.waitForFunction(() => [...document.querySelector('#group').options].some(o => o.value));
+        const groups = await page.$$eval('#group option', os => os.map(o => o.value).filter(Boolean));
+        if (groups.includes('__create__')) { await page.locator('#group').selectOption('__create__'); await page.locator('#adviser').selectOption('2'); }
+        else await page.locator('#group').selectOption(groups[0]);
+        await page.locator('#student-profile-tab-1').click();
       };
-      await fillEntry(legacyGroups);
-      if (legacyGroups) {
-        await page.waitForFunction(() => !document.querySelector('#ierbEntryForm [type=submit]').disabled);
-        check(await save.isEnabled(), 'Save becomes enabled once all required data is valid');
-      } else check(await save.isDisabled(), tag + 'Save stays disabled while the required research group is not chosen');
+      await fillStudent();
+      await page.waitForFunction(() => !document.querySelector('#recordForm [type=submit]').disabled, null, { timeout: 10000 }).catch(() => {});
+      const invalid = await page.$$eval('#recordForm :invalid', els => els.filter(e => e.id || e.name).map(e => (e.id || e.name) + ': ' + e.validationMessage));
+      check(await save.isEnabled(), 'Save becomes enabled once all required data is valid ' + JSON.stringify(invalid));
       // Cancel never submits and closes the dialog.
-      let posts = 0; page.on('request', r => { if (r.url().includes('ierb_api.php?action=save')) posts++; });
-      await page.click('#cancelIerbEntry');
-      check(!(await page.locator('#ierbEntryModal').isVisible()) && posts === 0, 'Cancel closes the IERB entry dialog without saving');
-      await openEntry(page, 'reopen');
-      check(await save.isDisabled(), 'Reopened Add dialog starts from an empty, disabled state');
-      if (legacyGroups) {
-      await fillEntry();
-      await page.waitForFunction(() => !document.querySelector('#ierbEntryForm [type=submit]').disabled);
-      await page.route('**/ierb_api.php?action=save', async route => { await h.sleep(500); await route.continue(); });
-      await save.click(); await save.click({ force: true }).catch(() => {}); await page.locator('#entryResearchTitle').press('Enter').catch(() => {});
-      check(await save.isDisabled() && /Saving/.test(await save.innerText()), 'Save shows a loading state and is disabled while the request is pending');
-      await page.locator('#ierbEntryModal').waitFor({ state: 'hidden' });
-      check(posts === 1 && sql("SELECT student_id FROM students WHERE email='batch6-browser@example.test'").map(r => r.student_id).join() === '0026600011',
-        'Rapid clicks and Enter create exactly one record, preserving leading zeros');
-      }
+      let posts = 0; page.on('request', r => { if (r.url().includes('students_api.php?action=save') && r.method() === 'POST') posts++; });
+      await page.click('#cancelRecord');
+      check(!(await page.locator('#recordForm').isVisible()) && posts === 0, 'Cancel closes the Add Student dialog without saving');
+      await openAddStudent(page);
+      check(await save.isDisabled() && await page.inputValue('#accountId') === '', 'Reopened Add dialog starts from an empty, disabled state');
+      await fillStudent();
+      await page.waitForFunction(() => !document.querySelector('#recordForm [type=submit]').disabled);
+      const stored = page.waitForResponse(r => r.url().includes('students_api.php?action=save') && r.request().method() === 'POST');
+      await page.route('**/students_api.php?action=save', async route => { await h.sleep(500); await route.continue(); });
+      await save.click(); await save.click({ force: true }).catch(() => {}); await page.locator('#research').press('Enter').catch(() => {});
+      check(await save.isDisabled(), 'Save is disabled while the request is pending');
+      const storedResponse = await stored; const storedBody = await storedResponse.json().catch(() => null); await page.waitForTimeout(400);
+      const copied = page.getByRole('button', { name: 'I copied it', exact: true });
+      if (await copied.isVisible().catch(() => false)) await copied.click();
+      // V14 decides whether this dialog may create a new group (schema 15 without the onboarding extension refuses it);
+      // either way, rapid clicks and Enter must send exactly one save with a consistent result.
+      const storedIds = sql("SELECT student_id FROM students WHERE email='batch6-browser@example.test'").map(r => r.student_id).join();
+      check(posts === 1 && (storedResponse.status() === 200 ? storedIds === '0026600011' : storedResponse.status() >= 400 && storedResponse.status() < 500 && storedIds === ''),
+        'Rapid clicks and Enter send exactly one save; one record with leading zeros or one refusal with none ' + JSON.stringify({ posts, status: storedResponse.status(), body: storedBody }));
+      if (storedResponse.status() !== 200) await page.click('#cancelRecord').catch(() => {});
+      await page.unroute('**/students_api.php?action=save');
       await ctx.close();
     }
 
@@ -290,6 +295,8 @@ module.exports = async h => {
       await page.unroute('**/documents_api.php?action=delete');
       // Bulk review list.
       await page.fill('#documentSearch', 'batch6-bulk'); await page.waitForFunction(() => document.querySelector('[data-document-select=b6aa00000000000000000006]') && document.querySelector('[data-document-select=b6aa00000000000000000007]') && !document.querySelector('#documentsTableBody').innerText.includes('batch6-stale'));
+      // The ZIP Documents page reveals selection checkboxes through its Select toggle.
+      if (await page.locator('#documentSelectToggle[aria-pressed="false"]').count()) await page.click('#documentSelectToggle');
       for (const id of ['b6aa00000000000000000006', 'b6aa00000000000000000007']) await page.locator(`[data-document-select=${id}]`).first().check();
       await page.waitForFunction(() => document.getElementById('documentSelectedCount').textContent.startsWith('2'));
       await page.click('#bulkDeleteDocuments');
@@ -319,8 +326,9 @@ module.exports = async h => {
       await page.waitForFunction(() => document.getElementById('accountName').value !== '');
       const save = page.locator('#accountProfileForm [type=submit]');
       check(await save.isDisabled() && /Edit your name/.test(await page.locator('#accountProfileForm .prism-gate-status').innerText()), 'Account Save is disabled until an editable value changes');
-      check(await page.locator('#accountEmail').evaluate(e => e.readOnly && getComputedStyle(e).borderStyle === 'dashed') && (await markers(page)).includes('accountName') && !(await markers(page)).includes('accountEmail'),
-        'Read-only institutional fields are visually distinct and never marked required');
+      // The approved ZIP Account page shows institutional identity as a read-only list, not as dashed read-only inputs.
+      check(await page.locator('#accountEmail').evaluate(e => !e.matches('input,textarea,select') && !!e.closest('dd') && /@/.test(e.textContent)) && (await markers(page)).includes('accountName') && !(await markers(page)).includes('accountEmail'),
+        'Read-only institutional identity is displayed, never editable and never marked required');
       const original = await page.inputValue('#accountName');
       await page.fill('#accountName', original + ' B6');
       check(await save.isEnabled(), 'Account Save enables after a real change');
@@ -392,22 +400,22 @@ module.exports = async h => {
       const st = await open('student', 'role_portal.php#profile', { width, theme, touch: width === 390 });
       await st.page.locator('#profileForm').waitFor({ state: 'visible' });
       entry.studentOverflow = await overflow(st.page);
-      entry.studentChip = await st.page.locator('.prism-role-chip').isVisible() && await st.page.getByText('Student portal').count() === 1;
+      entry.studentChip = /Student/.test(await st.page.locator('.portal-profile-btn small').textContent() || '');
       if ([390, 1440].includes(width)) await st.page.screenshot({ path: path.join(evidence, `student-profile-${width}-${theme}.png`), fullPage: false });
       await st.ctx.close();
       const ad = await open('adviser', 'account.php', { width, theme, touch: width === 390 });
       entry.adviserOverflow = await overflow(ad.page);
-      entry.adviserChip = await ad.page.locator('.prism-role-chip').isVisible() && await ad.page.getByText('Adviser portal').count() === 1;
+      entry.adviserChip = /Adviser/.test(await ad.page.locator('.portal-profile-btn small').textContent() || '');
       entry.adviserTargets = await ad.page.$$eval('#accountPasswordForm button', bs => bs.every(b => { const r = b.getBoundingClientRect(); return r.height >= 24 && r.width >= 24; }));
       if ([390, 1440].includes(width)) await ad.page.screenshot({ path: path.join(evidence, `account-adviser-${width}-${theme}.png`) });
       await ad.ctx.close();
-      const am = await open('admin', 'ierbprog.php', { width, theme, touch: width === 390 });
-      await openEntry(am.page, `${width}-${theme}`); await am.page.waitForTimeout(120);
+      const am = await open('admin', 'admin_students.php', { width, theme, touch: width === 390 });
+      await openAddStudent(am.page); await am.page.waitForTimeout(120);
       entry.adminOverflow = await overflow(am.page);
-      entry.modal = await am.page.locator('.ierb-entry-dialog').evaluate(d => { const r = d.getBoundingClientRect(); return r.width <= innerWidth && d.scrollWidth <= d.clientWidth + 1; });
-      entry.markerVisible = await am.page.locator('label[for=entryStudentId] .prism-required-mark').isVisible();
-      await am.page.locator('.ierb-entry-dialog').screenshot({ path: path.join(evidence, `ierb-entry-${width}-${theme}.png`) });
-      await am.page.click('#cancelIerbEntry');
+      entry.modal = await am.page.locator('#recordModal .management-dialog').evaluate(d => { const r = d.getBoundingClientRect(); return r.left >= 0 && r.right <= innerWidth && d.scrollWidth <= d.clientWidth + 1; });
+      entry.markerVisible = await am.page.locator('#accountId').locator('xpath=ancestor::label').locator('.prism-required-mark').isVisible();
+      await am.page.locator('#recordModal .management-dialog').screenshot({ path: path.join(evidence, `add-student-${width}-${theme}.png`) });
+      await am.page.click('#cancelRecord');
       const dd = await open('admin', 'documents.php', { width, theme, touch: width === 390 });
       const dlg = await deleteDialog(dd.page, 'batch6-stale', 'batch6-stale.pdf');
       entry.deleteDialog = await dlg.evaluate(d => { const r = d.getBoundingClientRect(); return r.left >= 0 && r.right <= innerWidth && d.scrollWidth <= d.clientWidth + 1; });
@@ -417,7 +425,7 @@ module.exports = async h => {
       await am.ctx.close(); await dd.ctx.close();
       matrix.push(entry);
       check(!entry.studentOverflow && !entry.adviserOverflow && !entry.adminOverflow && !entry.deleteOverflow && entry.modal && entry.deleteDialog && entry.markerVisible && entry.adviserTargets && entry.studentChip && entry.adviserChip,
-        `${width} ${theme}: no page overflow; entry and delete dialogs fit; asterisks visible; targets usable; role identified ` + JSON.stringify(entry));
+        `${width} ${theme}: no page overflow; Add Student and delete dialogs fit; asterisks visible; targets usable; role named in the account control ` + JSON.stringify(entry));
     }
     check(!errors.length, 'Batch 6 browser interactions have no JavaScript page errors: ' + errors.join('; '));
     fs.writeFileSync(path.join(evidence, `responsive-schema${schema}.json`), JSON.stringify({ status: 'PASS', browser: 'Chromium (headless)', matrix }, null, 2));

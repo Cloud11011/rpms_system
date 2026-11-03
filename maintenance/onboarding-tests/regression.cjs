@@ -44,6 +44,19 @@ if(phase==='first'||phase==='resume12'){
  run('06-schema15-ui',suite,{...documents,PRISM_TEST_SCHEMA_VERSION:'15',PRISM_TEST_BATCH6:'1'});
  run('07-schema15-7r',suite,{...documents,PRISM_TEST_SCHEMA_VERSION:'15',PRISM_TEST_BATCH7R:'1'});
  run('08-schema15-closure',suite,{...documents,PRISM_TEST_SCHEMA_VERSION:'15',PRISM_TEST_CLOSURE:'1'});
+}else if(phase==='v14'){
+ // Current V14 only. The schema-11/12 subsuites (01, 03, 04/05 at v12, 09, 10) exercise Student-stage operations
+ // retired under the approved V14-only cleanup; their earlier receipts remain historical evidence, not current coverage.
+ // The skipped schema-11 suite used to create the copied app's private storage first; workflow eligibility requires it.
+ fs.mkdirSync(path.join(review,'sandbox/app/storage'),{recursive:true});
+ run('02-foundation','maintenance/ierb-v14-tests/run.cjs');
+ const r=cp.spawnSync(php,['maintenance/ierb-v14-tests/cases.php','apply-for-regression'],{encoding:'utf8',windowsHide:true});if(r.status)throw Error(r.stderr);
+ // 04-reports/05-monitor are not run here: they build on state created by the retired schema-12 legacy suite (03).
+ // Current Reports/exports and monitor/hover coverage is in frontend-reconciliation/run-v14.ps1 (reports-pages.cjs, v14-current.cjs).
+ run('install15','maintenance/ierb-monitor-tests/fixture.php',{}, {action:'install'});
+ run('06-schema15-ui',suite,{...documents,PRISM_TEST_SCHEMA_VERSION:'15',PRISM_TEST_BATCH6:'1'});
+ run('07-schema15-7r',suite,{...documents,PRISM_TEST_SCHEMA_VERSION:'15',PRISM_TEST_BATCH7R:'1'});
+ run('08-schema15-closure',suite,{...documents,PRISM_TEST_SCHEMA_VERSION:'15',PRISM_TEST_CLOSURE:'1'});
 }else if(phase==='extended'){
  run('11-extension-migration','maintenance/onboarding-tests/fixture.php',{}, {action:'extension'});
  run('11b-migration-approval-race','maintenance/onboarding-tests/migration-race.cjs');

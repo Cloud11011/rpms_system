@@ -1,0 +1,18 @@
+﻿Running bootstrap
+Creating my.ini file
+Removing default user
+Setting root password
+Creation of the database was successful
+{
+    "database": "prism_group_synthetic_v11",
+    "server": "127.0.0.1:14052",
+    "legacy_collation": "utf8mb4_general_ci",
+    "version": "12.3.2-MariaDB",
+    "schema_version": "11",
+    "table_count": 23,
+    "exact_manifest_and_v11_structure": "PASS",
+    "source": "Full current v11 manifest plus present generated-column and singleton definitions; synthetic fixture, not a migration or deployed-schema snapshot."
+}
+Synthetic policy fixtures and valid academic groups prepared.
+02-foundation 1 migration: 21 assertions
+Disposable group test MariaDB stopped.

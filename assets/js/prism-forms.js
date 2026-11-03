@@ -32,6 +32,15 @@
   // Keep the asterisk on the same line as the label text, even when the label is a
   // flex/grid column that wraps its control: the mark joins the text that precedes the control.
   function placeMark(label, control, mark) {
+    if (control && label.contains(control) && ['checkbox', 'radio'].includes(control.type)) {
+      const text = [...label.children].reverse().find(child => child !== control
+        && !child.matches('.prism-required-mark,input,select,textarea,button')
+        && !child.querySelector('input,select,textarea,button'));
+      if (text) {
+        if (text.lastChild !== mark) text.append(mark);
+      } else if (label.lastChild !== mark) label.append(mark);
+      return;
+    }
     if (!(control && label.contains(control) && !['checkbox', 'radio'].includes(control.type))) {
       if (label.lastChild !== mark) label.append(mark);
       return;
@@ -84,7 +93,13 @@
       message.className = 'prism-field-message';
       message.setAttribute('aria-live', 'polite');
       if (id) message.id = id;
-      const anchor = control.closest('.reg-field,.password-field-wrap,.lifecycle-password') || control;
+      const studentRecordId = control.id === 'accountId'
+        && control.closest('#recordForm')
+        && doc.body.classList.contains('student-records-page')
+        && doc.body.dataset.management === 'student';
+      const anchor = studentRecordId
+        ? control.closest('label')
+        : control.closest('.reg-field,.password-field-wrap,.lifecycle-password') || control;
       anchor.insertAdjacentElement('afterend', message);
       if (id) {
         const described = (control.getAttribute('aria-describedby') || '').split(/\s+/).filter(Boolean);
@@ -231,6 +246,7 @@
     });
     const status = statusFor(form, buttons[0]);
     if (status) {
+      status.classList.toggle('prism-sr-only', form.hasAttribute('data-prism-gate-silent'));
       status.textContent = pending ? '' : state.reason;
       status.hidden = !status.textContent;
       buttons.forEach(button => {

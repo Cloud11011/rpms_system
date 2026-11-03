@@ -281,12 +281,78 @@ try {
             $verified('schema15 exact after SQL rollback',fn()=>schema_v15_verify($fresh()));
             $run=$sql('PRISM_SCHEMA_15_TO_16.sql');
             $check('SQL re-migration after rollback',$run['exit']===0 && $version()==='16',$run['err']);
+            // A half-installed state (schema 15, no marker, only some tables): what an interrupted DDL run leaves behind.
+            $newTables=['academic_year_settings','prism_settings','prism_deadline_reminder_dispatches','academic_year_removals'];
+            $pdo->exec("DELETE FROM schema_meta WHERE k='prism_settings_v1'"); $pdo->exec("UPDATE schema_meta SET v='15' WHERE k='schema_version'");
+            $pdo->exec('DROP TABLE academic_year_removals'); $pdo->exec('DROP TABLE prism_deadline_reminder_dispatches');
+            $tableSnapshot=$tables();
+            $run=$sql('PRISM_SCHEMA_15_TO_16.sql');
+            $check('SQL refuses a half-installed state and changes nothing',$run['exit']!==0 && str_contains($run['err'],'PRISM ABORT') && $version()==='15' && $tables()===$tableSnapshot,$run['err']);
+            $run=$sql('PRISM_SCHEMA_16_VERIFY.sql');
+            $check('VERIFY.sql reports FAIL for a half-installed state',$run['exit']===0 && $verifyOverall($run)==='FAIL',$run);
+            $run=$sql('PRISM_SCHEMA_16_ROLLBACK.sql');
+            $check('SQL rollback cleans a half-installed state to exact schema 15',$run['exit']===0 && $version()==='15' && !array_intersect($newTables,$tables()) && $marker('prism_settings_v1')===false,$run);
+            $verified('schema15 exact after half-install cleanup',fn()=>schema_v15_verify($fresh()));
+            $check('half-install cleanup retains student assignments',$assignments()===$before);
+            $run=$sql('PRISM_SCHEMA_15_TO_16.sql');
+            $check('SQL migration succeeds after half-install cleanup',$run['exit']===0 && $version()==='16' && $marker('prism_settings_v1')==='1',$run['err']);
             $operations();
             $run=$sql('PRISM_SCHEMA_16_ROLLBACK.sql');
             $check('SQL rollback refused with retained settings',$run['exit']!==0 && str_contains($run['err'],'PRISM ABORT') && $version()==='16' && $marker('prism_settings_v1')==='1',$run['err']);
             $composed('after refused SQL rollback');
             $run=$sql('PRISM_SCHEMA_16_VERIFY.sql');
             $check('VERIFY.sql still PASS with data',$run['exit']===0 && $verifyOverall($run)==='PASS',$run);
+            break;
+        case 'runner':
+            // Option A of the migration guide: the real hostinger-cron-runner.php, one reviewed step per invocation.
+            $before=$assignments(); $secret='prism_synthetic_only';
+            $base=rtrim(sys_get_temp_dir(),'\/').DIRECTORY_SEPARATOR.'prism-runner-'.bin2hex(random_bytes(4));
+            $configDir=$base.DIRECTORY_SEPARATOR.'private-config'; $receiptDir=$base.DIRECTORY_SEPARATOR.'receipts';
+            mkdir($configDir,0700,true); mkdir($receiptDir,0700,true); $configDir=realpath($configDir); $receiptDir=realpath($receiptDir);
+            $writeConfig=function(string $name,string $db)use($configDir,$receiptDir,$database,$secret): string {
+                $file=$configDir.DIRECTORY_SEPARATOR.$name; file_put_contents($file,json_encode(['dsn'=>'mysql:host=127.0.0.1;port='.PRISM_TEST_DB_PORT.';dbname='.$db.';charset=utf8mb4',
+                    'user'=>'root','password'=>$secret,'database'=>$db,'receiptDir'=>$receiptDir])); return $file;
+            };
+            $config=$writeConfig('migration.json',$database); $wrong=$writeConfig('wrong.json','mysql');
+            $runner=function(string $file,string $step,string $mode='x'){
+                $p=proc_open([PHP_BINARY,dirname(__DIR__).'/hostinger-cron-runner.php',$file,$step,$mode],[1=>['pipe','w'],2=>['pipe','w']],$pipes);
+                $out=stream_get_contents($pipes[1]); $err=stream_get_contents($pipes[2]); fclose($pipes[1]); fclose($pipes[2]);
+                return ['exit'=>proc_close($p),'receipt'=>json_decode($out,true),'out'=>$out,'err'=>trim($err)];
+            };
+            // The step also lists PHP capabilities; this development CLI has no ext-zip (the fixture web server loads it), which is not a database fact.
+            $dbPreflight=function(array $r,string $schema): bool {
+                $out=$r['receipt']['stdout']??[]; $failed=array_column(array_filter($out['checks']??[],fn($c)=>$c['required']&&!$c['ok']),'capability');
+                return ($out['database']['ok']??false)===true && ($out['database']['contract']??null)==='PASS' && ($out['database']['schema_version']??null)===$schema && array_diff($failed,['ext-zip'])===[];
+            };
+            $r=$runner($config,'probe');
+            $check('runner probe connects read-only and reports schema 15',$r['exit']===0 && ($r['receipt']['schemaVersion']??null)==='15' && ($r['receipt']['databaseMatches']??false)===true,$r['out']);
+            $r=$runner($wrong,'v16','apply');
+            $check('runner refuses a mismatched database binding and changes nothing',$r['exit']!==0 && $version()==='15' && !in_array('academic_year_settings',$tables(),true),$r['out'].$r['err']);
+            $r=$runner($config,'preflight');
+            $check('runner preflight database contract PASS at schema 15',$dbPreflight($r,'15'),$r['out']);
+            $r=$runner($config,'settings','apply');
+            $check('runner settings step refuses before schema 16',$r['exit']!==0 && $marker('prism_settings_v1')===false && $version()==='15',$r['out']);
+            $r=$runner($config,'v16','dry-run');
+            $check('runner v16 dry-run writes nothing',$r['exit']===0 && ($r['receipt']['stdout']['ok']??false)===true && $version()==='15' && !in_array('academic_year_settings',$tables(),true),$r['out']);
+            $r=$runner($config,'v16','apply');
+            $check('runner v16 apply reaches 16 without touching Student assignments',$r['exit']===0 && $version()==='16' && ($r['receipt']['stdout']['studentAssignmentsChanged']??null)===0 && $assignments()===$before,$r['out']);
+            $r=$runner($config,'settings','dry-run');
+            $check('runner settings dry-run writes nothing',$r['exit']===0 && $marker('prism_settings_v1')===false,$r['out']);
+            $r=$runner($config,'settings','apply');
+            $check('runner settings apply installs the extension',$r['exit']===0 && $marker('prism_settings_v1')==='1' && ($r['receipt']['stdout']['migrationApplied']??false)===true,$r['out']);
+            $r=$runner($config,'preflight');
+            $check('runner preflight database contract PASS at schema 16',$dbPreflight($r,'16'),$r['out']);
+            $composed('runner-migrated');
+            $run=$sql('PRISM_SCHEMA_16_VERIFY.sql');
+            $check('VERIFY.sql agrees with the runner result (PASS)',$run['exit']===0 && $verifyOverall($run)==='PASS',$run);
+            $r=$runner($config,'v16','apply');
+            $check('runner v16 apply is refused once at schema 16',$version()==='16' && ($r['exit']!==0 || ($r['receipt']['stdout']['ok']??true)!==false),$r['out'].$r['err']);
+            $receipts=glob($receiptDir.DIRECTORY_SEPARATOR.'prism-*.json');
+            $leak=array_filter($receipts,fn($f)=>str_contains(file_get_contents($f),$secret)||str_contains(file_get_contents($f),'dbname='));
+            $check('every runner step wrote a private receipt with no password or connection string',count($receipts)>=9 && !$leak,['receipts'=>count($receipts),'leaking'=>array_values($leak)]);
+            $check('runner left student assignments unchanged',$assignments()===$before);
+            foreach (array_merge(glob($receiptDir.DIRECTORY_SEPARATOR.'*'),glob($configDir.DIRECTORY_SEPARATOR.'*')) as $f) @unlink($f);
+            @rmdir($receiptDir); @rmdir($configDir); @rmdir($base);
             break;
         default: throw new RuntimeException('Unknown Settings scenario.');
     }

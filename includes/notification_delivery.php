@@ -31,23 +31,27 @@ function deliver_notification_email(PDO $pdo, int $id, string $email, string $su
         $rows=notification_rows($pdo,'SELECT n.status,n.deleted_at,n.delivery_info,c.kind FROM notifications n LEFT JOIN notification_campaigns c ON c.id=n.campaign_id WHERE n.id=?',[$id]); $row=$rows[0]??null;
         if (($row['kind']??'')==='support') return ['ok'=>true,'status'=>'Skipped','message'=>'Support is available in PRISM only.'];
         if (!$row || $row['deleted_at']!==null || $row['status']!=='Sending') return ['ok'=>true,'status'=>'Skipped','message'=>'Delivery was cancelled or is not claimed.'];
+        // An exception mid-send, or a failure without a definite outcome, may follow provider acceptance.
         try { $result=send_notification_email($email,$subject,$body,false,false); }
-        catch (Throwable $e) { $result=['ok'=>false,'message'=>'External notification delivery failed.']; }
+        catch (Throwable $e) { $result=['ok'=>false,'outcome'=>'uncertain']; }
+        $uncertain=empty($result['ok']) && !in_array($result['outcome']??'uncertain',['rejected','not_attempted'],true);
         $status=!empty($result['ok']) ? (($result['channel']??'')==='log'?'Logged':'Sent') : 'Failed';
-        $message=match($status) {
-            'Sent'=>'External delivery completed.',
-            'Logged'=>'External delivery unavailable; metadata-only local fallback recorded.',
+        $message=match(true) {
+            $status==='Sent'=>'External delivery completed.',
+            $status==='Logged'=>'External delivery unavailable; metadata-only local fallback recorded.',
+            $uncertain=>'Delivery outcome unknown: the provider may have accepted the message. Reconcile provider evidence before retrying.',
             default=>'External notification delivery failed.',
         };
         $attempts=max(1,(int)(notification_delivery_meta($row['delivery_info']??null)['attempts']??1));
-        $retryable=$status==='Failed' && $attempts<3;
-        $info=json_encode(['attempts'=>$attempts,'retryable'=>$retryable,'message'=>$message],JSON_THROW_ON_ERROR);
+        $retryable=$status==='Failed' && !$uncertain && $attempts<3;
+        $info=json_encode(['attempts'=>$attempts,'retryable'=>$retryable]+($uncertain?['uncertain'=>true]:[])+['message'=>$message],JSON_THROW_ON_ERROR);
         $retryAt=$retryable ? date('Y-m-d H:i:s',time()+60*(2**($attempts-1))) : null;
+        // sent_at records an actual provider/transport acceptance only, never a local fallback record.
         $pdo->prepare('UPDATE notifications SET status=?,delivery_info=?,sent_at=?,sending_started_at=NULL,
             scheduled_at=COALESCE(?,scheduled_at)
             WHERE id=? AND status="Sending" AND deleted_at IS NULL')
-            ->execute([$status,$info,!empty($result['ok'])?date('Y-m-d H:i:s'):null,$retryAt,$id]);
-        return ['ok'=>!empty($result['ok']),'channel'=>$result['channel']??'none','status'=>$status,'message'=>$message];
+            ->execute([$status,$info,$status==='Sent'?date('Y-m-d H:i:s'):null,$retryAt,$id]);
+        return ['ok'=>!empty($result['ok']),'channel'=>$result['channel']??'none','status'=>$uncertain?'Uncertain':$status,'message'=>$message];
     } finally { notification_unlock($pdo,$name); }
 }
 

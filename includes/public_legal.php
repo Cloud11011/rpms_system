@@ -5,7 +5,6 @@ $legalSources = ['privacy' => ['Privacy Policy', 'privacy.md'], 'terms' => ['Ter
 if (!isset($legalSources[$legalPageKey ?? ''])) { http_response_code(404); exit; }
 [$legalTitle, $legalFile] = $legalSources[$legalPageKey];
 $legalVersion = legal_current(db())[$legalPageKey];
-$legalTitle = $legalVersion['title'];
 $legalText = $legalVersion['content'];
 $legalPlaceholders = require __DIR__.'/legal_placeholders.php';
 $legalEscape = static function (string $text) use ($legalPlaceholders): string {
@@ -30,11 +29,9 @@ $legalEscape = static function (string $text) use ($legalPlaceholders): string {
 <div class="legal-shell">
 <?php $legalBackUrl=current_user()?'index.php':'login.php'; $legalBackLabel=$legalBackUrl==='index.php'?'Back to PRISM':'Back to Login'; require __DIR__.'/legal_header.php'; ?>
 <main id="legalContent" tabindex="-1">
-<h1><?= $legalEscape($legalTitle) ?></h1>
+<h1 class="prism-policy-title"><?= $legalEscape($legalTitle) ?></h1>
 <p class="legal-effective">Version <?= (int)$legalVersion['version_number'] ?> · Published/effective: <time><?= $legalEscape($legalVersion['published_at']) ?></time> (Asia/Manila)</p>
-<?php
-echo legal_render($legalText);
-?>
+<article class="prism-policy-document" data-policy-document><?= legal_render_policy_body($legalText,$legalTitle) ?></article>
 </main>
 <footer><a href="privacy.php">Privacy Policy</a><span aria-hidden="true"> · </span><a href="terms.php">Terms of Service</a></footer>
 </div>

@@ -2,6 +2,41 @@
 /** Bounded queue processing. No bootstrap, DDL, scheduler changes or provider configuration. */
 require_once __DIR__.'/notification_delivery.php';
 
+/** Operator-facing refusal. Messages name configuration or schema state only, never data or credentials. */
+final class NotificationWorkerRefusal extends RuntimeException {}
+
+/** Schemas whose notification contract this worker was verified against; each also needs a passing preflight. */
+const NOTIFICATION_WORKER_SCHEMAS=['15','16'];
+
+/**
+ * Deploying code never activates cron delivery. config.local.php must set PRISM_NOTIFICATION_WORKER_ENABLED
+ * to true and PRISM_NOTIFICATION_WORKER_RELEASE_AFTER_ID to the reviewed queue fence: notifications with an
+ * id at or below the fence are pre-activation backlog the worker never delivers, retries, recovers or cancels.
+ */
+function notification_worker_activation(mixed $enabled, mixed $releaseAfterId): array
+{
+    if ($enabled!==true) return ['enabled'=>false];
+    if (!is_int($releaseAfterId) || $releaseAfterId<0) {
+        throw new NotificationWorkerRefusal('Set PRISM_NOTIFICATION_WORKER_RELEASE_AFTER_ID to the reviewed queue fence (a non-negative integer) before enabling the worker.');
+    }
+    return ['enabled'=>true,'releaseAfterId'=>$releaseAfterId];
+}
+
+/** A supported version number is not enough: the read-only exact contract preflight must pass as well. */
+function notification_worker_compatibility(PDO $preflightConnection): string
+{
+    require_once __DIR__.'/runtime_preflight.php';
+    $result=prism_runtime_database_preflight($preflightConnection);  // leaves this session read-only
+    $version=(string)($result['schema_version']??'');
+    if (!in_array($version,NOTIFICATION_WORKER_SCHEMAS,true)) {
+        throw new NotificationWorkerRefusal('Worker refused: the database schema version is not one this worker was verified against (v15 or v16).');
+    }
+    if (!$result['ok'] || ($result['contract']??'')!=='PASS') {
+        throw new NotificationWorkerRefusal('Worker refused: the reviewed database contract did not verify. Run maintenance/runtime-preflight.php --database.');
+    }
+    return $version;
+}
+
 function notification_enqueue_deadline_reminders(PDO $pdo): int
 {
     $tableCheck=$pdo->prepare("SELECT COUNT(*) FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME='prism_deadline_reminder_dispatches'");
@@ -52,25 +87,30 @@ function notification_enqueue_deadline_reminders(PDO $pdo): int
     return $queued;
 }
 
-function notification_worker_run(PDO $pdo, int $limit=25, int $seconds=50): array
+/** $releaseAfterId is the operator's backlog fence; 0 releases every row (tests and explicitly reviewed queues). */
+function notification_worker_run(PDO $pdo, int $limit=25, int $seconds=50, int $releaseAfterId=0): array
 {
     if ($pdo->inTransaction()) throw new LogicException('Worker requires an independent connection.');
-    $limit=max(1,min(100,$limit)); $seconds=max(1,min(300,$seconds));
-    $summary=['selected'=>0,'Sent'=>0,'Logged'=>0,'Failed'=>0,'Skipped'=>0,'Uncertain'=>0,'remindersQueued'=>0,'errors'=>0];
+    $limit=max(1,min(100,$limit)); $seconds=max(1,min(300,$seconds)); $releaseAfterId=max(0,$releaseAfterId);
+    $summary=['selected'=>0,'Sent'=>0,'Logged'=>0,'Failed'=>0,'Skipped'=>0,'Uncertain'=>0,'remindersQueued'=>0,'errors'=>0,
+        'releaseAfterId'=>$releaseAfterId,'heldBacklog'=>0];
     try { notification_mutex($pdo,'prism_notification_worker'); }
     catch (NotificationLifecycleError $e) { return $summary+['busy'=>true]; }
     try {
         try { $summary['remindersQueued']=notification_enqueue_deadline_reminders($pdo); }
         catch (Throwable $e) { $summary['errors']++; log_api_error('deadline_reminder_scheduler','Deadline reminders could not be queued.'); }
         $cutoff=date('Y-m-d H:i:s',time()-900);
-        $rows=notification_rows($pdo,'SELECT n.id FROM notifications n LEFT JOIN notification_campaigns c ON c.id=n.campaign_id
+        $eligible='FROM notifications n LEFT JOIN notification_campaigns c ON c.id=n.campaign_id
             WHERE n.deleted_at IS NULL AND n.archived_at IS NULL AND (c.id IS NULL OR
                 (c.deleted_at IS NULL AND c.archived_at IS NULL AND c.kind<>"support" AND c.status IN ("Scheduled","Sending","Failed")))
             AND ((n.status="Scheduled" AND n.scheduled_at<=NOW())
                 OR (n.status="Sending" AND (n.sending_started_at IS NULL OR n.sending_started_at<:cutoff))
                 OR (n.status="Failed" AND n.scheduled_at<=NOW() AND JSON_VALID(n.delivery_info)
-                    AND JSON_EXTRACT(IF(JSON_VALID(n.delivery_info),n.delivery_info,"{}"),"$.retryable")=true))
-            ORDER BY n.scheduled_at,n.id LIMIT '.$limit,[':cutoff'=>$cutoff]);
+                    AND JSON_EXTRACT(IF(JSON_VALID(n.delivery_info),n.delivery_info,"{}"),"$.retryable")=true))';
+        $summary['heldBacklog']=(int)(notification_rows($pdo,'SELECT COUNT(*) AS total '.$eligible.' AND n.id<=:fence',
+            [':cutoff'=>$cutoff,':fence'=>$releaseAfterId])[0]['total']??0);
+        $rows=notification_rows($pdo,'SELECT n.id '.$eligible.' AND n.id>:fence
+            ORDER BY n.scheduled_at,n.id LIMIT '.$limit,[':cutoff'=>$cutoff,':fence'=>$releaseAfterId]);
         $started=microtime(true);
         foreach ($rows as $row) {
             if (microtime(true)-$started >= $seconds) break;
@@ -83,8 +123,11 @@ function notification_worker_run(PDO $pdo, int $limit=25, int $seconds=50): arra
         }
 
         // Also repair a process interruption between recipient completion and campaign completion.
-        $campaigns=notification_rows($pdo,'SELECT id FROM notification_campaigns WHERE status="Sending"
-            AND kind<>"support" AND deleted_at IS NULL AND archived_at IS NULL ORDER BY id LIMIT '.$limit);
+        // Fenced: a backlog-only campaign keeps its recorded status until the operator releases it.
+        $campaigns=notification_rows($pdo,'SELECT id FROM notification_campaigns c WHERE status="Sending"
+            AND kind<>"support" AND deleted_at IS NULL AND archived_at IS NULL
+            AND EXISTS (SELECT 1 FROM notifications f WHERE f.campaign_id=c.id AND f.id>:fence) ORDER BY id LIMIT '.$limit,
+            [':fence'=>$releaseAfterId]);
         foreach ($campaigns as $campaign) {
             $name='prism_campaign_'.$campaign['id'];
             try { notification_mutex($pdo,$name); }
