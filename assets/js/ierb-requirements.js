@@ -386,7 +386,7 @@
         closeButton(ctx.close)),
       el('div', { class: 'prq-explain' }, icon('fa-circle-info'),
         el('div', {},
-          el('p', {}, 'Research setup is pending. The V14 checklist becomes available after RPMS confirms its research assignment.'),
+          el('p', {}, 'Research setup is pending. The requirements checklist becomes available after RPMS confirms its research assignment.'),
           el('p', {}, 'An ', el('strong', { text: 'RPMS administrator' }), ' must verify the project membership and submission holder.'))),
       el('div', { class: 'prq-actions-end' },
         opts.loadStudents ? el('button', { type: 'button', class: 'prq-btn', text: 'Choose another student', onclick: () => showPicker(ctx, opts) }) : null,

@@ -2,7 +2,7 @@
 <?php if (!empty($monitorDashboard)): ?>
 <section class="prism-monitor dashboard-progress" data-ierb-monitor data-monitor-layout="cards" data-admin="<?= ($authUser['role']??'')==='admin'?'true':'false' ?>" aria-label="IERB Progress Monitor">
     <header class="dpm-head">
-        <div><h2>IERB Progress Monitor</h2><p class="dpm-sub">One record per V14 research project. Times are shown in Asia/Manila.</p></div>
+        <div><h2>IERB Progress Monitor</h2><p class="dpm-sub">One record per research project. Times are shown in Asia/Manila.</p></div>
         <div class="dpm-dropdown">
             <button type="button" class="dpm-btn is-primary" data-monitor-menu-toggle="links" aria-controls="dashboardMonitorLinks" aria-expanded="false"><i class="fa-solid fa-list-ul" aria-hidden="true"></i> View all <i class="fa-solid fa-chevron-down" aria-hidden="true"></i></button>
             <nav class="dpm-menu" id="dashboardMonitorLinks" data-monitor-menu="links" aria-label="More progress views" hidden>
@@ -58,7 +58,7 @@
 <?php else: ?>
 <section class="prism-monitor" data-ierb-monitor data-admin="<?= $authUser['role']==='admin'?'true':'false' ?>" aria-label="IERB Progress Monitor">
     <h2>IERB Progress Monitor</h2>
-    <p>One record per V14 research project. Times shown in Asia/Manila.</p>
+    <p>One record per research project. Times shown in Asia/Manila.</p>
     <div class="monitor-selection">
         <a class="prism-btn is-secondary" href="ierbprog.php#ierbTableTitle">Student records and actions</a>
         <a class="prism-btn is-secondary" href="documents.php">Open Documents</a>

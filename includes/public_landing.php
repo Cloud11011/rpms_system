@@ -16,8 +16,8 @@ $prismPublicFooter = true;
 <a class="public-skip" href="#publicMain">Skip to content</a>
 <header class="public-nav"><a href="index.php" aria-label="PRISM home"><img src="assets/images/prismlogo1.png" alt="PRISM"></a><nav aria-label="Public navigation"><a href="#stages">How it works</a><a class="public-button" href="login.php">Log in</a></nav></header>
 <main id="publicMain"><section class="public-hero"><div><p class="public-eyebrow">CENTRO ESCOLAR UNIVERSITY &middot; MALOLOS CAMPUS</p><h1>IERB Progress &amp;<br>Reporting System</h1><p>Follow your research through ethics review, feedback and RPMS submission, all in one place.</p><div class="public-hero-actions"><a class="public-button" href="login.php">Log in to PRISM</a><a class="public-button public-secondary" href="#stages">See how it works</a></div></div></section>
-<section id="stages" class="public-stages"><p class="public-eyebrow">HOW IT WORKS</p><h2>The IERB process, stage by stage</h2><p>Every submission moves through these stages. PRISM shows students and advisers exactly where each one stands.</p><ol>
-<?php foreach (['Protocol Submission','Initial Ethics Review','Revisions & Resubmission','Certificate of Approval','Continuing Review / Monitoring','IERB Process Completed'] as $number => $label): ?>
+<section id="stages" class="public-stages"><p class="public-eyebrow">HOW IT WORKS</p><h2>The IERB process, stage by stage</h2><p>Projects follow four official stages. Resubmission / Amendment is conditional and happens only when RPMS requires it.</p><ol>
+<?php foreach (['Initial Submission','Resubmission / Amendment (Conditional)','Approval of Data Gathering','IERB Completed'] as $number => $label): ?>
 <li><span><?= $number + 1 ?></span><h3><?= htmlspecialchars($label, ENT_QUOTES, 'UTF-8') ?></h3></li>
 <?php endforeach; ?>
 </ol></section>

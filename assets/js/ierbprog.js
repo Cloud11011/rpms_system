@@ -124,9 +124,9 @@
             icon.setAttribute('aria-hidden', 'true');
             const copy = document.createElement('div');
             const title = document.createElement('strong');
-            title.textContent = loadError ? 'Progress overview unavailable' : 'No active V14 projects yet';
+            title.textContent = loadError ? 'Progress overview unavailable' : 'No active research projects yet';
             const description = document.createElement('span');
-            description.textContent = loadError || 'Stage distribution appears after approved research groups complete explicit V14 enrollment.';
+            description.textContent = loadError || 'Stage distribution appears after approved research groups complete enrollment.';
             copy.append(title, description);
             state.append(icon, copy);
             stageChart.appendChild(state);
@@ -172,7 +172,7 @@
         tableBody.replaceChildren();
         tableBody.closest('table').classList.toggle('is-empty',!records.length);
         if(!records.length){const row=document.createElement('tr'),cell=document.createElement('td');cell.colSpan=7;
-            cell.innerHTML='<div class="ierb-table-empty"><h3>'+escapeHtml(loadError?'Could not load IERB records':'No active V14 projects')+'</h3><p>'+escapeHtml(loadError||'Approved research groups appear after explicit V14 enrollment.')+'</p></div>';row.append(cell);tableBody.append(row);return;}
+            cell.innerHTML='<div class="ierb-table-empty"><h3>'+escapeHtml(loadError?'Could not load IERB records':'No active research projects')+'</h3><p>'+escapeHtml(loadError||'Approved research groups appear after enrollment.')+'</p></div>';row.append(cell);tableBody.append(row);return;}
         records.forEach(record=>{
             const row=document.createElement('tr');row.innerHTML='<td colspan="7"></td>';tableBody.append(row);
             const actions=document.createElement('div');

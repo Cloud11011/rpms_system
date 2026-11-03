@@ -109,7 +109,7 @@
         if (seq !== loadSeq) return;
         if (!data.enrolled) {
           state = { mode: 'error', allowed: [], rows: [], workflow: null,
-            message: 'Research setup is pending. RPMS must confirm the V14 project before documents can be uploaded.' };
+            message: 'Research setup is pending. RPMS must confirm the research project before documents can be uploaded.' };
         } else {
           const allowed = Array.isArray(data.uploadTypes) ? data.uploadTypes : [];
           const stageKey = data.workflow?.stage;

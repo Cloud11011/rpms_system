@@ -3,6 +3,11 @@ require __DIR__.'/config.php';
 $user=require_login(['student','adviser']);
 if(onboarding_complete(db(),$user)) { header('Location: '.($user['role']==='student'?'student.php':'ierbprog.php')); exit; }
 $student=$user['role']==='student';
+$existingStudentId='';
+if ($student) {
+    $existingProfile=onboarding_profile(db(),$user);
+    $existingStudentId=is_string($existingProfile['student_id']??null)?$existingProfile['student_id']:'';
+}
 header('Cache-Control: no-store');
 ?>
 <!doctype html>
@@ -53,8 +58,8 @@ header('Cache-Control: no-store');
 
                     <label for="onboardingId"><?= $student?'Student':'Employee' ?> ID</label>
                     <?php if($student): ?>
-                    <input id="onboardingId" name="studentId" type="text" maxlength="100" placeholder="Enter Student ID (numbers only)" aria-describedby="identityPolicy" data-prism-student-id required>
-                    <p id="identityPolicy" class="profile-hint"><i class="fa-solid fa-circle-info" aria-hidden="true"></i><span>Use digits only, for example 2026123456. Leading zeros are kept. After completion, ID corrections require Admin review.</span></p>
+                    <input id="onboardingId" name="studentId" type="text" maxlength="100" placeholder="2023-34216" value="<?= htmlspecialchars($existingStudentId, ENT_QUOTES, 'UTF-8') ?>"<?= $existingStudentId!=='' ? ' data-prism-legacy-value="'.htmlspecialchars($existingStudentId, ENT_QUOTES, 'UTF-8').'"' : '' ?> aria-describedby="identityPolicy" data-prism-student-id required>
+                    <p id="identityPolicy" class="profile-hint"><i class="fa-solid fa-circle-info" aria-hidden="true"></i><span>Use four digits, a hyphen, and five digits, for example 2023-34216. Existing IDs are preserved; after completion, corrections require Admin review.</span></p>
                     <?php else: ?>
                     <input id="onboardingId" name="employeeId" maxlength="100" placeholder="Enter Employee ID" aria-describedby="identityPolicy" required>
                     <p id="identityPolicy" class="profile-hint"><i class="fa-solid fa-circle-info" aria-hidden="true"></i><span>After completion, ID corrections require Admin review.</span></p>

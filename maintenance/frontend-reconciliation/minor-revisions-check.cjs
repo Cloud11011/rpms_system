@@ -1,0 +1,28 @@
+// Focused, dependency-free checks for PRISM minor revisions (no DB, network or browser).
+'use strict';
+const assert=require('node:assert/strict'),fs=require('node:fs'),path=require('node:path'),vm=require('node:vm');
+const root=path.resolve(__dirname,'../..');
+const file=p=>fs.readFileSync(path.join(root,p),'utf8');
+let assertions=0;
+const check=(condition,message)=>{assert.ok(condition,message);assertions++;};
+const forms=file('assets/js/prism-forms.js');
+const rootWindow={document:{readyState:'loading',addEventListener(){}}};
+vm.runInNewContext(forms,{window:rootWindow});
+const valid=rootWindow.PrismForms.isStudentId;
+for(const id of ['2023-34216','0000-00000','9999-99999'])check(valid(id),'Valid new Student ID: '+id);
+for(const id of ['202334216','2023-3421','2023-342167','20233-34216','2023 34216','2023_34216','2023--34216','2023-3421a',''])check(!valid(id),'Reject invalid new Student ID: '+id);
+const server=file('includes/account_onboarding.php');
+check(server.includes('/\\A[0-9]{4}-[0-9]{5}\\z/'),'Server validates the new format');
+check(server.includes('$identifier === $existing'),'Unchanged legacy ID is preserved on server');
+check(server.includes("onboarding_student_id($identifier, (string)($r['student_id'] ?? ''))"),'Profile completion preserves an existing unchanged ID');
+const landing=file('includes/public_landing.php');
+for(const label of ['Initial Submission','Resubmission / Amendment (Conditional)','Approval of Data Gathering','IERB Completed'])check(landing.includes(label),'Official stage shown: '+label);
+for(const label of ['Protocol Submission','Initial Ethics Review','Continuing Review / Monitoring','IERB Process Completed'])check(!landing.includes(label),'Legacy stage removed: '+label);
+const upload=file('includes/upload_modal.php'),css=file('assets/css/document-upload-checklist.css');
+check(upload.includes('<label class="upc-drop"') && upload.includes('id="upcFileInput" multiple'),'Existing multi-file label and input retained');
+check(css.includes('.upc-drop input[type="file"]') && css.includes('clip-path: inset(50%)'),'Native file control visually clipped');
+check(!css.includes('.upc-drop input[type="file"] { display: none'),'File picker stays keyboard accessible');
+const monitor=file('assets/js/ierb-monitor.js');
+check(!monitor.includes("${esc(r.model)}${r.projectId ? ' project'"),'Version/model caption is absent');
+for(const p of ['includes/ierb_monitor_view.php','assets/js/document-upload-checklist.js','assets/js/ierbprog.js','assets/js/ierb-requirements.js'])check(!/V14 project/i.test(file(p)),'Public wording does not say V14 project: '+p);
+console.log('PASS '+assertions+' focused PRISM minor-revision assertions.');
