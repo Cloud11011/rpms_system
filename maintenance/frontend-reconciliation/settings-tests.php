@@ -347,10 +347,28 @@ try {
             $check('VERIFY.sql agrees with the runner result (PASS)',$run['exit']===0 && $verifyOverall($run)==='PASS',$run);
             $r=$runner($config,'v16','apply');
             $check('runner v16 apply is refused once at schema 16',$version()==='16' && ($r['exit']!==0 || ($r['receipt']['stdout']['ok']??true)!==false),$r['out'].$r['err']);
+            // Recovery through the runner itself: unused install rolls back (settings first, then v16); re-apply; used install refuses.
+            $r=$runner($config,'v16','rollback');
+            $check('runner v16 rollback is refused while the Settings extension is installed',$r['exit']!==0 && $version()==='16',$r['out'].$r['err']);
+            $r=$runner($config,'settings','rollback');
+            $check('runner settings rollback removes the empty extension',$r['exit']===0 && $marker('prism_settings_v1')===false && !in_array('prism_settings',$tables(),true),$r['out'].$r['err']);
+            $r=$runner($config,'v16','rollback');
+            $check('runner v16 rollback returns to schema 15 without touching assignments',$r['exit']===0 && $version()==='15' && !in_array('academic_year_settings',$tables(),true) && $assignments()===$before,$r['out'].$r['err']);
+            $r=$runner($config,'probe');
+            $check('runner probe confirms schema 15 after rollback',$r['exit']===0 && ($r['receipt']['schemaVersion']??null)==='15',$r['out']);
+            $r=$runner($config,'v16','apply'); $r2=$runner($config,'settings','apply');
+            $check('runner re-applies v16 and Settings after a rollback',$r['exit']===0 && $r2['exit']===0 && $version()==='16' && $marker('prism_settings_v1')==='1',$r['out'].$r2['out']);
+            prism_settings_save($pdo,$admin,'communication.deadline_reminder_intervals',[5,2]);
+            $r=$runner($config,'settings','rollback');
+            $check('runner settings rollback is refused once a setting is saved (fix forward, never delete data)',$r['exit']!==0 && $marker('prism_settings_v1')==='1' && count($pdo->query('SELECT 1 FROM prism_settings')->fetchAll())>=1,$r['out'].$r['err']);
+            $r=$runner($config,'v16','rollback');
+            $check('runner v16 rollback is refused while Settings data exists',$r['exit']!==0 && $version()==='16',$r['out'].$r['err']);
             $receipts=glob($receiptDir.DIRECTORY_SEPARATOR.'prism-*.json');
             $leak=array_filter($receipts,fn($f)=>str_contains(file_get_contents($f),$secret)||str_contains(file_get_contents($f),'dbname='));
             $check('every runner step wrote a private receipt with no password or connection string',count($receipts)>=9 && !$leak,['receipts'=>count($receipts),'leaking'=>array_values($leak)]);
             $check('runner left student assignments unchanged',$assignments()===$before);
+            // PRISM_TEST_KEEP_RECEIPTS=<folder> keeps the (secret-free) receipts so a runbook can quote real expected values.
+            if (($keep=getenv('PRISM_TEST_KEEP_RECEIPTS'))!==false && $keep!=='') { @mkdir($keep,0777,true); foreach (glob($receiptDir.DIRECTORY_SEPARATOR.'prism-*.json') as $f) copy($f,$keep.DIRECTORY_SEPARATOR.basename($f)); }
             foreach (array_merge(glob($receiptDir.DIRECTORY_SEPARATOR.'*'),glob($configDir.DIRECTORY_SEPARATOR.'*')) as $f) @unlink($f);
             @rmdir($receiptDir); @rmdir($configDir); @rmdir($base);
             break;

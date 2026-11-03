@@ -784,6 +784,8 @@ body.prism-workspace .ierb-pc-stages li[aria-current=step] > span { border-color
 .prism-action-panel .ierb-menu-group { display:block; margin:0; padding:10px 14px 4px; color:var(--prism-muted); font-size:10px; font-weight:700; letter-spacing:.08em; text-transform:uppercase; }
 .prism-action-panel .ierb-menu-group:not(:first-child) { margin-top:6px; border-top:1px solid var(--prism-border); padding-top:12px; }
 @media(max-width:1000px) { body.prism-workspace .ierb-pc-head { grid-template-columns:1fr auto; } body.prism-workspace .ierb-pc-progress { grid-column:1/-1; order:3; } body.prism-workspace .ierb-pc-groups { grid-template-columns:minmax(0,1fr); } }
+/* V14 status text (for example "IERB Completed") is wider than the ZIP's "Pending": below 520px the badge moves under the name instead of starving the name column. */
+@media(max-width:520px) { body.prism-workspace .ierb-pc-head { grid-template-columns:minmax(0,1fr); } body.prism-workspace .ierb-pc-status { justify-self:start; } }
 body.prism-workspace button.ierb-pc-meter { width:100%; min-height:0; padding:4px 0; border:0; background:transparent; color:inherit; font:inherit; cursor:pointer; }
 body.prism-workspace button.ierb-pc-meter:focus-visible { outline:3px solid #f19ac6; outline-offset:2px; border-radius:8px; }
 

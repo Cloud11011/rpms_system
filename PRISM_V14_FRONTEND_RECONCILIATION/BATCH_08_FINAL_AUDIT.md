@@ -4,28 +4,40 @@ Claude Code, 2026-11-03. Branch `reconcile/prism-v14-frontend-20261102`, baselin
 
 **No production action was taken.** Nothing was pushed, merged, deployed, migrated or activated, no cron job was changed, and no e-mail was sent. All tests used disposable databases and simulated providers.
 
+## 0. Update after your decisions C1, C2 and C3 (2026-11-03)
+
+Applied and re-verified. Only the approved change was made to the frontend: **two lines in `assets/css/ierbprog.css`** (a comment and one rule). All other work is test tooling and documentation.
+
+| Decision | Result |
+| --- | --- |
+| **C2: mobile IERB Progress (Option B)** | Applied. At 520 px and below the status badge sits below the Student name. Measured at 320, 360, 390 and 520 px, light and dark: names readable, no card or page overflow. At 521, 700, 1000, 1024 and 1440 px the page is **pixel-identical** to before, in both themes (`card-validate.cjs`, `card-validate-compare.py`). At 320 px the old page was also 352 px wide, a page overflow the rule removes |
+| **"No other ZIP element changed"** | Proven four ways: the CSS diff is exactly 2 added lines; wide widths are pixel-identical; the full 120-pair re-comparison has the **same 76 identical pairs** and only the two IERB Progress 390 px pairs changed signature; reconciled-only wrap anomalies went from 2 pairs to **0**. Below 520 px only the card list differs; content above it is identical, and the footer is identical apart from a sub-pixel offset caused by the shorter cards |
+| **C3: W1 to W5** | Approved and unchanged. Verified in the final capture (text and attribute comparison) |
+| **C1: allowlist, with safeguards** | Approved. Safeguards completed: necessity (all 20 referenced), sensitivity, CLI guards, **HTTP denial of every real `maintenance/`, `includes/` and `vendor/` file in the built artifact** (§6) |
+| Regression | Schema 15: **408 pass**. Schema 16: **418 pass**. Same counts as before the CSS rule |
+
 ## 1. Verdict
 
-**PASS WITH CONDITIONS.** The reconciled application is a development release candidate. It is **not production-ready** until the approvals in §11 and the conditions below are resolved:
+**PASS WITH CONDITIONS, now a release candidate ready for owner-operated release.** C1 to C3 are resolved. The conditions that remain cannot be closed from a development machine; each is a check or a decision for the owner on the Hostinger account, and each has a stop condition in `OWNER_RELEASE_RUNBOOK.md`.
 
-| # | Condition | Why |
+| # | Remaining condition | How it is closed |
 | --- | --- | --- |
-| C1 | Decide the IERB Progress card at phone widths (§4.4, R1) | A real visual regression against the ZIP screenshots. The original ZIP does the same with the same data |
-| C2 | Approve the 20-file publication allowlist addition (§6) | Without it a public build would be broken |
-| C3 | Confirm five wording differences (§4.5, W1 to W5) | Each is a visible text change versus the ZIP |
-| C4 | Verify the production facts that were assumed (§8) | Schema 15, collation, `zip` extension, LiteSpeed rules |
-| C5 | Real Gmail and Hostinger mail were never exercised (not authorized) | Delivery semantics are proven only with simulated providers |
+| C4 | Production facts are assumed, not verified: schema 15, server version and collation, `zip` and `posix` PHP extensions, which branch Hostinger deploys, whether a Git deploy preserves `config.local.php` and `storage/`, LiteSpeed's handling of the access rules | Runbook Parts B and C: each is a checked step with a stop condition |
+| C5 | Real Gmail and Hostinger mail were never exercised (not authorized) | The worker stays disabled; activation is the owner's separate decision (Part F) |
+| C6 | Backups: the hPanel backup must be shown restorable | Runbook Part C.1 (restore into a throwaway database and compare counts). Stop if it cannot be verified |
 
 ## 2. Git state
 
 | Item | Value |
 | --- | --- |
 | Branch | `reconcile/prism-v14-frontend-20261102` |
-| Baseline | `f3d90c0f46132bd4dcb350dd673d6bdbeef47d16` |
-| Previous checkpoint | `51f6858b141fc3370845343315f00f73067c2b99` |
-| This commit | Local only. SHA in the hand-off message |
+| Baseline | `f3d90c0f46132bd4dcb350dd673d6bdbeef47d16` (also `origin/feature/prism-v14-major-revisions`) |
+| Local commits | `51f6858` (Batch 6 checkpoint) and `3d3c45d8162f7571351c164d843b6887281de880` (Batches 5, 7, 8), both authorized, both local |
+| After `3d3c45d` | **Uncommitted** (you will commit them, runbook Part A): the approved CSS rule, the new release-verification tooling, the runbook and updated documents, and the latest evidence consoles |
 | ZIP | `rpms_system_new.zip` SHA-256 `2c3133af45d4d320ce86e81856ccdbfdc273ef00b68834fdb30829f48f4b4a57`, verified unchanged |
-| Pushed or merged | No |
+| Pushed or merged | No. The branch exists only on this machine. The repository's one remote is `origin` (`https://github.com/Cloud11011/rpms_system.git`) |
+| Fast-forward possible | Yes: `origin/feature/prism-v14-major-revisions` (`f3d90c0`) is an ancestor of this branch |
+| Hostinger deploy branch | **Not discoverable from the repository.** Earlier project documents record that pushing `feature/prism-v14-major-revisions` auto-deploys; confirm in hPanel (runbook B.0). The GitHub workflow in the repository triggers on two other branches and only runs tests |
 
 ## 3. Implemented functional changes (cumulative against the baseline)
 
@@ -60,7 +72,7 @@ I then looked at the composites directly for **all 44 pairs that differ** (9 rou
 
 Artifacts:
 - `visual-parity/visual-parity-120.csv`: one row per pair with the classification
-- `tests/claude-v14-s16-07/visual-parity/`: captures, composites and sheets (git-ignored)
+- `tests/claude-v14-s16-08/visual-parity/`: the final captures, composites and sheets (git-ignored)
 
 ### 4.2 Result
 
@@ -68,15 +80,17 @@ Artifacts:
 | --- | --- |
 | **Identical**: text, controls, computed styles and pixels | **76** |
 | **Dynamic data**: V14 data or labels in existing ZIP components, no style change | **40** |
-| **Dynamic data plus approved exception**: IERB Progress at 1440 px | **2** |
-| **Actual visual regression**: IERB Progress at 390 px | **2** |
+| **Dynamic data plus approved exception**: IERB Progress (all four captures) | **4** |
+| **Actual visual regression** | **0** (the two 390 px captures were resolved by the approved rule) |
 
 Zero JavaScript errors on any reconciled page. The one error in the whole run, `togglePassword is not defined`, is in the **original ZIP's** Student Records page.
 
 ### 4.3 Identical (76 pairs, 19 routes)
 Admin: Account, Research Advisers, AI Reports, Legal Policies, Notifications, Settings, Calendar, Data Export, Documents, Reports. Adviser: Account, Calendar, Help. Public: login, forgot password, privacy, terms. Student: Help and Profile.
 
-### 4.4 Actual visual regression: R1 (needs your permission; not changed)
+### 4.4 R1: resolved by the approved Option B (C2)
+
+**Status: applied and validated** (see §0). The analysis below is retained as the record of why.
 **IERB Progress at 390 px, light and dark.** For a completed project, the card's Student-name column collapses to about 24 px and the name wraps letter by letter ("Sy / nth / eti / c…"). The status badge now reads "IERB Completed" (126 px wide), where the ZIP's fixture showed "Pending" (77 px).
 
 Root cause, proven rather than assumed:
@@ -94,13 +108,13 @@ So V14's status text exposes a latent weakness of the ZIP's phone layout. It is 
 | **B. One rule: status on its own row below 520 px** | Name readable and one line. The "Pending" badge also moves below the name on phones | Name 156 / 135 / 95 px; no page overflow at any width |
 | A. Minimum identity column plus a wrapping badge | Name readable, but the badge wraps into an unattractive four-line pill | Rejected after viewing the render |
 
-Option B's CSS (not applied; `ierbprog.css` is currently byte-identical to the ZIP):
+Option B's CSS, as applied (the only change to `ierbprog.css`; every other rule remains the ZIP's):
 ```css
 @media (max-width:520px){ body.prism-workspace .ierb-pc-head{grid-template-columns:minmax(0,1fr)} body.prism-workspace .ierb-pc-status{justify-self:start} }
 ```
 Evidence: `tests/claude-v14-s16-07/visual-parity/card-fix/`.
 
-### 4.5 Wording differences needing your confirmation (not changed)
+### 4.5 Wording differences W1 to W5: approved by you (C3), unchanged
 
 | ID | Where | ZIP | Reconciled | Reason |
 | --- | --- | --- | --- | --- |
@@ -128,16 +142,19 @@ Evidence: `tests/claude-v14-s16-07/visual-parity/card-fix/`.
 
 | Suite | Result |
 | --- | --- |
-| Current-V14 flow and pages, **schema 15** (`claude-v14-fresh-12`) | **408 pass** |
-| Same, **schema 16** + Settings (`claude-v14-s16-07`, with visual capture) | **418 pass** |
+| Current-V14 flow and pages, **schema 15** (`claude-v14-fresh-13`, on the final CSS) | **408 pass** |
+| Same, **schema 16** + Settings (`claude-v14-s16-08`, on the final CSS, with the 120-pair capture) | **418 pass** |
 | Broad suite, current phases (`claude-broad-v14-15`) | foundation 99 · forms, roles and responsive UI 134 · 7R 120 · closure 96 · extension migration · approval race 4 · extended 7R 120 · extended closure 96 · historical guards 3 · empty-extension rollback |
 | Notification worker and mail-provider scenarios | schema 15 **98**, schema 16 **103**, on MariaDB 12.3.2 **and** 10.4.32 |
 | Settings, PHP route | settings-first 75 · onboarding-first 40 · rollback 17 |
 | Schema-16 SQL route | **60** on 12.3.2 general_ci, 12.3.2 uca1400 and 10.4.32 unicode_ci |
-| Option A, the real cron runner | **16** |
+| Option A, the real cron runner, **including rollback and refusal** | **23** (probe, wrong-database refusal, preflight, dry-runs, applies, preflight at 16, receipts without secrets, `settings` then `v16` rollback, re-apply, rollback refused once data exists) |
 | Security matrix, inside both current runs | **9** (§7) |
 | Apache `.htaccess` regression (H3) | **388 pass** (LiteSpeed unverified) |
 | Publication builder tests | **15 pass** |
+| Built artifact (C1 safeguards) | 293 runtime files, `unexpected_files: []`, no credentials. **0 leaks across 519 public-HTTP requests** for every real `maintenance/`, `includes/` and `vendor/` file (GET and HEAD) plus 159 path-trick variants, with a negative control that does leak. Manifest review: 0 hard failures, 15 of 15 CLI scripts self-guarded, 0 secret patterns |
+| Checksums | `make-runtime-checksums.py`: all 293 runtime files verified by `sha256sum -c` against a no-autocrlf checkout, and a one-byte change is detected |
+| Whole tracked tree | 1,382 files: no sensitive file types, nothing over 5 MB, no secret patterns, only four `.sql` files (schema and review scripts, no data) |
 | Syntax / smoke / checklist / `git diff --check` | 272 / 65 / 18 / clean |
 
 The schema-11 and schema-12 legacy subsuites (01, 03, 04, 05, 09 and 10 of the old broad run) test Student-stage operations retired under the approved V14-only cleanup. They were not re-run. Their earlier receipts remain as historical evidence, and each corrected expectation is documented in `BATCH_05_07_NOTIFICATIONS_REPORTS_REGRESSION.md`.
@@ -151,6 +168,14 @@ Failures met and fixed during this batch are all in the test code or in the item
 | P1 | **High** | `maintenance/release/public-runtime-files.json`, the reviewed publication allowlist, **omitted 20 files** the reconciliation added: 18 runtime files and the 2 migrators that Option A's `v16` and `settings` steps launch. A public build from it would break `documents.php`, the Adviser and IERB pages, Settings and the schema contract check | Fixed in this commit: the allowlist goes from 273 to 293 runtime entries (a pure 20-line addition). **Needs your approval**, because the file says additions require an explicit runtime review |
 | P2 | Info | After the fix, the closure check of a real build reports one reference: `config.php` → `tools/schema-v9-contract.json`. That is baseline migration-only code reading a git-ignored file | Pre-existing; not a blocker |
 | P3 | Info | Two non-referenced files stay off the allowlist (`assets/css/academic-settings.css`, an orphan; `includes/schema_v10_seed.json`, baseline) | Unchanged |
+
+**C1 safeguards (completed after your approval):**
+- **Necessary:** each of the 20 additions is referenced by a real runtime file, or is a cron-runner step script.
+- **Not sensitive:** the builder's own rules, an extension deny-list and a content scan all pass.
+- **Not publicly reachable:** the maintenance scripts also carry their own CLI guard as their first active statement, and the Apache check requests the real files.
+- **Five pre-existing allowlist entries are unreferenced dead assets** from the earliest commit (`student-records-reference.css`, three images, `batch11-public.js`). They are harmless static files outside this release's scope; removing them is optional cleanup.
+- **If Hostinger deploys from Git, every tracked file ships, not just the allowlist.** The `.htaccess` rules are then the protection. The H3 and artifact tests passed on Apache; **LiteSpeed must be checked on the server** (runbook B.8).
+- **Build and verify only from a no-autocrlf checkout.** On this Windows machine `core.autocrlf=true` rewrites line endings, so a build from the working tree does not match the committed bytes.
 
 Proof: the closure check on a tree built from the **old** allowlist reports 18 missing references; on the **updated** list, 1 (P2). A real build with the builder reports `unexpected_files: []` and `inventory_verified: true`. It contains no `config.local.php`, SQL, tests, `PRISM_*` documents or reconciliation tooling.
 
@@ -186,7 +211,7 @@ Proof: the closure check on a tree built from the **old** allowlist reports 18 m
 | ROLLBACK | Empty installs and half-installs only; refuses once Settings data, reminders or Settings audit events exist |
 | Half-install | Migration refused with nothing changed; VERIFY `FAIL`; rollback restores the exact schema-15 table set; re-migration succeeds |
 | Servers and collations | MariaDB 12.3.2 (general_ci and uca1400) and 10.4.32 (unicode_ci) |
-| Option A (cron runner) | 16 of 16: probe, wrong-database refusal, preflight, dry-runs, applies, preflight at 16, receipts with no password or DSN |
+| Option A (cron runner) | 23 of 23: probe, wrong-database refusal, preflight, dry-runs, applies, preflight at 16, receipts with no password or DSN, plus rollback in the correct order (`settings` then `v16`), refusal in the wrong order, and refusal once Settings is used |
 | Option B (phpMyAdmin) | Tested with the MariaDB command-line client, not in phpMyAdmin itself. **Prefer Option A**; the project's own review also rated phpMyAdmin DDL "unsupported" |
 
 **Production prerequisites (unverified; to be checked in Phase A):**
@@ -232,17 +257,18 @@ Not covered by the switch, and unchanged: immediate notifications created during
 
 ## 11. Approvals required before any production action
 
-1. **Phase C**: deploy the verified artifact to the schema-15 production.
-2. **Phase D**: the read-only queue review on production.
-3. **Phase E**: the schema-16 migration, by Option A or Option B.
-4. **Phase F**: worker activation and its fence value.
-5. **C1 to C3**: the R1 option, the allowlist addition and the W1 to W5 wording.
-6. Whether `PRISM_MAIL_FALLBACK_WHEN_GMAIL_NOT_ATTEMPTED` ever changes (currently `false`, as you decided).
+**Superseded by the owner-operated release.** C1 to C3 are approved and implemented. You will personally perform every Git commit and push, the Hostinger deployment, the schema migration and the production configuration, using `OWNER_RELEASE_RUNBOOK.md` (Parts A to G). Nothing in this repository performs a production action, and none was performed.
 
-Each phase has its own written gate, rollback and stop conditions in `PRISM_V14_DEPLOYMENT_AND_ROLLBACK_PROCEDURE.md`.
+Still your decisions, each with its own stop condition in the runbook:
+1. Deployment (runbook A.5 and B.3), after the backup in C.1 is verified.
+2. The schema-16 migration (Part D), only after the new code is deployed and verified.
+3. Whether and when to activate the notification worker, and its cutoff (Part F).
+4. Whether `PRISM_MAIL_FALLBACK_WHEN_GMAIL_NOT_ATTEMPTED` ever changes (currently `false`, as you decided).
+
+`PRISM_V14_DEPLOYMENT_AND_ROLLBACK_PROCEDURE.md` is kept for reference only.
 
 ## 12. Changed-file inventory
-233 files against the baseline (141 added, 92 modified, none deleted, no binaries). By area: application includes 37, pages and APIs 21, scripts 19, stylesheets 21, tooling 43, release pipeline 1, schema-16 package 4, notification-worker documents and SQL 2, reconciliation reports, consoles and evidence 84, plus `CLAUDE.md`. Full list: `BATCH_08_CHANGED_FILE_INVENTORY.md`.
+241 files against the baseline once the release-preparation commit is made (149 added, 92 modified, none deleted, no binaries). By area: application includes 37, pages and APIs 21, scripts 19, stylesheets 21, tooling 47, release pipeline 2, schema-16 package 4, notification-worker documents and SQL 2, reconciliation reports, consoles and evidence 87, plus `CLAUDE.md`. Full list: `BATCH_08_CHANGED_FILE_INVENTORY.md`.
 
 ## 13. Verdict
-**PASS WITH CONDITIONS** (C1 to C5 above). Stop here for your review before any production action.
+**PASS WITH CONDITIONS, release candidate for owner-operated release.** Conditions C4 to C6 (section 1) are checks on your Hostinger account, each with a stop condition in `OWNER_RELEASE_RUNBOOK.md`. Nothing was committed by this release preparation, pushed, deployed, migrated or sent.

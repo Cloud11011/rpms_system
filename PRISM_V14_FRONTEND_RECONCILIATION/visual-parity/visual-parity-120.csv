@@ -1,4 +1,4 @@
-role,route,theme,width,classification,needsYourPermission,topOfPageChangedRatio,fullPageChangedRatio,heightDeltaPx,textDifferences,controlDifferences,styleDifferences,notes
+role,route,theme,width,classification,decision,topOfPageChangedRatio,fullPageChangedRatio,heightDeltaPx,textDifferences,controlDifferences,styleDifferences,notes
 admin,account.php,dark,390,IDENTICAL,,0.0,0.0,0,0,0,0,"No difference in visible text, controls, computed styles or pixels"
 admin,account.php,light,390,IDENTICAL,,0.0,0.0,0,0,0,0,"No difference in visible text, controls, computed styles or pixels"
 admin,account.php,dark,1440,IDENTICAL,,0.0,0.0,0,0,0,0,"No difference in visible text, controls, computed styles or pixels"
@@ -27,18 +27,18 @@ admin,admin_settings.php,dark,390,IDENTICAL,,0.0,0.0,0,0,0,0,"No difference in v
 admin,admin_settings.php,light,390,IDENTICAL,,0.0,0.0,0,0,0,0,"No difference in visible text, controls, computed styles or pixels"
 admin,admin_settings.php,dark,1440,IDENTICAL,,0.0,0.0,0,0,0,0,"No difference in visible text, controls, computed styles or pixels"
 admin,admin_settings.php,light,1440,IDENTICAL,,0.0,0.0,0,0,0,0,"No difference in visible text, controls, computed styles or pixels"
-admin,admin_students.php,dark,390,DYNAMIC DATA,W1,0.0081,0.0071,0,20,17,0,"V14 official-stage chips and labels replace ""Stage n""; ""Research setup pending""; status badge text; search placeholder wording"
-admin,admin_students.php,light,390,DYNAMIC DATA,W1,0.0067,0.0038,0,20,17,0,"V14 official-stage chips and labels replace ""Stage n""; ""Research setup pending""; status badge text; search placeholder wording"
-admin,admin_students.php,dark,1440,DYNAMIC DATA,W1,0.0068,0.0047,0,20,17,0,"V14 official-stage chips and labels replace ""Stage n""; ""Research setup pending""; status badge text; search placeholder wording"
-admin,admin_students.php,light,1440,DYNAMIC DATA,W1,0.0035,0.0024,0,20,17,0,"V14 official-stage chips and labels replace ""Stage n""; ""Research setup pending""; status badge text; search placeholder wording"
+admin,admin_students.php,dark,390,DYNAMIC DATA,C3:W1,0.0081,0.0071,0,20,17,0,"V14 official-stage chips and labels replace ""Stage n""; ""Research setup pending""; status badge text; search placeholder wording"
+admin,admin_students.php,light,390,DYNAMIC DATA,C3:W1,0.0067,0.0038,0,20,17,0,"V14 official-stage chips and labels replace ""Stage n""; ""Research setup pending""; status badge text; search placeholder wording"
+admin,admin_students.php,dark,1440,DYNAMIC DATA,C3:W1,0.0068,0.0047,0,20,17,0,"V14 official-stage chips and labels replace ""Stage n""; ""Research setup pending""; status badge text; search placeholder wording"
+admin,admin_students.php,light,1440,DYNAMIC DATA,C3:W1,0.0035,0.0024,0,20,17,0,"V14 official-stage chips and labels replace ""Stage n""; ""Research setup pending""; status badge text; search placeholder wording"
 admin,calendar.php,dark,390,IDENTICAL,,0.0,0.0,0,0,0,0,"No difference in visible text, controls, computed styles or pixels"
 admin,calendar.php,light,390,IDENTICAL,,0.0,0.0,0,0,0,0,"No difference in visible text, controls, computed styles or pixels"
 admin,calendar.php,dark,1440,IDENTICAL,,0.0,0.0,0,0,0,0,"No difference in visible text, controls, computed styles or pixels"
 admin,calendar.php,light,1440,IDENTICAL,,0.0,0.0,0,0,0,0,"No difference in visible text, controls, computed styles or pixels"
-admin,dashboard.php,dark,390,DYNAMIC DATA,W2,0.0,0.1492,-741,35,9,0,KPI and attention counts from canonical projects; legacy non-project row not listed; monitor subtitle wording
-admin,dashboard.php,light,390,DYNAMIC DATA,W2,0.0,0.1386,-741,35,9,0,KPI and attention counts from canonical projects; legacy non-project row not listed; monitor subtitle wording
-admin,dashboard.php,dark,1440,DYNAMIC DATA,W2,0.0036,0.1607,-235,35,9,0,KPI and attention counts from canonical projects; legacy non-project row not listed; monitor subtitle wording
-admin,dashboard.php,light,1440,DYNAMIC DATA,W2,0.0032,0.1478,-235,35,9,0,KPI and attention counts from canonical projects; legacy non-project row not listed; monitor subtitle wording
+admin,dashboard.php,dark,390,DYNAMIC DATA,C3:W2,0.0,0.1491,-741,35,9,0,KPI and attention counts from canonical projects; legacy non-project row not listed; monitor subtitle wording
+admin,dashboard.php,light,390,DYNAMIC DATA,C3:W2,0.0,0.1388,-741,35,9,0,KPI and attention counts from canonical projects; legacy non-project row not listed; monitor subtitle wording
+admin,dashboard.php,dark,1440,DYNAMIC DATA,C3:W2,0.0036,0.1606,-235,35,9,0,KPI and attention counts from canonical projects; legacy non-project row not listed; monitor subtitle wording
+admin,dashboard.php,light,1440,DYNAMIC DATA,C3:W2,0.0032,0.1478,-235,35,9,0,KPI and attention counts from canonical projects; legacy non-project row not listed; monitor subtitle wording
 admin,data_export.php,dark,390,IDENTICAL,,0.0,0.0,0,0,0,0,"No difference in visible text, controls, computed styles or pixels"
 admin,data_export.php,light,390,IDENTICAL,,0.0,0.0,0,0,0,0,"No difference in visible text, controls, computed styles or pixels"
 admin,data_export.php,dark,1440,IDENTICAL,,0.0,0.0,0,0,0,0,"No difference in visible text, controls, computed styles or pixels"
@@ -47,14 +47,14 @@ admin,documents.php,dark,390,IDENTICAL,,0.0,0.0,0,0,0,0,"No difference in visibl
 admin,documents.php,light,390,IDENTICAL,,0.0,0.0,0,0,0,0,"No difference in visible text, controls, computed styles or pixels"
 admin,documents.php,dark,1440,IDENTICAL,,0.0,0.0,0,0,0,0,"No difference in visible text, controls, computed styles or pixels"
 admin,documents.php,light,1440,IDENTICAL,,0.0,0.0,0,0,0,0,"No difference in visible text, controls, computed styles or pixels"
-admin,help_support.php,dark,390,DYNAMIC DATA,W2,0.0,0.1492,-741,35,9,0,Renders the dashboard; identical to dashboard.php
-admin,help_support.php,light,390,DYNAMIC DATA,W2,0.0,0.1386,-741,35,9,0,Renders the dashboard; identical to dashboard.php
-admin,help_support.php,dark,1440,DYNAMIC DATA,W2,0.0036,0.1607,-235,35,9,0,Renders the dashboard; identical to dashboard.php
-admin,help_support.php,light,1440,DYNAMIC DATA,W2,0.0032,0.1478,-235,35,9,0,Renders the dashboard; identical to dashboard.php
-admin,ierbprog.php,dark,390,ACTUAL VISUAL REGRESSION (+ DYNAMIC DATA + APPROVED EXCEPTION),"R1,W4",0.018,0.2328,-463,34,17,1,"Student name column collapses to ~24px with the wide ""IERB Completed"" status badge (name wraps letter by letter). The original ZIP does the same with the same status text. V14 stage labels and distribution; ""Add IERB Entry"" removed and ""Legacy Student Stage Distribution"" renamed (approved V14-only cleanup); neutral ""IERB Completed"" status badge"
-admin,ierbprog.php,light,390,ACTUAL VISUAL REGRESSION (+ DYNAMIC DATA + APPROVED EXCEPTION),"R1,W4",0.0168,0.2192,-463,34,17,1,"Student name column collapses to ~24px with the wide ""IERB Completed"" status badge (name wraps letter by letter). The original ZIP does the same with the same status text. V14 stage labels and distribution; ""Add IERB Entry"" removed and ""Legacy Student Stage Distribution"" renamed (approved V14-only cleanup); neutral ""IERB Completed"" status badge"
-admin,ierbprog.php,dark,1440,DYNAMIC DATA + APPROVED EXCEPTION,W4,0.0096,0.2401,-338,34,17,1,"V14 stage labels and distribution; ""Add IERB Entry"" removed and ""Legacy Student Stage Distribution"" renamed (approved V14-only cleanup); neutral ""IERB Completed"" status badge"
-admin,ierbprog.php,light,1440,DYNAMIC DATA + APPROVED EXCEPTION,W4,0.0088,0.2429,-338,34,17,1,"V14 stage labels and distribution; ""Add IERB Entry"" removed and ""Legacy Student Stage Distribution"" renamed (approved V14-only cleanup); neutral ""IERB Completed"" status badge"
+admin,help_support.php,dark,390,DYNAMIC DATA,C3:W2,0.0,0.1491,-741,35,9,0,Renders the dashboard; identical to dashboard.php
+admin,help_support.php,light,390,DYNAMIC DATA,C3:W2,0.0,0.1388,-741,35,9,0,Renders the dashboard; identical to dashboard.php
+admin,help_support.php,dark,1440,DYNAMIC DATA,C3:W2,0.0036,0.1606,-235,35,9,0,Renders the dashboard; identical to dashboard.php
+admin,help_support.php,light,1440,DYNAMIC DATA,C3:W2,0.0032,0.1478,-235,35,9,0,Renders the dashboard; identical to dashboard.php
+admin,ierbprog.php,dark,390,DYNAMIC DATA + APPROVED EXCEPTION,"C2 approved (Option B applied), C3:W4",0.018,0.2558,-689,34,17,1,"Approved mobile rule applied: below 520px the status badge sits below the Student name (the name column no longer collapses). V14 stage labels and distribution; ""Add IERB Entry"" removed and ""Legacy Student Stage Distribution"" renamed (approved V14-only cleanup); neutral ""IERB Completed"" status badge"
+admin,ierbprog.php,light,390,DYNAMIC DATA + APPROVED EXCEPTION,"C2 approved (Option B applied), C3:W4",0.0168,0.2455,-689,34,17,1,"Approved mobile rule applied: below 520px the status badge sits below the Student name (the name column no longer collapses). V14 stage labels and distribution; ""Add IERB Entry"" removed and ""Legacy Student Stage Distribution"" renamed (approved V14-only cleanup); neutral ""IERB Completed"" status badge"
+admin,ierbprog.php,dark,1440,DYNAMIC DATA + APPROVED EXCEPTION,C3:W4,0.0096,0.2401,-338,34,17,1,"V14 stage labels and distribution; ""Add IERB Entry"" removed and ""Legacy Student Stage Distribution"" renamed (approved V14-only cleanup); neutral ""IERB Completed"" status badge"
+admin,ierbprog.php,light,1440,DYNAMIC DATA + APPROVED EXCEPTION,C3:W4,0.0088,0.2429,-338,34,17,1,"V14 stage labels and distribution; ""Add IERB Entry"" removed and ""Legacy Student Stage Distribution"" renamed (approved V14-only cleanup); neutral ""IERB Completed"" status badge"
 admin,reports.php,dark,390,IDENTICAL,,0.0,0.0,0,0,0,0,"No difference in visible text, controls, computed styles or pixels"
 admin,reports.php,light,390,IDENTICAL,,0.0,0.0,0,0,0,0,"No difference in visible text, controls, computed styles or pixels"
 admin,reports.php,dark,1440,IDENTICAL,,0.0,0.0,0,0,0,0,"No difference in visible text, controls, computed styles or pixels"
@@ -63,18 +63,18 @@ adviser,account.php,dark,390,IDENTICAL,,0.0,0.0,0,0,0,0,"No difference in visibl
 adviser,account.php,light,390,IDENTICAL,,0.0,0.0,0,0,0,0,"No difference in visible text, controls, computed styles or pixels"
 adviser,account.php,dark,1440,IDENTICAL,,0.0,0.0,0,0,0,0,"No difference in visible text, controls, computed styles or pixels"
 adviser,account.php,light,1440,IDENTICAL,,0.0,0.0,0,0,0,0,"No difference in visible text, controls, computed styles or pixels"
-adviser,admin_students.php,dark,390,DYNAMIC DATA,W1,0.0105,0.0089,0,20,19,0,Same as Admin Student Records (3 assigned Students)
-adviser,admin_students.php,light,390,DYNAMIC DATA,W1,0.0089,0.0051,0,20,19,0,Same as Admin Student Records (3 assigned Students)
-adviser,admin_students.php,dark,1440,DYNAMIC DATA,W1,0.0074,0.0054,0,20,19,0,Same as Admin Student Records (3 assigned Students)
-adviser,admin_students.php,light,1440,DYNAMIC DATA,W1,0.0046,0.0034,0,20,19,0,Same as Admin Student Records (3 assigned Students)
+adviser,admin_students.php,dark,390,DYNAMIC DATA,C3:W1,0.0105,0.0089,0,20,19,0,Same as Admin Student Records (3 assigned Students)
+adviser,admin_students.php,light,390,DYNAMIC DATA,C3:W1,0.0089,0.0051,0,20,19,0,Same as Admin Student Records (3 assigned Students)
+adviser,admin_students.php,dark,1440,DYNAMIC DATA,C3:W1,0.0074,0.0054,0,20,19,0,Same as Admin Student Records (3 assigned Students)
+adviser,admin_students.php,light,1440,DYNAMIC DATA,C3:W1,0.0046,0.0034,0,20,19,0,Same as Admin Student Records (3 assigned Students)
 adviser,calendar.php,dark,390,IDENTICAL,,0.0,0.0,0,0,0,0,"No difference in visible text, controls, computed styles or pixels"
 adviser,calendar.php,light,390,IDENTICAL,,0.0,0.0,0,0,0,0,"No difference in visible text, controls, computed styles or pixels"
 adviser,calendar.php,dark,1440,IDENTICAL,,0.0,0.0,0,0,0,0,"No difference in visible text, controls, computed styles or pixels"
 adviser,calendar.php,light,1440,IDENTICAL,,0.0,0.0,0,0,0,0,"No difference in visible text, controls, computed styles or pixels"
-adviser,documents.php,dark,390,DYNAMIC DATA,W3,0.0757,0.1192,-21,2,0,0,"Info banner wording: ""Request Revision / Resubmission"" becomes ""Request Revision"""
-adviser,documents.php,light,390,DYNAMIC DATA,W3,0.063,0.0984,-21,2,0,0,"Info banner wording: ""Request Revision / Resubmission"" becomes ""Request Revision"""
-adviser,documents.php,dark,1440,DYNAMIC DATA,W3,0.0028,0.001,0,2,0,0,"Info banner wording: ""Request Revision / Resubmission"" becomes ""Request Revision"""
-adviser,documents.php,light,1440,DYNAMIC DATA,W3,0.0027,0.0009,0,2,0,0,"Info banner wording: ""Request Revision / Resubmission"" becomes ""Request Revision"""
+adviser,documents.php,dark,390,DYNAMIC DATA,C3:W3,0.0749,0.1193,-21,2,0,0,"Info banner wording: ""Request Revision / Resubmission"" becomes ""Request Revision"""
+adviser,documents.php,light,390,DYNAMIC DATA,C3:W3,0.0626,0.0987,-21,2,0,0,"Info banner wording: ""Request Revision / Resubmission"" becomes ""Request Revision"""
+adviser,documents.php,dark,1440,DYNAMIC DATA,C3:W3,0.0028,0.001,0,2,0,0,"Info banner wording: ""Request Revision / Resubmission"" becomes ""Request Revision"""
+adviser,documents.php,light,1440,DYNAMIC DATA,C3:W3,0.0027,0.0009,0,2,0,0,"Info banner wording: ""Request Revision / Resubmission"" becomes ""Request Revision"""
 adviser,help_support.php,dark,390,IDENTICAL,,0.0,0.0,0,0,0,0,"No difference in visible text, controls, computed styles or pixels"
 adviser,help_support.php,light,390,IDENTICAL,,0.0,0.0,0,0,0,0,"No difference in visible text, controls, computed styles or pixels"
 adviser,help_support.php,dark,1440,IDENTICAL,,0.0,0.0,0,0,0,0,"No difference in visible text, controls, computed styles or pixels"
@@ -103,19 +103,19 @@ student,help_support.php,dark,390,IDENTICAL,,0.0,0.0,0,0,0,0,"No difference in v
 student,help_support.php,light,390,IDENTICAL,,0.0,0.0,0,0,0,0,"No difference in visible text, controls, computed styles or pixels"
 student,help_support.php,dark,1440,IDENTICAL,,0.0,0.0,0,0,0,0,"No difference in visible text, controls, computed styles or pixels"
 student,help_support.php,light,1440,IDENTICAL,,0.0,0.0,0,0,0,0,"No difference in visible text, controls, computed styles or pixels"
-student,role_portal.php,dark,390,DYNAMIC DATA,,0.0275,0.1581,-32,6,2,0,"V14 stage labels; Stage 2 completed from resolved official cases (no ""(Conditional)"")"
-student,role_portal.php,light,390,DYNAMIC DATA,,0.0349,0.1126,-32,6,2,0,"V14 stage labels; Stage 2 completed from resolved official cases (no ""(Conditional)"")"
-student,role_portal.php,dark,1440,DYNAMIC DATA,,0.0009,0.0145,1,6,2,0,"V14 stage labels; Stage 2 completed from resolved official cases (no ""(Conditional)"")"
-student,role_portal.php,light,1440,DYNAMIC DATA,,0.0015,0.0102,1,6,2,0,"V14 stage labels; Stage 2 completed from resolved official cases (no ""(Conditional)"")"
-student,role_portal.php#documents,dark,390,DYNAMIC DATA,W5,0.0,0.0832,52,24,4,0,"V14 stage labels (""Completion"" becomes ""IERB Completed""); the ZIP prints literal ""null"" beside the filter chips, the reconciled page does not"
-student,role_portal.php#documents,light,390,DYNAMIC DATA,W5,0.0,0.0725,52,24,4,0,"V14 stage labels (""Completion"" becomes ""IERB Completed""); the ZIP prints literal ""null"" beside the filter chips, the reconciled page does not"
-student,role_portal.php#documents,dark,1440,DYNAMIC DATA,W5,0.0018,0.0016,0,24,4,0,"V14 stage labels (""Completion"" becomes ""IERB Completed""); the ZIP prints literal ""null"" beside the filter chips, the reconciled page does not"
-student,role_portal.php#documents,light,1440,DYNAMIC DATA,W5,0.0016,0.0015,0,24,4,0,"V14 stage labels (""Completion"" becomes ""IERB Completed""); the ZIP prints literal ""null"" beside the filter chips, the reconciled page does not"
+student,role_portal.php,dark,390,DYNAMIC DATA,,0.0275,0.1577,-33,6,2,0,"V14 stage labels; Stage 2 completed from resolved official cases (no ""(Conditional)"")"
+student,role_portal.php,light,390,DYNAMIC DATA,,0.0349,0.1121,-33,6,2,0,"V14 stage labels; Stage 2 completed from resolved official cases (no ""(Conditional)"")"
+student,role_portal.php,dark,1440,DYNAMIC DATA,,0.0009,0.0005,0,6,2,0,"V14 stage labels; Stage 2 completed from resolved official cases (no ""(Conditional)"")"
+student,role_portal.php,light,1440,DYNAMIC DATA,,0.0015,0.0007,0,6,2,0,"V14 stage labels; Stage 2 completed from resolved official cases (no ""(Conditional)"")"
+student,role_portal.php#documents,dark,390,DYNAMIC DATA,C3:W5,0.0,0.0786,52,24,4,0,"V14 stage labels (""Completion"" becomes ""IERB Completed""); the ZIP prints literal ""null"" beside the filter chips, the reconciled page does not"
+student,role_portal.php#documents,light,390,DYNAMIC DATA,C3:W5,0.0,0.0684,52,24,4,0,"V14 stage labels (""Completion"" becomes ""IERB Completed""); the ZIP prints literal ""null"" beside the filter chips, the reconciled page does not"
+student,role_portal.php#documents,dark,1440,DYNAMIC DATA,C3:W5,0.0018,0.0016,0,24,4,0,"V14 stage labels (""Completion"" becomes ""IERB Completed""); the ZIP prints literal ""null"" beside the filter chips, the reconciled page does not"
+student,role_portal.php#documents,light,1440,DYNAMIC DATA,C3:W5,0.0016,0.0015,0,24,4,0,"V14 stage labels (""Completion"" becomes ""IERB Completed""); the ZIP prints literal ""null"" beside the filter chips, the reconciled page does not"
 student,role_portal.php#profile,dark,390,IDENTICAL,,0.0,0.0,0,0,0,0,"No difference in visible text, controls, computed styles or pixels"
 student,role_portal.php#profile,light,390,IDENTICAL,,0.0,0.0,0,0,0,0,"No difference in visible text, controls, computed styles or pixels"
 student,role_portal.php#profile,dark,1440,IDENTICAL,,0.0,0.0,0,0,0,0,"No difference in visible text, controls, computed styles or pixels"
 student,role_portal.php#profile,light,1440,IDENTICAL,,0.0,0.0,0,0,0,0,"No difference in visible text, controls, computed styles or pixels"
-student,role_portal.php#progress,dark,390,DYNAMIC DATA,,0.0,0.1768,-101,16,4,0,Stage 2 completed from the case ledger; history record count
+student,role_portal.php#progress,dark,390,DYNAMIC DATA,,0.0,0.1769,-101,16,4,0,Stage 2 completed from the case ledger; history record count
 student,role_portal.php#progress,light,390,DYNAMIC DATA,,0.0,0.1338,-101,16,4,0,Stage 2 completed from the case ledger; history record count
 student,role_portal.php#progress,dark,1440,DYNAMIC DATA,,0.0045,0.1122,-85,16,4,0,Stage 2 completed from the case ledger; history record count
 student,role_portal.php#progress,light,1440,DYNAMIC DATA,,0.0036,0.0811,-85,16,4,0,Stage 2 completed from the case ledger; history record count

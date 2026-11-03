@@ -1,5 +1,7 @@
 # PRISM V14 reconciliation: deployment and rollback procedure
 
+> **Superseded 2026-11-03 by `OWNER_RELEASE_RUNBOOK.md`.** That runbook is the owner-operated release procedure (corrected order: backup before the deployment push; checksum verification; the tested cron runner; the notification cutoff). Use it, not this document. This one is kept for reference only.
+
 Prepared 2026-11-03 for the branch `reconcile/prism-v14-frontend-20261102`.
 
 **Status: prepared, never executed.** Nothing in this document has been run against Hostinger, and no production credential, database, cron job or e-mail provider was touched while writing it.

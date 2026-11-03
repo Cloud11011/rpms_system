@@ -1,6 +1,6 @@
 # Changed-file inventory against baseline f3d90c0
 
-Generated for the Batch 8 commit. Status: A added, M modified. No file is deleted and no binary is included.
+Regenerated 2026-11-03 for the release-preparation commit (it lists the two earlier checkpoints, `51f6858` and `3d3c45d`, plus the files the release-preparation commit adds). Status: A added, M modified. No file is deleted and no binary is included.
 
 | Status | Area | File |
 | --- | --- | --- |
@@ -102,6 +102,59 @@ Generated for the Batch 8 commit. Status: A added, M modified. No file is delete
 | M | Application: stylesheets | `assets/css/reports.css` |
 | M | Application: stylesheets | `assets/css/student-dashboard.css` |
 | M | Application: stylesheets | `assets/css/student-records.css` |
+| A | Test and maintenance tooling | `maintenance/frontend-reconciliation/analyze.py` |
+| A | Test and maintenance tooling | `maintenance/frontend-reconciliation/build-schema16-sql.py` |
+| A | Test and maintenance tooling | `maintenance/frontend-reconciliation/card-fix-probe.cjs` |
+| A | Test and maintenance tooling | `maintenance/frontend-reconciliation/check-syntax.py` |
+| A | Test and maintenance tooling | `maintenance/frontend-reconciliation/checklist-contract.cjs` |
+| A | Test and maintenance tooling | `maintenance/frontend-reconciliation/compatibility.cjs` |
+| A | Test and maintenance tooling | `maintenance/frontend-reconciliation/current-pages.cjs` |
+| A | Test and maintenance tooling | `maintenance/frontend-reconciliation/current-surfaces.cjs` |
+| A | Test and maintenance tooling | `maintenance/frontend-reconciliation/dashboard.cjs` |
+| A | Test and maintenance tooling | `maintenance/frontend-reconciliation/mail-provider-harness.php` |
+| A | Test and maintenance tooling | `maintenance/frontend-reconciliation/mail-provider-simulator.php` |
+| A | Test and maintenance tooling | `maintenance/frontend-reconciliation/notification-worker-child.php` |
+| A | Test and maintenance tooling | `maintenance/frontend-reconciliation/notification-worker-tests.php` |
+| A | Test and maintenance tooling | `maintenance/frontend-reconciliation/reports-pages.cjs` |
+| A | Test and maintenance tooling | `maintenance/frontend-reconciliation/run-browser.ps1` |
+| A | Test and maintenance tooling | `maintenance/frontend-reconciliation/run-v14.ps1` |
+| A | Test and maintenance tooling | `maintenance/frontend-reconciliation/runtime-closure-check.py` |
+| A | Test and maintenance tooling | `maintenance/frontend-reconciliation/security-audit.cjs` |
+| A | Test and maintenance tooling | `maintenance/frontend-reconciliation/settings-fixture.php` |
+| A | Test and maintenance tooling | `maintenance/frontend-reconciliation/settings-pages.cjs` |
+| A | Test and maintenance tooling | `maintenance/frontend-reconciliation/settings-run.ps1` |
+| A | Test and maintenance tooling | `maintenance/frontend-reconciliation/settings-tests.php` |
+| A | Test and maintenance tooling | `maintenance/frontend-reconciliation/v14-current.cjs` |
+| A | Test and maintenance tooling | `maintenance/frontend-reconciliation/v14-fixture.php` |
+| A | Test and maintenance tooling | `maintenance/frontend-reconciliation/visual-classify.py` |
+| A | Test and maintenance tooling | `maintenance/frontend-reconciliation/visual-diff.py` |
+| A | Test and maintenance tooling | `maintenance/frontend-reconciliation/visual-parity.cjs` |
+| A | Test and maintenance tooling | `maintenance/frontend-reconciliation/visual-sheets.py` |
+| A | Test and maintenance tooling | `maintenance/frontend-reconciliation/zip-long-status-probe.cjs` |
+| M | Test and maintenance tooling | `maintenance/hostinger-cron-runner.php` |
+| M | Test and maintenance tooling | `maintenance/ierb-7r-tests/integration.cjs` |
+| M | Test and maintenance tooling | `maintenance/ierb-group-tests/bootstrap.php` |
+| M | Test and maintenance tooling | `maintenance/ierb-group-tests/run.cjs` |
+| M | Test and maintenance tooling | `maintenance/ierb-project-tests/uploads.cjs` |
+| M | Test and maintenance tooling | `maintenance/ierb-ui-tests/integration.cjs` |
+| M | Test and maintenance tooling | `maintenance/ierb-v14-tests/cases.php` |
+| A | Test and maintenance tooling | `maintenance/migrate-academic-year-settings.php` |
+| A | Test and maintenance tooling | `maintenance/migrate-prism-settings.php` |
+| M | Test and maintenance tooling | `maintenance/notification-dispatch.php` |
+| M | Test and maintenance tooling | `maintenance/onboarding-tests/regression.cjs` |
+| M | Test and maintenance tooling | `maintenance/onboarding-tests/run-regression.ps1` |
+| M | Test and maintenance tooling | `maintenance/onboarding-tests/v14-simplification-smoke.cjs` |
+| M | Test and maintenance tooling | `maintenance/runtime-preflight.php` |
+| A | Test and maintenance tooling | `maintenance/frontend-reconciliation/artifact-http-denial.py` |
+| A | Test and maintenance tooling | `maintenance/frontend-reconciliation/card-validate-compare.py` |
+| A | Test and maintenance tooling | `maintenance/frontend-reconciliation/card-validate.cjs` |
+| A | Test and maintenance tooling | `maintenance/frontend-reconciliation/manifest-review.py` |
+| M | Release pipeline | `maintenance/release/public-runtime-files.json` |
+| A | Release pipeline | `maintenance/release/make-runtime-checksums.py` |
+| A | Schema 16 SQL and guide | `PRISM_V14_FRONTEND_RECONCILIATION/schema-16/PRISM_SCHEMA_15_TO_16.sql` |
+| A | Schema 16 SQL and guide | `PRISM_V14_FRONTEND_RECONCILIATION/schema-16/PRISM_SCHEMA_16_MIGRATION_GUIDE.md` |
+| A | Schema 16 SQL and guide | `PRISM_V14_FRONTEND_RECONCILIATION/schema-16/PRISM_SCHEMA_16_ROLLBACK.sql` |
+| A | Schema 16 SQL and guide | `PRISM_V14_FRONTEND_RECONCILIATION/schema-16/PRISM_SCHEMA_16_VERIFY.sql` |
 | A | Notification worker documents and SQL | `PRISM_V14_FRONTEND_RECONCILIATION/notification-worker/NOTIFICATION_WORKER_ACTIVATION_GUIDE.md` |
 | A | Notification worker documents and SQL | `PRISM_V14_FRONTEND_RECONCILIATION/notification-worker/PRISM_NOTIFICATION_QUEUE_REVIEW.sql` |
 | A | Other | `CLAUDE.md` |
@@ -189,51 +242,6 @@ Generated for the Batch 8 commit. Status: A added, M modified. No file is delete
 | A | Reconciliation reports, consoles and evidence | `PRISM_V14_FRONTEND_RECONCILIATION/v14-pages-r8-console.txt` |
 | A | Reconciliation reports, consoles and evidence | `PRISM_V14_FRONTEND_RECONCILIATION/v14-pages-r8-retry-console.txt` |
 | A | Reconciliation reports, consoles and evidence | `PRISM_V14_FRONTEND_RECONCILIATION/visual-parity/visual-parity-120.csv` |
-| M | Release pipeline | `maintenance/release/public-runtime-files.json` |
-| A | Schema 16 SQL and guide | `PRISM_V14_FRONTEND_RECONCILIATION/schema-16/PRISM_SCHEMA_15_TO_16.sql` |
-| A | Schema 16 SQL and guide | `PRISM_V14_FRONTEND_RECONCILIATION/schema-16/PRISM_SCHEMA_16_MIGRATION_GUIDE.md` |
-| A | Schema 16 SQL and guide | `PRISM_V14_FRONTEND_RECONCILIATION/schema-16/PRISM_SCHEMA_16_ROLLBACK.sql` |
-| A | Schema 16 SQL and guide | `PRISM_V14_FRONTEND_RECONCILIATION/schema-16/PRISM_SCHEMA_16_VERIFY.sql` |
-| A | Test and maintenance tooling | `maintenance/frontend-reconciliation/analyze.py` |
-| A | Test and maintenance tooling | `maintenance/frontend-reconciliation/build-schema16-sql.py` |
-| A | Test and maintenance tooling | `maintenance/frontend-reconciliation/card-fix-probe.cjs` |
-| A | Test and maintenance tooling | `maintenance/frontend-reconciliation/check-syntax.py` |
-| A | Test and maintenance tooling | `maintenance/frontend-reconciliation/checklist-contract.cjs` |
-| A | Test and maintenance tooling | `maintenance/frontend-reconciliation/compatibility.cjs` |
-| A | Test and maintenance tooling | `maintenance/frontend-reconciliation/current-pages.cjs` |
-| A | Test and maintenance tooling | `maintenance/frontend-reconciliation/current-surfaces.cjs` |
-| A | Test and maintenance tooling | `maintenance/frontend-reconciliation/dashboard.cjs` |
-| A | Test and maintenance tooling | `maintenance/frontend-reconciliation/mail-provider-harness.php` |
-| A | Test and maintenance tooling | `maintenance/frontend-reconciliation/mail-provider-simulator.php` |
-| A | Test and maintenance tooling | `maintenance/frontend-reconciliation/notification-worker-child.php` |
-| A | Test and maintenance tooling | `maintenance/frontend-reconciliation/notification-worker-tests.php` |
-| A | Test and maintenance tooling | `maintenance/frontend-reconciliation/reports-pages.cjs` |
-| A | Test and maintenance tooling | `maintenance/frontend-reconciliation/run-browser.ps1` |
-| A | Test and maintenance tooling | `maintenance/frontend-reconciliation/run-v14.ps1` |
-| A | Test and maintenance tooling | `maintenance/frontend-reconciliation/runtime-closure-check.py` |
-| A | Test and maintenance tooling | `maintenance/frontend-reconciliation/security-audit.cjs` |
-| A | Test and maintenance tooling | `maintenance/frontend-reconciliation/settings-fixture.php` |
-| A | Test and maintenance tooling | `maintenance/frontend-reconciliation/settings-pages.cjs` |
-| A | Test and maintenance tooling | `maintenance/frontend-reconciliation/settings-run.ps1` |
-| A | Test and maintenance tooling | `maintenance/frontend-reconciliation/settings-tests.php` |
-| A | Test and maintenance tooling | `maintenance/frontend-reconciliation/v14-current.cjs` |
-| A | Test and maintenance tooling | `maintenance/frontend-reconciliation/v14-fixture.php` |
-| A | Test and maintenance tooling | `maintenance/frontend-reconciliation/visual-classify.py` |
-| A | Test and maintenance tooling | `maintenance/frontend-reconciliation/visual-diff.py` |
-| A | Test and maintenance tooling | `maintenance/frontend-reconciliation/visual-parity.cjs` |
-| A | Test and maintenance tooling | `maintenance/frontend-reconciliation/visual-sheets.py` |
-| A | Test and maintenance tooling | `maintenance/frontend-reconciliation/zip-long-status-probe.cjs` |
-| M | Test and maintenance tooling | `maintenance/hostinger-cron-runner.php` |
-| M | Test and maintenance tooling | `maintenance/ierb-7r-tests/integration.cjs` |
-| M | Test and maintenance tooling | `maintenance/ierb-group-tests/bootstrap.php` |
-| M | Test and maintenance tooling | `maintenance/ierb-group-tests/run.cjs` |
-| M | Test and maintenance tooling | `maintenance/ierb-project-tests/uploads.cjs` |
-| M | Test and maintenance tooling | `maintenance/ierb-ui-tests/integration.cjs` |
-| M | Test and maintenance tooling | `maintenance/ierb-v14-tests/cases.php` |
-| A | Test and maintenance tooling | `maintenance/migrate-academic-year-settings.php` |
-| A | Test and maintenance tooling | `maintenance/migrate-prism-settings.php` |
-| M | Test and maintenance tooling | `maintenance/notification-dispatch.php` |
-| M | Test and maintenance tooling | `maintenance/onboarding-tests/regression.cjs` |
-| M | Test and maintenance tooling | `maintenance/onboarding-tests/run-regression.ps1` |
-| M | Test and maintenance tooling | `maintenance/onboarding-tests/v14-simplification-smoke.cjs` |
-| M | Test and maintenance tooling | `maintenance/runtime-preflight.php` |
+| A | Reconciliation reports, consoles and evidence | `PRISM_V14_FRONTEND_RECONCILIATION/OWNER_RELEASE_RUNBOOK.md` |
+| A | Reconciliation reports, consoles and evidence | `PRISM_V14_FRONTEND_RECONCILIATION/claude-v14-fresh-13-console.txt` |
+| A | Reconciliation reports, consoles and evidence | `PRISM_V14_FRONTEND_RECONCILIATION/claude-v14-s16-08-console.txt` |
