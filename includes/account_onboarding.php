@@ -158,7 +158,7 @@ function onboarding_invite(PDO $pdo, array $actor, array $data): array
         [$actor,$ownAdviser]=onboarding_inviter($pdo,$actor,$role);
         $intent=null;
         if ($role==='student' && $actor['role']==='admin' && research_onboarding_available($pdo)) {
-            try { $academic=academic_validate($data); } catch (InvalidArgumentException $e) { throw new AccountLifecycleValidation($e->getMessage()); }
+            try { $academic=academic_validate($data,null,true); } catch (InvalidArgumentException $e) { throw new AccountLifecycleValidation($e->getMessage()); }
             $intent=research_onboarding_intent($pdo,$actor,$data,$academic);
             $data['adviserId']=$intent['adviserId'];
         }
@@ -332,7 +332,7 @@ function onboarding_finish(PDO $pdo, array $user, array $data): array
         onboarding_id_available($pdo,$identifier,$role,(int)$user['id'],(int)$r['id']);
         $before=lifecycle_identity_capture($pdo,$r,$role);
         if ($role==='student') {
-            try { $academic=academic_validate($data); } catch(InvalidArgumentException $e) { throw new AccountLifecycleValidation($e->getMessage()); }
+            try { $academic=academic_validate($data,null,true); } catch(InvalidArgumentException $e) { throw new AccountLifecycleValidation($e->getMessage()); }
             $title=onboarding_text($data['research']??'','Research title',255,false);
             if (research_onboarding_available($pdo)) {
                 $q=$pdo->prepare("SELECT assignment_json FROM research_onboarding_assignments WHERE student_id=? AND state IN ('pending','review') FOR UPDATE"); $q->execute([$r['id']]);

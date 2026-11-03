@@ -360,13 +360,14 @@ module.exports = async h => {
       const adviser = await open('adviser', 'research_adviser.php', { theme });
       const read = page => page.evaluate(() => {
         const active = document.querySelector('.portal-nav-links [aria-current=page], .portal-nav-links li.active > button');
-        const chip = document.querySelector('.prism-role-chip'); const nav = document.querySelector('.portal-navbar');
+        // The approved ZIP identifies roles in the existing account button.
+        const chip = document.querySelector('.portal-profile-btn small'); const nav = document.querySelector('.portal-navbar');
         return { active: getComputedStyle(active).backgroundColor, activeText: getComputedStyle(active).color, chip: chip?.innerText.trim(), chipColor: chip && getComputedStyle(chip).color,
           navBg: getComputedStyle(document.body).backgroundColor, border: getComputedStyle(nav).borderTopColor, focus: getComputedStyle(document.documentElement).getPropertyValue('--prism-focus').trim() };
       });
       const sc = await read(student.page), ac = await read(adviser.page); roleColors[theme] = { student: sc, adviser: ac };
-      check(sc.chip === 'Student portal' && ac.chip === 'Adviser portal', theme + ': role is identified by visible text and distinct icons, not color alone');
-      check(sc.active !== ac.active && sc.chipColor !== ac.chipColor, theme + ': Student and Adviser navigation accents are visibly distinct');
+      check(/Student/.test(sc.chip) && /Adviser/.test(ac.chip), theme + ': roles are identified by visible account text, not color alone');
+      check(sc.active !== ac.active, theme + ': Student and Adviser active navigation accents remain distinct');
       check(contrast(sc.activeText, sc.active) >= 4.5 && contrast(ac.activeText, ac.active) >= 4.5, theme + ': active navigation text meets 4.5:1 contrast for both roles');
       check(contrast(sc.chipColor, sc.navBg) >= 4.5 && contrast(ac.chipColor, ac.navBg) >= 4.5, theme + ': role labels meet 4.5:1 contrast');
       await student.page.screenshot({ path: path.join(evidence, `student-dashboard-1440-${theme}.png`) });

@@ -1,0 +1,135 @@
+/* PRISM — Upload documents modal (stage checklist + multiple files).
+   Uses the existing documents.css variables, so light and dark themes both work. */
+
+.upc-dialog { width: min(860px, 100%); padding: 22px 24px; border-radius: 18px; }
+.upc-dialog form { display: grid; gap: 16px; margin-top: 16px; }
+.upc-dialog h3 { margin: 0; color: var(--text-primary); font-size: 15px; font-weight: 700; }
+
+.upc-top { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
+.upc-field { display: grid; gap: 6px; align-content: start; }
+.upc-field label, .upc-label { color: var(--text-primary); font-size: 14px; font-weight: 700; }
+.upc-field select {
+  min-height: 46px; padding: 0 12px; border: 1px solid var(--border-color); border-radius: 12px;
+  color: var(--text-primary); background: var(--input-bg); font: inherit; font-size: 14.5px;
+}
+.upc-stage {
+  min-height: 46px; box-sizing: border-box; display: flex; align-items: center; gap: 10px;
+  padding: 0 14px; border-radius: 12px; background: var(--bg-color);
+}
+.upc-stage-pill {
+  display: inline-flex; align-items: center; min-height: 24px; padding: 1px 10px; border-radius: 999px;
+  color: #4b3aa8; background: #ece9fb; font-size: 12.5px; font-weight: 700;
+}
+html.dark-theme .upc-stage-pill { color: #d9d2ff; background: rgba(140, 120, 255, .22); }
+.upc-stage-name { color: var(--text-primary); font-size: 14px; font-weight: 600; }
+.upc-stage-muted { color: var(--text-secondary); font-size: 14px; }
+.upc-hint { margin: -8px 0 0; color: var(--text-secondary); font-size: 12.5px; }
+.upc-checklist .upc-hint { margin: 0; }
+
+.upc-notice {
+  display: flex; align-items: flex-start; gap: 10px; padding: 12px 14px; border-radius: 12px;
+  border: 1px solid var(--border-color); color: var(--text-primary); background: var(--bg-color);
+  font-size: 13.5px; line-height: 1.5;
+}
+.upc-notice i { margin-top: 2px; }
+.upc-notice.is-success { color: #146c2e; border-color: #b9e4c6; background: #e7f6ec; }
+.upc-notice.is-error { color: #a01c1c; border-color: #f4bcbc; background: #fdeaea; }
+html.dark-theme .upc-notice.is-success { color: #8ee0a8; border-color: rgba(142, 224, 168, .35); background: rgba(20, 108, 46, .2); }
+html.dark-theme .upc-notice.is-error { color: #ff9c9c; border-color: rgba(255, 156, 156, .35); background: rgba(160, 28, 28, .2); }
+.upc-link { margin-left: auto; padding: 0; border: 0; color: inherit; background: none; font: inherit; font-weight: 700; text-decoration: underline; cursor: pointer; }
+
+.upc-checklist { display: grid; gap: 10px; }
+.upc-section-head { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: baseline; gap: 6px 12px; }
+.upc-section-head span { color: var(--text-secondary); font-size: 13px; }
+.upc-req-list { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 8px; margin: 0; padding: 0; list-style: none; }
+.upc-req {
+  display: flex; align-items: center; gap: 10px; min-height: 52px; padding: 8px 10px 8px 14px;
+  border: 1px solid var(--border-color); border-radius: 12px; background: var(--card-bg);
+}
+.upc-req.is-attached { border-color: #b9e4c6; background: #f1faf4; }
+.upc-req.is-done { background: var(--bg-color); }
+html.dark-theme .upc-req.is-attached { border-color: rgba(142, 224, 168, .35); background: rgba(20, 108, 46, .14); }
+.upc-req-text { display: grid; gap: 2px; flex: 1; min-width: 0; }
+.upc-req-name { color: var(--text-primary); font-size: 13.5px; font-weight: 600; line-height: 1.35; }
+.upc-req-state { overflow: hidden; color: #8a5a00; font-size: 12px; font-weight: 600; text-overflow: ellipsis; white-space: nowrap; }
+.upc-req.is-attached .upc-req-state { color: #146c2e; }
+.upc-req.is-done .upc-req-state { color: var(--text-secondary); }
+html.dark-theme .upc-req-state { color: #f3c868; }
+html.dark-theme .upc-req.is-attached .upc-req-state { color: #8ee0a8; }
+
+.upc-attach {
+  position: relative; flex: none; display: inline-flex; align-items: center; gap: 6px; min-height: 36px; padding: 0 12px;
+  border: 1px solid #f3b9d5; border-radius: 10px; color: var(--accent-purple); background: #fce7f1;
+  font-size: 13px; font-weight: 700; cursor: pointer;
+}
+html.dark-theme .upc-attach { color: #ff9dc7; border-color: rgba(255, 157, 199, .4); background: rgba(255, 136, 188, .12); }
+.upc-attach:focus-within { outline: 3px solid var(--accent-pink); outline-offset: 2px; }
+.upc-row-input { position: absolute; inset: 0; width: 100%; opacity: 0; cursor: pointer; }
+
+.upc-drop {
+  position: relative; display: grid; justify-items: center; gap: 6px; padding: 22px 16px;
+  border: 2px dashed var(--accent-pink); border-radius: 16px; color: var(--text-secondary);
+  background: rgba(189, 13, 101, .04); text-align: center; cursor: pointer;
+}
+.upc-drop i { color: var(--accent-pink); font-size: 26px; }
+.upc-drop strong { color: var(--text-primary); font-size: 14.5px; }
+.upc-drop span { font-size: 13px; line-height: 1.5; }
+.upc-drop input { position: absolute; inset: 0; width: 100%; opacity: 0; cursor: pointer; }
+.upc-drop.is-over { background: rgba(189, 13, 101, .1); }
+.upc-drop:focus-within { outline: 3px solid var(--accent-pink); outline-offset: 2px; }
+.upc-drop.is-disabled { opacity: .5; cursor: not-allowed; }
+.upc-drop.is-disabled input { cursor: not-allowed; }
+
+.upc-files { display: grid; gap: 8px; }
+.upc-file-list { display: grid; gap: 8px; margin: 0; padding: 0; list-style: none; }
+.upc-file {
+  display: flex; flex-wrap: wrap; align-items: center; gap: 8px 14px; padding: 10px 12px;
+  border: 1px solid var(--border-color); border-radius: 12px; background: var(--card-bg);
+}
+.upc-file.is-warning { border-color: #f3d58c; background: #fffbf0; }
+.upc-file.is-error { border-color: #f4bcbc; background: #fff6f6; }
+html.dark-theme .upc-file.is-warning { border-color: rgba(243, 200, 104, .4); background: rgba(243, 200, 104, .08); }
+html.dark-theme .upc-file.is-error { border-color: rgba(255, 156, 156, .4); background: rgba(160, 28, 28, .12); }
+.upc-file-ext {
+  width: 38px; height: 38px; flex: none; display: grid; place-items: center; border-radius: 10px;
+  color: var(--accent-purple); background: #fce7f1; font-size: 11px; font-weight: 800;
+}
+.upc-file-text { flex: 1 1 200px; min-width: 0; display: grid; gap: 2px; }
+.upc-file-name { color: var(--text-primary); font-size: 13.5px; font-weight: 700; overflow-wrap: anywhere; }
+.upc-file-meta { color: var(--text-secondary); font-size: 12px; }
+.upc-file.is-warning .upc-file-meta { color: #8a5a00; }
+.upc-file.is-error .upc-file-meta { color: #a01c1c; }
+html.dark-theme .upc-file.is-warning .upc-file-meta { color: #f3c868; }
+html.dark-theme .upc-file.is-error .upc-file-meta { color: #ff9c9c; }
+.upc-type {
+  flex: 1 1 260px; min-height: 40px; padding: 0 10px; border: 1px solid var(--border-color); border-radius: 10px;
+  color: var(--text-primary); background: var(--input-bg); font: inherit; font-size: 13.5px;
+}
+.upc-file.is-warning .upc-type { border-color: #e0a100; }
+.upc-remove {
+  width: 36px; height: 36px; flex: none; display: grid; place-items: center; border: 1px solid var(--border-color);
+  border-radius: 10px; color: var(--text-secondary); background: var(--card-bg); cursor: pointer;
+}
+
+.upc-results:empty { display: none; }
+.upc-footer {
+  display: flex; flex-wrap: wrap; align-items: center; gap: 10px 12px; margin: 4px -24px -22px; padding: 16px 24px;
+  border-top: 1px solid var(--border-color);
+}
+.upc-footer-status { flex: 1 1 220px; color: var(--text-secondary); font-size: 13px; font-weight: 600; }
+.upc-footer-status.is-ready { color: #146c2e; }
+.upc-footer-status.is-warning { color: #8a5a00; }
+.upc-footer-status.is-error { color: #a01c1c; }
+html.dark-theme .upc-footer-status.is-ready { color: #8ee0a8; }
+html.dark-theme .upc-footer-status.is-warning { color: #f3c868; }
+html.dark-theme .upc-footer-status.is-error { color: #ff9c9c; }
+.upc-footer .doc-primary, .upc-footer .doc-secondary { min-height: 44px; padding: 0 18px; border-radius: 12px; }
+.upc-footer .doc-primary:disabled { opacity: .45; cursor: not-allowed; }
+
+@media (max-width: 640px) {
+  .upc-dialog { padding: 18px 16px; }
+  .upc-top { grid-template-columns: 1fr; }
+  .upc-req-list { grid-template-columns: 1fr; }
+  .upc-footer { margin: 4px -16px -18px; padding: 14px 16px; }
+  .upc-footer .doc-primary, .upc-footer .doc-secondary { flex: 1; }
+}

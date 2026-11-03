@@ -89,6 +89,10 @@ module.exports=async h=>{
         await pick('Synthetic Batch2 revision.pdf');check(await types.first().isDisabled()&&await types.first().inputValue()==='Legacy private category','Explicit revision locks the original category even for a historical label');
         await pick('Synthetic Batch2 second-revision.pdf');check(await types.count()===1,'Revision mode preserves its single-file restriction when browsing again');
         await page.getByRole('button',{name:'Cancel revision',exact:true}).click();check(await types.count()===0&&await input.getAttribute('multiple')!==null,'Explicit revision cancellation resets the queue and restores normal selection');
+        // The preceding upload refreshes the authorized type catalog asynchronously.
+        // Measure tab order once that policy refresh has enabled the native picker.
+        await page.locator('#submissionForm[data-upload-catalog-ready="true"]').waitFor();
+        await page.waitForFunction(()=>!document.querySelector('#documentFile').disabled);
         await page.locator('#submissionDropzone').focus();await page.keyboard.press('Tab');check(await input.evaluate(n=>document.activeElement===n),'The native file picker remains keyboard accessible');
       }
     }finally{await ctx.close();}

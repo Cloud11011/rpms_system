@@ -222,8 +222,6 @@ function track_aggregate_blocks(array $s): array
             'rows'=>array_map(fn($p)=>[$p['research_title']."\n".(array_key_exists('protocolCode',$p)?'Protocol Code: '.($p['protocolCode']?:'Not yet assigned'):$p['public_identifier']),IerbStage::LABELS[$p['stage_key']]],$s['projects'])],
         '# V14 Project Stage Distribution',['headers'=>['V14 stage','Distinct projects'],'widths'=>[370,142],
             'rows'=>array_map(fn($r)=>[IerbStage::LABELS[$r['stage_key']],(string)$r['project_count']],$c['v14ProjectStages'])],
-        '# Legacy Student Stage Distribution',['headers'=>['Legacy recorded stage','Student records'],'widths'=>[370,142],
-            'rows'=>array_map(fn($r)=>[$r['stage'],(string)$r['student_count']],$c['legacyStudentStages'])],
-        '# Source / Verification Notes','Canonical projects are counted by immutable project ID, once per project. Student totals are a separate statistical unit. Legacy stages exclude enrolled workflows and canonical project members; no stage mapping or legacy reconciliation is inferred.',
+        '# Source / Verification Notes','Canonical projects are counted by immutable project ID, once per project. Student totals are a separate statistical unit. Only the four approved V14 project stages are reported; no numeric stage conversion is inferred.',
         'This deterministic database snapshot does not infer submission dates, investigator roles, institutional decisions, causes of delay or future progress. Individual track sheets retain Initial Submission through 3rd Resubmission only.'];
 }

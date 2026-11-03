@@ -31,8 +31,17 @@ function research_onboarding_tables(string $collation = SCHEMA_PINNED_COLLATION)
 
 function research_onboarding_schema_verify(PDO $pdo, bool $partial = false): void
 {
-    if ((string)$pdo->query("SELECT v FROM schema_meta WHERE k='schema_version'")->fetchColumn()!=='15') throw new RuntimeException('Research onboarding requires the reviewed schema 15 base.');
-    schema_v15_verify($pdo, false, array_keys(research_onboarding_tables()));
+    $version=(string)$pdo->query("SELECT v FROM schema_meta WHERE k='schema_version'")->fetchColumn();
+    if (!in_array($version,['15','16'],true)) throw new RuntimeException('Research onboarding requires the reviewed schema 15 or 16 base.');
+    if ($version==='16') {
+        require_once __DIR__.'/schema_v16.php';
+        schema_v16_verify($pdo,false,array_keys(research_onboarding_tables()));
+    } else schema_v15_verify($pdo,false,array_keys(research_onboarding_tables()));
+    research_onboarding_extension_verify($pdo,$partial);
+}
+
+function research_onboarding_extension_verify(PDO $pdo,bool $partial=false): void
+{
     $contract = json_decode(file_get_contents(__DIR__.'/research_onboarding_schema.json'), true, 512, JSON_THROW_ON_ERROR);
     $present = $pdo->query('SHOW TABLES')->fetchAll(PDO::FETCH_COLUMN);
     foreach (research_onboarding_tables() as $name => $_) {
@@ -75,12 +84,13 @@ function migrate_research_onboarding(PDO $pdo, string $mode = 'dry-run'): array
                 $pdo->commit();
             } catch(Throwable $e) { if($pdo->inTransaction())$pdo->rollBack();throw $e; }
             foreach (array_reverse(array_keys(research_onboarding_tables())) as $name) if (in_array($name, $present, true)) $pdo->exec('DROP TABLE `'.$name.'`');
-            schema_v15_verify($pdo);
+            if ((string)$pdo->query("SELECT v FROM schema_meta WHERE k='schema_version'")->fetchColumn()==='16') schema_v16_verify($pdo);
+            else schema_v15_verify($pdo);
         } elseif ($mode === 'apply') {
             foreach (research_onboarding_tables(schema_extension_collation($pdo)) as $name => $ddl) if (!in_array($name, $present, true)) $pdo->exec($ddl);
             research_onboarding_schema_verify($pdo);
             $pdo->exec("INSERT INTO schema_meta(k,v) VALUES ('research_onboarding_v1','1') ON DUPLICATE KEY UPDATE v='1'");
         }
-        return ['ok'=>true,'mode'=>$mode,'baseSchema'=>'15','extension'=>'research_onboarding_v1','existingRowsChanged'=>0];
+        return ['ok'=>true,'mode'=>$mode,'baseSchema'=>(string)$pdo->query("SELECT v FROM schema_meta WHERE k='schema_version'")->fetchColumn(),'extension'=>'research_onboarding_v1','existingRowsChanged'=>0];
     } finally { $pdo->query("SELECT RELEASE_LOCK('prism_migrate')"); }
 }

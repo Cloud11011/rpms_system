@@ -328,3 +328,16 @@ body.prism-workspace .official-deadline.is-overdue { border-left: 3px solid var(
 .v14-correction-actions { display: flex; flex-wrap: wrap; gap: 8px; margin: 10px 0; }
 .v14-doc-choice, .v14-amendment-choice label { display: flex; align-items: center; gap: 8px; min-height: 36px; }
 .v14-amendment-choice { border: 0; padding: 0; margin: 8px 0; display: flex; flex-wrap: wrap; gap: 4px 16px; }
+
+/* The same policy document typography is used by login, public, and Admin views. */
+.prism-policy-document{max-width:76ch;margin-left:auto;margin-right:auto;overflow-wrap:anywhere;font-size:14px;line-height:1.85;text-align:justify;text-justify:inter-word}
+.prism-policy-document>p{margin:0 0 20px;line-height:1.85;text-align:justify;text-justify:inter-word;hyphens:auto}
+.prism-policy-document>p+ul,.prism-policy-document>p+ol{margin-top:8px}
+.prism-policy-document>:is(h2,h3):not(.prism-policy-title){margin:34px 0 14px;font-size:19px;font-weight:800;line-height:1.5;text-align:left;break-after:avoid}
+.prism-policy-document>:is(ul,ol){margin:12px 0 24px;padding-left:28px;text-align:left}
+.prism-policy-document li{margin:7px 0;padding-left:3px;line-height:1.8}
+.prism-policy-title{margin:12px 0 32px;font-size:clamp(26px,3vw,36px);font-weight:800;line-height:1.3;text-align:center;letter-spacing:-.02em}
+.login-policy-dialog>h2.prism-policy-title{margin:8px 0 24px;font-size:28px;text-align:center}
+.public-legal-page #legalContent>.prism-policy-title{margin:40px 0 22px}
+.public-legal-page #legalContent>.legal-effective{margin:0 0 28px;text-align:center;font-size:12px;font-weight:500}
+@media(max-width:600px){.prism-policy-document{font-size:13px;line-height:1.8}.prism-policy-document>:is(h2,h3):not(.prism-policy-title){margin-top:28px;font-size:17px}.prism-policy-document>p{margin-bottom:18px}.prism-policy-title{font-size:26px;margin-bottom:24px}}

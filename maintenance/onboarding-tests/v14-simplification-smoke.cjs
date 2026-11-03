@@ -67,11 +67,13 @@ check('Onboarding resumes beyond twenty blocked accounts',!onboarding.includes('
   && onboarding.includes('ORDER BY r.updated_at,r.student_id'));
 check('Adviser password no longer blocks membership',!onboarding.includes("$adviserLogin=lifecycle_resolve_login"));
 check('Single V14 bulk acceptance transaction',req.includes('function ierb_v14_accept_requirements_bulk')&&req.includes('Bulk requirement acceptance owns its transaction.'));
-check('Historical IERB actions read-only',src('ierb_api.php').includes('Legacy IERB stages are read-only'));
+check('Obsolete per-Student stage mutations are retired',src('ierb_api.php').includes('Obsolete Student-stage operations are retired.'));
 check('V14 guidance has separate short storage keys',guidance.includes("'V14_INITIAL'")&&guidance.includes("'V14_COMPLETED'"));
 check('V14 monitor excludes old Student-stage records',src('includes/ierb_monitor.php').includes('p.id IS NOT NULL AND p.submission_holder_id=h.id'));
 check('V14 reports preserve canonical AI report action',src('reports_api.php').includes('function v14_generate_ai_report')&&src('reports_api.php').includes('v14_report_ai_facts'));
-check('Dashboard deadline signal is derived from deadline targeting',src('dashboard.php').includes('calendar_deadline_groups')&&src('dashboard.php').includes('Projects Needing Deadline Review'));
+check('Dashboard deadline signal is derived from deadline targeting',src('dashboard.php').includes('monitor_dashboard_metrics($pdo,$authUser)')
+  &&src('includes/ierb_monitor.php').includes('calendar_deadline_groups')
+  &&src('includes/ierb_monitor.php').includes("d.deadline_date<CURRENT_DATE()"));
 check('V14 exports include project workflow stages',src('data_exports_api.php').includes('COALESCE(w.stage_key,s.stage)'));
 check('No destructive schema operations in changed source',![...php,...js].some(p=>/\bDROP\s+(?:TABLE|DATABASE)\b/i.test(src(p))));
 console.log('\nV14 simplification smoke checks: '+passed+' passed. No records were changed.');

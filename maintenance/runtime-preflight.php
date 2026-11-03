@@ -16,7 +16,7 @@ if (array_key_exists('database',$options)) {
         $result['ok']=$result['ok']&&$result['database']['ok'];
     } catch (Throwable $e) {
         $result['ok']=false;
-        $result['database']=['ok'=>false,'message'=>'Read-only database preflight could not complete. Check explicitly supplied credentials and a supported schema (v10-v15).',
+        $result['database']=['ok'=>false,'message'=>'Read-only database preflight could not complete. Check explicitly supplied credentials and a supported schema (v10-v16).',
             'errorClass'=>match(true){$e instanceof PrismMigrationInputError&&$e->getMessage()==='database_mismatch'=>'database_mismatch',
                 $e instanceof PrismMigrationConnectionError||$e instanceof PrismMigrationInputError=>prism_migration_diagnostic($e)['errorClass'],
                 $e instanceof PDOException=>'database_error',default=>'precondition_refused'},

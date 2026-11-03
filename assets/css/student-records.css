@@ -62,28 +62,6 @@ body.student-records-page .management-controls #inviteAccount {
 body.student-records-page .management-controls .prism-filter-disclosure {
     flex:0 0 auto;
 }
-body.student-records-page .student-stage-filters {
-    display:flex;
-    flex-wrap:wrap;
-    gap:7px;
-    margin:0 0 12px;
-}
-body.student-records-page .student-stage-filters .prism-filter-pill {
-    min-height:38px;
-    padding:0 14px;
-    border:1px solid #e3deea;
-    border-radius:999px;
-    background:#fff;
-    color:#342e48;
-    font-size:13px;
-    font-weight:600;
-    white-space:nowrap;
-}
-body.student-records-page .student-stage-filters .prism-filter-pill[aria-pressed=true] {
-    border-color:#14133c;
-    background:#14133c;
-    color:#fff;
-}
 body.student-records-page .management-card {
     border:0;
     border-radius:0;
@@ -272,14 +250,10 @@ html.dark-theme body.student-records-page .student-record-card .prism-record-pri
 html.dark-theme body.student-records-page .student-record-card .prism-record-summary dd {
     color:#f1eef8;
 }
-html.dark-theme body.student-records-page :is(.management-search,.student-sort-control select,.student-stage-filters .prism-filter-pill,.student-record-card,.student-record-card .prism-action-trigger) {
+html.dark-theme body.student-records-page :is(.management-search,.student-sort-control select,.student-record-card,.student-record-card .prism-action-trigger) {
     border-color:#3b3547;
     background:#20202d;
     color:#f1eef8;
-}
-html.dark-theme body.student-records-page .student-stage-filters .prism-filter-pill[aria-pressed=true] {
-    border-color:#b5146e;
-    background:#b5146e;
 }
 html.dark-theme body.student-records-page .student-record-card .prism-record-details {
     border-color:#3b3547;
@@ -424,25 +398,6 @@ body.student-records-page .student-page-actions {
     flex:0 0 auto;
     align-items:center;
     gap:8px;
-}
-body.student-records-page .student-stage-filters {
-    display:flex;
-    align-items:center;
-    width:100%;
-    flex-wrap:nowrap;
-    min-width:0;
-    overflow-x:auto;
-    margin:14px 0;
-    padding:2px 1px 4px;
-    gap:8px;
-    scrollbar-width:none;
-}
-body.student-records-page .student-stage-filters::-webkit-scrollbar { display:none; }
-body.student-records-page .student-stage-filters .prism-filter-pill {
-    flex:0 0 auto;
-    min-height:32px;
-    padding:0 11px;
-    font-size:9px;
 }
 body.student-records-page .management-controls>.management-search {
     flex:1 1 320px;
@@ -902,46 +857,6 @@ body.student-records-page .student-protocol-meta {
     color:#77749a;
     font-size:11px;
 }
-body.student-records-page .student-stage-filters {
-    scrollbar-width:auto;
-}
-body.student-records-page .student-stage-filters::-webkit-scrollbar {
-    display:block;
-    height:10px;
-}
-body.student-records-page .student-stage-filters::-webkit-scrollbar-thumb {
-    border-radius:99px;
-    background:#aaa9ac;
-}
-body.student-records-page .student-stage-filters .prism-filter-pill {
-    gap:8px;
-    min-height:44px;
-    padding:0 14px;
-    border-color:#e6e3f3;
-    color:#14103f;
-    font-size:13px;
-}
-body.student-records-page .student-stage-filters .prism-filter-pill:hover {
-    border-color:#a10f61;
-}
-body.student-records-page .student-stage-filters .prism-filter-pill[aria-pressed=true] {
-    border-color:#14103f;
-    background:#14103f;
-    color:#fff;
-}
-body.student-records-page .student-stage-filters .prism-filter-pill b {
-    min-width:22px;
-    padding:0 6px;
-    border-radius:99px;
-    background:#fbe8f2;
-    color:#a10f61;
-    font-size:11px;
-    text-align:center;
-}
-body.student-records-page .student-stage-filters .prism-filter-pill[aria-pressed=true] b {
-    background:rgba(255,255,255,.2);
-    color:#fff;
-}
 body.student-records-page .management-search,
 body.student-records-page .student-filter-action,
 body.student-records-page .student-page-actions .student-icon-action {
@@ -1025,14 +940,6 @@ html.dark-theme body.student-records-page .student-page-actions #inviteAccount.s
     background:#20202d;
     color:#f1eef8;
 }
-html.dark-theme body.student-records-page .student-stage-filters .prism-filter-pill b {
-    background:#3d2438;
-    color:#f2a9ce;
-}
-html.dark-theme body.student-records-page .student-stage-filters .prism-filter-pill[aria-pressed=true] b {
-    background:rgba(255,255,255,.2);
-    color:#fff;
-}
 html.dark-theme body.student-records-page .student-toolbar-separator {
     background:#3b3547;
 }
@@ -1078,6 +985,8 @@ body.student-records-page .management-table-wrap > table tbody { display:grid; g
 body.student-records-page .management-table-wrap > table tbody tr { display:block; background:transparent; }
 body.student-records-page .management-table-wrap > table tbody td { display:block; padding:0; border:0; }
 body.student-records-page .student-result-card { display:grid; grid-template-columns:minmax(0,1.15fr) minmax(0,1.1fr) minmax(0,.9fr) minmax(0,.75fr) auto; align-items:center; gap:12px; padding:12px 12px 0; border:1px solid var(--prism-border); border-radius:10px; background:var(--prism-card); font-size:11px; }
+body.student-records-page[data-management=student] .student-result-card .student-result-research-title { min-width:0; color:var(--prism-text); font-size:12px; font-weight:700; line-height:1.5; overflow-wrap:anywhere; }
+body.student-records-page[data-management=student] .student-result-card .student-result-protocol-code { min-width:0; color:var(--prism-muted); font-size:10px; font-style:italic; line-height:1.4; overflow-wrap:anywhere; }
 body.student-records-page .student-result-card:hover,
 body.student-records-page .student-result-card:focus-within { border-color:var(--prism-border); background:var(--prism-card); box-shadow:none; transform:none; }
 body.student-records-page .student-result-card > * { min-width:0; overflow-wrap:anywhere; }
@@ -1093,10 +1002,14 @@ body.student-records-page[data-management=student] .student-result-details summa
 body.student-records-page[data-management=student] .student-result-details summary { display:flex; align-items:center; gap:8px; list-style:none; }
 body.student-records-page[data-management=student] .student-result-details summary::-webkit-details-marker { display:none; }
 body.student-records-page[data-management=student] .student-result-details summary::marker { content:""; }
-body.student-records-page[data-management=student] .student-result-details summary::before { content:""; flex:0 0 7px; width:7px; height:7px; border-top:1.5px solid currentColor; border-right:1.5px solid currentColor; transform:rotate(45deg); transition:transform .16s ease; }
-body.student-records-page[data-management=student] .student-result-details[open] summary::before { transform:rotate(135deg); }
+body.student-records-page[data-management=student] .student-result-details summary::before { content:none !important; display:none !important; }
 body.student-records-page[data-management=student] .student-result-details[open] { padding-bottom:16px; }
 body.student-records-page[data-management=student] .student-result-details[open] > .student-academic-details-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(135px,1fr)); gap:10px 18px; align-items:start; margin-top:0; padding:10px 12px; border-radius:0; background:transparent; }
+body.student-records-page[data-management=student] .student-result-card .student-name-copy strong { font-size:13px; line-height:1.45; }
+body.student-records-page[data-management=student] .student-result-card .student-result-label { margin-bottom:5px; color:var(--prism-muted); font-size:10px; font-weight:600; letter-spacing:.03em; }
+body.student-records-page[data-management=student] .student-result-card .student-result-label + div { font-size:12px; line-height:1.5; }
+body.student-records-page[data-management=student] .student-result-card .student-project-identifier { margin-top:3px; font-size:10px; font-weight:500; }
+body.student-records-page[data-management=student] .student-result-details summary { font-size:12px; }
 body.student-records-page[data-management=student] .student-academic-details-grid .academic-record-summary { display:contents; max-width:none; width:100%; margin:0; }
 body.student-records-page[data-management=student] .student-academic-details-grid .academic-record-summary > div { min-width:0; }
 body.student-records-page[data-management=student] .student-academic-details-grid .academic-record-summary dt,
@@ -1113,8 +1026,34 @@ body.student-records-page .prism-filter-panel { display:grid; grid-template-colu
 body.student-records-page .prism-filter-panel label { display:block; min-width:0; margin:0; font-size:12px; }
 body.student-records-page .prism-filter-panel select { width:100%; min-width:0; min-height:40px; margin-top:6px; padding:8px 10px; font-size:12px; }
 body.student-records-page .prism-filter-panel :is(button,a.prism-btn) { width:auto; min-height:40px; height:auto; margin:0; padding:8px 12px; font-size:11px; align-self:end; }
+body.student-records-page .prism-filter-panel .prism-filter-selection-controls {
+    grid-column:1/-1;
+    display:flex;
+    align-items:center;
+    justify-self:end;
+    gap:10px;
+    min-width:0;
+}
+body.student-records-page .prism-filter-panel .prism-filter-selection-divider {
+    color:var(--prism-muted);
+    font-size:16px;
+    line-height:1;
+}
+body.student-records-page .prism-filter-panel .prism-filter-selection-controls .student-selection-toggle {
+    grid-column:auto;
+    justify-self:auto;
+    min-width:0;
+    min-height:36px;
+    height:36px;
+    padding:0 12px;
+    font-size:12px;
+}
 @media(max-width:1000px) { body.student-records-page .student-result-card { grid-template-columns:repeat(2,minmax(0,1fr)); } body.student-records-page .student-result-actions { grid-column:1/-1; } }
-@media(max-width:600px) { body.student-records-page .prism-filter-panel { grid-template-columns:minmax(0,1fr); } body.student-records-page .student-result-card { grid-template-columns:minmax(0,1fr); } }
+@media(max-width:600px) {
+    body.student-records-page .prism-filter-panel { grid-template-columns:minmax(0,1fr); }
+    body.student-records-page .prism-filter-panel .prism-filter-selection-controls { justify-self:start; }
+    body.student-records-page .student-result-card { grid-template-columns:minmax(0,1fr); }
+}
 /* Keep creation controls compact, with archive navigation alongside. */
 body.student-records-page .student-page-actions .student-icon-action {
     flex:0 0 40px; width:40px; min-width:40px; height:40px; min-height:40px; padding:0; gap:0;
@@ -1127,10 +1066,81 @@ body.student-records-page .student-page-actions .student-archive-link {
 }body.student-records-page .student-page-actions .student-archive-link.student-icon-action { width:40px; min-width:40px; height:40px; min-height:40px; padding:0; justify-content:center; gap:0; }
 body.student-records-page .student-filter-action .student-filter-text { display:none; }
 body.student-records-page .management-controls .student-filter-action { width:40px; min-width:40px; height:40px; min-height:40px; padding:0; gap:0; justify-content:center; }
-/* Stage categories retain their labels and inline totals. */
-body.student-records-page .student-stage-filters { display:flex; flex-wrap:wrap; gap:8px; overflow:visible; }
-body.student-records-page .student-stage-filters .prism-filter-pill { min-height:32px; padding:6px 12px; border-radius:999px; border:1px solid var(--prism-border); background:var(--prism-card); color:var(--prism-text); font-size:11px; font-weight:500; white-space:nowrap; }
-body.student-records-page .student-stage-filters .prism-filter-pill[aria-pressed=true] { background:#14173a; border-color:#14173a; color:#fff; font-weight:700; }
+/* Keep Student Records stage filters as the original individual-count pills. */
+body.student-records-page .student-stage-filters {
+    display:inline-flex;
+    align-items:center;
+    flex-wrap:nowrap;
+    gap:8px;
+    width:max-content;
+    max-width:100%;
+    min-width:0;
+    margin:12px 0;
+    padding:0;
+    overflow-x:auto;
+    border:0;
+    border-radius:0;
+    background:transparent;
+    scrollbar-width:none;
+}
+body.student-records-page .student-stage-filters::-webkit-scrollbar {
+    display:none;
+}
+body.student-records-page .student-stage-filters .prism-filter-pill {
+    display:inline-flex;
+    flex:0 0 auto;
+    align-items:center;
+    justify-content:center;
+    min-height:32px;
+    padding:0 12px;
+    border:1px solid #e8e5f0;
+    border-radius:999px;
+    background:#fff;
+    color:#18163d;
+    font-size:11px;
+    font-weight:600;
+    line-height:1.35;
+    white-space:nowrap;
+    transition:background-color .15s ease,color .15s ease;
+}
+body.student-records-page .student-stage-filters .prism-filter-pill:hover:not([aria-pressed=true]) {
+    border-color:#d6d1e2;
+    background:#fff;
+    color:#18163d;
+}
+body.student-records-page .student-stage-filters .prism-filter-pill[aria-pressed=true] {
+    border-color:#14133c;
+    background:#14133c;
+    color:#fff;
+    font-weight:700;
+}
+body.student-records-page .student-stage-filters .prism-filter-pill:focus-visible {
+    position:relative;
+    z-index:1;
+    outline:2px solid #14133c;
+    outline-offset:2px;
+}
+html.dark-theme body.student-records-page .student-stage-filters .prism-filter-pill {
+    border-color:var(--prism-border);
+    background:var(--prism-card);
+    color:var(--prism-text);
+}
+html.dark-theme body.student-records-page .student-stage-filters .prism-filter-pill[aria-pressed=true] {
+    border-color:#14133c;
+    background:#14133c;
+    color:#fff;
+}
+@media(max-width:600px) {
+    body.student-records-page .student-stage-filters {
+        width:100%;
+        margin:10px 0;
+    }
+}
+@media(prefers-reduced-motion:reduce) {
+    body.student-records-page .student-stage-filters .prism-filter-pill {
+        transition:none;
+    }
+}
 /* Invitation modal: consistent field spacing without empty-message gaps. */
 body.student-records-page #inviteDialog { box-sizing:border-box; width:min(520px,calc(100vw - 32px)); max-width:calc(100vw - 32px); max-height:calc(100dvh - 32px); padding:28px; border:1px solid var(--prism-border); border-radius:18px; overflow-y:auto; }
 body.student-records-page #inviteForm { display:flex; flex-direction:column; width:100%; max-width:none; gap:0; margin:0; padding:0; }
@@ -1171,9 +1181,25 @@ body.student-records-page[data-management=student] #recordForm .student-edit-sec
 body.student-records-page[data-management=student] #recordForm .student-edit-section-fields { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:14px 16px; align-items:start; }
 body.student-records-page[data-management=student] #recordForm .student-edit-section-fields > .wide,
 body.student-records-page[data-management=student] #recordForm .student-edit-section-fields > fieldset { grid-column:1/-1; }
+body.student-records-page[data-management=student] #recordForm .student-edit-personal .student-edit-section-fields > label:has(#recordName) { grid-column:1; grid-row:1; }
+body.student-records-page[data-management=student] #recordForm .student-edit-personal .student-edit-section-fields > label:has(#accountId) { grid-column:2; grid-row:1; }
+body.student-records-page[data-management=student] #recordForm .student-edit-personal .student-edit-section-fields > #accountIdPrismMessage { grid-column:2; grid-row:2; margin:0; align-self:start; }
+body.student-records-page[data-management=student] #recordForm .student-edit-personal .student-edit-section-fields > label:has(#recordEmail) { grid-column:1; grid-row:2; }
+body.student-records-page[data-management=student] #recordForm .student-edit-personal .student-edit-section-fields > label:has(#research) { grid-column:1/-1; grid-row:3; }
 body.student-records-page[data-management=student] #recordForm .academic-fields { background:var(--prism-bg); }
 body.student-records-page[data-management=student] #recordForm .academic-fields legend { padding:0 6px; color:var(--prism-text); font-size:13px; font-weight:700; }
 body.student-records-page[data-management=student] #recordForm .academic-fields-grid { grid-template-columns:repeat(2,minmax(0,1fr)); }
+body.student-records-page[data-management=student] #recordForm .academic-year-manager { grid-column:1/-1; margin:14px 0 0; padding:14px; border:1px solid var(--prism-border); border-radius:12px; background:var(--prism-card); }
+body.student-records-page[data-management=student] #recordForm .academic-year-manager h2 { margin:0 0 5px; color:var(--prism-text); font-size:13px; line-height:1.4; }
+body.student-records-page[data-management=student] #recordForm .academic-year-manager > p { margin:4px 0 9px; color:var(--prism-muted); font-size:11px; line-height:1.45; }
+body.student-records-page[data-management=student] #recordForm .academic-year-manager .academic-year-manager-form { display:flex; align-items:flex-end; flex-wrap:wrap; gap:10px; }
+body.student-records-page[data-management=student] #recordForm .academic-year-manager label { flex:1 1 190px; gap:5px; color:var(--prism-text); font-size:11px; }
+body.student-records-page[data-management=student] #recordForm .academic-year-manager label > span { display:block; }
+body.student-records-page[data-management=student] #recordForm .academic-year-manager .academic-year-required { color:var(--prism-danger-fg); }
+body.student-records-page[data-management=student] #recordForm .academic-year-manager input { min-height:38px; padding:8px 10px; }
+body.student-records-page[data-management=student] #recordForm .academic-year-manager button { flex:0 0 auto; min-height:38px; padding:8px 12px; }
+body.student-records-page[data-management=student] #recordForm .academic-year-manager [role=status] { min-height:0; margin:7px 0 0; }
+body.student-records-page[data-management=student] #recordForm #studentOfficialProgressHelp { margin:4px 0 0; font-size:10px; line-height:1.4; }
 body.student-records-page[data-management=student] #recordForm .management-actions { position:sticky; bottom:-24px; z-index:2; margin:18px -24px -24px; padding:14px 24px; border-top:1px solid var(--prism-border); background:var(--prism-card); }
 body.student-records-page[data-management=student] #recordForm :is(input,select,textarea):focus-visible { outline:3px solid rgba(181,20,110,.18); border-color:#b5146e; }
 /* Keep the add flow compact: show all core profile sections together on desktop. */
@@ -1219,6 +1245,7 @@ body.student-records-page[data-management=student] #recordForm :is(input,select,
     body.student-records-page[data-management=student] .student-result-details[open] > .student-academic-details-grid { grid-template-columns:repeat(2,minmax(0,1fr)); }
     body.student-records-page[data-management=student] #recordForm .student-edit-section-fields,
     body.student-records-page[data-management=student] #recordForm .academic-fields-grid { grid-template-columns:minmax(0,1fr); }
+    body.student-records-page[data-management=student] #recordForm .student-edit-personal .student-edit-section-fields > :is(label,#accountIdPrismMessage) { grid-column:1; grid-row:auto; }
 }
 @media(max-width:600px) {
     body.student-records-page[data-management=student] #recordModal .management-dialog { width:calc(100vw - 20px); max-height:calc(100dvh - 20px); }
@@ -1273,3 +1300,1142 @@ body.student-records-page .archive-result-card .student-result-actions { grid-co
 body.student-records-page .prism-invitation-action:not(.prism-action-item) { flex:0 0 34px; width:34px; min-width:34px; max-width:34px; height:34px; min-height:34px; white-space:nowrap; }
 @media(max-width:1000px) { body.student-records-page .archive-result-card { grid-template-columns:repeat(2,minmax(0,1fr)); } body.student-records-page .archive-result-card .student-name-layout { grid-column:1/-1; } }
 @media(max-width:600px) { body.student-records-page .archive-result-card { grid-template-columns:minmax(0,1fr); } }
+
+body.student-records-page .student-result-card {
+    gap:8px 10px;
+    padding:9px 10px 0;
+}
+body.student-records-page .management-table-wrap > table tbody { gap:6px; }
+body.student-records-page .student-result-card .student-result-research-info {
+    display:grid;
+    gap:2px;
+    align-content:center;
+}
+body.student-records-page[data-management=student] .student-result-card .student-result-research-title {
+    font-size:11px;
+    line-height:1.35;
+}
+body.student-records-page[data-management=student] .student-result-card .student-result-protocol-code {
+    display:block;
+    font-size:9px;
+    line-height:1.3;
+}
+body.student-records-page .student-result-details { margin-inline:-10px; }
+body.student-records-page .student-result-details summary { padding-block:7px; }
+
+/* Student Records cards use a neutral shell; status color stays in the chips. */
+body.student-records-page[data-management=student] .student-result-card {
+    grid-template-columns:minmax(220px,1.3fr) minmax(190px,1.2fr) minmax(180px,1fr) minmax(140px,.8fr) auto;
+    align-items:center;
+    gap:18px;
+    padding:16px 18px 0;
+    border:1px solid var(--prism-border);
+    border-left:4px solid var(--student-record-accent,#d98200);
+    border-radius:16px;
+    background:var(--prism-card);
+    color:var(--prism-text);
+}
+body.student-records-page[data-management=student] .student-result-card.is-on-track { --student-record-accent:#12805a; }
+body.student-records-page[data-management=student] .student-result-card.is-delayed { --student-record-accent:#c62828; }
+body.student-records-page[data-management=student] .student-result-card.is-pending { --student-record-accent:#d98200; }
+body.student-records-page[data-management=student] .student-result-card:hover,
+body.student-records-page[data-management=student] .student-result-card:focus-within {
+    border-color:var(--prism-border);
+    border-left-color:var(--student-record-accent,#d98200);
+    background:var(--prism-card);
+    box-shadow:0 8px 22px rgba(12,14,63,.1);
+}
+body.student-records-page[data-management=student] .student-result-card .student-name-layout {
+    align-items:flex-start;
+    gap:12px;
+}
+body.student-records-page[data-management=student] .student-result-card .student-avatar {
+    flex:0 0 44px;
+    width:44px;
+    height:44px;
+    font-size:14px;
+}
+body.student-records-page[data-management=student] .student-result-card .student-avatar {
+    border-radius:50%;
+    background:#fde8f3;
+    color:#ee1280;
+    font-weight:800;
+}
+body.student-records-page[data-management=student] .student-result-card .student-name-copy strong {
+    font-size:16px;
+    line-height:1.35;
+}
+body.student-records-page[data-management=student] .student-result-card .student-name-copy small {
+    margin-top:3px;
+    font-size:13px;
+    line-height:1.45;
+    overflow-wrap:anywhere;
+}
+body.student-records-page[data-management=student] .student-result-card .student-name-copy small:first-of-type {
+    display:inline-block;
+    width:max-content;
+    max-width:100%;
+    margin-top:5px;
+    padding:1px 8px;
+    border-radius:6px;
+    background:var(--prism-bg);
+    color:var(--prism-text);
+    font-size:11px;
+    font-weight:600;
+}
+body.student-records-page[data-management=student] .student-result-research-info {
+    display:grid;
+    align-content:start;
+    gap:4px;
+}
+body.student-records-page[data-management=student] .student-result-label {
+    display:block;
+    margin:0 0 4px;
+    color:var(--prism-muted);
+    font-size:11px;
+    font-weight:600;
+    letter-spacing:.05em;
+    line-height:1.4;
+    text-transform:uppercase;
+}
+body.student-records-page[data-management=student] .student-result-research-title {
+    color:var(--prism-text);
+    font-size:14px;
+    font-weight:650;
+    line-height:1.45;
+}
+body.student-records-page[data-management=student] .student-result-research-title.is-unavailable,
+body.student-records-page[data-management=student] .student-result-protocol-code .is-unavailable {
+    color:var(--prism-muted);
+    font-style:italic;
+    font-weight:500;
+}
+body.student-records-page[data-management=student] .student-result-protocol-code {
+    display:flex;
+    align-items:center;
+    flex-wrap:wrap;
+    gap:6px 8px;
+    margin:5px 0 0;
+    color:var(--prism-muted);
+    font-size:12px;
+}
+body.student-records-page[data-management=student] .student-result-protocol-code > span:first-child {
+    font-size:10px;
+    font-weight:600;
+    letter-spacing:.04em;
+    text-transform:uppercase;
+}
+body.student-records-page[data-management=student] .student-result-protocol-code .student-protocol-value {
+    padding:1px 8px;
+    border-radius:6px;
+    background:var(--prism-bg);
+    color:var(--prism-text);
+    font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+    font-size:12px;
+    font-weight:600;
+}
+body.student-records-page[data-management=student] .student-result-status-chips {
+    display:flex;
+    align-items:center;
+    flex-wrap:wrap;
+    gap:6px;
+}
+body.student-records-page[data-management=student] .student-result-status-chips .student-result-chip {
+    display:inline-flex;
+    align-items:center;
+    gap:6px;
+    min-height:25px;
+    padding:2px 9px;
+    border:1px solid #e6e3ee;
+    border-radius:999px;
+    font-size:11px;
+    font-weight:700;
+    line-height:1.35;
+    white-space:nowrap;
+}
+body.student-records-page[data-management=student] .student-result-status-chips .student-result-stage-chip {
+    border-color:#e6e3ee;
+    background:#eef0f6;
+    color:#3d4163;
+}
+body.student-records-page[data-management=student] .student-result-status-chips .student-result-chip.is-pending {
+    border-color:#ffe0a6;
+    background:#fff0d6;
+    color:#a86400;
+}
+body.student-records-page[data-management=student] .student-result-status-chips .student-result-chip.is-on-track {
+    border-color:#bcebd5;
+    background:#e1f6ec;
+    color:#12805a;
+}
+body.student-records-page[data-management=student] .student-result-status-chips .student-result-chip.is-delayed {
+    border-color:#f5c2c2;
+    background:#fde7e7;
+    color:#c62828;
+}
+body.student-records-page[data-management=student] .student-result-status-chips .student-result-chip > i {
+    font-size:11px;
+    line-height:1;
+}
+body.student-records-page[data-management=student] .student-result-ierb-status > .student-result-label {
+    display:block;
+    visibility:visible;
+    margin:0 0 8px;
+    color:var(--prism-muted);
+    font-size:11px;
+    font-weight:600;
+    line-height:1.4;
+    letter-spacing:.05em;
+    text-transform:uppercase;
+}
+body.student-records-page[data-management=student] .student-result-stage-progress {
+    display:block;
+    margin-top:5px;
+    color:var(--prism-muted);
+    font-size:11px;
+    line-height:1.4;
+}
+body.student-records-page[data-management=student] .student-result-adviser-copy {
+    display:flex;
+    align-items:center;
+    gap:8px;
+    font-size:14px;
+    font-weight:600;
+    line-height:1.4;
+}
+body.student-records-page[data-management=student] .student-result-adviser-avatar {
+    display:grid;
+    flex:0 0 28px;
+    width:28px;
+    height:28px;
+    place-items:center;
+    border-radius:50%;
+    background:var(--prism-bg);
+    color:var(--prism-muted);
+    font-size:11px;
+    font-weight:700;
+}
+body.student-records-page[data-management=student] .student-result-adviser-copy.is-unassigned {
+    color:#8e1a22;
+}
+body.student-records-page[data-management=student] .student-result-adviser-copy.is-unassigned .student-result-adviser-avatar {
+    background:#fdecee;
+    color:#8e1a22;
+}
+body.student-records-page[data-management=student] .student-result-actions {
+    align-self:center;
+    justify-content:flex-end;
+    gap:0;
+}
+body.student-records-page[data-management=student] .student-result-actions .prism-action-menu {
+    display:inline-flex;
+    position:relative;
+}
+body.student-records-page[data-management=student] .student-result-actions .prism-action-trigger {
+    display:inline-grid;
+    width:38px;
+    min-width:38px;
+    height:38px;
+    min-height:38px;
+    place-items:center;
+    padding:0;
+    border:1px solid var(--prism-border);
+    border-radius:10px;
+    background:var(--prism-card);
+    color:var(--prism-text);
+    font-size:20px;
+    font-weight:800;
+    line-height:1;
+}
+body.student-records-page[data-management=student] .student-result-actions .prism-action-trigger:hover {
+    border-color:#f4b6d6;
+    background:#fff7fb;
+    color:#c90e6c;
+}
+body.student-records-page .student-record-actions-panel { width:220px; }
+body.student-records-page .prism-action-panel .student-record-archive-action {
+    color:var(--prism-text);
+    background:transparent;
+}
+body.student-records-page[data-management=student] .student-result-details {
+    margin:0 -18px;
+    padding:0 18px;
+    border-top:1px solid var(--prism-border);
+}
+body.student-records-page[data-management=student] .student-result-details summary {
+    display:flex;
+    min-height:44px;
+    align-items:center;
+    justify-content:flex-start;
+    gap:6px;
+    padding:0;
+    color:#a3125f;
+    font-size:14px;
+    font-weight:600;
+    cursor:pointer;
+    list-style:none;
+}
+body.student-records-page[data-management=student] .student-result-details summary::-webkit-details-marker { display:none; }
+body.student-records-page[data-management=student] .student-result-details summary::marker { content:""; }
+body.student-records-page[data-management=student] .student-result-details summary svg { transition:transform .2s ease; }
+body.student-records-page[data-management=student] .student-result-details[open] summary svg { transform:rotate(180deg); }
+body.student-records-page[data-management=student] .student-result-details[open] > .student-academic-details-grid {
+    grid-template-columns:repeat(auto-fit,minmax(190px,1fr));
+    gap:16px 28px;
+    margin:0;
+    padding:4px 0 18px;
+}
+body.student-records-page[data-management=student] .student-academic-details-grid .academic-record-summary {
+    display:contents;
+    max-width:none;
+    width:100%;
+    margin:0;
+}
+body.student-records-page[data-management=student] .student-academic-details-grid .academic-record-summary > div { min-width:0; }
+body.student-records-page[data-management=student] .student-academic-details-grid .academic-record-summary dt,
+body.student-records-page[data-management=student] .student-academic-details-grid > div:not(.academic-record-summary) > .student-result-label {
+    margin:0 0 2px;
+    color:var(--prism-muted);
+    font-size:11px;
+    font-weight:600;
+    letter-spacing:.05em;
+    text-transform:uppercase;
+}
+body.student-records-page[data-management=student] .student-academic-details-grid .academic-record-summary dd,
+body.student-records-page[data-management=student] .student-academic-details-grid > div:not(.academic-record-summary) > div {
+    margin:0;
+    color:var(--prism-text);
+    font-size:14px;
+    font-weight:600;
+    overflow-wrap:anywhere;
+}
+body.student-records-page[data-management=student] .student-academic-details-grid > div:not(.academic-record-summary) > div.is-yes {
+    color:#17613a;
+}
+@media(max-width:1000px) {
+    body.student-records-page[data-management=student] .student-result-card { grid-template-columns:repeat(2,minmax(0,1fr)); }
+    body.student-records-page[data-management=student] .student-result-card .student-name-layout { grid-column:1/-1; }
+    body.student-records-page[data-management=student] .student-result-actions { grid-column:1/-1; justify-content:flex-end; }
+}
+@media(max-width:600px) {
+    body.student-records-page[data-management=student] .student-result-card {
+        grid-template-columns:minmax(0,1fr);
+        gap:14px;
+        padding:16px 16px 0;
+    }
+    body.student-records-page[data-management=student] .student-result-details { margin-inline:-16px; padding-inline:16px; }
+}
+@media(prefers-reduced-motion:reduce) {
+    body.student-records-page[data-management=student] .student-result-details summary svg { transition:none; }
+}
+
+/* Make bulk selection controls clear, compact, and consistently aligned. */
+body.student-records-page .retention-toolbar {
+    display:grid;
+    gap:0;
+    padding:0;
+    border:0;
+    border-radius:0;
+    background:transparent;
+}
+body.student-records-page .retention-toolbar > .retention-selection-banner {
+    display:grid;
+    grid-template-columns:minmax(0,1fr);
+    gap:8px;
+    margin:12px 0 0;
+    padding:14px 16px;
+    border:1.5px solid #f4b6d6;
+    border-radius:16px;
+    background:#fff7fb;
+    color:var(--prism-text);
+}
+body.student-records-page .retention-selection-heading {
+    display:flex;
+    align-items:center;
+    gap:12px 18px;
+    flex-wrap:wrap;
+}
+body.student-records-page .retention-selection-heading > p[role=status] {
+    margin:0;
+    color:var(--prism-text);
+    font-size:15px;
+    font-weight:700;
+    line-height:1.4;
+}
+body.student-records-page .retention-selection-heading .retention-selection-label {
+    display:inline-flex;
+    align-items:center;
+    gap:8px;
+    min-height:30px;
+    margin:0;
+    color:var(--prism-text);
+    font-size:13px;
+    font-weight:600;
+    line-height:1.35;
+    cursor:pointer;
+}
+body.student-records-page .retention-toolbar-actions {
+    display:flex;
+    flex-wrap:wrap;
+    align-items:center;
+    gap:8px;
+    margin:0;
+}
+body.student-records-page .retention-selection-banner > .retention-bulk-guidance {
+    max-width:860px;
+    margin:0;
+    color:var(--prism-muted);
+    font-size:12px;
+    line-height:1.5;
+}
+body.student-records-page .retention-selection-banner .retention-selection-label input[type=checkbox] {
+    appearance:auto;
+    flex:0 0 16px;
+    width:16px !important;
+    min-width:16px;
+    max-width:16px;
+    height:16px !important;
+    min-height:16px !important;
+    margin:0;
+    padding:0;
+    accent-color:#a3125f;
+    vertical-align:middle;
+    cursor:pointer;
+}
+body.student-records-page .retention-toolbar-actions :is(.retention-icon-button,button:not(.retention-icon-button),select) {
+    display:inline-flex;
+    flex:0 0 auto;
+    align-items:center;
+    justify-content:center;
+    min-height:38px;
+    margin:0;
+    border-radius:9px;
+    font-size:12px;
+    line-height:1.35;
+}
+body.student-records-page .retention-toolbar-actions .retention-icon-button {
+    width:38px;
+    min-width:38px;
+    height:38px;
+    padding:0;
+}
+body.student-records-page .retention-toolbar-actions #retentionBulkAction {
+    width:auto;
+    min-width:130px;
+    max-width:220px;
+    height:38px;
+    padding:7px 30px 7px 11px;
+}
+body.student-records-page .retention-toolbar-actions .retention-clear-selection {
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+    gap:7px;
+    min-width:84px;
+    padding:8px 12px;
+}
+body.student-records-page .retention-toolbar-actions button:not(.retention-icon-button) {
+    gap:8px;
+    padding:8px 13px;
+}
+body.student-records-page .retention-toolbar-actions :is(button,input,select):focus-visible {
+    outline:2px solid var(--prism-focus);
+    outline-offset:2px;
+}
+@media(max-width:600px) {
+    body.student-records-page .retention-toolbar > .retention-selection-banner {
+        grid-template-columns:minmax(0,1fr);
+        gap:10px;
+        padding:12px;
+    }
+    body.student-records-page .retention-selection-heading { align-items:flex-start; flex-direction:column; gap:6px; }
+    body.student-records-page .retention-toolbar-actions :is(button,select) { width:auto; }
+    body.student-records-page .retention-toolbar-actions #retentionBulkAction { flex:1 1 130px; }
+}
+body.student-records-page[data-management=student] .student-result-card.is-selecting {
+    grid-template-columns:34px minmax(190px,1.1fr) minmax(210px,1.4fr) minmax(175px,1fr) minmax(150px,.9fr) auto;
+}
+body.student-records-page[data-management=student] .student-result-card > .retention-select {
+    display:flex;
+    grid-column:1;
+    grid-row:1;
+    align-items:flex-start;
+    justify-content:center;
+    padding-top:5px;
+}
+body.student-records-page[data-management=student] .student-result-card > .retention-select[hidden] { display:none !important; }
+body.student-records-page[data-management=student] .student-result-card > .retention-select input[type=checkbox] {
+    appearance:auto;
+    width:18px !important;
+    min-width:18px;
+    max-width:18px;
+    height:18px !important;
+    min-height:18px !important;
+    margin:0;
+    padding:0;
+    accent-color:#ec1682;
+    cursor:pointer;
+}
+body.student-records-page[data-management=student] .student-result-card.is-selecting > .student-name-layout { grid-column:2; }
+body.student-records-page[data-management=student] .student-result-card.is-selecting > .student-result-research-info { grid-column:3; }
+body.student-records-page[data-management=student] .student-result-card.is-selecting > .student-result-ierb-status { grid-column:4; }
+body.student-records-page[data-management=student] .student-result-card.is-selecting > .student-result-adviser { grid-column:5; }
+body.student-records-page[data-management=student] .student-result-card.is-selecting > .student-result-actions { grid-column:6; }
+body.student-records-page[data-management=student] .student-result-card.is-selecting > .student-result-details { grid-column:1/-1; }
+body.student-records-page[data-management=student] .student-result-card.is-selecting.is-selected {
+    border-color:#ec1682;
+    background:#fff6fb;
+    box-shadow:0 0 0 1px #ec168233;
+}
+html.dark-theme body.student-records-page[data-management=student] .student-result-card.is-selecting.is-selected {
+    background:#2b1d2b;
+}
+@media(max-width:1000px) {
+    body.student-records-page[data-management=student] .student-result-card.is-selecting {
+        grid-template-columns:30px repeat(2,minmax(0,1fr));
+    }
+    body.student-records-page[data-management=student] .student-result-card.is-selecting > .student-result-research-info { grid-column:2; }
+    body.student-records-page[data-management=student] .student-result-card.is-selecting > .student-result-ierb-status { grid-column:3; }
+    body.student-records-page[data-management=student] .student-result-card.is-selecting > .student-result-adviser { grid-column:2/-1; }
+    body.student-records-page[data-management=student] .student-result-card.is-selecting > .student-result-actions { grid-column:2/-1; }
+}
+@media(max-width:600px) {
+    body.student-records-page[data-management=student] .student-result-card.is-selecting {
+        grid-template-columns:26px minmax(0,1fr);
+        gap:14px 10px;
+        padding:16px 16px 0;
+    }
+    body.student-records-page[data-management=student] .student-result-card.is-selecting > .student-name-layout,
+    body.student-records-page[data-management=student] .student-result-card.is-selecting > .student-result-research-info,
+    body.student-records-page[data-management=student] .student-result-card.is-selecting > .student-result-ierb-status,
+    body.student-records-page[data-management=student] .student-result-card.is-selecting > .student-result-adviser,
+    body.student-records-page[data-management=student] .student-result-card.is-selecting > .student-result-actions { grid-column:2; }
+    body.student-records-page[data-management=student] .student-result-card.is-selecting > .student-result-details { margin-inline:-16px; }
+}
+body.student-records-page[data-management=student] .management-table-wrap > table tbody { gap:12px; }
+body.student-records-page .prism-overlay .prism-dialog.student-archive-confirmation {
+    box-sizing:border-box;
+    width:min(440px,calc(100vw - 32px));
+    max-width:440px;
+    max-height:calc(100dvh - 32px);
+    padding:22px;
+    border:1px solid var(--prism-border);
+    border-radius:18px;
+    background:var(--prism-card);
+    box-shadow:0 24px 64px rgba(12,14,63,.24);
+}
+body.student-records-page .student-archive-confirmation h3 {
+    margin:0;
+    font-size:18px;
+    line-height:1.35;
+}
+body.student-records-page .student-archive-confirmation > p {
+    margin:9px 0 0;
+    color:var(--prism-muted);
+    font-size:13px;
+    line-height:1.6;
+}
+body.student-records-page .student-archive-confirmation .prism-field-error:empty { display:none; }
+body.student-records-page .student-archive-confirmation .prism-dialog-actions {
+    display:flex;
+    justify-content:flex-end;
+    flex-wrap:wrap;
+    gap:8px;
+    margin-top:20px;
+}
+@media(max-width:480px) {
+    body.student-records-page .prism-overlay .prism-dialog.student-archive-confirmation { padding:18px; }
+    body.student-records-page .student-archive-confirmation .prism-dialog-actions > button { flex:1 1 auto; }
+}
+body.student-records-page[data-management=student] .student-result-card {
+    border:1px solid var(--prism-border);
+}
+body.student-records-page[data-management=student] .student-result-card:is(:hover,:focus-within) {
+    border-color:var(--prism-border);
+    border-left-color:var(--prism-border);
+}
+body.student-records-page[data-management=student] .student-result-card.is-selecting.is-selected {
+    border-color:var(--prism-border);
+    background:var(--prism-card);
+    box-shadow:none;
+}
+html.dark-theme body.student-records-page[data-management=student] .student-result-card.is-selecting.is-selected {
+    background:var(--prism-card);
+}
+body.student-records-page[data-management=student] .retention-toolbar > .retention-selection-banner {
+    display:grid;
+    grid-template-columns:minmax(0,1fr) auto;
+    grid-template-rows:auto auto;
+    align-items:center;
+    gap:0 12px;
+    padding:9px 13px;
+    border:1px solid #f4b6d6;
+    border-radius:14px;
+}
+body.student-records-page[data-management=student] .retention-selection-heading {
+    grid-column:1;
+    grid-row:1;
+    align-items:center;
+    gap:8px 12px;
+}
+body.student-records-page[data-management=student] .retention-selection-heading > p[role=status] {
+    font-size:14px;
+}
+body.student-records-page[data-management=student] .retention-selection-heading .retention-selection-label {
+    min-height:32px;
+    font-size:12px;
+}
+body.student-records-page[data-management=student] .retention-toolbar-actions {
+    grid-column:2;
+    grid-row:1;
+    flex-wrap:nowrap;
+    justify-content:flex-end;
+    gap:7px;
+}
+body.student-records-page[data-management=student] .retention-toolbar-actions .retention-icon-button {
+    display:none;
+}
+body.student-records-page[data-management=student] .retention-toolbar-actions :is(.retention-clear-selection,button:not(.retention-icon-button),select) {
+    min-height:32px;
+    height:32px;
+    border-radius:9px;
+    font-size:11px;
+}
+body.student-records-page[data-management=student] .retention-toolbar-actions .retention-clear-selection {
+    min-width:54px;
+    padding:6px 10px;
+}
+body.student-records-page[data-management=student] .retention-toolbar-actions #retentionBulkAction {
+    width:94px;
+    min-width:94px;
+    height:32px;
+    min-height:32px;
+    padding:5px 25px 5px 10px;
+}
+body.student-records-page[data-management=student] .retention-toolbar-actions button:not(.retention-icon-button) {
+    padding:6px 12px;
+}
+body.student-records-page[data-management=student] .retention-toolbar-actions button:last-of-type {
+    min-width:120px;
+}
+body.student-records-page[data-management=student] .retention-selection-banner > .retention-bulk-guidance {
+    grid-column:1/-1;
+    grid-row:2;
+    max-width:none;
+    margin-top:5px;
+    font-size:11px;
+    line-height:1.4;
+}
+@media(max-width:700px) {
+    body.student-records-page[data-management=student] .retention-toolbar > .retention-selection-banner {
+        grid-template-columns:minmax(0,1fr);
+        grid-template-rows:auto auto auto;
+        gap:5px;
+        padding:11px 12px;
+    }
+    body.student-records-page[data-management=student] .retention-selection-heading {
+        grid-column:1;
+        grid-row:1;
+        flex-direction:row;
+        align-items:center;
+    }
+    body.student-records-page[data-management=student] .retention-toolbar-actions {
+        grid-column:1;
+        grid-row:2;
+        justify-content:flex-start;
+        flex-wrap:wrap;
+    }
+    body.student-records-page[data-management=student] .retention-selection-banner > .retention-bulk-guidance {
+        grid-column:1;
+        grid-row:3;
+        margin-top:0;
+    }
+}
+body.student-records-page[data-management=student] .student-result-card {
+    gap:12px;
+    padding:12px 14px 0;
+}
+body.student-records-page[data-management=student] .student-result-card .student-name-layout {
+    gap:10px;
+}
+body.student-records-page[data-management=student] .student-result-card .student-avatar {
+    flex-basis:38px;
+    width:38px;
+    height:38px;
+    font-size:12px;
+}
+body.student-records-page[data-management=student] .student-result-card .student-name-copy strong {
+    font-size:14px;
+    line-height:1.35;
+}
+body.student-records-page[data-management=student] .student-result-card .student-name-copy small {
+    font-size:12px;
+    line-height:1.4;
+}
+body.student-records-page[data-management=student] .student-result-card .student-result-research-info {
+    gap:3px;
+}
+body.student-records-page[data-management=student] .student-result-card .student-result-research-title {
+    font-size:13px;
+    line-height:1.4;
+}
+body.student-records-page[data-management=student] .student-result-card .student-result-protocol-code {
+    column-gap:7px;
+    margin-top:4px;
+    font-size:11px;
+    line-height:1.4;
+}
+body.student-records-page[data-management=student] .student-result-card .student-result-protocol-code > span:first-child {
+    font-size:10px;
+}
+body.student-records-page[data-management=student] .student-result-card .student-result-details {
+    margin-inline:-14px;
+}
+body.student-records-page[data-management=student] .student-result-card .student-result-details summary {
+    padding-block:8px;
+}
+body.student-records-page[data-management=student] .retention-toolbar-actions #retentionBulkAction {
+    width:108px;
+    min-width:108px;
+}
+body.student-records-page dialog.lifecycle-dialog.student-direct-delete-confirmation {
+    width:min(440px,calc(100vw - 32px));
+    max-width:440px;
+    padding:22px;
+    border-radius:18px;
+    box-shadow:0 24px 64px rgba(12,14,63,.24);
+}
+body.student-records-page #permanentDeleteAvailabilityNotice {
+    margin:0;
+    padding:12px 14px;
+    border:1px solid var(--prism-danger-bd);
+    border-radius:10px;
+    background:var(--prism-danger-bg);
+    color:var(--prism-danger-fg);
+    font-size:12px;
+    line-height:1.5;
+}
+body.student-records-page #permanentDeleteAvailabilityNotice strong {
+    display:block;
+    margin-bottom:3px;
+    font-size:13px;
+}
+body.student-records-page #permanentDeleteAvailabilityMessage {
+    margin:0;
+}
+body.student-records-page .permanent-delete-step {
+    display:inline-flex;
+    align-items:center;
+    width:max-content;
+    min-height:20px;
+    padding:2px 8px;
+    border-radius:999px;
+    background:var(--prism-neutral-bg);
+    color:var(--prism-neutral-fg);
+    font-size:10px;
+    font-weight:700;
+    line-height:1.3;
+}
+body.student-records-page .permanent-delete-phrase {
+    display:block;
+    overflow-wrap:anywhere;
+    padding:10px 12px;
+    border:1px solid var(--prism-warning-bd);
+    border-radius:9px;
+    background:var(--prism-warning-bg);
+    color:var(--prism-warning-fg);
+    font-family:ui-monospace,SFMono-Regular,Consolas,monospace;
+    font-size:12px;
+    font-weight:700;
+    line-height:1.5;
+}
+body.student-records-page .permanent-delete-phrase[hidden] {
+    display:none;
+}
+body.student-records-page #permanentDeleteResult {
+    margin:0;
+    white-space:pre-line;
+    overflow-wrap:anywhere;
+    color:var(--prism-muted);
+    font-size:11px;
+    line-height:1.5;
+}
+body.student-records-page .student-direct-delete-confirmation .lifecycle-form {
+    gap:12px;
+}
+body.student-records-page .student-direct-delete-confirmation #permanentDeleteTitle {
+    font-size:17px;
+    line-height:1.4;
+}
+body.student-records-page .student-direct-delete-confirmation #permanentDeleteWarning {
+    color:var(--text-secondary);
+    font-size:12px;
+    line-height:1.55;
+}
+body.student-records-page .student-direct-delete-confirmation #permanentDeleteIdentity {
+    margin:0;
+    padding:9px 12px;
+    border:1px solid var(--border-color);
+    border-radius:10px;
+    font-size:12px;
+    font-weight:700;
+    line-height:1.45;
+}
+body.student-records-page .student-direct-delete-confirmation .lifecycle-form-group {
+    gap:6px;
+}
+body.student-records-page .student-direct-delete-confirmation .lifecycle-form-group > label {
+    font-size:12px;
+}
+body.student-records-page .student-direct-delete-confirmation .lifecycle-check {
+    font-size:12px;
+}
+body.student-records-page .student-direct-delete-confirmation #permanentDeleteResult:empty {
+    display:none;
+}
+body.student-records-page .student-direct-delete-confirmation .management-actions {
+    margin-top:2px;
+}
+@media(max-width:480px) {
+    body.student-records-page dialog.lifecycle-dialog.student-direct-delete-confirmation { padding:18px; }
+    body.student-records-page .student-direct-delete-confirmation .management-actions > button { flex:1 1 auto; }
+}
+body.student-records-page[data-management=student] #recordModal.show {
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    padding:16px;
+}
+body.student-records-page[data-management=student] #recordModal .management-dialog {
+    margin:auto;
+}
+body.student-records-page[data-management=student] .management-table-wrap > table tbody {
+    width:100%;
+    gap:8px;
+    margin-inline:0;
+}
+body.student-records-page[data-management=student] .student-result-card {
+    box-sizing:border-box;
+    width:100%;
+    min-width:0;
+    grid-template-columns:minmax(170px,1.1fr) minmax(180px,1.25fr) minmax(135px,.9fr) minmax(135px,.9fr) 36px;
+    align-items:center;
+    gap:12px;
+    padding:11px 14px 0;
+    border:1px solid var(--prism-border);
+    border-radius:14px;
+}
+body.student-records-page[data-management=student] .student-result-card .student-name-layout {
+    align-items:center;
+    gap:9px;
+}
+body.student-records-page[data-management=student] .student-result-card .student-name-copy {
+    min-width:0;
+}
+body.student-records-page[data-management=student] .student-result-card .student-result-label {
+    margin-bottom:4px;
+}
+body.student-records-page[data-management=student] .student-result-card .student-result-ierb-status {
+    align-self:center;
+}
+body.student-records-page[data-management=student] .student-result-card .student-result-ierb-status > .student-result-label {
+    margin-bottom:5px;
+}
+body.student-records-page[data-management=student] .student-result-card.is-selecting {
+    grid-template-columns:26px minmax(155px,1.05fr) minmax(170px,1.25fr) minmax(130px,.9fr) minmax(130px,.9fr) 36px;
+}
+body.student-records-page[data-management=student] .student-result-card > .retention-select {
+    display:flex;
+    grid-column:1;
+    grid-row:1;
+    align-items:center;
+    justify-content:center;
+    align-self:stretch;
+    padding:0;
+}
+body.student-records-page[data-management=student] .student-result-card > .student-name-layout { grid-column:1; }
+body.student-records-page[data-management=student] .student-result-card.is-selecting > .student-name-layout { grid-column:2; }
+body.student-records-page[data-management=student] .student-result-card.is-selecting > .student-result-research-info { grid-column:3; }
+body.student-records-page[data-management=student] .student-result-card.is-selecting > .student-result-ierb-status { grid-column:4; }
+body.student-records-page[data-management=student] .student-result-card.is-selecting > .student-result-adviser { grid-column:5; }
+body.student-records-page[data-management=student] .student-result-card.is-selecting > .student-result-actions { grid-column:6; }
+body.student-records-page[data-management=student] .student-result-card.is-selecting > .student-result-details {
+    grid-column:1/-1;
+    margin-inline:-14px;
+}
+body.student-records-page[data-management=student] .student-result-card.is-selecting.is-selected {
+    border-color:var(--prism-border);
+    background:var(--prism-card);
+    box-shadow:none;
+}
+@media(max-width:1000px) {
+    body.student-records-page[data-management=student] .student-result-card {
+        grid-template-columns:repeat(2,minmax(0,1fr));
+    }
+    body.student-records-page[data-management=student] .student-result-card > .student-name-layout {
+        grid-column:1/-1;
+    }
+    body.student-records-page[data-management=student] .student-result-card.is-selecting {
+        grid-template-columns:26px minmax(0,1fr) minmax(0,1fr);
+    }
+    body.student-records-page[data-management=student] .student-result-card.is-selecting > .student-name-layout {
+        grid-column:2/-1;
+    }
+    body.student-records-page[data-management=student] .student-result-card.is-selecting > .student-result-research-info { grid-column:2; }
+    body.student-records-page[data-management=student] .student-result-card.is-selecting > .student-result-ierb-status { grid-column:3; }
+    body.student-records-page[data-management=student] .student-result-card.is-selecting > .student-result-adviser { grid-column:2; }
+    body.student-records-page[data-management=student] .student-result-card.is-selecting > .student-result-actions { grid-column:3; }
+}
+@media(max-width:600px) {
+    body.student-records-page[data-management=student] .student-result-card {
+        grid-template-columns:minmax(0,1fr);
+        gap:10px;
+        padding:12px 14px 0;
+    }
+    body.student-records-page[data-management=student] .student-result-card > .student-name-layout {
+        grid-column:1;
+    }
+    body.student-records-page[data-management=student] .student-result-card.is-selecting {
+        grid-template-columns:22px minmax(0,1fr);
+        gap:10px 8px;
+        padding:12px 12px 0;
+    }
+    body.student-records-page[data-management=student] .student-result-card.is-selecting > .student-name-layout,
+    body.student-records-page[data-management=student] .student-result-card.is-selecting > .student-result-research-info,
+    body.student-records-page[data-management=student] .student-result-card.is-selecting > .student-result-ierb-status,
+    body.student-records-page[data-management=student] .student-result-card.is-selecting > .student-result-adviser,
+    body.student-records-page[data-management=student] .student-result-card.is-selecting > .student-result-actions {
+        grid-column:2;
+    }
+    body.student-records-page[data-management=student] .student-result-card.is-selecting > .student-name-layout { grid-row:1; }
+    body.student-records-page[data-management=student] .student-result-card.is-selecting > .student-result-details {
+        grid-column:1/-1;
+        margin-inline:-12px;
+    }
+    body.student-records-page[data-management=student] .student-result-card > .retention-select {
+        grid-column:1;
+        grid-row:1;
+    }
+}
+body.student-records-page[data-management=student][data-archive-workspace=false] .student-result-card {
+    gap:8px;
+    padding:8px 10px 0;
+    font-size:12px;
+}
+body.student-records-page[data-management=student][data-archive-workspace=false] .student-result-card :is(
+    .student-name-copy strong,
+    .student-name-copy small,
+    .student-result-label,
+    .student-result-research-title,
+    .student-result-protocol-code,
+    .student-result-protocol-code > span,
+    .student-result-status-chips .student-result-chip,
+    .student-result-adviser-copy,
+    .student-result-details summary,
+    .student-academic-details-grid dt,
+    .student-academic-details-grid dd,
+    .student-academic-details-grid .student-result-label,
+    .student-academic-details-grid > div:not(.academic-record-summary) > div
+) {
+    font-size:12px;
+}
+body.student-records-page[data-management=student][data-archive-workspace=false] .student-result-card .student-result-label {
+    margin-bottom:3px;
+    line-height:1.3;
+}
+body.student-records-page[data-management=student][data-archive-workspace=false] .student-result-card .student-result-protocol-code {
+    margin-top:3px;
+    line-height:1.35;
+}
+body.student-records-page[data-management=student][data-archive-workspace=false] .student-result-card .student-result-status-chips .student-result-chip {
+    min-height:23px;
+    padding:2px 7px;
+}
+body.student-records-page[data-management=student][data-archive-workspace=false] .student-result-card .student-result-actions .prism-action-trigger {
+    width:32px;
+    min-width:32px;
+    height:32px;
+    min-height:32px;
+}
+body.student-records-page[data-management=student][data-archive-workspace=false] .student-result-card .student-result-details summary {
+    min-height:34px;
+}
+body.student-records-page[data-management=student] #recordForm .student-profile-step-panel .student-edit-section-fields > label > :is(input:not([type=checkbox]),select,textarea),
+body.student-records-page[data-management=student] #recordForm .student-profile-step-panel .academic-fields-grid > label > select {
+    box-sizing:border-box;
+    width:100%;
+    min-width:0;
+    height:40px;
+    min-height:40px;
+    align-self:stretch;
+    padding:8px 12px;
+    font-size:12px;
+    line-height:1.35;
+}
+body.student-records-page[data-management=student] #recordForm .student-profile-step-panel .student-edit-section-fields > label > select,
+body.student-records-page[data-management=student] #recordForm .student-profile-step-panel .academic-fields-grid > label > select {
+    padding-right:34px;
+    text-align:left;
+}
+/* Keep the active Student Records selection path explicit and aligned. */
+body.student-records-page[data-management=student][data-archive-workspace=false] .management-controls {
+    align-items:center;
+    gap:10px;
+}
+body.student-records-page[data-management=student][data-archive-workspace=false] .student-selection-toggle {
+    min-height:40px;
+    padding:0 14px;
+    white-space:nowrap;
+}
+body.student-records-page[data-management=student][data-archive-workspace=false] #recordFilters .student-selection-toggle {
+    grid-column:1/-1;
+    justify-self:start;
+    width:auto;
+    min-width:150px;
+    min-height:40px;
+    margin:0;
+    padding:0 14px;
+    white-space:nowrap;
+}
+body.student-records-page[data-management=student] .retention-toolbar > .retention-selection-banner {
+    display:grid;
+    grid-template-columns:minmax(0,1fr) auto;
+    align-items:center;
+    gap:8px 12px;
+    padding:12px 14px;
+}
+body.student-records-page[data-management=student] .retention-selection-heading {
+    grid-column:1;
+    min-width:0;
+    gap:10px 16px;
+}
+body.student-records-page[data-management=student] .retention-selection-heading > p[role=status] {
+    white-space:nowrap;
+}
+body.student-records-page[data-management=student] .retention-selection-banner > .retention-selection-notice {
+    grid-column:1/-1;
+    margin:0;
+    color:var(--prism-muted);
+    font-size:12px;
+    line-height:1.45;
+}
+body.student-records-page[data-management=student] .retention-selection-banner > .retention-selection-notice[hidden] {
+    display:none !important;
+}
+body.student-records-page[data-management=student] .retention-selection-banner > .retention-bulk-guidance {
+    grid-column:1/-1;
+    margin-top:0;
+    max-width:none;
+}
+body.student-records-page[data-management=student] .retention-toolbar-actions {
+    grid-column:2;
+    grid-row:1;
+    display:flex;
+    justify-content:flex-end;
+    margin-left:0;
+    flex-wrap:nowrap;
+    gap:8px;
+}
+body.student-records-page[data-management=student] .retention-toolbar-actions :is(.retention-clear-selection,.retention-archive-selected,.retention-delete-selected) {
+    display:inline-flex;
+    min-width:0;
+    min-height:38px;
+    height:38px;
+    align-items:center;
+    justify-content:center;
+    gap:7px;
+    padding:8px 13px;
+    border-radius:9px;
+    font-size:12px;
+    white-space:nowrap;
+}
+body.student-records-page[data-management=student] .retention-toolbar-actions .retention-clear-selection {
+    background:var(--prism-card);
+    color:var(--prism-text);
+    border:1px solid var(--prism-border);
+}
+body.student-records-page[data-management=student] .retention-toolbar-actions .retention-delete-selected {
+    background:#a82540;
+    color:#fff;
+    border:1px solid #a82540;
+}
+body.student-records-page[data-management=student] .retention-toolbar-actions .retention-delete-selected:hover:not(:disabled) {
+    background:#861b32;
+    border-color:#861b32;
+}
+body.student-records-page[data-management=student] .retention-toolbar-actions :is(button:disabled) {
+    opacity:.55;
+    cursor:not-allowed;
+}
+body.student-records-page[data-management=student] #permanentDeleteIdentity {
+    max-height:180px;
+    overflow:auto;
+    white-space:pre-line;
+    overflow-wrap:anywhere;
+    padding:10px 12px;
+    border:1px solid var(--prism-border);
+    border-radius:10px;
+    background:var(--prism-bg);
+    font-size:12px;
+    line-height:1.5;
+}
+body.student-records-page[data-management=student] dialog.lifecycle-dialog #permanentDeleteForm .management-actions > button[type=submit] {
+    min-height:40px;
+}
+body.student-records-page dialog.lifecycle-dialog.student-bulk-confirmation {
+    width:min(640px,calc(100vw - 32px));
+    max-width:640px;
+    padding:24px;
+}
+body.student-records-page .student-bulk-confirmation .lifecycle-form {
+    gap:14px;
+}
+body.student-records-page .student-bulk-confirmation #permanentDeleteTitle {
+    margin:0;
+    font-size:19px;
+    line-height:1.35;
+}
+body.student-records-page .student-bulk-confirmation #permanentDeleteWarning {
+    margin:0;
+    font-size:13px;
+    line-height:1.55;
+}
+body.student-records-page .student-bulk-confirmation .lifecycle-check {
+    align-items:center;
+    font-size:13px;
+}
+body.student-records-page .student-bulk-confirmation .management-actions {
+    margin-top:0;
+}
+@media(max-width:600px) {
+    body.student-records-page dialog.lifecycle-dialog.student-bulk-confirmation {
+        width:calc(100vw - 24px);
+        padding:20px 16px;
+    }
+}
+@media(max-width:700px) {
+    body.student-records-page[data-management=student] .retention-toolbar > .retention-selection-banner {
+        grid-template-columns:minmax(0,1fr);
+        gap:8px;
+    }
+    body.student-records-page[data-management=student] .retention-selection-heading { grid-column:1; }
+    body.student-records-page[data-management=student] .retention-toolbar-actions {
+        grid-column:1;
+        grid-row:auto;
+        display:flex;
+        flex-wrap:wrap;
+        justify-content:flex-start;
+        margin-left:0;
+    }
+    body.student-records-page[data-management=student] .retention-selection-banner > .retention-selection-notice {
+        grid-column:1;
+    }
+    body.student-records-page[data-management=student] .retention-selection-banner > .retention-bulk-guidance { grid-column:1; }
+    body.student-records-page[data-management=student] .retention-toolbar-actions :is(.retention-clear-selection,.retention-archive-selected,.retention-delete-selected) {
+        flex:1 1 auto;
+    }
+}
+html.dark-theme body.student-records-page[data-management=student] .retention-selection-banner {
+    border-color:rgba(181,20,110,.48);
+    background:var(--prism-card);
+}

@@ -1,6 +1,5 @@
 (function () {
     'use strict';
-    const v14Mode = document.body.dataset.v14Active === '1';
 
     const themeToggle = document.getElementById('themeToggle');
     if (themeToggle) {
@@ -18,6 +17,7 @@
     const stageChart = document.getElementById('stageChart');
     const overviewTotal = document.getElementById('overviewTotal');
     const ierbSearch = document.getElementById('ierbSearch');
+    ierbSearch.value = (new URLSearchParams(window.location.search).get('q') || '').slice(0,255);
     const stageFilter = document.getElementById('stageFilter');
     const statusFilter = document.getElementById('ierbStatusFilter');
     const recordCount = document.getElementById('ierbRecordCount');
@@ -54,7 +54,7 @@
         {host:document.getElementById('ierbMoreFilters'),toolbar:document.querySelector('.ierb-controls')});
     let recordRequestSequence = 0;
     let loadError = '';
-    const STAGES = ['Stage 1', 'Stage 2', 'Stage 3', 'Stage 4', 'Stage 5', 'Completed'];
+    const STAGES = ['initial_submission','resubmission_amendment','approval_data_gathering','ierb_completed'];
     const stageLabels = window.PRISM_STAGE_LABELS || {};
     const labelForStage = stageKey => stageLabels[stageKey] || stageKey;
 
@@ -62,7 +62,7 @@
     // wherever a stage select appears, while keeping the option VALUE as
     // "Stage 1" etc so filtering/saving stays unchanged (feature request 7).
     function refreshStageNames() { document.querySelectorAll('#stageFilter option[value], #entryStage option[value]').forEach(opt => {
-        if (opt.value) opt.textContent = `${opt.value} - ${labelForStage(opt.value)}`;
+        if (opt.value) opt.textContent = labelForStage(opt.value);
     }); }
     refreshStageNames();
     document.getElementById('manageIerbStages')?.addEventListener('click', event => { const control=event.currentTarget; return PrismUI.runAction(control, 'Loading...', () => PrismUI.manageStages(async () => { refreshStageNames(); await loadRecords(); }, control)); });
@@ -76,14 +76,21 @@
         stageChart.setAttribute('aria-busy', 'true');
         tableBody.setAttribute('aria-busy', 'true');
         try {
-            const data = await PrismUI.request('ierb_api.php?' + new URLSearchParams({ action: 'list', ...(v14Mode ? {legacyOnly:'1'} : {}), page: pager.page, perPage: pager.pageSize, q: ierbSearch.value.trim(), ...filters.query(), ...sort.query() }));
+            const query={action:'monitor',layout:'cards',page:pager.page,perPage:pager.pageSize,q:ierbSearch.value.trim(),...filters.query(),...sort.query()};
+            const data = await PrismUI.request('ierb_api.php?' + new URLSearchParams(Object.fromEntries(Object.entries(query).filter(([,value])=>value!==''))));
             if (requestSequence !== recordRequestSequence) return;
             if (!Array.isArray(data.records)) throw new Error('The server returned an invalid record list.');
-            records = data.records;
+            records = data.records.map(row=>({
+                ...row,id:row.studentRecordId,research:row.research,name:row.name,group:row.groupId,
+                requirements:row.pending.join(', ')||'None',lastSubmissionDate:row.latestSubmission,
+                academicUnitKey:row.academicUnitKey,yearLevel:row.yearLevel,
+                v14:{stage:row.stage,stageLabel:row.stageLabel,progress:row.progress,labels:stageLabels,
+                    resolvedOfficialResubmissionCount:row.resolvedOfficialResubmissionCount||0}
+            }));
             filters.update(data.filterOptions);
             overview = data.overview || records.map(r => ({ stage: r.stage, status: r.status, c: 1 }));
             const statusSelect=statusFilter;
-            if(statusSelect){let pills=document.getElementById('ierbStatusPills');if(!pills){pills=document.createElement('div');pills.id='ierbStatusPills';document.querySelector('.ierb-controls').after(pills);}pills.classList.toggle('ierb-adviser-tabs',!isAdmin);const counts={};overview.forEach(row=>{counts[row.status]=(counts[row.status]||0)+Number(row.c);});PrismUI.statusPills(pills,[['','All'],...[...statusSelect.options].filter(option=>option.value).map(option=>[option.value,option.textContent])],statusSelect,counts);}
+            if(statusSelect){let pills=document.getElementById('ierbStatusPills');if(!pills){pills=document.createElement('div');pills.id='ierbStatusPills';document.querySelector('.ierb-controls').after(pills);}pills.classList.toggle('ierb-adviser-tabs',!isAdmin);const counts={};(data.statusCounts||[]).forEach(row=>{counts[row.status]=(counts[row.status]||0)+Number(row.c);});PrismUI.statusPills(pills,[['','All'],...[...statusSelect.options].filter(option=>option.value).map(option=>[option.value,option.textContent])],statusSelect,counts);}
             pager.render({ ...data, total: data.total ?? records.length });
         } catch (e) {
             if (requestSequence !== recordRequestSequence) return;
@@ -103,11 +110,8 @@
     }
 
     function renderOverview() {
-        const total = overview.reduce((sum, r) => sum + Number(r.c), 0);
         const stageCount = stage => overview.filter(r => r.stage === stage).reduce((sum, r) => sum + Number(r.c), 0);
-        overviewTotal.textContent = loadError
-            ? 'Unavailable'
-            : `${total} legacy student${total === 1 ? '' : 's'} · Select a stage to filter the list`;
+        const total = STAGES.reduce((sum, stage) => sum + stageCount(stage), 0);
         stageChart.replaceChildren();
         stageChart.classList.toggle('is-empty', total === 0);
         stageChart.setAttribute('role', total ? 'group' : 'status');
@@ -120,11 +124,9 @@
             icon.setAttribute('aria-hidden', 'true');
             const copy = document.createElement('div');
             const title = document.createElement('strong');
-            title.textContent = loadError ? 'Progress overview unavailable' : 'No progress data yet';
+            title.textContent = loadError ? 'Progress overview unavailable' : 'No active V14 projects yet';
             const description = document.createElement('span');
-            description.textContent = loadError || (isAdmin
-                ? 'Stage distribution will appear after the first IERB record is added.'
-                : 'Stage distribution will appear when IERB records are available for your assigned students.');
+            description.textContent = loadError || 'Stage distribution appears after approved research groups complete explicit V14 enrollment.';
             copy.append(title, description);
             state.append(icon, copy);
             stageChart.appendChild(state);
@@ -167,320 +169,147 @@
     function filteredRecords() { return records; }
 
     function renderTable() {
-        const rows = filteredRecords();
-        if (loadError) recordCount.textContent = 'Unavailable';
         tableBody.replaceChildren();
-        tableBody.closest('table').classList.toggle('is-empty', rows.length === 0);
+        tableBody.closest('table').classList.toggle('is-empty',!records.length);
+        if(!records.length){const row=document.createElement('tr'),cell=document.createElement('td');cell.colSpan=7;
+            cell.innerHTML='<div class="ierb-table-empty"><h3>'+escapeHtml(loadError?'Could not load IERB records':'No active V14 projects')+'</h3><p>'+escapeHtml(loadError||'Approved research groups appear after explicit V14 enrollment.')+'</p></div>';row.append(cell);tableBody.append(row);return;}
+        records.forEach(record=>{
+            const row=document.createElement('tr');row.innerHTML='<td colspan="7"></td>';tableBody.append(row);
+            const actions=document.createElement('div');
+            const guide=document.createElement('button');guide.type='button';guide.title='View stage guidance';guide.dataset.menuGroup='Review';guide.dataset.menuLabel='View stage guidance';
+            guide.addEventListener('click',()=>PrismUI.showStageGuidance(record.stage));actions.append(guide);
+            buildProgressCard(row,record,record.status==='Delayed'?'is-delayed':record.status==='On Track'?'is-on-track':'is-pending',record.progress,actions);
+        });
+    }
 
-        if (!rows.length) {
-            const tr = document.createElement('tr');
-            tr.className = 'ierb-empty-row';
-            const cell = document.createElement('td');
-            cell.colSpan = 7;
-            const state = document.createElement('div');
-            state.className = 'ierb-table-empty';
-            const icon = document.createElement('i');
-            const hasFilters = !!(ierbSearch.value.trim() || stageFilter.value || statusFilter.value);
-            icon.className = hasFilters ? 'fa-solid fa-filter-circle-xmark' : 'fa-solid fa-folder-open';
-            icon.setAttribute('aria-hidden', 'true');
-            const title = document.createElement('h3');
-            title.textContent = loadError ? 'Could not load IERB records' : (hasFilters ? 'No matching IERB records' : 'No IERB records yet');
-            const description = document.createElement('p');
-            description.textContent = loadError || (hasFilters
-                ? 'Try clearing the search or choosing different stage and status filters.'
-                : (isAdmin
-                    ? 'Add an IERB entry to begin tracking student stages, requirements, and submissions.'
-                    : 'Progress records for your assigned students will appear here.'));
-            state.append(icon, title, description);
-            cell.appendChild(state);
-            tr.appendChild(cell);
-            tableBody.appendChild(tr);
-            return;
+    const menuIcons = {'View stage guidance':'fa-circle-info'};
+    function buildProgressCard(tr, record, statusClass, progress, actions) {
+        const stageKey = record.v14 ? record.v14.stage : record.stage;
+        const sequence = record.v14 ? Object.keys(record.v14.labels) : STAGES;
+        const labelOf = name => record.v14?.labels?.[name] || labelForStage(name);
+        const current = sequence.indexOf(stageKey);
+        const unit = window.PRISM_ACADEMIC_CATALOG?.units?.[record.academicUnitKey]?.label || record.academicUnitKey;
+        const level = [record.yearLevel, record.academicYear].filter(Boolean).join(', ').replace(/(\d{4})-(\d{4})/, '$1–$2');
+        const pi = record.isPrincipalInvestigator == null ? 'Not recorded' : (record.isPrincipalInvestigator ? 'Yes' : 'No');
+        const field = (label, value) => '<div><span class="ierb-pc-label">' + escapeHtml(label) + '</span><strong>' + escapeHtml(value == null || String(value).trim() === '' ? 'Not recorded' : value) + '</strong></div>';
+        const group = (title, rows) => '<section class="ierb-pc-group"><h4>' + title + '</h4>' + rows.map(([l, v]) => field(l, v)).join('') + '</section>';
+        const card = document.createElement('article');
+        card.className = 'ierb-pc ' + statusClass;
+        card.innerHTML = '<div class="ierb-pc-head">'
+            + '<div class="ierb-pc-identity"><span class="ierb-pc-avatar" aria-hidden="true">' + escapeHtml(PrismUI.recordInitials(record.name)) + '</span><div><strong>' + escapeHtml(record.name || 'Student name unavailable') + '</strong><small>' + escapeHtml(record.course || 'Program not recorded') + '</small></div></div>'
+            + '<div class="ierb-pc-progress"><div class="ierb-pc-stage"><span class="ierb-pc-stage-pill">' + escapeHtml(labelOf(stageKey)) + '</span></div>'
+            + '<button type="button" class="ierb-pc-meter" data-requirements aria-expanded="false" aria-label="'+progress+'% progress. View document requirement checklist"><span class="ierb-progress-track" role="progressbar" aria-label="Overall progress" aria-valuemin="0" aria-valuemax="100" aria-valuenow="' + progress + '"><span style="width:' + progress + '%"></span></span><strong>' + progress + '%</strong></button></div>'
+            + '<div class="ierb-pc-status">' + PrismUI.badge(record.status) + '</div>'
+            + '<div class="ierb-pc-actions"></div></div>'
+            + '<details class="ierb-pc-details"><summary>Show details</summary><div class="ierb-pc-body">'
+            + '<section class="ierb-pc-group ierb-pc-stages"><h4>IERB stages</h4><ol aria-label="IERB stage sequence">' + sequence.map((name, i) => '<li' + (i === current ? ' aria-current="step"' : '') + ((name==='resubmission_amendment' ? stageKey!=='resubmission_amendment' && Number(record.v14?.resolvedOfficialResubmissionCount||0)>0 : current>=0&&i<current) ? ' class="is-complete"' : '') + '><span>' + (i + 1) + '</span>' + escapeHtml(labelOf(name)) + '</li>').join('') + '</ol></section>'
+            + '<div class="ierb-pc-groups">'
+            + group('Student', [['Student ID', record.studentId], ['Program', record.course], ['Level', level]])
+            + group('Research', [['Title', record.research || 'Not recorded yet'], ['Group', record.groupId || record.group], ['Principal investigator', pi]])
+            + group('Progress', [['Last submission', record.lastSubmissionDate || 'No submission yet'], ['Pending requirements', record.requirements || 'Nothing pending'], ['Academic unit', unit]])
+            + '</div></div></details>';
+        window.PrismRequirementsPopover?.bind(card.querySelector('[data-requirements]'), async () => {
+            const response = await fetch('ierb_api.php?action=monitor_requirements&id=' + encodeURIComponent(record.id), { headers: { Accept: 'application/json' }, credentials: 'same-origin' });
+            const data = await response.json();
+            if (!response.ok || !data.ok) throw new Error(data.message || 'Requirements unavailable');
+            return data.record;
+        });
+        const warning = tr.querySelector('.ierb-stage-review-warning');
+        if (warning) card.querySelector('.ierb-pc-body').prepend(warning);
+        const details = card.querySelector('details'), summary = details.querySelector('summary');
+        details.addEventListener('toggle', () => { summary.textContent = details.open ? 'Hide details' : 'Show details'; });
+        const host = card.querySelector('.ierb-pc-actions');
+        let primary = null;
+        if (isAdmin) {
+            const view = document.createElement('a'); view.href = 'documents.php'; view.className = 'ierb-pc-view'; view.title = 'View documents'; view.setAttribute('aria-label', 'View documents'); view.innerHTML = '<i class="fa-regular fa-eye" aria-hidden="true"></i>'; host.append(view); primary = view;
         }
-
-        rows.forEach(record => {
-            const tr = document.createElement('tr');
-            const progress = Math.max(0, Math.min(100, Number(record.v14?.progress ?? record.progress) || 0));
-            const statusClass = record.status === 'Delayed' ? 'is-delayed' : (record.status === 'On Track' ? 'is-on-track' : 'is-pending');
-            tr.innerHTML = `
-                <td>${PrismUI.progressIdentityHtml(record)}</td>
-                <td><span class="stage-tag" title="${escapeHtml(record.v14?.stageLabel || record.stage)}">${escapeHtml(record.v14?.stageLabel || record.stageLabel || labelForStage(record.stage))}</span>${PrismUI.docMini(record.docs)}</td>
-                <td><div class="ierb-card-progress"><div><span>Overall progress</span><strong>${progress}%</strong></div><span class="ierb-progress-track" role="progressbar" aria-label="Overall progress" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${progress}"><span style="width:${progress}%"></span></span></div></td>
-                <td>${escapeHtml(record.requirements || 'None')}</td>
-                <td>${escapeHtml(record.lastSubmissionDate || 'N/A')}</td>
-                <td>${PrismUI.badge(record.status)}</td>
-                <td class="row-actions"></td>`;
-            tr.className = `ierb-progress-row ${statusClass}`;
-            const actions = tr.querySelector('.row-actions');
-            if (v14Mode) {
-                actions.textContent = 'Read-only';
-                tableBody.appendChild(tr);
-                PrismUI.compactProgressRecord(tr, record, 0, 5, 6, [1,2,3,4], STAGES);
-                return;
-            }
-
-            const guidanceBtn = document.createElement('button');
-            guidanceBtn.className = 'icon-btn'; guidanceBtn.title = 'View stage guidance';
-            guidanceBtn.innerHTML = '<i class="fa-solid fa-circle-info" aria-hidden="true"></i>';
-            guidanceBtn.addEventListener('click', () => PrismUI.showStageGuidance(record.stage));
-            actions.appendChild(guidanceBtn);
-            if (isAdmin && record.earlierStageReturns?.length) {
-                const warning = document.createElement('p'); warning.className = 'ierb-stage-review-warning';
-                warning.textContent = 'RPMS review: returned documents belong to an earlier stage (' + record.earlierStageReturns.map(labelForStage).join(', ') + '). Review whether an official stage correction is appropriate. No correction has been made.';
-                tr.cells[1].append(warning);
-            }
-
-            const noteBtn = document.createElement('button');
-            noteBtn.className = 'icon-btn';
-            noteBtn.title = 'Add note';
-            noteBtn.innerHTML = '<i class="fa-solid fa-note-sticky"></i>';
-            noteBtn.addEventListener('click', () => openNoteModal(record));
-            actions.appendChild(noteBtn);
-
-            const remindBtn = document.createElement('button');
-            remindBtn.className = 'icon-btn';
-            remindBtn.title = 'Send follow-up email';
-            remindBtn.innerHTML = '<i class="fa-solid fa-paper-plane"></i>';
-            remindBtn.addEventListener('click', () => PrismUI.runAction(remindBtn, 'Sending...', () => sendFollowup(record)));
-            actions.appendChild(remindBtn);
-
-            if (isAdmin) {
-                [['advance','Advance to Next Stage','fa-arrow-right'],['correct','Correct IERB Stage','fa-user-shield'],['status','Update Progress Status','fa-sliders']].forEach(([operation,title,icon]) => {
-                    const button=document.createElement('button');button.className='icon-btn';button.title=title;button.setAttribute('aria-label',title);
-                    button.innerHTML='<i class="fa-solid '+icon+'" aria-hidden="true"></i>';
-                    if(operation==='advance' && record.stage==='Completed')button.disabled=true;
-                    if(record.v14){button.disabled=true;button.title='Project progress uses validated Research Group Advancement and automatic Final Report completion.';}
-                    button.addEventListener('click',event=>PrismUI.runAction(event.currentTarget,'Saving...',async()=>{if(await PrismUI.changeStudentProgress(record,operation))await loadRecords();}));
-                    actions.appendChild(button);
-                });
-                const editBtn = document.createElement('button');
-                editBtn.className = 'icon-btn';
-                editBtn.title = 'Edit entry';
-                editBtn.innerHTML = '<i class="fa-solid fa-pen"></i>';
-                editBtn.addEventListener('click', () => openEntryModal(record));
-                actions.appendChild(editBtn);
-
-                const delBtn = document.createElement('button');
-                delBtn.className = 'icon-btn';
-                delBtn.title = 'Archive student';
-                delBtn.innerHTML = '<i class="fa-solid fa-trash"></i>';
-                delBtn.addEventListener('click', e => PrismUI.runAction(e.currentTarget,'Processing...',() => deleteEntry(record)));
-                actions.appendChild(delBtn);
-            }
-
-            if (!isAdmin) {
-                PrismUI.actionMenu(actions, { label: 'Student actions' });
-            } else {
-                PrismUI.actionMenu(actions);
-            }
-            tableBody.appendChild(tr);
-            const displayRecord=record.v14 ? {...record,stage:record.v14.stage} : record;
-            const sequence=record.v14 ? Object.keys(record.v14.labels) : STAGES;
-            const card = PrismUI.compactProgressRecord(tr,displayRecord,0,5,6,[1,2,3,4],sequence);
-            if (card) {
-                card.classList.add('ierb-progress-card', statusClass);
-                if(isAdmin) {
-                    const docs=document.createElement('a');docs.href='documents.php';docs.className='prism-btn ierb-open-documents';PrismUI.documentAction(docs,'view','Open Documents');
-                    card.querySelector('.prism-record-actions').prepend(docs);
-                }
+        const items = [...actions.querySelectorAll('button[data-menu-label]')];
+        items.forEach(button => { button.className = ''; button.innerHTML = '<i class="fa-solid ' + menuIcons[button.dataset.menuLabel] + '" aria-hidden="true"></i>'; button.append(document.createTextNode(button.dataset.menuLabel)); button.setAttribute('aria-label', button.dataset.menuLabel); host.append(button); });
+        PrismUI.actionMenu(host, { primary, label: 'Student actions' });
+        let last = '';
+        items.forEach(button => {
+            if (button.dataset.menuGroup !== last) {
+                last = button.dataset.menuGroup;
+                const heading = document.createElement('span'); heading.className = 'ierb-menu-group'; heading.textContent = last; heading.setAttribute('role', 'presentation');
+                button.before(heading);
             }
         });
+        tr.closest('table')?.classList.add('prism-compact-table');
+        const cell = document.createElement('td'); cell.colSpan = tr.cells.length || 1; cell.append(card);
+        tr.replaceChildren(cell);
     }
 
     const searchReload = PrismUI.debounce(() => { pager.reset(); loadRecords(); });
     ierbSearch.addEventListener('input', () => { ++recordRequestSequence; pager.reset(); searchReload(); });
     filterControls.forEach(control=>control.addEventListener('change',()=>{pager.reset();loadRecords();}));
 
-    // --- Entry add/edit modal ---
-    const entryModal = document.getElementById('ierbEntryModal');
-    const entryForm = document.getElementById('ierbEntryForm');
-    const entryDirty = PrismUI.dirtyForm(entryForm);
-    const entryTitle = document.getElementById('ierbEntryTitle');
-    const academicFields = PrismAcademicFields.mount(document.getElementById('entryAcademicFields'));
-    let entryReturnFocus = null;
-    let editingId = null;
-
-    function openEntryModal(record) {
-        if (!record && window.PRISM_RESEARCH_ONBOARDING) { window.location.assign('admin_students.php'); return; }
-        entryReturnFocus = document.activeElement;
-        entryForm.reset();
-        academicFields.setRecord(record);
-        editingId = record ? record.id : null;
-        document.getElementById('entryResearchTitle').readOnly = !!(record?.projectId || record?.researchAssignmentState);
-        document.getElementById('entryStage').value = record?.stage || 'Stage 1';
-        document.getElementById('entryGroupId').required = !record;
-        entryTitle.textContent = record ? 'Edit IERB Entry' : 'Add IERB Entry';
-        if (record) {
-            document.getElementById('entryStudentName').value = record.name || '';
-            document.getElementById('entryStudentId').value = record.studentId || '';
-            document.getElementById('entryEmail').value = record.email || '';
-            document.getElementById('entryStage').value = record.stage || 'Stage 1';
-            document.getElementById('entryResearchTitle').value = record.research || '';
-            document.getElementById('entryRequirements').value = record.requirements || '';
-            document.getElementById('entrySubmissionDate').value = record.lastSubmissionDate || '';
-            document.getElementById('entryStatus').value = record.status || 'On Track';
-        }
-        // New entries need valid required fields; edits also need an actual change. An unchanged legacy ID stays valid.
-        entryForm.dataset.prismGate = record ? 'dirty' : 'valid';
-        window.PrismForms?.setLegacyValue(document.getElementById('entryStudentId'), record ? record.studentId : null);
-        entryDirty.clean();
-        entryModal.setAttribute('aria-hidden', 'false');
-        entryModal.style.display = 'flex';
-        document.getElementById('entryStudentName').focus();
-    }
-    function closeEntryModal() {
-        entryDirty.clean();
-        entryModal.style.display = 'none';
-        entryReturnFocus?.focus();
-        entryModal.setAttribute('aria-hidden', 'true');
-    }
-    document.getElementById('addIerbEntry')?.addEventListener('click', () => openEntryModal(null));
-    document.getElementById('closeIerbEntry').addEventListener('click', closeEntryModal);
-    document.getElementById('cancelIerbEntry').addEventListener('click', closeEntryModal);
-    entryModal.addEventListener('click', e => { if (e.target === entryModal) closeEntryModal(); });
-    entryModal.addEventListener('keydown', event => {
-        if (event.key === 'Escape') { event.preventDefault(); event.stopPropagation(); closeEntryModal(); return; }
-        if (event.key !== 'Tab') return;
-        const controls = [...entryModal.querySelectorAll('button,input,select,textarea,[tabindex]')].filter(e => !e.disabled && e.tabIndex >= 0 && e.getClientRects().length);
-        if (!controls.length) return;
-        const first = controls[0], last = controls[controls.length - 1];
-        if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last.focus(); }
-        else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first.focus(); }
-    });
-
-    entryForm.addEventListener('submit', async event => {
-        event.preventDefault();
-        const payload = {
-            id: editingId,
-            name: document.getElementById('entryStudentName').value.trim(),
-            studentId: document.getElementById('entryStudentId').value.trim(),
-            email: document.getElementById('entryEmail').value.trim(),
-            groupId: document.getElementById('entryGroupId').value.trim(),
-            stage: document.getElementById('entryStage').value,
-            research: document.getElementById('entryResearchTitle').value.trim(),
-            requirements: document.getElementById('entryRequirements').value.trim(),
-            submissionDate: document.getElementById('entrySubmissionDate').value,
-            status: document.getElementById('entryStatus').value,
-        };
-        Object.assign(payload, academicFields.payload());
-        const saveBtn = entryForm.querySelector('[type="submit"]');
-        const release = PrismUI.busy(saveBtn, 'Saving...');
-        if (!release) return;
-        try {
-            const data = await PrismUI.postJson('ierb_api.php?action=save', payload);
-            closeEntryModal();
-            await loadRecords();
-            PrismUI.toast(data.message || 'IERB record saved.', 'success');
-            if (data.setupPending && !data.temporaryPassword) {
-                PrismUI.toast(data.setupMessage || 'Account created. Contact the RPMS office to arrange password setup.', 'info');
-            }
-            if (data.temporaryPassword) {
-                await PrismUI.confirm({
-                    title:'Account setup required',
-                    icon:'fa-key',
-                    confirmText:'I copied it',
-                    message:'Live account-setup email is not available. Give this one-time temporary password to the student securely. They will be required to change it after signing in.',
-                    extraHtml:'<label>Temporary password</label><input id="prismTempPassword" readonly value="' + escapeHtml(data.temporaryPassword) + '" onclick="this.select()">'
-                });
-            }
-        } catch (e) {
-            PrismUI.toast(e.message, 'error');
-        } finally {
-            release();
-        }
-    });
-
-    async function deleteEntry(record) {
-        const answer = await PrismUI.confirm({
-            title:'Archive student record', icon:'fa-box-archive', tone:'danger', confirmText:'Archive',
-            message:`Archive ${record.name} and deactivate their login? All Student, IERB and document history will be retained.`
-        });
-        if (!answer) return;
-        try {
-            const data = await PrismUI.postJson('ierb_api.php?action=delete', { id: record.id });
-            await loadRecords();
-            PrismUI.toast(data.message || 'Record deleted.', 'success');
-        } catch (e) {
-            PrismUI.toast(e.message, 'error');
-        }
-    }
-
-    // --- Note modal ---
-    const actionModal = document.getElementById('ierbActionModal');
-    const actionForm = document.getElementById('ierbActionForm');
-    const noteDirty = PrismUI.dirtyForm(actionForm);
-    const actionText = document.getElementById('ierbActionText');
-    let noteTargetId = null;
-    let noteReturnFocus = null;
-
-    function openNoteModal(record) {
-        noteReturnFocus = document.activeElement;
-        noteTargetId = record.id;
-        actionText.value = '';
-        noteDirty.clean();
-        document.getElementById('ierbActionTitle').textContent = `Add Note - ${record.name}`;
-        actionModal.setAttribute('aria-hidden', 'false');
-        actionModal.style.display = 'flex';
-        actionText.focus();
-    }
-    function closeActionModal() {
-        noteDirty.clean();
-        actionModal.setAttribute('aria-hidden', 'true');
-        actionModal.style.display = 'none';
-        noteReturnFocus?.focus();
-    }
-    document.getElementById('closeIerbModal').addEventListener('click', closeActionModal);
-    document.getElementById('cancelIerbAction').addEventListener('click', closeActionModal);
-    actionModal.addEventListener('click', e => { if (e.target === actionModal) closeActionModal(); });
-    actionModal.addEventListener('keydown', event => {
-        if (event.key === 'Escape') { event.preventDefault(); event.stopPropagation(); closeActionModal(); return; }
-        if (event.key !== 'Tab') return;
-        const controls = [...actionModal.querySelectorAll('button,input,textarea,[tabindex]')].filter(e => !e.disabled && e.tabIndex >= 0 && e.getClientRects().length);
-        const first = controls[0], last = controls[controls.length - 1];
-        if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last?.focus(); }
-        else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first?.focus(); }
-    });
-
-    actionForm.addEventListener('submit', async event => {
-        event.preventDefault();
-        const note = actionText.value.trim();
-        if (!note) { PrismUI.toast('Write a note before saving.', 'error'); actionText.focus(); return; }
-        const btn = actionForm.querySelector('[type="submit"]');
-        const release = PrismUI.busy(btn, 'Saving...');
-        if (!release) return;
-        try {
-            const data = await PrismUI.postJson('ierb_api.php?action=note', { studentId: noteTargetId, note });
-            closeActionModal();
-            PrismUI.toast(data.message || 'Note saved.', 'success');
-        } catch (e) {
-            PrismUI.toast(e.message, 'error');
-        } finally {
-            release();
-        }
-    });
-
-    async function sendFollowup(record) {
-        const answer = await PrismUI.confirm({
-            title:'Send follow-up', icon:'fa-paper-plane', confirmText:'Send follow-up',
-            dialogClass:'ierb-followup-dialog',
-            message:`Send the standard IERB progress follow-up to ${record.name} at ${record.email}?`
-        });
-        if (!answer) return;
-        try {
-            const data = await PrismUI.postJson('send_followup.php', { studentDbId: record.id });
-            PrismUI.toast(data.message || 'Follow-up sent.', 'success');
-        } catch (e) {
-            PrismUI.toast(e.message, 'error');
-        }
-    }
-
-    // Independent of Detailed Progress filters, selections and pagination.
     if (isAdmin && document.getElementById('ierbGroupAdvancement')) {
+        const groupModal = document.getElementById('ierbGroupModal');
+        const openGroup = document.getElementById('openIerbGroupAdvancement');
+        const closeGroup = [...groupModal.querySelectorAll('[data-close-group-advancement]')];
         const select = document.getElementById('ierbGroupSelect');
         const refresh = document.getElementById('ierbGroupRefresh');
         const review = document.getElementById('ierbGroupReview');
         const host = document.getElementById('ierbGroupPreview');
+        const chips = document.getElementById('ierbGroupChips');
+        const hint = document.getElementById('ierbGroupHint');
+        const step3 = document.getElementById('ierbGroupStep3');
+        const catalog = window.PRISM_ACADEMIC_CATALOG || {};
+        const initials = name => PrismUI.recordInitials(name);
+        function chipsHtml(data) {
+            const id = data.identity || {};
+            const values = [catalog.units?.[id.academic_unit_key]?.label || id.academic_unit_key, catalog.programs?.[id.program_key]?.label || id.program_key, id.year_level, id.academic_year ? 'AY ' + id.academic_year : ''].filter(Boolean);
+            return values.map(value => `<span>${escapeHtml(value)}</span>`).join('');
+        }
+        const check = (ok, title, detail) => `<li class="${ok ? 'is-ok' : 'is-bad'}"><i class="fa-solid ${ok ? 'fa-check' : 'fa-xmark'}" aria-hidden="true"></i><div><strong>${escapeHtml(title)}</strong>${!ok && detail ? `<small>${escapeHtml(detail)}</small>` : ''}</div></li>`;
+        function moveHtml(data) {
+            const count = data.memberCount, blocked = data.members.filter(m => !m.eligible).length, reasons = data.reasons || [];
+            const known = [/At least two/, /different official/, /Review the ineligible/, /standardized/];
+            const extra = reasons.filter(r => !known.some(k => k.test(r)));
+            const rows = [
+                [count >= 2, 'The group has at least 2 students', `Only ${count} student${count === 1 ? ' is' : 's are'} linked to this group. Group Advancement is for groups of 2 or more. Check that the other members were added with this exact group code, or advance the student on their own.`],
+                [blocked === 0, 'Every student can be advanced', `${blocked} student${blocked === 1 ? ' needs' : 's need'} attention. See the list below.`],
+                [!reasons.some(r => /different official/.test(r)), 'Everyone is at the same stage', 'Group members are at different official stages. Review their records first.'],
+                [!reasons.some(r => /standardized/.test(r)), 'The group code is valid', 'Legacy or inconsistent academic identifiers need record review.'],
+                ...extra.map(r => [false, 'Stage rule', r])
+            ];
+            const bad = rows.filter(r => !r[0]).length;
+            const summary = data.eligible
+                ? '<div class="ierb-ga-result is-ready"><i class="fa-solid fa-circle-check" aria-hidden="true"></i><strong>This group is ready to advance.</strong></div>'
+                : `<div class="ierb-ga-result is-blocked"><i class="fa-solid fa-circle-exclamation" aria-hidden="true"></i><strong>This group can't be advanced yet — ${bad} thing${bad === 1 ? '' : 's'} to fix:</strong></div>`;
+            return `<div class="ierb-ga-move"><div><span>Now</span><strong>${escapeHtml(data.currentStage || 'Review required')}</strong></div><i class="fa-solid fa-arrow-right" aria-hidden="true"></i><div class="is-next"><span>After advancing</span><strong>${escapeHtml(data.nextStage || '—')}</strong></div><p><strong>${count}</strong> student${count === 1 ? '' : 's'} in this group</p></div>`
+                + `<div class="ierb-ga-checks ${data.eligible ? 'is-ready' : 'is-blocked'}">${summary}<ul>${rows.map(r => check(...r)).join('')}</ul></div>`;
+        }
+        function studentsHtml(data) {
+            return '<div class="ierb-ga-students"><h4>Students in this group</h4><ul>' + data.members.map(m => {
+                const archived = m.issues.some(i => /archived/i.test(i));
+                const note = archived
+                    ? 'This student\'s account is archived, so PRISM can\'t change their stage. <a href="admin_archived_accounts.php">Restore in Archived Accounts</a>'
+                    : escapeHtml(m.issues.join(' '));
+                return `<li><span class="ierb-ga-avatar" aria-hidden="true">${escapeHtml(initials(m.name))}</span><div><strong>${escapeHtml(m.name)}</strong><small>${escapeHtml(m.studentId)} · ${escapeHtml(m.stage)} · ${escapeHtml(m.status)}</small></div>`
+                    + `<div class="ierb-ga-member-state">${m.eligible ? '<span class="ierb-ga-pill is-ok">Ready</span>' : `<span class="ierb-ga-pill is-bad">Can't be included</span><p>${note}</p>`}</div></li>`;
+            }).join('') + '</ul></div>';
+        }
         let preview = null, sequence = 0, busy = false;
+        openGroup.addEventListener('click', () => {
+            if (busy || groupModal.open) return;
+            groupModal.showModal();
+            if (!select.disabled) select.focus();
+        });
+        closeGroup.forEach(button => button.addEventListener('click', () => {
+            if (!busy) groupModal.close();
+        }));
+        groupModal.addEventListener('cancel', event => {
+            if (busy) event.preventDefault();
+        });
+        groupModal.addEventListener('close', () => {
+            if (!busy && !groupModal.open) openGroup.focus();
+        });
+        groupModal.addEventListener('click', event => {
+            if (busy || event.target !== groupModal) return;
+            const bounds = groupModal.getBoundingClientRect();
+            if (event.clientX < bounds.left || event.clientX > bounds.right || event.clientY < bounds.top || event.clientY > bounds.bottom) groupModal.close();
+        });
         const stageText = (key, label) => key ? (label && label !== key ? `${key} — ${label}` : key) : 'Review required';
         const memberHtml = data => '<ul class="ierb-group-members" tabindex="0" aria-label="Associated Students">' + data.members.map(m =>
             `<li><div><strong>${escapeHtml(m.name)}</strong><span>${escapeHtml(m.studentId)}</span></div>` +
@@ -489,9 +318,13 @@
         const factsHtml = data => `<dl class="ierb-group-facts"><div><dt>Current official stage</dt><dd>${escapeHtml(stageText(data.currentStage, data.currentStageLabel))}</dd></div>` +
             `<div><dt>Next official stage</dt><dd>${escapeHtml(stageText(data.nextStage, data.nextStageLabel))}</dd></div><div><dt>Associated Students</dt><dd>${data.memberCount}</dd></div></dl>`;
         function controls() {
+            openGroup.disabled = busy;
+            closeGroup.forEach(button => { button.disabled = busy; });
             select.disabled = busy;
             refresh.disabled = busy || !select.value;
             review.disabled = busy || !preview?.eligible || !preview?.confirmationToken || Date.now() >= preview.expiresAt * 1000;
+            step3.classList.toggle('is-muted', review.disabled);
+            hint.textContent = !select.value ? 'Choose a group first.' : (preview?.eligible ? 'This will advance every student listed above.' : 'Fix the items above first.');
         }
         async function cancelToken(data) {
             if (data?.confirmationToken) await PrismUI.postJson('ierb_api.php?action=group_advance_cancel', { confirmationToken: data.confirmationToken });
@@ -500,6 +333,7 @@
             if (busy) return;
             const requestSequence = ++sequence, old = preview;
             preview = null;
+            chips.replaceChildren();
             controls();
             if (!select.value) { host.textContent = 'Select a group to review all associated Student records.'; if (old) cancelToken(old).catch(() => {}); return; }
             host.setAttribute('aria-busy', 'true');
@@ -509,8 +343,8 @@
                 const data = await PrismUI.postJson('ierb_api.php?action=group_advance_preview', { groupKey: select.value });
                 if (requestSequence !== sequence) { cancelToken(data).catch(() => {}); return; }
                 preview = data;
-                host.innerHTML = `<p>${escapeHtml(data.label)}</p>` + factsHtml(data) +
-                    (data.reasons.length ? '<ul class="ierb-group-blockers">' + data.reasons.map(r => `<li>${escapeHtml(r)}</li>`).join('') + '</ul>' : '<p>All associated Students are eligible. Individual progress statuses will be preserved.</p>') + memberHtml(data);
+                chips.innerHTML = chipsHtml(data);
+                host.innerHTML = moveHtml(data) + studentsHtml(data);
             } catch (e) {
                 if (requestSequence === sequence) host.textContent = e.message;
             } finally {
@@ -525,6 +359,8 @@
             busy = true; controls();
             const reviewed = preview;
             try {
+                // Let the shared confirmation own focus above the page, then restore this card.
+                groupModal.close();
                 const answer = await PrismUI.confirm({
                     title: 'Advance Research Group to Next IERB Stage?', confirmText: 'Confirm Group Advancement',
                     dialogClass: 'ierb-group-dialog', message: 'Official progress records for every listed Student will be changed. This decision does not grant institutional ethics approval.',
@@ -538,6 +374,7 @@
                     host.textContent = 'Group advancement canceled. Refresh the preview to review this group again.';
                     return;
                 }
+                groupModal.showModal();
                 review.textContent = 'Advancing group…';
                 const data = await PrismUI.postJson('ierb_api.php?action=group_advance', {
                     confirmationToken: reviewed.confirmationToken, reason: answer.reason, confirmed: true
@@ -550,15 +387,19 @@
                 host.textContent = e.message;
                 PrismUI.toast(e.message, 'error');
             } finally {
-                busy = false; review.textContent = 'Review & Advance Group'; controls(); refresh.focus();
+                busy = false; review.textContent = 'Review & Advance Group'; controls();
+                if (!groupModal.open) groupModal.showModal();
+                refresh.focus();
             }
         });
         PrismUI.request('ierb_api.php?action=group_advance_list').then(data => {
             select.replaceChildren(new Option(data.groups.length ? 'Select a research group' : 'No associated research groups', ''));
-            data.groups.forEach(g => select.add(new Option(g.label + (g.standard ? '' : ' — record review required'), g.key)));
+            const codeOf = g => String(g.label).split(' / ')[0];
+            const codeCounts = data.groups.reduce((m, g) => m.set(codeOf(g), (m.get(codeOf(g)) || 0) + 1), new Map());
+            data.groups.forEach(g => select.add(new Option((codeCounts.get(codeOf(g)) > 1 ? g.label : codeOf(g)) + (g.standard ? '' : ' — record review required'), g.key)));
             controls();
         }).catch(e => { select.replaceChildren(new Option('Group list unavailable', '')); host.textContent = e.message; });
     }
 
-    loadRecords().then(() => { if (isAdmin && window.location.hash === '#manage-stages') document.getElementById('manageIerbStages')?.click(); });
+    loadRecords().then(()=>{if(isAdmin&&location.hash==='#manage-stages')document.getElementById('manageIerbStages')?.click();});
 })();

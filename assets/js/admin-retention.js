@@ -6,29 +6,52 @@
         const selected=new Set(); let allIds=null, selectionToken=null, scopeKey='', total=0, bulkBusy=false;
         let selecting=false, selectionEpoch=0;
         const compactStudentActions=document.body.classList.contains('student-records-page');
-        const toggle=document.createElement('button');toggle.type='button';toggle.id='retentionSelectionMode';toggle.className='prism-btn prism-btn-secondary';toggle.textContent='Selection Mode: Off';toggle.setAttribute('aria-pressed','false');
+        const studentSelectionActions=options.type==='student'&&!options.archived&&compactStudentActions;
+        const adviserSelectionActions=options.type==='adviser'&&!options.archived&&compactStudentActions;
+        const compactSelectionActions=studentSelectionActions||adviserSelectionActions;
+        const selectedLabels=new Map();
+        const toggle=document.createElement('button');toggle.type='button';toggle.id='retentionSelectionMode';toggle.className='prism-btn prism-btn-secondary';toggle.textContent='Select records';toggle.setAttribute('aria-pressed','false');
         if(compactStudentActions) {
-            toggle.innerHTML='<i class="fa-solid fa-list-check" aria-hidden="true"></i><span>Selection Mode: Off</span>';
-            toggle.title='Selection Mode: Off';
-            toggle.setAttribute('aria-label','Selection Mode: Off');
+            toggle.innerHTML='<i class="fa-solid fa-list-check" aria-hidden="true"></i><span>Select</span>';
+            toggle.title='Select records for bulk actions';
+            toggle.setAttribute('aria-label','Select records for bulk actions');
         }
         document.querySelector('.management-controls').append(toggle);
         const toolbar=document.createElement('section');toolbar.className='retention-toolbar';toolbar.setAttribute('aria-label','Bulk account lifecycle');
         const summary=document.createElement('p');summary.setAttribute('role','status');summary.setAttribute('aria-live','polite');
+        const guidance=document.createElement('p');guidance.className='retention-bulk-guidance';
+        guidance.textContent=options.archived
+            ? 'Permanent purge is available only for archived accounts that meet retention and eligibility requirements.'
+            : adviserSelectionActions
+                ? 'Advisers must be archived before permanent deletion. Eligible archived accounts can be purged from Archived Accounts.'
+            : 'Archived accounts move to Archived Accounts and can be restored later.';
         const actions=document.createElement('div');actions.className='retention-toolbar-actions';
         const page=document.createElement('input');page.type='checkbox';page.id='retentionSelectPage';
-        const pageLabel=document.createElement('label');pageLabel.className='retention-selection-label';pageLabel.htmlFor=page.id;pageLabel.append(page,document.createTextNode('Select current page'));
+        const pageLabel=document.createElement('label');pageLabel.className='retention-selection-label';pageLabel.htmlFor=page.id;pageLabel.append(page,document.createTextNode(compactSelectionActions?'Select all records on this page':'Select this page'));
+        const banner=document.createElement('div');banner.className='retention-selection-banner';
+        const selectionNotice=document.createElement('p');selectionNotice.className='retention-selection-notice';selectionNotice.setAttribute('role','status');selectionNotice.setAttribute('aria-live','polite');selectionNotice.hidden=true;
         const all=document.createElement('button');all.type='button';all.className='prism-btn';
-        const clear=document.createElement('button');clear.type='button';clear.className='prism-btn';clear.textContent='Clear selection';
+        const clear=document.createElement('button');clear.type='button';clear.className='prism-btn';clear.textContent=compactSelectionActions?'Clear Selection':'Clear selection';
         const action=document.createElement('select');action.id='retentionBulkAction';action.setAttribute('aria-label','Bulk lifecycle action');
-        (options.archived ? [['restore','Restore'],['hold','Place Retention Hold'],['remove_hold','Remove Retention Hold'],['permanent_delete','Permanent Purge'],['retention_cleanup','Run Retention Cleanup']] : [['archive','Archive']]).forEach(([v,l])=>action.add(new Option(l,v)));
+        (options.archived
+            ? [['restore','Restore'],['hold','Place Retention Hold'],['remove_hold','Remove Retention Hold'],['permanent_delete','Permanent Purge'],['retention_cleanup','Run Retention Cleanup']]
+            : options.type==='student' ? [['archive','Archive'],['direct_delete','Delete']] : [['archive','Archive']]
+        ).forEach(([v,l])=>action.add(new Option(l,v)));
         const run=document.createElement('button');run.type='button';run.className='prism-btn';run.innerHTML='<i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i><span>Review selection</span>';
-        clear.classList.add('retention-icon-button');clear.innerHTML='<i class="fa-solid fa-xmark" aria-hidden="true"></i>';clear.title='Clear selection';clear.setAttribute('aria-label','Clear selection');
+        const archiveSelected=document.createElement('button');archiveSelected.type='button';archiveSelected.className='prism-btn prism-btn-primary retention-archive-selected';archiveSelected.textContent='Archive Selected';
+        const deleteSelected=document.createElement('button');deleteSelected.type='button';deleteSelected.className='prism-btn is-danger retention-delete-selected';deleteSelected.textContent='Delete Selected';
+        clear.classList.add('retention-clear-selection');clear.innerHTML=`<i class="fa-solid fa-xmark" aria-hidden="true"></i><span>${compactSelectionActions?'Clear Selection':'Clear'}</span>`;clear.title='Clear selection';clear.setAttribute('aria-label','Clear selection');
         all.classList.add('retention-icon-button');
         const holdLabel=document.createElement('label');holdLabel.textContent='Hold reason (optional)';
         const holdReason=document.createElement('input');holdReason.type='text';holdReason.maxLength=500;holdReason.setAttribute('aria-label','Retention Hold reason');holdLabel.append(holdReason);holdLabel.hidden=true;
         action.addEventListener('change',()=>{holdLabel.hidden=action.value!=='hold';});
-        actions.append(pageLabel,all,clear,action,run,holdLabel);toolbar.append(summary,actions);
+        const selectionHeading=document.createElement('div');selectionHeading.className='retention-selection-heading';
+        selectionHeading.append(summary,pageLabel);
+        actions.append(clear);
+        if(studentSelectionActions) actions.append(archiveSelected,deleteSelected);
+        else if(adviserSelectionActions) actions.append(archiveSelected,deleteSelected);
+        else actions.append(all,action,run,holdLabel);
+        banner.append(selectionHeading,actions,selectionNotice,guidance);toolbar.append(banner);
         options.rows.closest('.management-card').before(toolbar);
         const results=document.createElement('div');results.className='retention-results';results.setAttribute('aria-live','polite');toolbar.after(results);
         const cleanup=document.createElement('section');cleanup.className='retention-cleanup';cleanup.setAttribute('aria-label','Retention cleanup and recovery');
@@ -54,32 +77,58 @@
         function update() {
             toolbar.hidden=!selecting;header.hidden=!selecting;results.hidden=!selecting;
             toggle.disabled=bulkBusy;
-            const modeLabel='Selection Mode: '+(selecting?'On':'Off');
+            const modeLabel=selecting?'Exit selection':'Select records';const visibleLabel=selecting?'Exit selection':'Select';
             if(compactStudentActions) {
-                toggle.querySelector('span').textContent=modeLabel;
+                toggle.querySelector('span').textContent=visibleLabel;
                 toggle.title=modeLabel;
                 toggle.setAttribute('aria-label',modeLabel);
             } else toggle.textContent=modeLabel;
             toggle.setAttribute('aria-pressed',String(selecting));
             options.rows.querySelectorAll('.retention-select').forEach(cell=>{cell.hidden=!selecting;});
-            const ids=getIds();summary.textContent=`${ids.size} accounts selected • ${scopeLabel()}${allIds?' • snapshot of all matching accounts':''}`;
+            const ids=getIds();summary.textContent=`${ids.size} ${ids.size===1?'record':'records'} selected`;
+            summary.title=`${scopeLabel()}${allIds?' • snapshot of all matching accounts':''}`;
             const records=options.getRecords();const count=records.filter(r=>ids.has(r.id)).length;
             page.checked=records.length>0&&count===records.length;page.indeterminate=count>0&&count<records.length;
             all.innerHTML='<i class="fa-solid fa-check-double" aria-hidden="true"></i>';all.title=`Select all ${total} matching accounts`;all.setAttribute('aria-label',all.title);all.disabled=bulkBusy||!total||total>10000;
             run.disabled=bulkBusy||!ids.size;clear.disabled=bulkBusy||!ids.size;page.disabled=bulkBusy||!records.length;
+            archiveSelected.disabled=bulkBusy||!ids.size;deleteSelected.disabled=bulkBusy||!ids.size;
             action.disabled=bulkBusy;options.rows.querySelectorAll('[data-retention-id]').forEach(box=>{box.checked=ids.has(Number(box.dataset.retentionId));box.disabled=bulkBusy;});
+            options.rows.querySelectorAll('.student-result-card').forEach(card=>{
+                const checkbox=card.querySelector('[data-retention-id]');
+                card.classList.toggle('is-selecting',selecting);
+                card.classList.toggle('is-selected',Boolean(checkbox?.checked));
+            });
         }
         function syncScope() {
             const next=JSON.stringify(options.getScope());
-            if(next!==scopeKey) {selectionEpoch++;selected.clear();allIds=null;selectionToken=null;scopeKey=next;update();}
+            if(next!==scopeKey) {
+                const hadSelection=getIds().size>0;
+                selectionEpoch++;selected.clear();selectedLabels.clear();allIds=null;selectionToken=null;scopeKey=next;
+                selectionNotice.textContent=hadSelection?'Selection cleared because the search or filters changed.':'';
+                selectionNotice.hidden=!hadSelection;
+                update();
+            }
         }
-        function clearSelection() {selectionEpoch++;selected.clear();allIds=null;selectionToken=null;page.checked=false;page.indeterminate=false;update();}
+        function clearSelection(message='') {
+            selectionEpoch++;selected.clear();selectedLabels.clear();allIds=null;selectionToken=null;page.checked=false;page.indeterminate=false;
+            selectionNotice.textContent=message;
+            selectionNotice.hidden=!message;
+            update();
+        }
         toggle.addEventListener('click',()=>{if(bulkBusy)return;selecting=!selecting;if(!selecting){clearSelection();holdReason.value='';results.replaceChildren();}update();});
-        clear.addEventListener('click',clearSelection);
+        clear.addEventListener('click',()=>clearSelection('Selection cleared.'));
         page.addEventListener('change',()=>{
             if(allIds){allIds.forEach(id=>selected.add(id));allIds=null;selectionToken=null;}
-            options.getRecords().forEach(r=>{if(page.checked)selected.add(r.id);else selected.delete(r.id);});update();
+            options.getRecords().forEach(r=>{
+                if(page.checked)selected.add(r.id);else selected.delete(r.id);
+                if(page.checked)selectedLabels.set(r.id,recordLabel(r));else selectedLabels.delete(r.id);
+            });update();
         });
+        function recordLabel(record) {
+            const kind=options.type==='adviser'?'Adviser':'Student';
+            const identifier=(options.type==='adviser'?record.employeeId:record.studentId)||record.email||`${kind} #${record.id}`;
+            return `${record.name||'Profile incomplete'} — ${identifier}`;
+        }
         async function createSelection() {
             const key=scopeKey, epoch=selectionEpoch;
             if(!selecting)throw new Error('Enable Selection Mode first.');
@@ -91,19 +140,28 @@
             try {syncScope();const data=await createSelection();allIds=new Set(data.ids);selected.clear();update();}
             catch(e){PrismUI.toast(e.message,'error');}
         }));
-        async function preview(button) {
+        async function preview(button,requestedAction=action.value) {
             syncScope();if(!selecting)return;
             if(!getIds().size)return;
-            if(['permanent_delete','retention_cleanup'].includes(action.value)&&!options.getAvailability().available)throw new Error(options.getAvailability().message);
+            if(['permanent_delete','retention_cleanup','direct_delete'].includes(requestedAction))await options.ensureDeletionAvailability();
             const key=scopeKey,epoch=selectionEpoch;const ids=[...getIds()];const mode=allIds?'all_matching':'individual';
             if(!selectionToken)await createSelection();
             if(key!==scopeKey || epoch!==selectionEpoch || !selecting)throw new Error('Selection changed. Select and preview again.');
-            const data=await PrismUI.postJson(api,{action:'bulk_preview',selectionToken,selectionMode:mode,ids,bulkAction:action.value});
+            const data=await PrismUI.postJson(api,{action:'bulk_preview',selectionToken,selectionMode:mode,ids,bulkAction:requestedAction==='direct_delete'?'permanent_delete':requestedAction});
             if(key!==scopeKey || epoch!==selectionEpoch || !selecting)throw new Error('Selection changed while previewing. Select and preview again.');
-            data.purge=['permanent_delete','retention_cleanup'].includes(action.value);data.cursor=0;data.reason=holdReason.value.trim();
+            data.bulkAction=requestedAction;
+            data.selectedRecords=ids.map(id=>selectedLabels.get(id)).filter(Boolean);
+            data.purge=['permanent_delete','retention_cleanup','direct_delete'].includes(requestedAction);
+            data.directDelete=requestedAction==='direct_delete';data.cursor=0;data.reason=holdReason.value.trim();
+            data.deletionUnavailable=data.purge&&!options.getAvailability().available?options.getAvailability().message:'';
             options.openBulk(data,button);
         }
         run.addEventListener('click',()=>PrismUI.runAction(run,'Checking eligibility…',async()=>{try{await preview(run);}catch(e){PrismUI.toast(e.message,'error');}}));
+        archiveSelected.addEventListener('click',()=>PrismUI.runAction(archiveSelected,'Checking eligibility…',async()=>{try{await preview(archiveSelected,'archive');}catch(e){PrismUI.toast(e.message,'error');}}));
+        deleteSelected.addEventListener('click',()=>PrismUI.runAction(deleteSelected,'Checking eligibility…',async()=>{
+            try {await preview(deleteSelected,studentSelectionActions?'direct_delete':'permanent_delete');}
+            catch(e){PrismUI.toast(e.message,'error');}
+        }));
         review.addEventListener('click',()=>PrismUI.runAction(review,'Loading eligible accounts…',async()=>{await options.reviewCleanup();syncScope();}));
         runCleanup.addEventListener('click',()=>PrismUI.runAction(runCleanup,'Preparing cleanup…',async()=>{
             try {selecting=true;update();await options.reviewCleanup();syncScope();const data=await createSelection();allIds=new Set(data.ids);selected.clear();action.value='retention_cleanup';update();await preview(runCleanup);}
@@ -156,17 +214,24 @@
                         results.append(line);
                     });
                 } while(!data.done);
-                selected.clear();allIds=null;selectionToken=null;return data;
+                selected.clear();selectedLabels.clear();allIds=null;selectionToken=null;
+                selectionNotice.textContent='Confirmed action complete. Selection cleared.';
+                selectionNotice.hidden=false;return data;
             }finally{bulkBusy=false;update();}
         }
         syncScope();refreshSummary();
-        return {syncScope,onPage(count){total=count;syncScope();update();},refreshSummary,singleAction,executeBulk,
+        return {syncScope,syncSelection:update,onPage(count){total=count;syncScope();update();},refreshSummary,singleAction,executeBulk,
             attachRow(row,record) {
                 const cell=document.createElement('td');cell.className='retention-select';
                 cell.hidden=!selecting;
                 const box=document.createElement('input');box.type='checkbox';box.dataset.retentionId=record.id;box.checked=getIds().has(record.id);
                 box.setAttribute('aria-label','Select '+(record.studentId || record.employeeId || record.email)+' — '+(record.name || 'Profile incomplete'));
-                box.addEventListener('change',()=>{if(allIds){allIds.forEach(id=>selected.add(id));allIds=null;selectionToken=null;}if(box.checked)selected.add(record.id);else selected.delete(record.id);update();});
+                box.addEventListener('change',()=>{
+                    if(allIds){allIds.forEach(id=>selected.add(id));allIds=null;selectionToken=null;}
+                    if(box.checked){selected.add(record.id);selectedLabels.set(record.id,recordLabel(record));}
+                    else {selected.delete(record.id);selectedLabels.delete(record.id);}
+                    update();
+                });
                 cell.append(box);row.prepend(cell);
             }};
     }};

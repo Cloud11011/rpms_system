@@ -27,13 +27,13 @@ function schema_v15_verify(PDO $pdo,bool $partial=false,array $extraTables=[]): 
 {
     schema_v14_verify($pdo,false,array_merge(array_keys(schema_v15_tables()),$extraTables));
     $version=(string)$pdo->query("SELECT v FROM schema_meta WHERE k='schema_version'")->fetchColumn();
-    if (!in_array($version,['14','15'],true)) throw new RuntimeException('Reviewed schema 14 or 15 required.');
+    if (!in_array($version,['14','15','16'],true)) throw new RuntimeException('Reviewed schema 14 or 15 required.');
     $contract=json_decode(file_get_contents(__DIR__.'/academic_schema_v15.json'),true,512,JSON_THROW_ON_ERROR);
     $collation=schema_extension_collation($pdo);
     $present=$pdo->query('SHOW TABLES')->fetchAll(PDO::FETCH_COLUMN);
     foreach (array_keys(schema_v15_tables()) as $name) {
         if (!in_array($name,$present,true)) {
-            if (!$partial || $version==='15') throw new RuntimeException('Incomplete academic-year schema.');
+            if (!$partial || in_array($version,['15','16'],true)) throw new RuntimeException('Incomplete academic-year schema.');
         } elseif (!schema_extension_matches($pdo,$name,schema_v15_definition($pdo,$name),$contract[$name],$collation)) throw new RuntimeException('Academic-year schema drift: '.$name.' (legacy base '.$collation.').');
     }
 }
@@ -46,6 +46,8 @@ function migrate_schema_v15(PDO $pdo,string $mode='dry-run'): array
         || (int)$pdo->query('SELECT @@SESSION.foreign_key_checks')->fetchColumn()!==1) throw new RuntimeException('Invalid migration preconditions.');
     if ((int)$pdo->query("SELECT GET_LOCK('prism_migrate',5)")->fetchColumn()!==1) throw new RuntimeException('Schema maintenance busy.');
     try {
+        if ((string)$pdo->query("SELECT v FROM schema_meta WHERE k='schema_version'")->fetchColumn()==='16'
+            || $pdo->query("SELECT v FROM schema_meta WHERE k='research_onboarding_v1'")->fetchColumn()!==false) throw new RuntimeException('A later schema or retained extension blocks the schema-15 migrator.');
         schema_v15_verify($pdo,true);
         $present=$pdo->query('SHOW TABLES')->fetchAll(PDO::FETCH_COLUMN);
         $years=academic_years($pdo);

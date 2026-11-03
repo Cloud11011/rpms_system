@@ -5,7 +5,7 @@ require_once __DIR__.'/current_workflow_eligibility.php';
 function stage_guidance_available(PDO $pdo): bool
 {
     $version=(string)$pdo->query("SELECT v FROM schema_meta WHERE k='schema_version'")->fetchColumn();
-    if (!in_array($version,['11','12','13','14','15'],true)) return false;
+    if (!in_array($version,['11','12','13','14','15','16'],true)) return false;
     $column=$pdo->query("SELECT COLUMN_TYPE,IS_NULLABLE FROM INFORMATION_SCHEMA.COLUMNS
         WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME='stage_labels' AND COLUMN_NAME='guidance'")->fetch(PDO::FETCH_ASSOC);
     return $column && $column['COLUMN_TYPE']==='text' && $column['IS_NULLABLE']==='YES';
@@ -26,7 +26,9 @@ function stage_v14_guidance_keys(): array
 
 function stage_v14_guidance_mode(): bool
 {
-    return function_exists('ierb_v14_http_operations_enabled') && ierb_v14_http_operations_enabled();
+    // Presentation/guidance is exclusively V14. Mutation activation remains
+    // separately enforced by the workflow services and is never inferred here.
+    return true;
 }
 
 function stage_configuration_version(string $key, string $label, ?string $guidance, ?string $updated, string $revision = '0'): string

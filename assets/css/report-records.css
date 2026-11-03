@@ -73,3 +73,80 @@ html.dark-theme body.prism-workspace.data-export-page .data-export-card h2{color
 html.dark-theme body.prism-workspace.data-export-page .data-export-btn{background:var(--prism-card);border-color:var(--prism-border);color:var(--prism-text)}
 html.dark-theme body.prism-workspace.data-export-page .data-export-btn:hover{background:rgba(181,20,110,.14);border-color:var(--accent-pink);color:var(--accent-pink)}
 @media(max-width:560px){body.prism-workspace.data-export-page .data-export-card{grid-template-columns:44px minmax(0,1fr);align-items:start;padding:18px}body.prism-workspace.data-export-page .data-export-btn{grid-column:1/-1;width:100%}}
+
+/* Report history controls and cards. */
+body.prism-workspace .reports-page .report-history-actions { display:flex; align-items:center; justify-content:flex-end; gap:8px; margin-left:auto; }
+body.prism-workspace .reports-page .report-selection-controls { display:inline-flex; align-items:center; gap:8px; }
+body.prism-workspace .reports-page .report-selection-controls label { display:inline-flex; align-items:center; gap:6px; color:var(--prism-muted); font-size:12px; font-weight:600; white-space:nowrap; cursor:pointer; }
+body.prism-workspace .reports-page .report-selection-controls input,
+body.prism-workspace .reports-page .report-row-select input { width:17px; height:17px; min-height:17px; margin:0; accent-color:var(--prism-accent); cursor:pointer; }
+body.prism-workspace .reports-page .report-selection-controls > span { color:var(--prism-muted); font-size:12px; white-space:nowrap; }
+body.prism-workspace .reports-page .report-selection-controls > button { display:grid; place-items:center; width:38px; min-width:38px; height:38px; min-height:38px; padding:0; }
+body.prism-workspace .reports-page .report-sort { display:inline-flex; flex-direction:row; align-items:center; gap:8px; min-height:40px; margin:0; color:var(--prism-muted); white-space:nowrap; }
+body.prism-workspace .reports-page .report-sort>i { color:var(--prism-accent); }
+body.prism-workspace .reports-page .report-sort select { min-height:40px; max-width:210px; padding:8px 30px 8px 10px; border:1px solid var(--prism-border); border-radius:10px; background:var(--prism-card); color:var(--prism-text); font:500 12px/1.4 var(--prism-font-family); }
+body.prism-workspace .reports-page #exportExcel { display:inline-flex; align-items:center; justify-content:center; flex:0 0 auto; min-width:104px; min-height:40px; padding:8px 12px; border:1px solid var(--prism-border); border-radius:10px; color:var(--prism-accent); background:var(--prism-card); font:600 12px/1.4 var(--prism-font-family); }
+body.prism-workspace .reports-page #exportExcel:hover { border-color:var(--prism-accent); background:var(--prism-pink-soft); }
+body.prism-workspace .reports-page .report-result-card.prism-record-shell { --prism-record-padding:12px; grid-template-columns:minmax(0,1.6fr) minmax(180px,.9fr) minmax(140px,.7fr) auto; align-items:center; gap:8px 14px; }
+body.prism-workspace .reports-page #reportTableBody .report-result-card.prism-record-shell { grid-template-columns:24px minmax(0,1.6fr) minmax(180px,.9fr) minmax(140px,.7fr) auto; }
+body.prism-workspace .reports-page #reportTableBody .report-row-select { display:flex; align-items:center; justify-content:center; cursor:pointer; }
+body.prism-workspace .reports-page .report-result-card .prism-record-primary { min-width:0; }
+body.prism-workspace .reports-page .report-result-card .prism-record-summary { min-width:0; }
+body.prism-workspace .reports-page .report-result-card .prism-record-status { min-width:0; }
+body.prism-workspace .reports-page .report-result-card .prism-record-actions { justify-content:flex-end; align-items:center; padding:0; }
+body.prism-workspace .reports-page .report-result-card .prism-record-actions .icon-btn { display:grid; place-items:center; width:34px; min-width:34px; height:34px; min-height:34px; padding:0; border:1px solid var(--prism-border); border-radius:9px; color:var(--prism-accent); background:var(--prism-card); text-decoration:none; }
+body.prism-workspace .reports-page .report-result-card .prism-record-actions .icon-btn:hover { border-color:var(--prism-accent); background:var(--prism-pink-soft); }
+body.prism-workspace .reports-page .report-result-card .prism-record-actions .icon-btn.delete { color:var(--prism-danger-fg); }
+body.prism-workspace .reports-page .report-result-card .prism-record-details { grid-column:1/-1; min-width:0; margin:0; padding:2px 0 0; border-top:1px solid var(--prism-border); }
+body.prism-workspace .reports-page .report-result-card .prism-record-details>summary { display:flex; align-items:center; gap:8px; width:fit-content; min-height:30px; margin:0; padding:4px 0; list-style:none; }
+body.prism-workspace .reports-page .report-result-card .prism-record-details>summary::-webkit-details-marker { display:none; }
+body.prism-workspace .reports-page .report-result-card .prism-record-details>dl { margin:2px 0 0; }
+body.prism-workspace #projectModal .report-modal-dialog > p { margin:14px 0 0; color:var(--prism-muted); font-size:13px; line-height:1.55; }
+body.prism-workspace #projectModal #projectCounts { margin-top:10px; padding:10px 12px; border:1px solid var(--prism-border); border-radius:10px; background:var(--prism-pink-soft); color:var(--prism-text); font-size:12px; line-height:1.55; }
+body.prism-workspace #projectModal #projectReportForm { gap:8px; margin-top:14px; }
+body.prism-workspace #projectModal .report-modal-heading { align-items:center; }
+body.prism-workspace #projectModal .report-modal-heading h2 { margin:3px 0 0; }
+body.prism-workspace #projectModal .report-modal-heading button { display:grid; flex:0 0 32px; place-items:center; width:32px; height:32px; padding:0; font-size:18px; line-height:1; }
+body.prism-workspace.ai-report-page .ai-report-tools { margin-bottom:22px; }
+body.prism-workspace.ai-report-page .ai-report-tools .report-tool { min-height:88px; padding:16px 18px; }
+body.prism-workspace.ai-report-page .report-tool-copy { gap:0; }
+body.prism-workspace.ai-report-page .ai-history-card .management-card-head { align-items:center; gap:14px; }
+body.prism-workspace.ai-report-page .ai-report-selection-controls { display:flex; align-items:center; justify-content:flex-end; flex-wrap:wrap; gap:10px; }
+body.prism-workspace.ai-report-page .ai-report-selection-controls label { display:inline-flex; align-items:center; gap:7px; color:var(--prism-muted); font-size:12px; font-weight:600; cursor:pointer; }
+body.prism-workspace.ai-report-page .ai-report-selection-controls input,
+body.prism-workspace.ai-report-page .ai-report-select input { width:17px; height:17px; min-height:17px; margin:0; accent-color:var(--prism-accent); cursor:pointer; }
+body.prism-workspace.ai-report-page .ai-report-selection-controls > span { color:var(--prism-muted); font-size:12px; white-space:nowrap; }
+body.prism-workspace.ai-report-page .ai-report-selection-controls > button { display:inline-flex; align-items:center; gap:7px; min-height:38px; padding:8px 12px; }
+body.prism-workspace.ai-report-page #aiHistory { display:grid; gap:10px; }
+body.prism-workspace.ai-report-page #aiHistory .report-result-card.prism-record-shell { grid-template-columns:24px minmax(0,1.5fr) minmax(0,1fr) minmax(0,.8fr) auto; align-items:center; gap:10px 14px; }
+body.prism-workspace.ai-report-page #aiHistory .ai-report-select { display:flex; align-items:center; justify-content:center; cursor:pointer; }
+body.prism-workspace.ai-report-page #aiHistory .prism-record-actions { display:flex; align-items:center; justify-content:flex-end; gap:7px; }
+body.prism-workspace.ai-report-page #aiHistory .prism-record-actions :is(.prism-document-action,.ai-report-delete) { display:grid; place-items:center; flex:0 0 34px; width:34px; height:34px; padding:0; border:1px solid var(--prism-border); border-radius:9px; color:var(--prism-accent); background:var(--prism-card); text-decoration:none; cursor:pointer; }
+body.prism-workspace.ai-report-page #aiHistory .prism-record-actions :is(.prism-document-action,.ai-report-delete):hover { border-color:var(--prism-accent); background:var(--prism-pink-soft); }
+body.prism-workspace.ai-report-page #aiHistory .ai-report-delete { color:var(--prism-danger-fg); }
+body.prism-workspace .prism-overlay.report-delete-overlay { z-index:10020; }
+body.prism-workspace .prism-dialog.report-delete-confirmation { width:min(100%,28rem); border-top:4px solid var(--prism-danger-fg); }
+body.prism-workspace .prism-dialog.report-delete-confirmation h3 i { color:var(--prism-danger-fg); }
+body.prism-workspace .prism-dialog.report-delete-confirmation .prism-btn.is-danger { background:var(--prism-danger-fg); }
+body.prism-workspace .reports-page .report-tools .report-tool { min-height:72px; }
+@media(max-width:900px) {
+  body.prism-workspace .reports-page .report-result-card.prism-record-shell { grid-template-columns:minmax(0,1fr) minmax(0,1fr); gap:12px 16px; }
+  body.prism-workspace .reports-page .report-result-card .prism-record-actions { justify-content:flex-start; }
+}
+@media(max-width:600px) {
+  body.prism-workspace .reports-page .report-history-heading { align-items:flex-start; }
+  body.prism-workspace .reports-page .report-history-actions { justify-content:flex-start; flex-wrap:wrap; gap:6px; }
+  body.prism-workspace .reports-page .report-selection-controls { flex-wrap:wrap; }
+  body.prism-workspace .reports-page .report-sort select { max-width:min(48vw,190px); }
+  body.prism-workspace .reports-page .report-result-card.prism-record-shell { grid-template-columns:minmax(0,1fr); gap:10px; }
+  body.prism-workspace .reports-page .report-result-card .prism-record-details { grid-column:1; }
+  body.prism-workspace .reports-page #reportTableBody .report-result-card.prism-record-shell { grid-template-columns:24px minmax(0,1fr); gap:9px 12px; }
+  body.prism-workspace .reports-page #reportTableBody .report-result-card :is(.prism-record-primary,.prism-record-summary,.prism-record-status,.prism-record-actions,.prism-record-details) { grid-column:2; justify-content:flex-start; }
+  body.prism-workspace.ai-report-page .ai-history-card .management-card-head { align-items:flex-start; flex-direction:column; }
+  body.prism-workspace.ai-report-page .ai-report-selection-controls { justify-content:flex-start; }
+  body.prism-workspace.ai-report-page #aiHistory .report-result-card.prism-record-shell { grid-template-columns:24px minmax(0,1fr); gap:9px 12px; }
+  body.prism-workspace.ai-report-page #aiHistory .prism-record-primary,
+  body.prism-workspace.ai-report-page #aiHistory .prism-record-summary,
+  body.prism-workspace.ai-report-page #aiHistory .prism-record-status,
+  body.prism-workspace.ai-report-page #aiHistory .prism-record-actions { grid-column:2; justify-content:flex-start; }
+}

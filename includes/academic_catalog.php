@@ -47,8 +47,15 @@ function academic_catalog(): array
         $programs[$key] = ['label' => $label, 'unit' => $unit,
             'level' => $unit === null ? 'graduate' : 'undergraduate', 'duration' => $duration];
     }
+    $pdo=db();
+    $currentYear=null;
+    foreach (academic_year_settings_list($pdo) as $setting) {
+        if (!empty($setting['isCurrent'])) { $currentYear=$setting['academicYear']; break; }
+    }
     return ['units' => $units, 'programs' => $programs,
-        'academicYears' => academic_years(db())];
+        'academicYears' => academic_years($pdo),
+        'registrationYears' => academic_year_registration_years($pdo),
+        'currentAcademicYear'=>$currentYear];
 }
 
 function academic_year_levels(string $programKey): array
@@ -59,7 +66,7 @@ function academic_year_levels(string $programKey): array
 }
 
 /** Input names follow the existing camelCase JSON API; output is a stored-row tuple. */
-function academic_validate(array $input, ?array $existing = null): array
+function academic_validate(array $input, ?array $existing = null, bool $requireRegistrationYear = false): array
 {
     $fields = ['course' => 'course', 'academicUnitKey' => 'academic_unit_key',
         'programKey' => 'program_key', 'yearLevel' => 'year_level', 'academicYear' => 'academic_year'];
@@ -97,9 +104,10 @@ function academic_validate(array $input, ?array $existing = null): array
         $candidate['year_level'] = null;
     }
     $academicYear = $candidate['academic_year'] ?? '';
+    $validYears=$requireRegistrationYear?$catalog['registrationYears']:$catalog['academicYears'];
     if (!preg_match('/\A([0-9]{4})-([0-9]{4})\z/', $academicYear, $parts)
         || (int)$parts[2] !== (int)$parts[1] + 1
-        || !in_array($academicYear, $catalog['academicYears'], true)) {
+        || !in_array($academicYear, $validYears, true)) {
         throw new InvalidArgumentException('Choose an academic year from the configured list.');
     }
     if (array_key_exists('course', $input) && $candidate['course'] !== $program['label']) {

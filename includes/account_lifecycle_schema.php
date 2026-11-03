@@ -30,7 +30,7 @@ function lifecycle_manifest_file(?PDO $pdo = null): string
     if (defined('PRISM_LIFECYCLE_MANIFEST_FILE')) return PRISM_LIFECYCLE_MANIFEST_FILE;
     $version=$pdo?(string)$pdo->query("SELECT v FROM schema_meta WHERE k='schema_version'")->fetchColumn():'10';
     // Schema 12 composes the frozen v11 inventory with its separately pinned extension definitions.
-    return __DIR__.(in_array($version,['11','12','13','14','15'],true)?'/account_lifecycle_schema_v11.json':'/account_lifecycle_schema.json');
+    return __DIR__.(in_array($version,['11','12','13','14','15','16'],true)?'/account_lifecycle_schema_v11.json':'/account_lifecycle_schema.json');
 }
 
 function lifecycle_manifest_hash(?PDO $pdo = null): string
@@ -46,6 +46,12 @@ function lifecycle_database_binding(PDO $pdo): array
 
 function lifecycle_compare_schema(PDO $pdo): void
 {
+    if ((string)$pdo->query("SELECT v FROM schema_meta WHERE k='schema_version'")->fetchColumn()==='16') {
+        require_once __DIR__.'/schema_v16.php';
+        try { schema_v16_verify($pdo); }
+        catch (RuntimeException $e) { throw new AccountLifecycleConflict('Settings schema differs from its reviewed contract. Retain using Archive.',0,$e); }
+        return;
+    }
     if ($pdo->query("SELECT v FROM schema_meta WHERE k='research_onboarding_v1'")->fetchColumn() === '1') {
         require_once __DIR__.'/schema_research_onboarding.php';
         try { research_onboarding_schema_verify($pdo); }
@@ -178,11 +184,20 @@ function lifecycle_verification_contract_hash(?PDO $pdo = null): string
         $files[]=__DIR__.'/schema_v12.php'; $files[]=__DIR__.'/ierb_schema_v12.json';
         $files[]=__DIR__.'/schema_v13.php'; $files[]=__DIR__.'/research_schema_v13.json';
     }
-    if ($pdo && in_array((string)$pdo->query("SELECT v FROM schema_meta WHERE k='schema_version'")->fetchColumn(),['14','15'],true)) {
+    if ($pdo && in_array((string)$pdo->query("SELECT v FROM schema_meta WHERE k='schema_version'")->fetchColumn(),['14','15','16'],true)) {
         foreach (['schema_v12.php','ierb_schema_v12.json','schema_v13.php','research_schema_v13.json','schema_v14.php','summary_schema_v14.json'] as $file) $files[]=__DIR__.'/'.$file;
     }
-    if ($pdo && (string)$pdo->query("SELECT v FROM schema_meta WHERE k='schema_version'")->fetchColumn()==='15') {
+    if ($pdo && in_array((string)$pdo->query("SELECT v FROM schema_meta WHERE k='schema_version'")->fetchColumn(),['15','16'],true)) {
         $files[]=__DIR__.'/schema_v15.php'; $files[]=__DIR__.'/academic_schema_v15.json';
+    }
+    if ($pdo && (string)$pdo->query("SELECT v FROM schema_meta WHERE k='schema_version'")->fetchColumn()==='16') {
+        foreach (['schema_v16.php','academic_schema_v16.json','schema_optional_extensions.php'] as $file) $files[]=__DIR__.'/'.$file;
+    }
+    if ($pdo && $pdo->query("SELECT v FROM schema_meta WHERE k='research_onboarding_v1'")->fetchColumn()==='1') {
+        foreach (['schema_research_onboarding.php','research_onboarding_schema.json'] as $file) $files[]=__DIR__.'/'.$file;
+    }
+    if ($pdo && $pdo->query("SELECT v FROM schema_meta WHERE k='prism_settings_v1'")->fetchColumn()==='1') {
+        foreach (['admin_settings_schema.php','admin_settings_schema.json'] as $file) $files[]=__DIR__.'/'.$file;
     }
     $manifest=json_decode(file_get_contents(lifecycle_manifest_file($pdo)),true,512,JSON_THROW_ON_ERROR);
     if(in_array($manifest['schema_version']??null,['10','11'],true)) {

@@ -27,6 +27,7 @@ $authUser = require_login('adviser');
 <link rel="stylesheet" href="<?= htmlspecialchars(asset_url('assets/css/batch11.css'), ENT_QUOTES, 'UTF-8') ?>">
 <script src="<?php echo htmlspecialchars(asset_url('assets/js/prism-workspace.js'), ENT_QUOTES, 'UTF-8'); ?>" defer></script>
 <?php prism_frontend_styles(); ?>
+<link rel="stylesheet" href="<?= htmlspecialchars(asset_url('assets/css/adviser-overview.css'), ENT_QUOTES, 'UTF-8') ?>">
 </head>
 <body data-prism-allow-demo="<?= defined('APP_ENV') && APP_ENV==='development' && is_loopback_development_request() ? '1' : '0' ?>" class="prism-workspace <?= $authUser['role'] === 'admin' ? 'admin-shell' : 'portal-shell adviser-page' ?> adviser-dashboard-page" data-user-role="adviser" data-reminder-user="<?php echo htmlspecialchars(hash('sha256', strtolower($authUser['email'])), ENT_QUOTES, 'UTF-8'); ?>">
 <div class="container">
@@ -43,24 +44,28 @@ $authUser = require_login('adviser');
 <a class="prism-hero-action" href="documents.php">Review Documents <i class="fa-solid fa-arrow-right" aria-hidden="true"></i></a>
 </section>
 <p id="adviserStatus" class="adviser-feedback" role="status" aria-live="polite"></p>
-<section class="adviser-summary-grid" aria-label="Assigned research overview">
-<article class="adviser-summary-card"><p><span class="adviser-summary-icon"><i class="fa-solid fa-users" aria-hidden="true"></i></span><span>Assigned students</span></p><strong id="adviserStudentsCount">Loading...</strong><span>Student records assigned to you</span></article>
-<button type="button" class="adviser-summary-card" data-queue-state="Pending Adviser Review" aria-pressed="false"><p><span class="adviser-summary-icon"><i class="fa-solid fa-hourglass-half" aria-hidden="true"></i></span><span>Pending adviser review</span></p><strong id="adviserPendingCount">Loading...</strong><span>Current documents awaiting review</span></button>
-<button type="button" class="adviser-summary-card" data-queue-state="Needs Revision" aria-pressed="false"><p><span class="adviser-summary-icon"><i class="fa-solid fa-rotate-left" aria-hidden="true"></i></span><span>Needs revision</span></p><strong id="adviserRevisionCount">Loading...</strong><span>Current documents returned for changes</span></button>
-<button type="button" class="adviser-summary-card" data-queue-state="approved" aria-pressed="false"><p><span class="adviser-summary-icon"><i class="fa-solid fa-circle-check" aria-hidden="true"></i></span><span>Approved documents</span></p><strong id="adviserApprovedCount">Loading...</strong><span>Ready for submission or submitted to RPMS</span></button>
-</section>
 <div class="adviser-content-grid">
 <section class="adviser-panel adviser-review-panel" aria-labelledby="adviserQueueTitle">
-<div class="adviser-panel-heading"><div><h2 id="adviserQueueTitle">Documents to Review</h2><p>Current document versions for your assigned students.</p></div><a href="documents.php">All document tools</a></div>
+<div class="adviser-panel-heading"><h2 id="adviserQueueTitle">Documents for Review</h2>
 <div class="adviser-queue-toolbar">
-<label class="adviser-queue-search" for="adviserQueueSearch"><i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i><span class="prism-sr-only">Search submissions</span><input id="adviserQueueSearch" type="search" placeholder="Search student, document or stage"></label>
-<div id="adviserQueuePills" class="prism-filter-pills" aria-label="Submission status filters"></div>
-<button type="button" id="adviserQueueClear" class="adviser-queue-clear" aria-label="Clear filters" title="Clear filters"><i class="fa-solid fa-filter-circle-xmark" aria-hidden="true"></i></button>
+<label class="adviser-queue-search" for="adviserQueueSearch"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5"/><path d="m16 16 4.5 4.5"/></svg><span class="prism-sr-only">Search students and documents</span><input id="adviserQueueSearch" type="search" placeholder="Search student or document"></label>
+<button type="button" id="adviserQueueClear" class="adviser-queue-clear" aria-label="Clear filters" title="Clear filters"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="m6 6 12 12M18 6 6 18"/></svg></button>
 </div>
-<label class="prism-sr-only" for="adviserQueueFilter">Workflow status</label><select id="adviserQueueFilter" class="prism-sr-only"><option value="">All statuses</option><option>Pending Adviser Review</option><option>Needs Revision</option><option>Returned for Revision</option><option value="approved">Approved documents</option><option>Ready for Formal RPMS Submission</option><option>Submitted to RPMS</option></select>
+</div>
+<section class="adviser-summary-grid" aria-label="Your document review counts">
+<button type="button" class="adviser-summary-card" data-queue-state="Pending Adviser Review" aria-pressed="true"><strong id="adviserPendingCount">…</strong><span>Waiting for Your Review</span></button>
+<button type="button" class="adviser-summary-card" data-queue-state="returned" aria-pressed="false"><strong id="adviserRevisionCount">…</strong><span>Returned to Students</span></button>
+<button type="button" class="adviser-summary-card" data-queue-state="approved" aria-pressed="false" title="Current document versions with a recorded approval by your account"><strong id="adviserApprovedCount">…</strong><span>Approved by You</span></button>
+</section>
+<label class="prism-sr-only" for="adviserQueueFilter">Workflow status</label><select id="adviserQueueFilter" class="prism-sr-only"><option value="">All statuses</option><option selected>Pending Adviser Review</option><option value="returned">Returned to Students</option><option>Needs Revision</option><option>Returned for Revision</option><option value="approved">Approved by You</option><option>Ready for Formal RPMS Submission</option><option>Submitted to RPMS</option></select>
 <label class="prism-sr-only" for="adviserQueueSort">Sort</label><select id="adviserQueueSort" class="prism-sr-only"><option value="newest">Newest first</option><option value="oldest">Oldest first</option><option value="name-asc">Filename A-Z</option><option value="student-asc">Student A-Z</option></select>
 <div id="adviserQueue" class="adviser-queue" aria-live="polite" aria-busy="true"><p class="adviser-panel-state">Loading current submissions...</p></div>
 </section>
+<aside class="adviser-panel adviser-students-panel" aria-labelledby="adviserStudentsTitle">
+<div class="adviser-panel-heading"><h2 id="adviserStudentsTitle">My Students <span id="adviserStudentsCount" aria-live="polite">…</span></h2><a href="admin_students.php">See All</a></div>
+<div id="adviserStudents" class="adviser-students-list" aria-live="polite" aria-busy="true"><p class="adviser-panel-state">Loading assigned students…</p></div>
+<p class="adviser-students-note">Shared research projects appear once.</p>
+</aside>
 </div>
 <div class="adviser-side-panels">
 <section class="adviser-panel adviser-notifications-panel" aria-labelledby="adviserNotificationsTitle"><div class="adviser-panel-heading"><div><h2 id="adviserNotificationsTitle">Recent notifications</h2><p id="adviserUnreadCount">Recent messages addressed to your account.</p></div><button type="button" id="adviserMarkAllRead" class="adviser-button">Mark all as read</button></div><div id="adviserNotifications" tabindex="0" role="region" aria-label="Recent notification history" aria-live="polite" aria-busy="true"><p class="adviser-panel-state">Loading recent notifications...</p></div><a href="admin_notifications.php">Open Notification Center</a></section>

@@ -42,7 +42,6 @@ if ($authUser['role'] === 'adviser'):
 </div>
 </nav>
 <div class="portal-nav-right">
-<span class="prism-role-chip" data-prism-role="adviser"><i class="fa-solid fa-chalkboard-user" aria-hidden="true"></i><span class="prism-role-chip-text">Adviser portal</span></span>
 <button class="portal-help" type="button" data-prism-tour aria-label="Quick tour" title="Quick tour"><i class="fa-regular fa-circle-question" aria-hidden="true"></i></button><a class="portal-notification" href="admin_notifications.php" aria-label="Notifications" title="Notifications" <?= ($prismCurrentPage ?? '') === 'admin_notifications.php' ? 'aria-current="page"' : '' ?>><i class="fa-solid fa-bell" aria-hidden="true"></i></a>
 <div class="prism-account-menu">
 <button class="portal-profile-btn" data-prism-account-toggle type="button" aria-expanded="false" aria-controls="prismAccountLinks" aria-label="Adviser account menu"><img src="assets/images/default-avatar.svg" alt=""><span><strong><?= $prismNavEscape($authUser['full_name'] ?? '') ?></strong><small>Research Adviser</small></span><i class="fa-solid fa-chevron-down" aria-hidden="true"></i></button>
@@ -58,19 +57,16 @@ $prismNavGroups = [
         ['ierbprog.php', 'IERB Progress'], ['documents.php', 'Document Submissions'],
     ]],
     'Reporting' => ['Reports & Communication', 'fa-chart-line', [
-        ...($authUser['role'] === 'admin'
-            ? ((defined('PRISM_IERB_V14_OPERATIONS') && PRISM_IERB_V14_OPERATIONS === true)
-                ? [['admin_ai.php', 'AI V14 Project Reports'], ['reports.php', 'V14 Project Reports'], ['data_export.php', 'Data Export']]
-                : [['admin_ai.php', 'AI Progress Reports'], ['reports.php', 'Generated Reports'], ['data_export.php', 'Data Export']])
-            : []),
+        ...($authUser['role'] === 'admin' ? [['admin_ai.php', 'AI Progress Reports'], ['reports.php', 'Generated Reports'], ['data_export.php', 'Data Export']] : []),
         ['admin_notifications.php', 'Notifications'],
     ]],
     'Account' => ['Account & Planning', 'fa-user-gear', [
-        ['admin_legal_policies.php', 'Legal Policies'],
+        ...($authUser['role'] === 'admin' ? [['admin_settings.php', 'Settings']] : []),
         ['account.php', 'Account & Activity'], ['account.php#activity', 'Activity Logs'],
         ['calendar.php', 'Personal Calendar'],
     ]],
 ];
+$prismSettingsCurrent = in_array($prismCurrentPage ?? '', ['admin_settings.php', 'admin_legal_policies.php'], true);
 ?>
 <script>
 // Apply the canonical sidebar class during parsing, before its branding can paint.
@@ -92,14 +88,15 @@ $prismNavGroups = [
 <a class="prism-nav-home" href="research_adviser.php" aria-label="Dashboard" <?php if (($prismCurrentPage ?? '') === 'research_adviser.php') echo 'aria-current="page"'; ?>><i class="fa-solid fa-house" aria-hidden="true"></i><span>Dashboard</span></a>
 <?php endif; ?>
 <?php foreach ($prismNavGroups as $prismNavKey => [$prismNavTitle, $prismNavIcon, $prismNavLinks]):
-    $prismNavOpen = in_array($prismCurrentPage ?? '', array_column($prismNavLinks, 0), true);
+    $prismNavOpen = in_array($prismCurrentPage ?? '', array_column($prismNavLinks, 0), true)
+        || ($prismNavKey === 'Account' && $prismSettingsCurrent);
 ?>
 <section class="prism-nav-group">
 <p class="prism-nav-section-label"><?= $prismNavEscape($prismNavKey) ?></p>
 <button type="button" id="prismNav<?= $prismNavKey ?>Toggle" class="prism-nav-group-toggle" aria-label="<?= $prismNavEscape($prismNavTitle) ?>" aria-expanded="<?= $prismNavOpen ? 'true' : 'false' ?>" aria-controls="prismNav<?= $prismNavKey ?>"><i class="fa-solid <?= $prismNavIcon ?>" aria-hidden="true"></i><span><?= $prismNavEscape($prismNavTitle) ?></span><i class="fa-solid fa-chevron-down prism-nav-chevron" aria-hidden="true"></i></button>
 <ul class="nav-links prism-nav-submenu" id="prismNav<?= $prismNavKey ?>" <?= $prismNavOpen ? '' : 'hidden' ?>>
-<?php foreach ($prismNavLinks as [$prismNavUrl, $prismNavLabel]): ?>
-<li><a href="<?= $prismNavEscape($prismNavUrl) ?>" <?= ($prismCurrentPage ?? '') === $prismNavUrl ? 'aria-current="page"' : '' ?>><span><?= $prismNavEscape($prismNavLabel) ?></span></a></li>
+<?php foreach ($prismNavLinks as [$prismNavUrl, $prismNavLabel]): $prismNavActive = ($prismCurrentPage ?? '') === $prismNavUrl || ($prismNavUrl === 'admin_settings.php' && $prismSettingsCurrent); ?>
+<li><a href="<?= $prismNavEscape($prismNavUrl) ?>" <?= $prismNavActive ? 'aria-current="page"' : '' ?>><span><?= $prismNavEscape($prismNavLabel) ?></span></a></li>
 <?php endforeach; ?>
 </ul></section>
 <?php endforeach; ?>

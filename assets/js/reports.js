@@ -25,9 +25,29 @@ document.addEventListener('DOMContentLoaded', () => {
     const studentModal = document.getElementById('studentModal');
     const v14Reports = window.PRISM_V14_REPORTS === true;
     const projectModal=document.getElementById('projectModal');
-    const projectButton=document.createElement('button');projectButton.type='button';projectButton.className='report-tool';projectButton.textContent='Generate IERB Project Track Sheet';
-    document.querySelector('.report-tools').prepend(projectButton);
-    const aggregateButton=document.createElement('button');aggregateButton.type='button';aggregateButton.className='report-tool';aggregateButton.textContent='Generate Institutional Project Report';document.querySelector('.report-tools').append(aggregateButton);if (v14Reports) document.getElementById('openStudentReport').hidden = true;
+    function createReportTool(iconClass, label) {
+        const button = document.createElement('button');
+        button.type = 'button';
+        button.className = 'report-tool';
+        const icon = document.createElement('span');
+        icon.className = 'report-tool-icon';
+        const iconGlyph = document.createElement('i');
+        iconGlyph.className = `fa-solid ${iconClass}`;
+        iconGlyph.setAttribute('aria-hidden', 'true');
+        icon.append(iconGlyph);
+        const copy = document.createElement('span');
+        const title = document.createElement('strong');
+        title.textContent = label;
+        copy.append(title);
+        const arrow = document.createElement('i');
+        arrow.className = 'fa-solid fa-chevron-right';
+        arrow.setAttribute('aria-hidden', 'true');
+        button.append(icon, copy, arrow);
+        return button;
+    }
+    const projectButton = createReportTool('fa-file-lines', 'Generate IERB Project Track Sheet');
+    const aggregateButton = createReportTool('fa-building-columns', 'Generate Institutional Project Report');
+    document.querySelector('.report-tools').append(projectButton, aggregateButton);
     aggregateButton.addEventListener('click',async()=>{const release=PrismUI.busy(aggregateButton,'Generating...');if(!release)return;try{const data=await PrismUI.postJson('reports_api.php?action=project_aggregate',{});await loadReports();downloadReport(data.report.id)}catch(e){PrismUI.toast(e.message,'error')}finally{release()}});
     projectButton.addEventListener('click',async()=>{
         const release=PrismUI.busy(projectButton,'Loading projects...');if(!release)return;
@@ -73,6 +93,75 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     let reports = [], listSequence = 0, reportLoadError = '';
+    const selectedReports = new Map();
+    const selectPage = document.getElementById('reportSelectPage');
+    const selectedCount = document.getElementById('reportSelectedCount');
+    const deleteSelected = document.getElementById('reportDeleteSelected');
+    function updateReportSelection() {
+        const allVisibleSelected = reports.length > 0 && reports.every(report => selectedReports.has(String(report.id)));
+        const someVisibleSelected = reports.some(report => selectedReports.has(String(report.id)));
+        selectPage.checked = allVisibleSelected;
+        selectPage.indeterminate = someVisibleSelected && !allVisibleSelected;
+        selectPage.disabled = reports.length === 0;
+        selectedCount.textContent = `${selectedReports.size} selected`;
+        deleteSelected.disabled = selectedReports.size === 0;
+        const label = selectedReports.size ? `Delete ${selectedReports.size} selected reports` : 'Delete selected reports';
+        deleteSelected.title = label;
+        deleteSelected.setAttribute('aria-label', label);
+        document.querySelectorAll('#reportTableBody [data-report-select]').forEach(input => {
+            input.checked = selectedReports.has(input.dataset.reportSelect);
+        });
+    }
+
+    async function deleteSelectedReports(items) {
+        const result = await PrismUI.confirm({
+            title: items.length === 1 ? 'Delete report?' : 'Delete selected reports?',
+            icon: 'fa-trash-can',
+            tone: 'danger',
+            message: items.length === 1
+                ? `“${items[0].title || 'Untitled report'}” will be permanently deleted. This cannot be undone.`
+                : `${items.length} reports will be permanently deleted. This cannot be undone.`,
+            confirmText: items.length === 1 ? 'Yes, delete report' : `Yes, delete ${items.length} reports`,
+            cancelText: items.length === 1 ? 'No, keep report' : 'No, keep reports',
+            busyText: 'Deleting...',
+            dialogClass: 'report-delete-confirmation',
+            overlayClass: 'report-delete-overlay',
+            onConfirm: async () => {
+                const deleted = [];
+                const failures = [];
+                for (const report of items.filter(item => selectedReports.has(String(item.id)))) {
+                    try {
+                        await PrismUI.postJson('reports_api.php?action=delete', { id: report.id });
+                        deleted.push(report);
+                        selectedReports.delete(String(report.id));
+                    } catch (error) {
+                        failures.push(error);
+                    }
+                }
+                if (deleted.length) await loadReports();
+                updateReportSelection();
+                if (failures.length) {
+                    throw new Error(`${deleted.length} deleted; ${failures.length} could not be deleted. ${failures[0].message}`);
+                }
+                if (!deleted.length) throw new Error('No selected reports were deleted. Refresh the list and try again.');
+                PrismUI.toast(`${deleted.length} report${deleted.length === 1 ? '' : 's'} deleted.`, 'success');
+                return deleted.length;
+            }
+        });
+        return result !== null;
+    }
+
+    selectPage.addEventListener('change', () => {
+        reports.forEach(report => {
+            const id = String(report.id);
+            if (selectPage.checked) selectedReports.set(id, report);
+            else selectedReports.delete(id);
+        });
+        updateReportSelection();
+    });
+    deleteSelected.addEventListener('click', () => {
+        if (selectedReports.size) deleteSelectedReports([...selectedReports.values()]);
+    });
     document.getElementById('reportSort')?.addEventListener('change', () => { pager.reset(); loadReports(); });
     const pager = PrismUI.recordPager(document.getElementById('reportTableBody').closest('table').parentElement, document.getElementById('reportCount'), [], loadReports);
 
@@ -104,6 +193,7 @@ document.addEventListener('DOMContentLoaded', () => {
             else cell.textContent='No reports generated yet.';
             tr.append(cell);
             body.appendChild(tr);
+            updateReportSelection();
             return;
         }
         reports.forEach(r => {
@@ -135,11 +225,13 @@ document.addEventListener('DOMContentLoaded', () => {
             del.addEventListener('click', async () => {
                 const answer = await PrismUI.confirm({
                     title:'Delete report', icon:'fa-trash', tone:'danger', confirmText:'Delete',
+                    cancelText:'No, keep report', confirmText:'Yes, delete report',
                     message:`Delete “${r.title}”? This removes the generated PDF from PRISM.`
                 });
                 if (!answer) return;
                 try {
                     const data = await PrismUI.postJson('reports_api.php?action=delete', { id: r.id });
+                    selectedReports.delete(String(r.id));
                     PrismUI.toast(data.message || 'Report deleted.', 'success');
                     await loadReports();
                 } catch (e) {
@@ -147,12 +239,15 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             });
             actions.append(del);
-            PrismUI.actionMenu(actions,{label:'Report actions'});
-            // View and Download already remain visible beside the contextual menu.
             const host=document.createElement('td');host.colSpan=4;
-            host.append(PrismUI.reportCard(r,actions));tr.replaceChildren(host);
+            const card=PrismUI.reportCard(r,actions);
+            const selection=document.createElement('label');selection.className='report-row-select';
+            const checkbox=document.createElement('input');checkbox.type='checkbox';checkbox.dataset.reportSelect=String(r.id);checkbox.setAttribute('aria-label',`Select ${r.title||'report'}`);checkbox.checked=selectedReports.has(String(r.id));
+            checkbox.addEventListener('change',()=>{if(checkbox.checked)selectedReports.set(String(r.id),r);else selectedReports.delete(String(r.id));updateReportSelection();});
+            selection.append(checkbox);card.prepend(selection);host.append(card);tr.replaceChildren(host);
             body.appendChild(tr);
         });
+        updateReportSelection();
     }
 
     async function generateReport(payload) {

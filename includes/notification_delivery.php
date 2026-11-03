@@ -3,6 +3,7 @@
 require_once __DIR__.'/student_snapshot.php';
 require_once __DIR__.'/notification_lifecycle.php';
 require_once __DIR__.'/help_support.php';
+require_once __DIR__.'/admin_settings_store.php';
 
 /** Operational metadata only. Historical free-text diagnostics are not retry authority. */
 function notification_delivery_meta(?string $info): array
@@ -125,6 +126,9 @@ function notification_dispatch(PDO $pdo, int $id, ?string $staleCutoff=null, ?ar
             // email body has no stronger provenance than the queued message.
             $emailOverride=null;
         }
+        $row['message']=prism_notification_apply_template(
+            $pdo,(string)$row['type'],(string)$row['subject'],(string)($row['recipient_name']??''),(string)$row['message']
+        );
         $body='Hello '.($row['recipient_name']?:'there').",\n\n".$row['message']."\n\n"
             ."This is an automated notification from the CEU Malolos Research Planning and Monitoring Section (RPMS) via PRISM.\n";
         $result=deliver_notification_email($pdo,$id,(string)$row['recipient_email'],$emailOverride[0]??(string)$row['subject'],$emailOverride[1]??$body,$emailOverride===null);

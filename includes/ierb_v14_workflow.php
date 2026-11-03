@@ -5,7 +5,7 @@ require_once __DIR__.'/current_workflow_eligibility.php';
 
 function ierb_v14_schema_available(PDO $pdo): bool
 {
-    return in_array((string)$pdo->query("SELECT v FROM schema_meta WHERE k='schema_version'".($pdo->inTransaction() ? ' LOCK IN SHARE MODE' : ''))->fetchColumn(), ['12','13','14','15'], true);
+    return in_array((string)$pdo->query("SELECT v FROM schema_meta WHERE k='schema_version'".($pdo->inTransaction() ? ' LOCK IN SHARE MODE' : ''))->fetchColumn(), ['12','13','14','15','16'], true);
 }
 
 /** HTTP operations (enrollment, reconciliation, correction cases) are an explicit activation decision:
@@ -83,12 +83,33 @@ function ierb_v14_case(PDO $pdo, int $workflowId): ?array
     return $q->fetch(PDO::FETCH_ASSOC) ?: null;
 }
 
+/** Public counters require matching authoritative open/resolve ledger evidence.
+ * Ordinary document revisions never create these events or consume a cycle.
+ */
+function ierb_v14_case_usage(PDO $pdo, int $workflowId): array
+{
+    $q=$pdo->prepare("SELECT COUNT(*) AS used,
+        COALESCE(SUM(c.resolved_at IS NOT NULL AND c.resolved_by_user_id IS NOT NULL
+          AND EXISTS (SELECT 1 FROM ierb_workflow_events e WHERE e.workflow_id=c.workflow_id
+            AND e.correction_case_id=c.id AND e.event_key='open_correction'
+            AND e.actor_user_id=c.opened_by_user_id AND e.to_stage='resubmission_amendment')
+          AND EXISTS (SELECT 1 FROM ierb_workflow_events e WHERE e.workflow_id=c.workflow_id
+            AND e.correction_case_id=c.id AND e.event_key='resolve_correction'
+            AND e.actor_user_id=c.resolved_by_user_id AND e.from_stage='resubmission_amendment'
+            AND e.to_stage=c.interrupted_stage)),0) AS resolved
+        FROM ierb_correction_cases c WHERE c.workflow_id=?");
+    $q->execute([$workflowId]);$counts=$q->fetch(PDO::FETCH_ASSOC);
+    return ['officialResubmissionCount'=>(int)$counts['used'],'officialResubmissionLimit'=>3,
+        'resolvedOfficialResubmissionCount'=>(int)$counts['resolved']];
+}
+
 function ierb_v14_snapshot(PDO $pdo, array $workflow): array
 {
     $case = ierb_v14_case($pdo, (int)$workflow['id']);
     return ['workflowId' => (int)$workflow['id'], 'stage' => $workflow['stage_key'],
         'stageLabel' => IerbStage::LABELS[$workflow['stage_key']], 'revision' => (int)$workflow['revision'],
-        'correctionCase' => $case, 'progress' => IerbStage::progress($workflow['stage_key'], $case['interrupted_stage'] ?? null)];
+        'correctionCase' => $case, 'progress' => IerbStage::progress($workflow['stage_key'], $case['interrupted_stage'] ?? null)]
+        + ierb_v14_case_usage($pdo,(int)$workflow['id']);
 }
 
 /** Immutable request digest prevents a request key being reused with a different decision. */
@@ -115,6 +136,7 @@ function ierb_v14_event(PDO $pdo, array $actor, array $workflow, string $event, 
         ->execute([$workflow['id'], $result['revision'], $event, $from, $to, $caseId, $actor['id'], $reason,
             json_encode($evidence, JSON_THROW_ON_ERROR), $key, $digest, json_encode($result, JSON_THROW_ON_ERROR)]);
     $workflowEventId = (int)$pdo->lastInsertId();
+    $result=array_replace($result,ierb_v14_case_usage($pdo,(int)$workflow['id']));
     $result['projectNotificationIds'] = research_project_sync($pdo,$actor,$workflow,$event,$workflowEventId,$evidence);
     $pdo->prepare('UPDATE ierb_workflow_events SET result_json=? WHERE id=?')->execute([json_encode($result,JSON_THROW_ON_ERROR),$workflowEventId]);
     document_workflow_audit($pdo, $actor, 'ierb_v14_'.$event, ['entity_type' => 'student',

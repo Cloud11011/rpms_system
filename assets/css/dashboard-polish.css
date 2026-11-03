@@ -177,6 +177,19 @@ body.dashboard-page .calendar-box .prism-calendar-detail {
     display:none!important;
 }
 /* Dashboard stage summaries are informational cards; only hover is interactive feedback. */
+body.admin-shell.dashboard-page .dashboard-stage{align-self:stretch;min-height:0}
+body.admin-shell.dashboard-page .dashboard-stage-content{display:flex;flex-direction:column;flex:1;min-height:0}
+body.admin-shell.dashboard-page .dashboard-stage-grid{display:grid;flex:1;grid-template-columns:repeat(2,minmax(0,1fr));grid-auto-rows:1fr;gap:10px}
+body.admin-shell.dashboard-page .dashboard-stage-card{display:grid;align-content:start;gap:7px;min-width:0;padding:14px;border:1px solid var(--prism-border);border-radius:12px;background:var(--prism-card);color:var(--prism-text)}
+body.admin-shell.dashboard-page .dashboard-stage-kicker{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:8px;font-size:10px;line-height:1.4;text-transform:uppercase;color:var(--prism-muted)}
+body.admin-shell.dashboard-page .dashboard-stage-dot{width:9px;height:9px;flex:0 0 9px;border-radius:50%;background:#b64891}
+body.admin-shell.dashboard-page .dashboard-stage-2 .dashboard-stage-dot{background:#d69a2a}
+body.admin-shell.dashboard-page .dashboard-stage-3 .dashboard-stage-dot{background:#6575d6}
+body.admin-shell.dashboard-page .dashboard-stage-4 .dashboard-stage-dot{background:#229779}
+body.admin-shell.dashboard-page .dashboard-stage-card>strong{margin:0 0 4px;font-size:26px;font-weight:700;line-height:1.1;font-variant-numeric:tabular-nums}
+body.admin-shell.dashboard-page .dashboard-stage-card>h4{margin:0;font-size:13px;font-weight:700;line-height:1.45;overflow-wrap:anywhere}
+body.admin-shell.dashboard-page .dashboard-stage-card>p{margin:0;color:var(--prism-muted);font-size:12px;line-height:1.5}
+@media(max-width:600px){body.admin-shell.dashboard-page .dashboard-stage-grid{grid-template-columns:minmax(0,1fr)}}
 body.admin-shell.dashboard-page .dashboard-stage .step-item {
     cursor:default;
 }
@@ -662,3 +675,51 @@ html.dark-theme body.dashboard-page .dashboard-attention .attention-link:is(:hov
 @media(prefers-reduced-motion:reduce) { body.dashboard-page .dashboard-attention .attention-link { transition: none; } }
 /* U1: scoped accessibility correction. */
 html.dark-theme body.prism-workspace .calendar-box .prism-calendar-legend { color:#e2ddec; }
+
+
+/* Attention badges explain current records on hover, focus, or tap. */
+body.dashboard-page .dashboard-attention{padding:18px 18px 12px;border-radius:22px}
+body.dashboard-page .dashboard-attention>.attention-header{padding-bottom:14px;margin-bottom:14px}
+body.dashboard-page .dashboard-attention .attention-title{display:grid;grid-template-columns:38px minmax(0,max-content) max-content;gap:10px;flex:1;min-width:min(100%,220px)}
+body.dashboard-page .dashboard-attention .attention-icon{width:38px;height:38px;border-radius:12px}
+body.dashboard-page .dashboard-attention .attention-count{display:inline-flex;align-items:center;justify-content:center;padding:2px 10px;border-radius:99px;background:#ee1280;color:#fff;font-size:12px;font-weight:800}
+body.dashboard-page .dashboard-attention .attention-count[hidden]{display:none}
+body.dashboard-page .dashboard-attention .prism-attn-list{gap:10px}
+body.dashboard-page .dashboard-attention .prism-attn-item{align-items:flex-start;gap:16px;padding:14px 16px;border-radius:16px;background:var(--prism-card);border:1px solid var(--prism-border);border-left:4px solid #d98200;transition:transform .2s,box-shadow .2s}
+body.dashboard-page .dashboard-attention .prism-attn-item.sev-3{border-left-color:#c62828}
+body.dashboard-page .dashboard-attention .prism-attn-item:hover{transform:translateY(-2px);box-shadow:0 8px 22px #0c0e3f14}
+body.dashboard-page .dashboard-attention .prism-attn-main>strong{font-size:13px;font-weight:800;line-height:1.5}
+body.dashboard-page .dashboard-attention .prism-attn-main>.prism-sub{display:block;margin-top:3px;color:var(--prism-muted);font-size:12px;line-height:1.6}
+body.dashboard-page .dashboard-attention .prism-attn-reasons{display:flex;flex-wrap:wrap;gap:6px 14px;margin:10px 0 0;font-size:12px}
+body.dashboard-page .dashboard-attention .prism-attn-reasons li{display:inline-flex;align-items:baseline;gap:6px;margin:0;line-height:1.6}
+body.dashboard-page .dashboard-attention .prism-attn-reasons i{color:#a86400;flex:none}
+body.dashboard-page .dashboard-attention .prism-badges{display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap}
+body.dashboard-page .dashboard-attention .sna-badge{display:inline-flex;align-items:center;justify-content:center;gap:6px;max-width:100%;padding:5px 12px;border:0;border-radius:99px;background:#fff0d6;color:#a86400;font:700 12px/1.5 'Montserrat',system-ui,sans-serif;cursor:help;overflow-wrap:anywhere;transition:box-shadow .15s}
+body.dashboard-page .dashboard-attention .sna-badge.is-stage{background:#eef0f6;color:#3d4163}
+body.dashboard-page .dashboard-attention .sna-badge.is-late{background:#fde7e7;color:#c62828}
+body.dashboard-page .dashboard-attention .sna-badge.is-ok{background:#e1f6ec;color:#12805a}
+body.dashboard-page .dashboard-attention .sna-badge:is(:hover,.is-open){box-shadow:0 0 0 3px #0c0e3f1a}
+.sna-tip{position:fixed;z-index:12000;box-sizing:border-box;width:min(340px,calc(100vw - 16px));max-height:calc(100dvh - 16px);padding:14px 16px;border-radius:14px;background:#0c0e3f;color:#fff;box-shadow:0 18px 40px #0c0e3f59;font:400 12px/1.6 'Montserrat',system-ui,sans-serif}
+.sna-tip[hidden]{display:none!important}
+.sna-tip:before{content:'';position:absolute;top:-6px;left:var(--sna-arrow,24px);width:12px;height:12px;transform:rotate(45deg);background:#0c0e3f}
+.sna-tip.is-above:before{top:auto;bottom:-6px}
+.sna-tip .sna-tip-content{max-height:calc(100dvh - 44px);overflow:auto;overscroll-behavior:contain}
+.sna-tip h4{display:flex;align-items:center;gap:8px;margin:0 0 6px;color:#fff;font-size:14px;font-weight:800;line-height:1.5}
+.sna-tip p{margin:0;color:#d9d8ee;line-height:1.65;font-size:12px}
+.sna-tip dl{display:grid;grid-template-columns:minmax(0,88px) minmax(0,1fr);gap:6px 12px;margin:10px 0 0;padding-top:10px;border-top:1px solid #ffffff2e}
+.sna-tip dt{color:#b9b7d5;font-size:11px}
+.sna-tip dd{min-width:0;margin:0;color:#fff;font-size:11px;font-weight:600;overflow-wrap:anywhere}
+.sna-tip dd ul{list-style:none;margin:0;padding:0}
+.sna-tip dd li+li{margin-top:5px}
+.sna-tip .sna-next{margin-top:10px;padding:8px 10px;border-radius:10px;background:#ffffff1a;color:#fff;font-size:11px}
+.sna-tip .sna-next b{color:#ff8fc6}
+.sna-tip-dot{width:9px;height:9px;flex:0 0 9px;border-radius:50%;background:#ffc14d}
+.sna-tip-dot.is-late{background:#ff6b6b}
+.sna-tip-dot.is-ok{background:#4ade9c}
+html.dark-theme body.dashboard-page .dashboard-attention .sna-badge.is-stage{background:#303247;color:#d2d6ed}
+html.dark-theme body.dashboard-page .dashboard-attention .sna-badge.is-late{background:#46272c;color:#ff9797}
+html.dark-theme body.dashboard-page .dashboard-attention .sna-badge.is-ok{background:#193b30;color:#78d4ad}
+html.dark-theme body.dashboard-page .dashboard-attention .sna-badge.is-wait{background:#3e321e;color:#f3bf73}
+html.dark-theme body.dashboard-page .dashboard-attention .prism-attn-reasons i{color:#f3bf73}
+@media(max-width:700px){body.dashboard-page .dashboard-attention .prism-attn-item{flex-direction:column}body.dashboard-page .dashboard-attention .prism-attn-main{flex-basis:auto}body.dashboard-page .dashboard-attention .prism-badges{justify-content:flex-start}}
+@media(prefers-reduced-motion:reduce){body.dashboard-page .dashboard-attention :is(.prism-attn-item,.sna-badge){transition:none}}

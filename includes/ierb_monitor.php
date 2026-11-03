@@ -44,11 +44,11 @@ function monitor_scope(PDO $pdo,array $actor): array
         FROM students h $joins LEFT JOIN (".monitor_formal_sql().") dates ON dates.student_id=h.id
         WHERE h.archived_at IS NULL AND h.profile_completed_at IS NOT NULL";
     if ($projects) $select.=' AND (m.project_id IS NULL OR p.submission_holder_id=h.id)';
-    // With V14 active, the primary monitor contains only canonical projects.
-    // Legacy and unreconciled Student history remains in dedicated read-only records.
-    if ($projects && ierb_v14_http_operations_enabled()) {
+    // The active interface never maps historical numeric stages to V14 stages.
+    // Retained migration/storage compatibility is independent of this projection.
+    if ($projects && $v14) {
         $select.=' AND p.id IS NOT NULL AND p.submission_holder_id=h.id AND w.id IS NOT NULL';
-    }
+    } else $select.=' AND 1=0';
     $scope='FROM ('.$select.') s LEFT JOIN advisers f ON f.id=s.adviser_id WHERE 1=1'; $params=[];
     if ($actor['role']==='adviser') { $scope.=' AND f.email=:viewer AND f.archived_at IS NULL AND f.status=\'Active\''; $params[':viewer']=$actor['email']; }
     return [$scope,$params];
@@ -56,7 +56,7 @@ function monitor_scope(PDO $pdo,array $actor): array
 
 function monitor_order(array $query): string
 {
-    $columns=['submission'=>'s.latest_submission','title'=>'s.research_title','stage'=>'s.stage','status'=>'s.status','studentId'=>'s.student_id','academicYear'=>'s.academic_year'];
+    $columns=['submission'=>'s.latest_submission','title'=>'s.research_title','stage'=>'s.stage','status'=>'s.status','studentId'=>'s.student_id','academicYear'=>'s.academic_year','name'=>'s.full_name','group'=>'s.research_group'];
     $key=$query['sortBy']??'submission'; $direction=$query['direction']??($key==='submission'?'DESC':'ASC');
     if (!is_string($key) || !isset($columns[$key]) || !in_array($direction,['ASC','DESC'],true)) throw new AccountLifecycleValidation('Choose a supported sort order.');
     return ($key==='submission'?'s.latest_submission IS NULL ASC, ':'').$columns[$key].' '.$direction.', s.id ASC';
@@ -99,7 +99,12 @@ function monitor_row(PDO $pdo,array $actor,array $r): array
     return ['key'=>monitor_identity($r),'projectId'=>$r['project_id']?(int)$r['project_id']:null,'studentRecordId'=>(int)$r['id'],
         'studentId'=>$r['student_id'],'name'=>$r['full_name'],'research'=>$r['research_title'],'groupId'=>$r['research_group'],
         'protocolCode'=>$r['protocol_code']??null,
-        'course'=>$r['course'],'academicYear'=>$r['academic_year'],'model'=>$semantic?'V14':'Legacy',
+        'course'=>$r['course'],'academicYear'=>$r['academic_year'],'academicUnitKey'=>$r['academic_unit_key'],
+        'programKey'=>$r['program_key'],'yearLevel'=>$r['year_level'],
+        'isPrincipalInvestigator'=>isset($check['submissionScope']['principalInvestigator']['studentId'])
+            ? (int)$check['submissionScope']['principalInvestigator']['studentId']===(int)$r['id'] : null,
+        'resolvedOfficialResubmissionCount'=>$check['workflow']['resolvedOfficialResubmissionCount']??0,
+        'model'=>$semantic?'V14':'Legacy',
         'stage'=>$stage,'stageLabel'=>$semantic?$check['workflow']['stageLabel']:stage_label($stage),
         'progress'=>$semantic?$check['workflow']['progress']:stage_progress_percent($stage),
         'status'=>$r['status'],
@@ -108,6 +113,37 @@ function monitor_row(PDO $pdo,array $actor,array $r): array
         'acceptedCount'=>$semantic?$accepted:null,'mandatoryCount'=>$semantic?$mandatory:null,'initialAcceptedCount'=>$semantic?$initialAccepted:null,
         'requirements'=>$requirements,'pending'=>$pending,'correction'=>$check['workflow']['correctionCase']??null,
         'notes'=>$semantic?'Official progress and requirement acceptance are separate metrics. Final Report completion uses formal submission.':'Historical stage model. Mandatory acceptance counts were not recorded; no V14 stage mapping is inferred. Dates use formal document stamps with supporting audits; a missing stamp falls back to its verified formal audit time. Manual record dates and uploads never establish formal submission.'];
+}
+
+/** Canonical V14 project KPIs; retained numeric stages never establish active progress. */
+function monitor_dashboard_metrics(PDO $pdo,array $actor): array
+{
+    if (($actor['role']??'')!=='admin') throw new AccountLifecycleForbidden('Administrator dashboard access required.');
+    $total_researchers = (int)$pdo->query('SELECT COUNT(*) FROM students WHERE archived_at IS NULL AND profile_completed_at IS NOT NULL')->fetchColumn();
+    $pending_ierb=0; $approved_ethics=0; $delayed_submissions=0;
+    if (ierb_v14_schema_available($pdo) && research_projects_available($pdo)) {
+        // Official project metrics count canonical groups once, excluding archived holders.
+        $pending_ierb = (int)$pdo->query("SELECT COUNT(*) FROM research_projects p JOIN ierb_workflows w ON w.id=p.workflow_id
+            JOIN students s ON s.id=p.submission_holder_id WHERE s.archived_at IS NULL AND w.stage_key<>'ierb_completed'")->fetchColumn();
+        $approved_ethics = (int)$pdo->query("SELECT COUNT(*) FROM research_projects p JOIN ierb_workflows w ON w.id=p.workflow_id
+            JOIN students s ON s.id=p.submission_holder_id WHERE s.archived_at IS NULL AND w.stage_key='ierb_completed'")->fetchColumn();
+        // Past-dated active deadlines are attention signals, not proof of missed submissions.
+        // Use official deadline targeting and retain the submission audit separately.
+        $delayed_submissions = (int)$pdo->query("SELECT COUNT(*) FROM research_projects p
+            JOIN ierb_workflows w ON w.id=p.workflow_id
+            JOIN students s ON s.id=p.submission_holder_id
+            WHERE s.archived_at IS NULL AND w.stage_key<>'ierb_completed'
+            AND EXISTS (
+                SELECT 1 FROM calendar_deadlines d
+                WHERE d.status='Active' AND d.deadline_date<CURRENT_DATE()
+                AND (d.target_scope='all'
+                    OR EXISTS (SELECT 1 FROM calendar_deadline_groups dg WHERE dg.deadline_id=d.id AND dg.research_group=p.public_identifier)
+                    OR EXISTS (SELECT 1 FROM calendar_deadline_recipients dr
+                        JOIN research_project_members m ON m.student_id=dr.student_id
+                        WHERE dr.deadline_id=d.id AND m.project_id=p.id))
+            )")->fetchColumn();
+    }
+    return ['totalResearchers'=>$total_researchers,'pendingReview'=>$pending_ierb,'completedIerb'=>$approved_ethics,'delayedSubmissions'=>$delayed_submissions];
 }
 
 function monitor_list(PDO $pdo,array $actor,array $query): array
@@ -122,12 +158,22 @@ function monitor_list(PDO $pdo,array $actor,array $query): array
         unset($option);
         $overview=$pdo->prepare('SELECT s.stage,COUNT(*) AS c '.$scope.' GROUP BY s.stage'); $overview->execute($params);
         $counts=$overview->fetchAll();
+        $statusCounts=[];
+        if (($query['layout']??'')==='cards') {
+            $statusScope=$scope; $statusParams=$params; $statusQuery=$query; unset($statusQuery['status']);
+            prism_apply_student_filters($statusScope,$statusParams,$statusQuery,$options);
+            $search=prism_record_search($query);
+            if ($search!=='') $statusScope.=' AND '.prism_search_clause(['s.research_title','s.research_group','s.full_name','s.student_id'],$search,$statusParams);
+            $statusQuery=$pdo->prepare('SELECT s.status,COUNT(*) AS c '.$statusScope.' GROUP BY s.status');
+            $statusQuery->execute($statusParams); $statusCounts=$statusQuery->fetchAll();
+        }
         prism_apply_student_filters($scope,$params,$query,$options);
         $search=prism_record_search($query);
         if ($search!=='') $scope.=' AND '.prism_search_clause(['s.research_title','s.protocol_code','s.research_group','s.full_name','s.student_id'],$search,$params);
-        $page=prism_page_query($pdo,'SELECT s.*',$scope,$params,monitor_order($query),$query);
+        $page=prism_page_query($pdo,'SELECT s.*',$scope,$params,monitor_order($query),$query,($query['layout']??'')==='cards'?[5,10,25,50,100]:[10,25,50,100]);
         $records=array_map(fn($row)=>monitor_row($pdo,$actor,$row),$page['rows']); unset($page['rows']);
-        $pdo->commit(); return ['ok'=>true,'records'=>$records,'filterOptions'=>$options,'overview'=>$counts]+$page;
+        $dashboard=$actor['role']==='admin'?['dashboardMetrics'=>monitor_dashboard_metrics($pdo,$actor)]:[];
+        $pdo->commit(); return ['ok'=>true,'records'=>$records,'filterOptions'=>$options,'overview'=>$counts,'statusCounts'=>$statusCounts]+$dashboard+$page;
     } catch (Throwable $e) { if ($pdo->inTransaction()) $pdo->rollBack(); throw $e; }
 }
 
@@ -153,6 +199,22 @@ function monitor_selected(PDO $pdo,array $actor,mixed $keys,bool $history=false,
             $records[]=$item;
         }
         $pdo->commit(); return ['ok'=>true,'records'=>$records,'unavailableKeys'=>array_values(array_diff($keys,$found))];
+    } catch (Throwable $e) { if ($pdo->inTransaction()) $pdo->rollBack(); throw $e; }
+}
+
+/** Requirement checklist for one Student the actor may already see in the monitor; read-only. */
+function monitor_student_requirements(PDO $pdo,array $actor,int $studentId): array
+{
+    if ($studentId<1) throw new AccountLifecycleValidation('Invalid Student record.');
+    $pdo->beginTransaction();
+    try {
+        research_project_fence($pdo); current_workflow_actor($pdo,$actor);
+        [$scope,$params]=monitor_scope($pdo,$actor); $params[':requirementsStudent']=$studentId;
+        $q=$pdo->prepare('SELECT s.* '.$scope.' AND s.id=:requirementsStudent LIMIT 1'); $q->execute($params);
+        $row=$q->fetch(PDO::FETCH_ASSOC);
+        if (!$row) throw new AccountLifecycleValidation('Progress record is not available.');
+        $record=monitor_row($pdo,$actor,$row);
+        $pdo->commit(); return ['ok'=>true,'record'=>$record];
     } catch (Throwable $e) { if ($pdo->inTransaction()) $pdo->rollBack(); throw $e; }
 }
 

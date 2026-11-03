@@ -49,7 +49,7 @@ function prism_runtime_preflight(string $root, bool $integrations=false): array
 }
 
 /** No migrate(), seed(), DDL or application records are written.
- * Schemas 11-15 also run the complete reviewed contract comparison used by the migration runners.
+ * Schemas 11-16 also run the complete reviewed contract comparison used by the migration runners.
  */
 function prism_runtime_database_preflight(PDO $pdo): array
 {
@@ -57,7 +57,7 @@ function prism_runtime_database_preflight(PDO $pdo): array
     $pdo->beginTransaction();
     try {
         $version=(string)$pdo->query("SELECT v FROM schema_meta WHERE k='schema_version'")->fetchColumn();
-        $supported=['10','11','12','13','14','15'];
+        $supported=['10','11','12','13','14','15','16'];
         $manifest=json_decode(file_get_contents(__DIR__.($version==='10'?'/account_lifecycle_schema.json':'/account_lifecycle_schema_v11.json')),true,512,JSON_THROW_ON_ERROR);
         $missing=[];
         $q=$pdo->prepare('SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME=? AND COLUMN_NAME=?');

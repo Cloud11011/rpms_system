@@ -46,14 +46,14 @@ function row_to_student(array $r): array
         'academicYear' => $r['academic_year'] ?? null,
         'adviserId' => $r['adviser_id'] ? (int)$r['adviser_id'] : null,
         'adviserName' => $r['adviser_name'] ?? null,
-        'stage' => $r['stage'],
-        'stageLabel' => $projectWorkflow?IerbStage::LABELS[$projectWorkflow['stage_key']]:stage_label($r['stage']),
+        'stage' => $projectWorkflow['stage_key'] ?? null,
+        'stageLabel' => $projectWorkflow?IerbStage::LABELS[$projectWorkflow['stage_key']]:'Research setup pending',
         'status' => $r['status'],
         'requirements' => $r['requirements'],
         'protocolCode' => $project && research_onboarding_available(db())?research_project_protocol(db(),(int)$project['id']):($r['protocol_code'] ?? null),
         'isPrincipalInvestigator' => !empty($r['is_principal_investigator']),
         'lastSubmissionDate' => $r['last_submission_date'],
-        'progress' => $projectWorkflow?IerbStage::progress($projectWorkflow['stage_key'],$projectWorkflow['interrupted_stage']):stage_progress_percent($r['stage']),
+        'progress' => $projectWorkflow?IerbStage::progress($projectWorkflow['stage_key'],$projectWorkflow['interrupted_stage']):0,
         'createdAt' => $r['created_at'],
         'updatedAt' => $r['updated_at'],
         'archivedAt' => $r['archived_at'] ?? null,
@@ -320,7 +320,7 @@ if ($action === 'save') {
 
         } else {
             try {
-                $academic = academic_validate($data, null);
+                $academic = academic_validate($data, null, true);
                 if ($user['role']==='admin' && research_onboarding_available($pdo)) {
                     $intent=research_onboarding_intent($pdo,$user,$data,$academic);
                     $group=''; $research=$intent['title']; $adviserId=$intent['adviserId']; $protocolCode=null; $isPrincipal=0;

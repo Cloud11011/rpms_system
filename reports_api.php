@@ -174,7 +174,7 @@ function v14_generate_ai_report(PDO $pdo, array $user, string $mode): never
 }
 
 if ($action === 'ai_report') {
-    if (ierb_v14_http_operations_enabled()) v14_generate_ai_report($pdo,$user,(string)($data['mode']??''));
+    v14_generate_ai_report($pdo,$user,(string)($data['mode']??''));
     $mode = trim((string)($data['mode'] ?? ''));
     if (!in_array($mode, AI_REPORT_MODES, true)) {
         json_out(['ok' => false, 'message' => 'Invalid report mode.'], 422);
@@ -390,7 +390,7 @@ function local_full_narrative(array $students, string $scopeLabel = 'the institu
 }
 
 if ($action === 'generate') {
-    if (ierb_v14_http_operations_enabled()) json_out(['ok'=>false,'message'=>'Legacy Student-stage reports have been retired. Use V14 project reports.'],409);
+    json_out(['ok'=>false,'message'=>'Obsolete Student-stage reports are retired. Use V14 project reports.'],410);
     $type = trim((string)($data['type'] ?? 'Progress Report')); // Progress Report | Student Report
     if (!in_array($type, ['Progress Report', 'Student Report'], true)) {
         json_out(['ok' => false, 'message' => 'Invalid report type.'], 422);

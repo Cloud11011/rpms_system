@@ -379,17 +379,16 @@ function student_document_counts(PDO $pdo, ?array $studentIds = null): array
  */
 function students_needing_attention(PDO $pdo, array $user): array
 {
+    if (!ierb_v14_schema_available($pdo) || !research_projects_available($pdo)) return [];
     $sql = 'SELECT s.*, a.full_name AS adviser_name FROM students s
-            LEFT JOIN advisers a ON a.id = s.adviser_id WHERE s.archived_at IS NULL AND s.profile_completed_at IS NOT NULL AND s.stage <> :done';
-    $params = [':done' => 'Completed'];
+            LEFT JOIN advisers a ON a.id = s.adviser_id WHERE s.archived_at IS NULL AND s.profile_completed_at IS NOT NULL ';
+    $params = [];
     if (ierb_v14_schema_available($pdo)) {
         $sql .= " AND NOT EXISTS (SELECT 1 FROM ierb_workflows w WHERE w.student_id=s.id AND w.stage_key='ierb_completed')";
     }
-    if (research_projects_available($pdo)) {
-        // A canonical group's evidence belongs to its holder; avoid separate
-        // overdue alerts for members with no individual document rows.
-        $sql .= ' AND NOT EXISTS (SELECT 1 FROM research_project_members m JOIN research_projects p ON p.id=m.project_id WHERE m.student_id=s.id AND p.submission_holder_id<>s.id)';
-    }
+    $sql .= " AND EXISTS (SELECT 1 FROM research_project_members cm JOIN research_projects cp ON cp.id=cm.project_id
+        JOIN ierb_workflows cw ON cw.id=cp.workflow_id WHERE cm.student_id=s.id AND cp.submission_holder_id=s.id
+        AND cw.stage_key<>'ierb_completed')";
     if ($user['role'] === 'adviser') {
         $sql .= ' AND a.email = :e';
         $params[':e'] = $user['email'];
@@ -413,6 +412,7 @@ function students_needing_attention(PDO $pdo, array $user): array
     foreach ($students as $s) {
         $reasons = [];
         $semantic = ierb_v14_read_summary($pdo, (int)$s['id']);
+        if (($semantic['stage']??null)===IerbStage::CORRECTION) $reasons[]=['type'=>'correction','severity'=>3,'label'=>'An official IERB resubmission is open'];
 
         if ($s['status'] === 'Delayed') {
             $reasons[] = ['type' => 'delayed', 'severity' => 3, 'label' => 'Marked as delayed'];

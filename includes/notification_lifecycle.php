@@ -207,13 +207,13 @@ function notification_deadline_event(array $row): ?array
 {
     if (($row['kind']??'system')!=='system') return null;
     $event=null;
-    if (($row['type']??'')==='Official Deadline') $event=json_decode((string)($row['message']??''),true);
+    if (in_array(($row['type']??''),['Official Deadline','Deadline Reminder'],true)) $event=json_decode((string)($row['message']??''),true);
     elseif (($row['type']??'')==='Reminder' && in_array($row['subject']??'',['New official deadline','Official deadline cancelled'],true)
         && preg_match('/\A(New official deadline|Official deadline cancelled) \(Deadline #([1-9][0-9]*)\)\.\r?\nTitle: ([^\r\n]+)\r?\nDeadline date: ([0-9]{4}-[0-9]{2}-[0-9]{2})(?:\r?\n|$)/',(string)($row['message']??''),$m)) {
         $event=['event'=>$m[1]==='New official deadline'?'official_deadline_created':'official_deadline_cancelled',
             'deadline_id'=>(int)$m[2],'title'=>$m[3],'due_date'=>$m[4]];
     }
-    if (!is_array($event) || !in_array($event['event']??null,['official_deadline_created','official_deadline_cancelled'],true)
+    if (!is_array($event) || !in_array($event['event']??null,['official_deadline_created','official_deadline_cancelled','official_deadline_reminder'],true)
         || !is_int($event['deadline_id']??null) || $event['deadline_id']<=0
         || !is_string($event['title']??null) || trim($event['title'])==='' || mb_strlen($event['title'])>190
         || !is_string($event['due_date']??null) || !preg_match('/\A([0-9]{4})-([0-9]{2})-([0-9]{2})\z/',$event['due_date'],$d)
@@ -250,8 +250,9 @@ function notification_student_projection(array $row): array
     }
     if ($deadline!==null) {
         $cancelled=$deadline['event']==='official_deadline_cancelled';
-        $row['subject']=$cancelled?'Official deadline cancelled':'New official deadline';
-        $row['message']=($cancelled?'Cancelled: ':'Deadline: ').$deadline['title']."\nDue date: ".$deadline['due_date']
+        $reminder=$deadline['event']==='official_deadline_reminder';
+        $row['subject']=$cancelled?'Official deadline cancelled':($reminder?'Official deadline reminder':'New official deadline');
+        $row['message']=($cancelled?'Cancelled: ':($reminder?'Reminder: ':'Deadline: ')).$deadline['title']."\nDue date: ".$deadline['due_date']
             ."\nOpen your PRISM Calendar for the current official record.";
         $row['type']='Reminder'; $row['destination']='student.php#calendar';
     } elseif (!$support && !$review && !$returned && in_array($row['kind']??'system',['system','workflow'],true)) {

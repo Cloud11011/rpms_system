@@ -14,12 +14,13 @@ require_once __DIR__ . '/includes/ierb_group_advancement.php';
 $user = api_require_login(['admin', 'adviser', 'student']);
 $pdo = db();
 $action = $_GET['action'] ?? 'list';
-if (in_array($action,['monitor','monitor_compare','monitor_detail'],true)) {
+if (in_array($action,['monitor','monitor_compare','monitor_detail','monitor_requirements'],true)) {
     api_require_login(['admin','adviser']);
     header('Cache-Control: no-store');
     require_once __DIR__.'/includes/ierb_monitor.php';
     try {
         if ($action==='monitor') json_out(monitor_list($pdo,$user,$_GET));
+        if ($action==='monitor_requirements') json_out(monitor_student_requirements($pdo,$user,(int)($_GET['id']??0)));
         json_out(monitor_selected($pdo,$user,$_GET['keys']??null,$action==='monitor_detail',$_GET));
     } catch (Throwable $e) {
         $status=lifecycle_error_status($e);
@@ -30,20 +31,21 @@ if (in_array($action,['monitor','monitor_compare','monitor_detail'],true)) {
 if ($action === 'v14_contract') {
     header('Cache-Control: no-store');
     $hasV14 = ierb_v14_schema_available($pdo) && (bool)$pdo->query('SELECT 1 FROM ierb_workflows LIMIT 1')->fetchColumn();
-    json_out(['ok'=>true,'contract'=>IerbStage::contract(),'activeWorkflow'=>$hasV14?'mixed':'legacy',
-        'workflowModels'=>$hasV14?['legacy','v14']:['legacy'],'operationsActivated'=>ierb_v14_http_operations_enabled()]);
+    json_out(['ok'=>true,'contract'=>IerbStage::contract(),'activeWorkflow'=>'v14',
+        'workflowModels'=>['v14'],'hasEnrolledWorkflows'=>$hasV14,'operationsActivated'=>ierb_v14_http_operations_enabled()]);
 }
 if (in_array($action, ['advance', 'correct', 'status', 'override', 'save', 'note', 'delete', 'group_advance_preview', 'group_advance', 'group_advance_cancel'], true)) {
     require_post_same_origin();
 }
 // V14 replaces the legacy per-Student stage mutation endpoints.
 // Historical records remain readable, but cannot be changed through the old process.
-if (ierb_v14_http_operations_enabled() && in_array($action, ['advance','correct','status','override','save','note','delete'], true)) {
-    json_out(['ok'=>false,'message'=>'Legacy IERB stages are read-only. Manage active projects through V14 Group Advancement or Student Records.'],409);
+if (in_array($action, ['advance','correct','status','override','save','note','delete'], true)) {
+    json_out(['ok'=>false,'message'=>'Obsolete Student-stage operations are retired. Manage active projects through V14 Group Advancement or Student Records.'],410);
 }
 
 if (in_array($action, ['group_advance_list','group_advance_preview','group_advance','group_advance_cancel'], true)) {
     api_require_login('admin');
+    if (!research_projects_available($pdo)) json_out(['ok'=>false,'message'=>'Canonical V14 research projects require the reviewed schema-15 foundation.'],409);
     if ($action !== 'group_advance_list') require_session_generation(true);
     header('Cache-Control: no-store');
     try {
@@ -74,7 +76,7 @@ if (in_array($action, IERB_V14_OPERATIONS, true)) {
         require_session_generation(true);
         api_require_login('admin');
         // The legacy Adviser request route is deliberately retired; only RPMS may initiate resubmissions.
-        if ($action === 'v14_correction_request') json_out(['ok'=>false,'message'=>'Adviser correction requests are retired. RPMS Administrators initiate official resubmissions directly.'],410);
+        if (in_array($action,['v14_correction_request','v14_correction_decide'],true)) json_out(['ok'=>false,'message'=>'Adviser correction requests are retired. RPMS Administrators initiate official resubmissions directly.'],410);
         $p = lifecycle_decode_body(file_get_contents('php://input'));
         $int = static function(string $k) use ($p): int {
             if (!isset($p[$k]) || !is_int($p[$k]) || $p[$k] < 0) throw new AccountLifecycleValidation('Provide a valid '.$k.'.');
@@ -131,6 +133,7 @@ function adviser_may_access_student(PDO $pdo, array $user, int $studentId): bool
 function ierb_row(array $r, array $docCounts = [], array $earlierReturns = []): array
 {
     $project=research_project_for_student(db(),(int)$r['id']);
+    $current=ierb_v14_read_summary(db(),(int)$r['id']);
     $assignmentState=null;
     if (research_onboarding_available(db())) {
         $assignment=db()->prepare('SELECT state FROM research_onboarding_assignments WHERE student_id=?');
@@ -153,15 +156,16 @@ function ierb_row(array $r, array $docCounts = [], array $earlierReturns = []): 
         'research' => $project['research_title'] ?? $r['research_title'],
         'progressVersion' => (string)($r['progress_version'] ?? '0'),
         'earlierStageReturns' => $earlierReturns[(int)$r['id']] ?? [],
-        'stage' => $r['stage'],
-        'stageLabel' => stage_label($r['stage']),
+        'stage' => $current['stage'] ?? null,
+        'stageLabel' => $current['stageLabel'] ?? 'Research setup pending',
+        'storageStage' => $r['stage'], // Internal document-bucket compatibility; never official progress.
         'status' => $r['status'],
         'requirements' => $r['requirements'],
         'protocolCode' => $project && research_onboarding_available(db())?research_project_protocol(db(),(int)$project['id']):($r['protocol_code'] ?? null),
         'isPrincipalInvestigator' => !empty($r['is_principal_investigator']),
         'lastSubmissionDate' => $r['verified_submission'] ?? null,
-        'progress' => stage_progress_percent($r['stage']),
-        'v14' => ierb_v14_read_summary(db(), (int)$r['id']),
+        'progress' => $current['progress'] ?? 0,
+        'v14' => $current,
         'adviser' => $r['adviser_name'] ?? null,
         // Current document versions by workflow state (see workflow.php)
         'docs' => $docCounts[(int)$r['id']] ?? empty_doc_counts(),
@@ -179,7 +183,7 @@ function ierb_apply_current_filters(string &$scope, array &$params, array $query
     if ($q !== '') $scope .= ' AND ' . prism_search_clause(['s.protocol_code', 's.student_id', 's.full_name', 's.email', 's.research_title', 's.research_group', 's.course', 'f.full_name'], $q, $params);
     // Stage sequence has Completed last, rather than alphabetically first.
     $stageColumn = prism_student_stage_column(db());
-    $stageOrder = "CASE $stageColumn WHEN 'Stage 1' THEN 0 WHEN 'initial_submission' THEN 0 WHEN 'Stage 2' THEN 1 WHEN 'resubmission_amendment' THEN 1 WHEN 'Stage 3' THEN 2 WHEN 'Stage 4' THEN 3 WHEN 'approval_data_gathering' THEN 3 WHEN 'Stage 5' THEN 4 WHEN 'Completed' THEN 5 WHEN 'ierb_completed' THEN 5 ELSE 0 END";
+    $stageOrder = "CASE $stageColumn WHEN 'initial_submission' THEN 1 WHEN 'resubmission_amendment' THEN 2 WHEN 'approval_data_gathering' THEN 3 WHEN 'ierb_completed' THEN 4 ELSE 0 END";
     $sort = $query['sort'] ?? '';
     $date=ierb_v14_schema_available(db())?'IF(EXISTS(SELECT 1 FROM ierb_workflows w WHERE w.student_id='.$holder.'),formal_dates.latest_verified,formal_dates.latest_submission)':'formal_dates.latest_submission';
     $by=$query['sortBy']??'';
@@ -206,27 +210,17 @@ function describe_progress_change(array $old, string $newStage, string $newStatu
 // ---------------------------------------------------------------------
 if ($action === 'list') {
     [$scope, $params] = prism_operational_student_scope($user);
-    $legacyScope=$scope;
-    if (ierb_v14_schema_available($pdo)) $legacyScope.=' AND NOT EXISTS (SELECT 1 FROM ierb_workflows w WHERE w.student_id=s.id)';
-    if (research_projects_available($pdo)) $legacyScope.=' AND NOT EXISTS (SELECT 1 FROM research_project_members m WHERE m.student_id=s.id)';
-    if (($_GET['legacyOnly']??null)==='1' && ierb_v14_http_operations_enabled()) $scope=$legacyScope;
-    $summary = $pdo->prepare('SELECT s.stage, s.status, COUNT(*) AS c ' . $legacyScope . ' GROUP BY s.stage, s.status');
-    $summary->execute($params);
-    $overview = $summary->fetchAll();
+    $stageColumn=prism_student_stage_column($pdo);
+    $summary=$pdo->prepare('SELECT '.$stageColumn.' AS stage,COUNT(*) AS c '.$scope.' AND '.$stageColumn.' IS NOT NULL GROUP BY '.$stageColumn);
+    $summary->execute($params);$overview=$summary->fetchAll();
     $courses = $pdo->prepare('SELECT DISTINCT s.course ' . $scope . ' ORDER BY s.course');
     $courses->execute($params);
     $courseOptions = $courses->fetchAll(PDO::FETCH_COLUMN);
     $filterOptions = prism_student_filter_options($pdo, $scope, $params);
     $order = ierb_apply_current_filters($scope, $params, $_GET, $filterOptions);
-    // Dashboard categories retain the established stage mapping, including Stage 3+4.
-    $dashboardStages = ['initial'=>['Stage 1'],'review'=>['Stage 2'],'revision'=>['Stage 3','Stage 4'],'approved'=>['Completed']];
-    $dashboardStage = $_GET['dashboardStage'] ?? '';
-    if (!is_string($dashboardStage) || ($dashboardStage !== '' && !isset($dashboardStages[$dashboardStage]))) json_out(['ok'=>false,'message'=>'Invalid dashboard stage filter.'],422);
-    if ($dashboardStage !== '') {
-        $keys=[];
-        foreach ($dashboardStages[$dashboardStage] as $i=>$stage) { $key=':dashboardStage'.$i; $keys[]=$key; $params[$key]=$stage; }
-        $scope .= ' AND s.stage IN ('.implode(',',$keys).')';
-    }
+    $dashboardStage=$_GET['dashboardStage']??'';
+    if (!is_string($dashboardStage) || ($dashboardStage!=='' && !isset(IerbStage::LABELS[$dashboardStage]))) json_out(['ok'=>false,'message'=>'Choose a current V14 stage.'],422);
+    if ($dashboardStage!=='') { $scope.=' AND '.prism_student_stage_column($pdo).'=:dashboardStage';$params[':dashboardStage']=$dashboardStage; }
     $page = prism_page_query($pdo, 'SELECT s.*, f.full_name AS adviser_name, (SELECT COALESCE(MAX(h.id),0) FROM ierb_history h WHERE h.student_id=s.id) AS progress_version, formal_dates.latest_submission AS verified_submission', $scope, $params, $order, $_GET);
     $rows = $page['rows']; unset($page['rows']);
     foreach ($rows as &$row) {
@@ -261,7 +255,7 @@ if ($action === 'history') {
         $canonical="SELECT mh.to_stage AS stage,'Project progress' AS status,NULL AS submission_date,mh.created_at,
             'Canonical research project progress' AS note,'Project workflow' AS actor FROM research_project_member_history mh
             WHERE mh.student_id=:member_id AND (mh.from_stage IS NULL OR mh.from_stage<>mh.to_stage)";
-        $scope='FROM ('.$legacy.' UNION ALL '.$canonical.') timeline WHERE 1=1';
+        $scope="FROM (".$legacy.' UNION ALL '.$canonical.") timeline WHERE timeline.stage IN ('initial_submission','resubmission_amendment','approval_data_gathering','ierb_completed')";
         $params=[':legacy_id'=>$studentId,':member_id'=>$studentId];
         $search=prism_record_search($_GET);
         if ($search!=='') $scope.=' AND '.prism_search_clause(['timeline.stage','timeline.status','timeline.created_at'],$search,$params);
@@ -308,15 +302,14 @@ if ($action === 'history') {
 }
 
 if ($action === 'stage_distribution') {
-    [$scope, $params] = prism_operational_student_scope($user);
-    $stmt = $pdo->prepare('SELECT s.stage, COUNT(*) AS c ' . $scope . ' GROUP BY s.stage');
-    $stmt->execute($params);
-    $distribution = array_column($stmt->fetchAll(), 'c', 'stage');
-    $rows = [];
-    foreach (STAGE_SEQUENCE as $stage) {
-        $rows[] = ['stage' => $stage, 'c' => (int)($distribution[$stage] ?? 0)];
-    }
-    json_out(['ok' => true, 'distribution' => $rows]);
+    api_require_login(['admin','adviser']);
+    require_once __DIR__.'/includes/ierb_monitor.php';
+    [$scope,$params]=monitor_scope($pdo,$user);
+    $stmt=$pdo->prepare('SELECT s.stage,COUNT(*) AS c '.$scope.' GROUP BY s.stage');
+    $stmt->execute($params);$distribution=array_column($stmt->fetchAll(),'c','stage');
+    $rows=[];
+    foreach (IerbStage::LABELS as $stage=>$label) $rows[]=['stage'=>$stage,'stageLabel'=>$label,'c'=>(int)($distribution[$stage]??0)];
+    json_out(['ok'=>true,'distribution'=>$rows]);
 }
 
 // ---------------------------------------------------------------------
@@ -365,8 +358,8 @@ if ($action === 'export_csv') {
         $row=ierb_row($r,$counts);
         $put([
             $row['research'], $row['protocolCode'] ?? 'Not yet assigned', $r['student_id'], $r['full_name'], $r['email'], $r['course'],
-            $row['groupId'], $r['adviser_name'] ?? '', $row['v14']['stage']??$r['stage'], $row['v14']['stageLabel']??stage_label($r['stage']),
-            $r['status'], $row['v14']['progress']??stage_progress_percent($r['stage']), $r['requirements'], $row['v14']?($r['verified_v14_submission']??null):$row['lastSubmissionDate'], $r['academic_year'],
+            $row['groupId'], $r['adviser_name'] ?? '', $row['stage']??'', $row['stageLabel'],
+            $r['status'], $row['progress'], $r['requirements'], $row['v14']?($r['verified_v14_submission']??null):$row['lastSubmissionDate'], $r['academic_year'],
             $c['pendingReview'], $c['readyForRpms'], $c['submittedToRpms'], $attention[(int)$r['id']] ?? '',
         ]);
     }

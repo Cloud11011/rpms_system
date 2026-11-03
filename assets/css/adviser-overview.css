@@ -1,0 +1,95 @@
+/* Adviser dashboard overview. Colors and controls inherit the shared PRISM theme. */
+body.prism-workspace.adviser-dashboard-page { --adviser-review-accent:#352b8e; --adviser-review-soft:#f1efff; }
+body.prism-workspace.adviser-dashboard-page main .adviser-content-grid { display:grid; grid-template-columns:minmax(0,7fr) minmax(260px,3fr); gap:20px; align-items:start; }
+body.prism-workspace.adviser-dashboard-page main .adviser-content-grid > .adviser-panel { min-width:0; margin:0; padding:18px; border:1px solid var(--prism-border); border-radius:18px; background:var(--prism-card); }
+body.prism-workspace.adviser-dashboard-page main .adviser-content-grid .adviser-panel-heading { display:flex; align-items:center; justify-content:space-between; gap:16px; margin:0 0 14px; }
+body.prism-workspace.adviser-dashboard-page main .adviser-content-grid .adviser-panel-heading h2 { min-width:0; margin:0; color:var(--prism-text); font-size:16px; font-weight:700; line-height:1.4; }
+body.prism-workspace.adviser-dashboard-page main .adviser-content-grid [hidden] { display:none !important; }
+body.prism-workspace.adviser-dashboard-page main .adviser-queue-toolbar { display:flex; flex:0 1 290px; align-items:center; flex-wrap:nowrap; gap:8px; min-width:0; margin:0; }
+body.prism-workspace.adviser-dashboard-page main .adviser-queue-search { flex:1; min-width:0 !important; min-height:36px; height:36px; gap:8px; margin:0; padding:0 10px; border:1px solid var(--prism-border); border-radius:10px; color:var(--prism-muted); background:var(--prism-card); }
+body.prism-workspace.adviser-dashboard-page main .adviser-queue-search > svg { flex:0 0 16px; }
+body.prism-workspace.adviser-dashboard-page main .adviser-queue-search input { height:34px; min-height:34px; color:var(--prism-text); font-size:12px; }
+body.prism-workspace.adviser-dashboard-page main .adviser-queue-search:focus-within { outline:2px solid var(--prism-focus); outline-offset:2px; }
+body.prism-workspace.adviser-dashboard-page main .adviser-queue-clear { flex:0 0 32px; color:var(--prism-muted); border-color:var(--prism-border); }
+body.prism-workspace.adviser-dashboard-page main .adviser-review-panel .adviser-summary-grid { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:10px; margin:0 0 14px; }
+body.prism-workspace.adviser-dashboard-page main .adviser-review-panel .adviser-summary-card { display:flex; flex-direction:column; align-items:flex-start; justify-content:center; gap:3px; min-width:0; min-height:66px; margin:0; padding:10px 12px; border:1px solid var(--prism-border); border-radius:11px; background:var(--prism-card); box-shadow:none; text-align:left; cursor:pointer; }
+body.prism-workspace.adviser-dashboard-page main .adviser-review-panel .adviser-summary-card strong { margin:0; color:var(--adviser-review-accent); font-size:21px; font-weight:800; line-height:1.15; }
+body.prism-workspace.adviser-dashboard-page main .adviser-review-panel .adviser-summary-card:nth-child(2) strong { color:var(--prism-muted); }
+body.prism-workspace.adviser-dashboard-page main .adviser-review-panel .adviser-summary-card:nth-child(3) strong { color:var(--prism-success-fg); }
+body.prism-workspace.adviser-dashboard-page main .adviser-review-panel .adviser-summary-card > span { color:var(--prism-text); font-size:12px; line-height:1.4; }
+body.prism-workspace.adviser-dashboard-page main .adviser-review-panel .adviser-summary-card[aria-pressed=true] { border-color:#8270dc; background:var(--adviser-review-soft); }
+body.prism-workspace.adviser-dashboard-page main .adviser-review-panel .adviser-summary-card:hover { border-color:#8270dc; transform:none; }
+body.prism-workspace.adviser-dashboard-page main .adviser-queue { display:grid; gap:10px; }
+body.prism-workspace.adviser-dashboard-page main .adviser-document-card.prism-record-shell { padding:0; border:1px solid var(--prism-border); border-radius:12px; background:var(--prism-card); }
+body.prism-workspace.adviser-dashboard-page main .adviser-document-top { display:grid; grid-template-columns:minmax(0,1fr) auto auto; align-items:center; gap:12px; padding:12px; }
+body.prism-workspace.adviser-dashboard-page main .adviser-document-main { gap:10px; }
+body.prism-workspace.adviser-dashboard-page main .adviser-document-avatar { flex:0 0 32px; width:32px; height:32px; border-radius:8px; color:var(--prism-accent); background:var(--prism-pink-soft); font-size:10px; font-weight:800; }
+body.prism-workspace.adviser-dashboard-page main .adviser-document-identity h3 { margin:0 0 3px; font-size:13px; font-weight:700; line-height:1.4; }
+body.prism-workspace.adviser-dashboard-page main .adviser-document-identity p { margin:0; color:var(--prism-muted); font-size:11px; line-height:1.5; }
+body.prism-workspace.adviser-dashboard-page main .adviser-document-status { display:flex; align-items:center; grid-column:auto; grid-row:auto; padding:0; }
+body.prism-workspace.adviser-dashboard-page main .adviser-document-status .prism-badge { max-width:185px; min-height:24px; padding:4px 8px; font-size:10px; line-height:1.4; }
+body.prism-workspace.adviser-dashboard-page main .adviser-document-actions { display:flex; grid-column:auto; grid-row:auto; align-items:center; justify-content:flex-end; flex-wrap:nowrap; gap:6px; min-width:0; width:auto; }
+body.prism-workspace.adviser-dashboard-page main .adviser-document-actions .adviser-button.is-primary { flex:0 0 auto; width:auto; min-height:34px; padding:7px 14px; border:1px solid var(--adviser-review-accent); border-radius:8px; color:#fff; background:var(--adviser-review-accent); font-size:12px; font-weight:700; line-height:1.4; }
+body.prism-workspace.adviser-dashboard-page main .adviser-document-actions .adviser-button.is-primary:hover { filter:brightness(1.1); }
+body.prism-workspace.adviser-dashboard-page main .adviser-document-actions .prism-action-trigger { width:30px; min-width:30px; height:34px; min-height:34px; padding:0; border-color:var(--prism-border); border-radius:8px; }
+body.prism-workspace.adviser-dashboard-page main .adviser-document-details:not([open]) { display:none; }
+body.prism-workspace.adviser-dashboard-page main .adviser-document-details[open] { border-color:var(--prism-border); }
+body.prism-workspace.adviser-dashboard-page main .adviser-document-details .adviser-document-meta { padding:4px 12px 12px; }
+body.prism-workspace.adviser-dashboard-page main .adviser-document-card > .prism-record-feedback { margin:0 12px 12px; }
+body.prism-workspace.adviser-dashboard-page main .adviser-review-panel > .prism-record-footer { margin-top:12px; gap:10px; }
+body.prism-workspace.adviser-dashboard-page main .adviser-queue-count { margin:0 0 10px; font-size:11px; }
+body.prism-workspace.adviser-dashboard-page main .adviser-students-panel .adviser-panel-heading > a { flex:0 0 auto; color:var(--adviser-review-accent); font-size:11px; font-weight:600; text-underline-offset:3px; }
+body.prism-workspace.adviser-dashboard-page #adviserStudentsCount { color:var(--prism-muted); font-size:13px; font-weight:500; }
+body.prism-workspace.adviser-dashboard-page main .adviser-student-items { display:grid; margin:0; padding:0; list-style:none; }
+body.prism-workspace.adviser-dashboard-page main .adviser-student-row { display:grid; grid-template-columns:minmax(0,1fr) auto; align-items:center; gap:4px 10px; min-width:0; padding:12px 0; border-top:1px solid var(--prism-border); }
+body.prism-workspace.adviser-dashboard-page main .adviser-student-row:first-child { padding-top:2px; border-top:0; }
+body.prism-workspace.adviser-dashboard-page main .adviser-students-panel a.adviser-student-link { display:grid; grid-template-columns:28px minmax(0,1fr); grid-row:1 / 3; align-items:center; gap:9px; min-width:0; color:var(--prism-text); text-decoration:none; }
+body.prism-workspace.adviser-dashboard-page main .adviser-student-avatar { display:grid; place-items:center; width:28px; height:28px; border-radius:50%; color:var(--adviser-review-accent); background:var(--adviser-review-soft); font-size:10px; font-weight:700; }
+body.prism-workspace.adviser-dashboard-page main .adviser-student-copy { display:grid; min-width:0; gap:3px; }
+body.prism-workspace.adviser-dashboard-page main .adviser-student-copy > strong { color:var(--prism-text); font-size:12px; font-weight:700; line-height:1.4; }
+body.prism-workspace.adviser-dashboard-page main .adviser-student-copy > small { color:var(--prism-muted); font-size:11px; line-height:1.4; }
+body.prism-workspace.adviser-dashboard-page main .adviser-student-copy > .adviser-student-project { font-size:10px; }
+body.prism-workspace.adviser-dashboard-page main .adviser-student-progress { display:block; width:min(100%,84px); height:3px; margin-top:2px; overflow:hidden; border-radius:99px; background:var(--prism-border); }
+body.prism-workspace.adviser-dashboard-page main .adviser-student-progress > span { display:block; height:100%; border-radius:inherit; background:var(--adviser-review-accent); }
+body.prism-workspace.adviser-dashboard-page main .adviser-student-meta { display:grid; justify-items:end; gap:4px; }
+body.prism-workspace.adviser-dashboard-page main .adviser-student-meta > small { color:var(--prism-muted); font-size:10px; }
+body.prism-workspace.adviser-dashboard-page main .adviser-student-status { display:flex; align-items:center; gap:5px; color:var(--prism-muted); font-size:10px; font-weight:600; line-height:1.4; }
+body.prism-workspace.adviser-dashboard-page main .adviser-student-status::before { flex:0 0 5px; width:5px; height:5px; border-radius:50%; background:currentColor; content:''; }
+body.prism-workspace.adviser-dashboard-page main .adviser-student-status.is-pending { color:var(--prism-warning-fg); }
+body.prism-workspace.adviser-dashboard-page main .adviser-student-status.is-delayed { color:var(--prism-danger-fg); }
+body.prism-workspace.adviser-dashboard-page main .adviser-student-status.is-on-track { color:var(--prism-success-fg); }
+body.prism-workspace.adviser-dashboard-page main .adviser-students-panel a.adviser-student-documents { justify-self:end; color:var(--adviser-review-accent); font-size:10px; line-height:1.4; text-decoration:none; }
+body.prism-workspace.adviser-dashboard-page main .adviser-students-panel a:hover { text-decoration:underline; }
+body.prism-workspace.adviser-dashboard-page main .adviser-students-note { margin:8px 0 0; color:var(--prism-muted); font-size:10px; line-height:1.5; }
+body.prism-workspace.adviser-dashboard-page :is(.adviser-summary-card,.adviser-student-link,.adviser-student-documents):focus-visible { outline:2px solid var(--prism-focus); outline-offset:3px; }
+html.dark-theme body.prism-workspace.adviser-dashboard-page { --adviser-review-accent:#b6a7ff; --adviser-review-soft:#2b244b; }
+html.dark-theme body.prism-workspace.adviser-dashboard-page main .adviser-document-actions .adviser-button.is-primary { color:#fff; border-color:#5847b8; background:#5847b8; }
+@media(max-width:1100px) {
+  body.prism-workspace.adviser-dashboard-page main .adviser-document-top { grid-template-columns:minmax(0,1fr) auto; gap:8px 12px; }
+  body.prism-workspace.adviser-dashboard-page main .adviser-document-main { grid-column:1; grid-row:1; }
+  body.prism-workspace.adviser-dashboard-page main .adviser-document-status { grid-column:1; grid-row:2; padding-left:42px; }
+  body.prism-workspace.adviser-dashboard-page main .adviser-document-actions { grid-column:2; grid-row:1 / 3; }
+}
+@media(max-width:900px) {
+  body.prism-workspace.adviser-dashboard-page main .adviser-content-grid { grid-template-columns:minmax(0,1fr); gap:16px; }
+  body.prism-workspace.adviser-dashboard-page main .adviser-students-panel { width:100%; }
+}
+@media(max-width:600px) {
+  body.prism-workspace.adviser-dashboard-page main .adviser-content-grid > .adviser-panel { padding:16px; }
+  body.prism-workspace.adviser-dashboard-page main .adviser-review-panel .adviser-panel-heading { align-items:stretch; flex-direction:column; gap:12px; }
+  body.prism-workspace.adviser-dashboard-page main .adviser-queue-toolbar { flex:auto; width:100%; }
+  body.prism-workspace.adviser-dashboard-page main .adviser-review-panel .adviser-summary-grid { gap:6px; }
+  body.prism-workspace.adviser-dashboard-page main .adviser-review-panel .adviser-summary-card { min-height:78px; padding:9px 8px; }
+  body.prism-workspace.adviser-dashboard-page main .adviser-review-panel .adviser-summary-card > span { font-size:10px; }
+  body.prism-workspace.adviser-dashboard-page main .adviser-document-top { grid-template-columns:minmax(0,1fr); padding:10px; }
+  body.prism-workspace.adviser-dashboard-page main .adviser-document-main { grid-column:1; grid-row:1; }
+  body.prism-workspace.adviser-dashboard-page main .adviser-document-status { grid-column:1; grid-row:2; }
+  body.prism-workspace.adviser-dashboard-page main .adviser-document-actions { grid-column:1; grid-row:3; justify-content:flex-start; flex-wrap:wrap; padding-left:42px; }
+  body.prism-workspace.adviser-dashboard-page main .adviser-document-actions > * { width:auto; }
+  body.prism-workspace.adviser-dashboard-page main .adviser-document-status .prism-badge { max-width:100%; font-size:10px; }
+  body.prism-workspace.adviser-dashboard-page main .adviser-document-details .adviser-document-meta { grid-template-columns:minmax(0,1fr); }
+}
+@media(max-width:360px) {
+  body.prism-workspace.adviser-dashboard-page main .adviser-document-top { grid-template-columns:minmax(0,1fr); }
+  body.prism-workspace.adviser-dashboard-page main .adviser-document-actions { padding-left:0; }
+}

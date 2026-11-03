@@ -1,37 +1,51 @@
 <?php
 /** Only explicit, bounded page sizes are accepted by record browsers. */
-function prism_page_size(array $query): int
+function prism_page_size(array $query, array $allowedSizes = [10,25,50,100]): int
 {
     $requested = $query['perPage'] ?? 10;
-    return is_scalar($requested) && in_array((string)$requested, ['10', '25', '50', '100'], true) ? (int)$requested : 10;
+    return is_scalar($requested) && in_array((string)$requested, array_map('strval',$allowedSizes), true) ? (int)$requested : 10;
 }
 
 /** GET controls for server-rendered history pages, preserving the other view state. */
-function prism_page_controls(array $page, array $query, string $pageKey, string $sizeKey): void
+function prism_page_controls(array $page, array $query, string $pageKey, string $sizeKey, array $options = []): void
 {
     $escape = static fn($value) => htmlspecialchars((string)$value, ENT_QUOTES, 'UTF-8');
-    echo '<div class="prism-record-footer"><form method="get"><label class="prism-row-size">Rows per page: <select name="' . $escape($sizeKey) . '">';
-    foreach ([10, 25, 50, 100] as $size) echo '<option' . ($size === $page['limit'] ? ' selected' : '') . '>' . $size . '</option>';
+    $fragment = isset($options['fragment']) ? '#'.$escape($options['fragment']) : '';
+    $autoSubmit = !empty($options['autoSubmit']);
+    $url = static fn(int $target) => '?'.$escape(http_build_query(array_merge($query,[$pageKey=>$target]))).$fragment;
+    echo '<div class="prism-record-footer"><form method="get"'.($fragment?' action="'.$fragment.'"':'').($autoSubmit?' data-page-auto-submit':'').'><label class="prism-row-size">Rows per page: <select name="' . $escape($sizeKey) . '">';
+    foreach (($options['pageSizes'] ?? [10, 25, 50, 100]) as $size) echo '<option' . ($size === $page['limit'] ? ' selected' : '') . '>' . $size . '</option>';
     echo '</select></label>';
     foreach ($query as $key => $value) if ($key !== $pageKey && $key !== $sizeKey && is_scalar($value)) {
         echo '<input type="hidden" name="' . $escape($key) . '" value="' . $escape($value) . '">';
     }
-    echo '<button class="prism-btn" type="submit">Apply rows</button></form><nav class="prism-pagination" aria-label="History pages">';
+    if (!$autoSubmit) echo '<button class="prism-btn" type="submit">Apply rows</button>';
+    echo '</form><nav class="prism-pagination" aria-label="History pages">';
     $pages = max(1, (int)ceil($page['total'] / $page['limit']));
     foreach (['Previous' => $page['page'] - 1, 'Next' => $page['page'] + 1] as $label => $target) {
         if ($target < 1 || $target > $pages) echo '<button type="button" disabled>' . $label . '</button>';
-        else echo '<a class="prism-btn" href="?' . $escape(http_build_query(array_merge($query, [$pageKey => $target]))) . '">' . $label . '</a>';
+        else echo '<a class="prism-btn" href="' . $url($target) . '">' . $label . '</a>';
+        if ($label==='Previous' && !empty($options['numbered'])) {
+            $numbers=array_unique([1,$page['page']-1,$page['page'],$page['page']+1,$pages]); sort($numbers); $last=0;
+            foreach ($numbers as $number) {
+                if ($number<1 || $number>$pages) continue;
+                if ($last && $number>$last+1) echo '<span class="prism-page-gap" aria-hidden="true">…</span>';
+                echo $number===$page['page'] ? '<span class="prism-page-current" aria-current="page">'.$number.'</span>'
+                    : '<a class="prism-btn" href="'.$url($number).'" aria-label="Page '.$number.'">'.$number.'</a>';
+                $last=$number;
+            }
+        }
     }
-    echo '</nav><p>Showing ' . ($page['total'] ? (($page['page'] - 1) * $page['limit'] + 1) : 0) . '–' . min($page['total'], $page['page'] * $page['limit']) . ' of ' . $page['total'] . ' records</p></div>';
+    echo '</nav><p>Showing ' . ($page['total'] ? (($page['page'] - 1) * $page['limit'] + 1) : 0) . '–' . min($page['total'], $page['page'] * $page['limit']) . ' of ' . $page['total'] . ' '.$escape($options['recordLabel']??'records').'</p></div>';
 }
 
 /** Shared scoped SQL pagination. Callers provide trusted SQL; values stay bound. */
-function prism_page_query(PDO $pdo, string $select, string $scope, array $params, string $order, array $query): array
+function prism_page_query(PDO $pdo, string $select, string $scope, array $params, string $order, array $query, array $allowedSizes = [10,25,50,100]): array
 {
     $count = $pdo->prepare('SELECT COUNT(*) ' . $scope);
     $count->execute($params);
     $total = (int)$count->fetchColumn();
-    $limit = isset($query['preview']) ? max(1, min(10, (int)$query['preview'])) : prism_page_size($query);
+    $limit = isset($query['preview']) ? max(1, min(10, (int)$query['preview'])) : prism_page_size($query,$allowedSizes);
     $page = isset($query['preview']) ? 1 : max(1, min(max(1, (int)ceil($total / $limit)), (int)($query['page'] ?? 1)));
     $offset = ($page - 1) * $limit;
     $stmt = $pdo->prepare($select . ' ' . $scope . ' ORDER BY ' . $order . " LIMIT $limit OFFSET $offset");

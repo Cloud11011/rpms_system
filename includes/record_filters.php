@@ -2,8 +2,10 @@
 /** Scoped filter choices and fixed SQL columns shared by student record lists. */
 function prism_student_stage_column(PDO $pdo): string
 {
-    if (!function_exists('research_onboarding_available') || !research_onboarding_available($pdo)) return 's.stage';
-    return 'COALESCE((SELECT sw.stage_key FROM research_project_members sm JOIN research_projects sp ON sp.id=sm.project_id JOIN ierb_workflows sw ON sw.id=sp.workflow_id WHERE sm.student_id=s.id),s.stage)';
+    if (!function_exists('ierb_v14_schema_available') || !ierb_v14_schema_available($pdo)) return 'NULL';
+    $own='(SELECT sw.stage_key FROM ierb_workflows sw WHERE sw.student_id=s.id)';
+    if (!research_projects_available($pdo)) return $own;
+    return 'COALESCE((SELECT sw.stage_key FROM research_project_members sm JOIN research_projects sp ON sp.id=sm.project_id JOIN ierb_workflows sw ON sw.id=sp.workflow_id WHERE sm.student_id=s.id),'.$own.')';
 }
 
 function prism_student_status_column(PDO $pdo): string
@@ -22,7 +24,7 @@ function prism_student_filter_options(PDO $pdo, string $scope, array $params): a
     foreach ($columns as $key => $column) {
         $stmt = $pdo->prepare("SELECT DISTINCT $column AS value $scope ORDER BY value");
         $stmt->execute($params); $values = $stmt->fetchAll(PDO::FETCH_COLUMN);
-        if ($key === 'stage') $values = array_merge($columns['stage']==='s.stage'?STAGE_SEQUENCE:array_keys(IerbStage::LABELS), $values);
+        if ($key === 'stage') $values = array_keys(IerbStage::LABELS);
         if ($key === 'academicYear') $values = array_merge($catalog['academicYears'], $values);
         if ($key === 'status') $values = array_merge(['On Track','Pending','Delayed'], $values);
         $options[$key] = [];

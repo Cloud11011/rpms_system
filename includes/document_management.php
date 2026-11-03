@@ -27,6 +27,25 @@ function document_management_from(): string
     return 'FROM documents d LEFT JOIN students s ON s.id=d.student_id LEFT JOIN advisers da ON da.id=s.adviser_id';
 }
 
+/** Document categories have semantic stages; numeric columns are version buckets. */
+function document_v14_stage_sql(): string
+{
+    if (!ierb_v14_schema_available(db())) return 'NULL';
+    $cases=[];
+    foreach (ierb_v14_requirements() as [$label,$stage,$aliases]) {
+        foreach ($aliases as $alias) $cases[]='WHEN '.db()->quote($alias).' THEN '.db()->quote($stage);
+    }
+    return '(CASE WHEN EXISTS (SELECT 1 FROM ierb_workflows dw WHERE dw.student_id=d.student_id) THEN CASE d.document_type '
+        .implode(' ',$cases).' ELSE NULL END ELSE NULL END)';
+}
+
+function document_v14_stage_label(PDO $pdo,int $studentId,string $type): string
+{
+    $key=ierb_v14_requirement_key($type);
+    return $key!==null && ierb_v14_read_summary($pdo,$studentId)
+        ? IerbStage::LABELS[ierb_v14_requirements()[$key][1]] : 'Document record';
+}
+
 /** Same dataset and pagination as the existing repository; SQL ordering is strictly allowlisted. */
 function document_list_query(array $user, ?int $viewerAdviserId, array $query, bool $projects = false): array
 {
@@ -48,18 +67,20 @@ function document_list_query(array $user, ?int $viewerAdviserId, array $query, b
         . " THEN 'Returned for Revision' WHEN d.review_status='Approved' THEN CASE WHEN d.rpms_submitted_at IS NOT NULL AND CAST(d.rpms_submitted_at AS CHAR)<>'' THEN 'Submitted to RPMS' ELSE 'Ready for Formal RPMS Submission' END WHEN d.review_status IN ('Denied','Resubmission Requested') THEN 'Needs Revision' ELSE 'Pending Adviser Review' END";
     if (document_management_text($query, 'actionable') === '1') $scope .= " AND d.is_current=1 AND ($stateSql) IN ('Needs Revision','Returned for Revision','Ready for Formal RPMS Submission')";
     $baseScope = $scope; $baseParams = $params;
+    $stageSql=document_v14_stage_sql();
     $searchTerm = document_management_text($query, 'q');
     if ($searchTerm !== '') {
         $search = prism_search_clause(['d.original_name','d.student_name','s.protocol_code','d.document_type','d.uploaded_by','d.stage'], $searchTerm, $params);
-        foreach (STAGE_SEQUENCE as $i => $stage) if (mb_stripos(stage_label($stage), $searchTerm) !== false) {
-            $search .= ' OR d.stage=:labelStage' . $i; $params[':labelStage' . $i] = $stage;
+        foreach (IerbStage::LABELS as $stage => $label) if (mb_stripos($label, $searchTerm) !== false) {
+            $key=':labelStage'.count($params);
+            $search .= ' OR '.$stageSql.'='.$key; $params[$key] = $stage;
         }
         $scope .= ' AND (' . $search . ')';
     }
-    foreach (['review'=>'d.review_status','stage'=>'d.stage','type'=>'d.document_type','course'=>'s.course','year'=>'SUBSTR(d.uploaded_at,1,4)','state'=>$stateSql] as $key => $column) {
+    foreach (['review'=>'d.review_status','stage'=>$stageSql,'type'=>'d.document_type','course'=>'s.course','year'=>'SUBSTR(d.uploaded_at,1,4)','state'=>$stateSql] as $key => $column) {
         $value = document_management_text($query, $key);
         if ($value === '') continue;
-        if ($key === 'stage' && !in_array($value, STAGE_SEQUENCE, true)) throw new DocumentManagementError('Choose an official IERB stage.');
+        if ($key === 'stage' && !isset(IerbStage::LABELS[$value])) throw new DocumentManagementError('Choose a current V14 IERB stage.');
         if ($key === 'year' && !preg_match('/\A[1-9][0-9]{3}\z/', $value)) throw new DocumentManagementError('Choose a valid upload year.');
         $scope .= " AND ($column)=:$key"; $params[":$key"] = $value;
     }
@@ -81,7 +102,7 @@ function document_list_query(array $user, ?int $viewerAdviserId, array $query, b
     }
     $orders = ['newest'=>'d.uploaded_at DESC, d.id DESC','oldest'=>'d.uploaded_at ASC, d.id ASC',
         'name-asc'=>'d.original_name ASC, d.id ASC','name-desc'=>'d.original_name DESC, d.id ASC','student-asc'=>'d.student_name ASC, d.id ASC'];
-    $stageOrder = "CASE d.stage WHEN 'Stage 1' THEN 1 WHEN 'Stage 2' THEN 2 WHEN 'Stage 3' THEN 3 WHEN 'Stage 4' THEN 4 WHEN 'Stage 5' THEN 5 WHEN 'Completed' THEN 6 ELSE 7 END";
+    $stageOrder = "CASE $stageSql WHEN 'initial_submission' THEN 1 WHEN 'resubmission_amendment' THEN 2 WHEN 'approval_data_gathering' THEN 3 WHEN 'ierb_completed' THEN 4 ELSE 5 END";
     $advancedOrders = ['student-desc'=>'d.student_name DESC, d.id ASC','type-asc'=>'d.document_type ASC, d.id ASC',
         'adviser-asc'=>'da.full_name ASC, d.id ASC','stage-asc'=>$stageOrder . ' ASC, d.id ASC',
         'stage-desc'=>$stageOrder . ' DESC, d.id ASC','review'=>'d.review_status ASC, d.id ASC','reviewed-newest'=>'d.reviewed_at DESC, d.id ASC'];
@@ -102,7 +123,7 @@ function document_list_options(PDO $pdo, array $spec, array $user): array
     }
     if ($user['role'] === 'admin') {
         $options['advisers'] = $pdo->query('SELECT id, full_name AS name FROM advisers ORDER BY full_name,id')->fetchAll(PDO::FETCH_ASSOC);
-        $options['stages'] = array_map(static fn($key)=>['key'=>$key,'label'=>stage_label($key)], STAGE_SEQUENCE);
+        $options['stages'] = array_map(static fn($key)=>['key'=>$key,'label'=>IerbStage::LABELS[$key]], array_keys(IerbStage::LABELS));
     }
     return ['counts'=>$counts,'filterOptions'=>$options];
 }

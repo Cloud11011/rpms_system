@@ -1,0 +1,25 @@
+{
+  "status": "PASS",
+  "assertions": 18,
+  "cases": [
+    "ZIP checklist uses the authoritative project title",
+    "V14 official cycle count maps to the ZIP counter",
+    "Selected requirements use exactly one atomic bulk operation",
+    "Acceptance binds the authoritative submission holder and workflow revision",
+    "Bulk request carries only the selected current evidence identities",
+    "Bulk request includes an idempotency key",
+    "The exhausted three-cycle limit has no new-case control",
+    "Exhausted cycle usage remains visible",
+    "Advisers have no official-case initiation control (approved exception)",
+    "Advisers cannot select requirements for RPMS acceptance",
+    "The Student correction checklist includes affected evidence and its required Amendment",
+    "Correction progress counts the required Amendment",
+    "Returned current evidence retains the successor-version action",
+    "The required missing Amendment retains its upload shortcut",
+    "Stage 3 alone gives conditional Stage 2 neither a completed class nor a checkmark",
+    "A resolved official case gives conditional Stage 2 its completed marker",
+    "A reopened official case presents Stage 2 as current even after an earlier resolved case",
+    "Absent status filters produce no literal null chips"
+  ],
+  "scope": "Chromium with synthetic request contracts; no live database or provider requests."
+}

@@ -3,7 +3,7 @@ require_once __DIR__.'/document_summary_ai.php';
 
 function summary_history_available(PDO $pdo): bool
 {
-    return in_array((string)$pdo->query("SELECT v FROM schema_meta WHERE k='schema_version'")->fetchColumn(),['14','15'],true);
+    return in_array((string)$pdo->query("SELECT v FROM schema_meta WHERE k='schema_version'")->fetchColumn(),['14','15','16'],true);
 }
 
 function summary_legacy_source(string $stored): string

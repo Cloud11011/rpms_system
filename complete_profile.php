@@ -71,7 +71,7 @@ header('Cache-Control: no-store');
                 </section>
                 <?php if($student): ?>
                 <section class="wiz-panel" data-step="2" hidden>
-                    <fieldset id="onboardingAcademics">
+                    <fieldset id="onboardingAcademics" data-registration-years>
                         <legend class="sr-only">Academic information (required)</legend>
                         <div class="academic-fields-grid">
                             <label for="onboardingUnit">Academic unit<select id="onboardingUnit" data-academic="unit" required></select></label>

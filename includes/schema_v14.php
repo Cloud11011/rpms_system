@@ -53,7 +53,7 @@ function schema_v14_verify(PDO $pdo,bool $partial=false,array $extraTables=[]): 
     $present=$pdo->query('SHOW TABLES')->fetchAll(PDO::FETCH_COLUMN);
     foreach (array_keys(schema_v14_tables()) as $name) {
         if (!in_array($name,$present,true)) {
-            if (!$partial || in_array($version,['14','15'],true)) throw new RuntimeException('Incomplete summary schema.');
+            if (!$partial || in_array($version,['14','15','16'],true)) throw new RuntimeException('Incomplete summary schema.');
         } elseif (!schema_extension_matches($pdo,$name,schema_v14_definition($pdo,$name),$contract[$name],$collation)) throw new RuntimeException('Summary schema drift: '.$name.' (legacy base '.$collation.').');
     }
 }

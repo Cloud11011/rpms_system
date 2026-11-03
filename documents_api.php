@@ -106,6 +106,12 @@ function doc_row(array $d, array $user, ?int $viewerAdviserId): array
     $locked = document_is_locked($d);
     $isCurrent = !isset($d['is_current']) || (int)$d['is_current'] === 1;
     $role = $user['role'];
+    // Numeric stage columns remain private version/storage buckets. Active labels
+    // come from the enrolled V14 requirement, never the historical stage catalog.
+    $official=!empty($d['student_id'])?ierb_v14_read_summary(db(),(int)$d['student_id']):null;
+    $requirement=ierb_v14_requirement_key((string)$d['document_type']);
+    $displayStage=$official && $requirement!==null
+        ? IerbStage::LABELS[ierb_v14_requirements()[$requirement][1]] : 'Document record';
 
     $row = [
         'id' => $d['id'],
@@ -123,7 +129,7 @@ function doc_row(array $d, array $user, ?int $viewerAdviserId): array
         'course' => $d['course'] ?? null,
         'documentType' => $d['document_type'],
         'stage' => $d['stage'],
-        'stageLabel' => stage_label($d['stage']),
+        'stageLabel' => $displayStage,
         'notes' => $d['notes'],
         'reviewStatus' => $d['review_status'],
         'reviewRemarks' => $d['review_remarks'],
@@ -449,7 +455,7 @@ function upload_document_file(PDO $pdo, array $user, ?int $viewerAdviserId, arra
                 'message'=>"Your document \"$origName\"$versionText was received and is pending adviser review.",
                 'type'=>'Submission Confirmation'] : null,
             ['subject'=>'New document to review',
-                'message'=>"$studentName uploaded \"$origName\"$versionText ($documentType, " . stage_label($stage) . ').',
+                'message'=>"$studentName uploaded \"$origName\"$versionText ($documentType, " . document_v14_stage_label($pdo,(int)$studentDbId,$documentType) . ').',
                 'type'=>'Review Needed']) : [];
         $commitAttempted = true;
         if (!$pdo->commit()) throw new RuntimeException('Upload commit could not be confirmed.');
@@ -688,7 +694,7 @@ if ($action === 'delete_preview') {
         'id' => $doc['id'],
         'originalName' => (string)$doc['original_name'],
         'documentType' => (string)$doc['document_type'],
-        'stageLabel' => stage_label($doc['stage']),
+        'stageLabel' => document_v14_stage_label($pdo,(int)$doc['student_id'],$doc['document_type']),
         'versionNo' => (int)($doc['version_no'] ?? 1),
         'isCurrent' => $isCurrent,
         'uploadedBy' => trim((string)($doc['uploaded_by'] ?? '')) !== '' ? (string)$doc['uploaded_by'] : null,

@@ -25,8 +25,25 @@
             const catalog = window.PRISM_ACADEMIC_CATALOG;
             const field = name => root.querySelector(`[data-academic="${name}"]`);
             const unit = field('unit'), program = field('program'), year = field('year'), ay = field('academic-year');
-            const summary = field('summary'), legacy = field('legacy'), reset = field('reset');
-            const group = root.closest('form').querySelector('[data-research-group]');
+            const reset = field('reset');
+            const form = root.closest('form');
+            const group = form.querySelector('[data-research-group]');
+            const researchTitle = form.querySelector('#research, #entryResearchTitle');
+            const titleInitiallyRequired = researchTitle?.required || false;
+            const syncTitleRequirement = () => {
+                if (!researchTitle) return;
+                const creating = group?.value === '__create__';
+                researchTitle.required = titleInitiallyRequired || creating;
+                if (creating) {
+                    researchTitle.setAttribute('minlength', '3');
+                    researchTitle.setCustomValidity(researchTitle.value.trim().length >= 3
+                        ? ''
+                        : 'Enter a research title of at least 3 characters before creating a project.');
+                } else {
+                    researchTitle.removeAttribute('minlength');
+                    researchTitle.setCustomValidity('');
+                }
+            };
             let groupRequest = 0;
             let original = null, changed = false;
             const value = input => String(input ?? '');
@@ -36,6 +53,8 @@
                 if (preserve && selected && !entries.some(([key]) => key === selected)) select.add(new Option(selected + ' (existing value)', selected));
                 select.value = selected;
             };
+            const academicYearOptions = () => root.hasAttribute('data-registration-years') && !original
+                ? (catalog.registrationYears || catalog.academicYears) : catalog.academicYears;
             const selectedProgram = () => catalog.programs[program.value];
             const years = key => {
                 const entry = catalog.programs[key];
@@ -75,8 +94,8 @@
                 const selected = group.value;
                 const old = original?.group ?? original?.groupId ?? '';
                 const preserve = old && !originalGroupIsStandard();
-                group.replaceChildren(new Option(preserve ? 'Keep existing research group' : 'No research group', ''));
-                if (preserve) group.add(new Option('Keep existing: ' + old, old));
+                group.replaceChildren(new Option(preserve ? 'Choose a project (or keep current assignment)' : 'Choose a research project', ''));
+                if (preserve) group.add(new Option('Keep current assignment unchanged - ID: ' + old, old));
                 else if (old && !changed) group.add(new Option(old, old));
                 group.value = [...group.options].some(o => o.value === selected) ? selected : '';
                 const p = selectedProgram();
@@ -122,10 +141,7 @@
                 unit.setCustomValidity(validate && !catalog.units[unit.value] && unit.value !== '__graduate__' ? 'Choose an academic unit or the graduate catalog group.' : '');
                 program.setCustomValidity(validate && !entry ? 'Choose a program from the catalog.' : '');
                 year.setCustomValidity(validate && entry?.level !== 'graduate' && !years(program.value).includes(year.value) ? 'Choose a valid year level.' : '');
-                ay.setCustomValidity(validate && !catalog.academicYears.includes(ay.value) ? 'Choose an academic year from the list.' : '');
-                summary.textContent = entry ? entry.label + (entry.level === 'graduate' ? ' - Graduate unit and year level are not yet configured.' : ` - ${entry.duration}-year program.`) : (original && !changed ? 'Existing program: ' + (value(original.course) || 'Not recorded') : 'Select a program to see its full name and year levels.');
-                legacy.hidden = !original;
-                legacy.textContent = original ? 'Stored academic values: ' + [original.course, original.academicUnitKey, original.programKey, original.yearLevel, original.academicYear].filter(v => v !== null && v !== undefined && v !== '').join(' | ') + (changed ? '. Saving will validate the new selection.' : '. These values are preserved unless you change the academic controls.') : '';
+                ay.setCustomValidity(validate && !academicYearOptions().includes(ay.value) ? 'Choose an academic year from the list.' : '');
                 reset.hidden = !original || !changed;
                 refreshGroups();
             }
@@ -134,8 +150,10 @@
                 [unit,program,ay].forEach(select=>{select.disabled=!!record?.projectId;});
                 if (group) {
                     const storedGroup = record?.group ?? record?.groupId ?? '';
-                    group.replaceChildren(new Option(storedGroup || 'No research group', storedGroup));
+                    const title = record?.projectTitle || record?.research || 'Existing research project';
+                    group.replaceChildren(new Option(storedGroup ? `${title} - Project ID: ${storedGroup}` : 'No research project', storedGroup));
                 }
+                syncTitleRequirement();
                 const existingProgram = catalog.programs[record?.programKey];
                 options(unit, [...Object.entries(catalog.units).map(([key, data]) => [key, data.label]), ['__graduate__', 'Graduate programs (catalog grouping)']], 'Choose an academic unit', existingProgram?.level === 'graduate' ? '__graduate__' : value(record?.academicUnitKey), true);
                 programOptions(value(record?.programKey), true);
@@ -144,7 +162,8 @@
                     program.value = '__legacy__';
                 }
                 yearOptions(value(record?.yearLevel), true);
-                options(ay, catalog.academicYears.map(label => [label, label]), 'Choose an academic year', value(record?.academicYear), true);
+                options(ay, academicYearOptions().map(label => [label, label]), 'Choose an academic year',
+                    value(record?.academicYear ?? catalog.currentAcademicYear ?? ''), true);
                 refresh();
             }
             unit.addEventListener('change', () => {
@@ -156,6 +175,8 @@
             });
             program.addEventListener('change', () => { changed = true; yearOptions(year.value); refresh(); });
             [year, ay].forEach(select => select.addEventListener('change', () => { changed = true; refresh(); }));
+            group?.addEventListener('change', syncTitleRequirement);
+            researchTitle?.addEventListener('input', syncTitleRequirement);
             reset.addEventListener('click', () => { setRecord(original); unit.focus(); });
             setRecord(null);
             return {

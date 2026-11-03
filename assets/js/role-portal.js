@@ -1,8 +1,8 @@
 document.addEventListener('DOMContentLoaded', () => {
     const body = document.body;
-    const STAGES = ['Stage 1', 'Stage 2', 'Stage 3', 'Stage 4', 'Stage 5', 'Completed'];
+    const STAGES = ['initial_submission','resubmission_amendment','approval_data_gathering','ierb_completed'];
     const stageLabels = window.PRISM_STAGE_LABELS || {};
-    const labelForStage = stageKey => stageLabels[stageKey] || stageKey;
+    const labelForStage = stageKey => stageLabels[stageKey] || (stageKey ? 'Research setup pending' : 'Research setup pending');
     let stageConfiguration = null;
     async function loadStageConfiguration() {
         try { return await PrismUI.request('stage_labels_api.php?action=list'); }
@@ -112,7 +112,12 @@ document.addEventListener('DOMContentLoaded', () => {
         activity: ['Activity Logs', 'Review actions recorded for your student account.'],
     };
 
-    const dashboardStageDescriptions = STAGES.map(() => 'RPMS maintains the official stage. Review stage guidance or contact RPMS for help. Document review and submission do not grant institutional ethics approval.');
+    const dashboardStageDescriptions = [
+        'Initial Submission: verified group members upload required documents. The Adviser reviews each file; approved documents are formally forwarded to RPMS. RPMS verifies all 13 required documents before an authorized Admin advances the project to Stage 3. Ordinary revisions do not consume an official resubmission attempt.',
+        'Conditional stage: only RPMS may open an official resubmission/amendment case, record the reason, and decide whether an Amendment Form is needed. After corrections and review, RPMS returns the project to its interrupted stage. No more than three official resubmission cases may be opened.',
+        'Approval of Data Gathering: RPMS must record and accept Form 33 – Certificate of Approval with its institutional approval reference. The project remains at Stage 3 until accepted; RPMS may open an official resubmission if needed. Acceptance permits Final Report submission.',
+        'IERB Completed: the group submits Form 33-0B – Final Report Form through the authorized review workflow. A valid formal RPMS submission marks the project IERB Completed. This records completion of monitoring, not institutional ethics approval.',
+    ];
     let selectedDashboardStage = 0;
     let selectedProgressStage = 0;
     let dashboardPercentFrame = 0;
@@ -143,8 +148,10 @@ document.addEventListener('DOMContentLoaded', () => {
         const stageName = labelForStage(STAGES[index]);
         const done = !loadErrors.progress && completedStage(index, stageIndex);
         const current = !loadErrors.progress && Boolean(myRecord) && stageNumber === stageIndex && stageIndex < STAGES.length;
-        const state = loadErrors.progress ? 'Progress unavailable' : myRecord?.v14 && STAGES[index] === 'resubmission_amendment' && !current ? 'Conditional' : done ? 'Completed' : current ? 'In progress' : 'Coming up';
+        const state = loadErrors.progress ? 'Progress unavailable' : isWorkflowPending() ? 'Setup pending'
+            : index === 1 && !current && !done ? 'Conditional' : done ? 'Completed' : current ? 'In progress' : 'Coming up';
         const copy = loadErrors.progress ? 'Your IERB stage details could not be loaded. Please try again shortly.'
+            : isWorkflowPending() ? 'RPMS must complete the approved research setup before official progress can begin.'
             : current && myRecord?.requirements && myRecord.requirements !== 'None'
                 ? `Current requirement: ${myRecord.requirements}` : dashboardStageDescriptions[index];
 
@@ -195,7 +202,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const number = index + 1;
             const done = !unavailable && completedStage(index, stageIndex);
             const current = !unavailable && Boolean(myRecord) && number === stageIndex && stageIndex < STAGES.length;
-            const state = myRecord?.v14 && stage === 'resubmission_amendment' && !current ? 'conditional' : done ? 'completed' : current ? 'current' : 'upcoming';
+            const state = isWorkflowPending() ? 'setup pending' : index === 1 && !current && !done ? 'conditional' : done ? 'completed' : current ? 'current' : 'upcoming';
             const item = document.createElement('li');
             const button = document.createElement('button');
             button.type = 'button';
@@ -233,7 +240,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const number = Math.max(0, Math.min(STAGES.length - 1, Number(index) || 0));
         const stageKey = STAGES[number];
         const stageIndex = myRecord ? STAGES.indexOf(myRecord.stage) + 1 : 0;
-        const state = loadErrors.progress ? 'Unavailable' : myRecord?.v14 && stageKey === 'resubmission_amendment' && myRecord.stage !== stageKey ? 'Conditional' : completedStage(number, stageIndex)
+        const state = loadErrors.progress ? 'Unavailable' : isWorkflowPending() ? 'Setup pending' : number === 1 && myRecord?.stage !== stageKey && !completedStage(number) ? 'Conditional' : completedStage(number, stageIndex)
             ? 'Completed' : myRecord && number + 1 === stageIndex ? 'In progress' : 'Upcoming';
         target.replaceChildren();
         const label = document.createElement('span'); label.textContent = `Stage ${number + 1}`;
@@ -320,7 +327,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     async function loadDocuments() {
         try {
-            const data = await PrismUI.request(`documents_api.php?action=list&perPage=${docPager.pageSize}`);
+            const data = await PrismUI.request(`documents_api.php?action=list&page=1&sort=newest&perPage=${docPager.pageSize}`);
             return {records:data.documents,error:false,total:data.total??data.documents.length,page:data.page??1,limit:data.limit,counts:data.counts};
         } catch (_) {
             return { records: [], error: true };
@@ -386,12 +393,18 @@ document.addEventListener('DOMContentLoaded', () => {
     // ------------------------------------------------------------------
     // Rendering
     // ------------------------------------------------------------------
-    function completedStage(index, stageIndex) {
-        if (!myRecord?.v14) return Boolean(myRecord) && (index + 1 < stageIndex || stageIndex === STAGES.length);
-        const key = STAGES[index];
-        if (key === 'resubmission_amendment') return false;
-        if (key === 'initial_submission') return myRecord.progress >= 50;
-        return myRecord.stage === 'ierb_completed';
+    function isWorkflowPending() {
+        return Boolean(myRecord && !myRecord.v14);
+    }
+
+    function completedStage(index) {
+        if (!myRecord?.v14) return false;
+        const key=STAGES[index];
+        if (key==='resubmission_amendment') return myRecord.stage!=='resubmission_amendment'
+            && Number(myRecord.v14.resolvedOfficialResubmissionCount||0)>0;
+        if (key==='initial_submission') return myRecord.progress>=50;
+        if (key==='approval_data_gathering') return myRecord.stage==='ierb_completed';
+        return myRecord.stage==='ierb_completed';
     }
 
     function render() {
@@ -409,8 +422,8 @@ document.addEventListener('DOMContentLoaded', () => {
         $('welcomeName').textContent = body.dataset.name;
         $('researchTitle').textContent = loadErrors.progress ? 'Research details are temporarily unavailable.' : myRecord?.research || 'No research details yet.';
         const dashboardProtocolCode = myRecord?.protocolCode || '';
-        $('dashboardProtocolCode').textContent = dashboardProtocolCode || 'Not yet assigned';
-        $('dashboardProtocol').hidden = false;
+        $('dashboardProtocolCode').textContent = dashboardProtocolCode;
+        $('dashboardProtocol').hidden = !dashboardProtocolCode;
         renderDashboardProgress(stageIndex, progress, status);
         const pendingCard = $('dashboardPendingCard');
         const pendingIcon = $('dashboardPendingIcon');
@@ -480,8 +493,8 @@ document.addEventListener('DOMContentLoaded', () => {
         $('stageList').innerHTML = loadErrors.progress ? empty('Unable to load your IERB progress. Please try again.') : STAGES.map((s, i) => {
             const cls = completedStage(i, stageIndex) ? 'complete' : i + 1 === stageIndex ? 'current' : '';
             const icon = cls === 'complete' ? 'fa-circle-check' : 'fa-circle';
-            const conditional = myRecord?.v14 && s === 'resubmission_amendment' && cls !== 'current';
-            return `<button type="button" class="stage-card ${cls}" data-progress-stage="${i}"${cls==='current'?' aria-current="step"':''} aria-pressed="${i === selectedProgressStage ? 'true' : 'false'}"><i class="fa-solid ${icon}" aria-hidden="true"></i><strong>${esc(labelForStage(s))}</strong><small>${conditional?'Conditional':cls==='complete'?'✓ Completed':cls==='current'?"You're here":'Upcoming'}</small><span>${esc(s)}</span></button>`;
+            const conditional = s === 'resubmission_amendment' && cls !== 'current' && cls !== 'complete';
+            return `<button type="button" class="stage-card ${cls}" data-progress-stage="${i}"${cls==='current'?' aria-current="step"':''} aria-pressed="${i === selectedProgressStage ? 'true' : 'false'}"><i class="fa-solid ${icon}" aria-hidden="true"></i><strong>${esc(labelForStage(s))}</strong><small>${conditional?'Conditional':cls==='complete'?'✓ Completed':cls==='current'?"You're here":'Upcoming'}</small><span>Stage ${i+1}</span></button>`;
         }).join('');
         $('stageList').querySelectorAll('.stage-card').forEach((card, index) => {
             const selected = index === selectedProgressStage;
@@ -492,9 +505,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         if (myRecord?.v14) {
             $('completedRequirements').textContent = myRecord.progress >= 50 ? 'Initial Submission requirements accepted. Corrections preserve their interrupted progress.' : 'Initial Submission requirements are being reviewed.';
-        } else $('completedRequirements').innerHTML = loadErrors.progress ? empty('Earlier stages are unavailable.') : myRecord && stageIndex > 1
-            ? `<div class="list-item"><i class="fa-solid fa-circle-check"></i><div><strong>${stageIndex - 1 === 1 ? 'Stage 1' : `Stages 1-${stageIndex - 1}`}</strong><span>Completed</span></div></div>`
-            : empty('No earlier stages recorded.');
+        } else $('completedRequirements').textContent = 'Official progress begins after approved V14 research setup.';
         $('pendingRequirements').innerHTML = loadErrors.progress ? empty('Pending requirements are unavailable.') : myRecord && myRecord.requirements && myRecord.requirements !== 'None'
             ? `<div class="list-item"><i class="fa-regular fa-clock"></i><div><strong>${esc(myRecord.requirements)}</strong><span>Pending</span></div></div>`
             : empty('No pending requirements.');
@@ -503,7 +514,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         $('recentSubmissions').innerHTML = loadErrors.documents
             ? empty('Unable to load recent submissions. Please try again.')
-            : myDocuments.slice(0, 4).map(recentSubmissionItem).join('') || `<div class="student-recent-empty">
+            : myDocuments.slice(0, 5).map(recentSubmissionItem).join('') || `<div class="student-recent-empty">
                 <span class="student-recent-empty-icon"><i class="fa-regular fa-file" aria-hidden="true"></i></span>
                 <strong>No submissions yet</strong>
                 <p>When you upload a document, it will show up here with its status.</p>
@@ -539,8 +550,7 @@ document.addEventListener('DOMContentLoaded', () => {
         return `<div class="student-recent-item">
             <span class="student-recent-file ${extensionClass}">${esc(extension)}</span>
             <span class="student-recent-body"><strong>${esc(d.documentType || 'Document')}</strong><span>${esc(d.originalName || 'Uploaded file')}${version}</span></span>
-            <span class="student-recent-side"><span class="student-recent-status ${pending ? 'is-pending' : needsAction ? 'is-action' : 'is-submitted'}"><i class="fa-regular ${pending ? 'fa-clock' : needsAction ? 'fa-circle-xmark' : 'fa-circle-check'}" aria-hidden="true"></i>${esc(state)}</span><time>${esc(recentAge(d.uploadedAt))}</time></span>
-            <span class="prism-document-quick-actions">${PrismUI.documentActionsHtml(d)}</span>
+            <span class="student-recent-tools"><span class="student-recent-status ${pending ? 'is-pending' : needsAction ? 'is-action' : 'is-submitted'}"><i class="fa-regular ${pending ? 'fa-clock' : needsAction ? 'fa-circle-xmark' : 'fa-circle-check'}" aria-hidden="true"></i>${esc(state)}</span><span class="prism-document-quick-actions">${PrismUI.documentActionsHtml(d)}</span></span>
         </div>`;
     }
 
@@ -657,7 +667,9 @@ document.addEventListener('DOMContentLoaded', () => {
         if (myRecord?.v14) {
             STAGES.splice(0, STAGES.length, ...Object.keys(myRecord.v14.labels));
             Object.assign(stageLabels, myRecord.v14.labels);
-            myRecord.legacyStage = myRecord.stage; myRecord.stage = myRecord.v14.stage; myRecord.progress = myRecord.v14.progress;
+            myRecord.legacyStage = myRecord.storageStage; myRecord.stage = myRecord.v14.stage; myRecord.progress = myRecord.v14.progress;
+        } else if (myRecord) {
+            myRecord.legacyStage=myRecord.storageStage; myRecord.stage=''; myRecord.progress=0;
         }
         if (myRecord) {
             const checklist = await PrismRequirements.load(myRecord.id, $('v14RequirementChecklist'));
@@ -691,12 +703,10 @@ document.addEventListener('DOMContentLoaded', () => {
             } else {
                 // Fail closed if a canonical workflow cannot be read or if
                 // an approved assignment has not finished secure enrollment.
-                v14UploadTypes = myRecord.projectId || myRecord.v14 ||
-                    (myRecord.researchAssignmentState && myRecord.researchAssignmentState !== 'activated')
-                    ? [] : null;
+                v14UploadTypes = [];
             }
         } else v14UploadTypes = [];
-        myHistory = progress.history;
+        myHistory = progress.history.filter(row=>STAGES.includes(row.stage));
         historyState = {total:progress.total??myHistory.length,page:progress.page??1,limit:progress.limit};
         historyPager.reset();
         myDocuments = documents.records;
@@ -892,6 +902,7 @@ document.addEventListener('DOMContentLoaded', () => {
             toast(e.message);
         } finally {
             uploading = false; release(); renderQueue(); await refreshAll();
+            document.dispatchEvent(new CustomEvent('prism:documents-changed'));
         }
     });
 
@@ -901,7 +912,7 @@ document.addEventListener('DOMContentLoaded', () => {
         try {
             const data = await PrismUI.request(`ierb_api.php?action=history&studentId=${encodeURIComponent(myRecord.id)}&page=${historyPager.page}&perPage=${historyPager.pageSize}`);
             if(sequence!==historySequence)return;
-            myHistory=data.history;historyState={total:data.total??myHistory.length,page:data.page??1,limit:data.limit};loadErrors.history=false;renderHistory();
+            myHistory=data.history.filter(row=>STAGES.includes(row.stage));historyState={total:data.total??myHistory.length,page:data.page??1,limit:data.limit};loadErrors.history=false;renderHistory();
         } catch(e){if(sequence!==historySequence)return;loadErrors.history=true;renderHistory();}
     }
     let documentSequence = 0;

@@ -1,0 +1,162 @@
+[
+  {
+    "pair": "admin-dark-1440",
+    "reference_size": [
+      1440,
+      2959
+    ],
+    "reconciled_size": [
+      1440,
+      2959
+    ],
+    "changed_pixels_in_shared_canvas": 73964,
+    "shared_canvas_pixels": 4260960,
+    "changed_percent": 1.7359,
+    "difference_bbox": [
+      16,
+      280,
+      1428,
+      2000
+    ]
+  },
+  {
+    "pair": "admin-dark-390",
+    "reference_size": [
+      390,
+      6628
+    ],
+    "reconciled_size": [
+      390,
+      6553
+    ],
+    "changed_pixels_in_shared_canvas": 348024,
+    "shared_canvas_pixels": 2555670,
+    "changed_percent": 13.6177,
+    "difference_bbox": [
+      83,
+      1756,
+      387,
+      6553
+    ]
+  },
+  {
+    "pair": "admin-light-1440",
+    "reference_size": [
+      1440,
+      2959
+    ],
+    "reconciled_size": [
+      1440,
+      2959
+    ],
+    "changed_pixels_in_shared_canvas": 19241,
+    "shared_canvas_pixels": 4260960,
+    "changed_percent": 0.4516,
+    "difference_bbox": [
+      130,
+      728,
+      844,
+      2692
+    ]
+  },
+  {
+    "pair": "admin-light-390",
+    "reference_size": [
+      390,
+      6628
+    ],
+    "reconciled_size": [
+      390,
+      6553
+    ],
+    "changed_pixels_in_shared_canvas": 330424,
+    "shared_canvas_pixels": 2555670,
+    "changed_percent": 12.9291,
+    "difference_bbox": [
+      78,
+      1756,
+      390,
+      6553
+    ]
+  },
+  {
+    "pair": "adviser-dark-1440",
+    "reference_size": [
+      1440,
+      1862
+    ],
+    "reconciled_size": [
+      1440,
+      1862
+    ],
+    "changed_pixels_in_shared_canvas": 79,
+    "shared_canvas_pixels": 2681280,
+    "changed_percent": 0.0029,
+    "difference_bbox": [
+      1057,
+      451,
+      1375,
+      476
+    ]
+  },
+  {
+    "pair": "adviser-dark-390",
+    "reference_size": [
+      390,
+      2875
+    ],
+    "reconciled_size": [
+      390,
+      2875
+    ],
+    "changed_pixels_in_shared_canvas": 5670,
+    "shared_canvas_pixels": 1121250,
+    "changed_percent": 0.5057,
+    "difference_bbox": [
+      26,
+      980,
+      359,
+      2269
+    ]
+  },
+  {
+    "pair": "adviser-light-1440",
+    "reference_size": [
+      1440,
+      1862
+    ],
+    "reconciled_size": [
+      1440,
+      1862
+    ],
+    "changed_pixels_in_shared_canvas": 16791,
+    "shared_canvas_pixels": 2681280,
+    "changed_percent": 0.6262,
+    "difference_bbox": [
+      731,
+      451,
+      1386,
+      1593
+    ]
+  },
+  {
+    "pair": "adviser-light-390",
+    "reference_size": [
+      390,
+      2875
+    ],
+    "reconciled_size": [
+      390,
+      2875
+    ],
+    "changed_pixels_in_shared_canvas": 5670,
+    "shared_canvas_pixels": 1121250,
+    "changed_percent": 0.5057,
+    "difference_bbox": [
+      26,
+      980,
+      359,
+      2269
+    ]
+  }
+]

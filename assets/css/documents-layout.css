@@ -1,0 +1,139 @@
+/* Documents page: header controls and separate document cards. */
+body.prism-workspace .documents-page .document-header-actions { display:flex; align-items:center; gap:10px; flex-wrap:wrap; }
+body.prism-workspace .documents-page .document-header-actions .doc-secondary { min-height:44px; padding:0 20px; border:1px solid #f4b6d6; border-radius:12px; background:#fde8f3; color:#B5146E; font-size:14px; font-weight:700; }
+body.prism-workspace .documents-page .document-header-actions .upload-document-button { min-height:44px; padding:0 22px; border:0; border-radius:12px; background:#B5146E; color:#fff; font-size:14px; font-weight:700; }
+body.prism-workspace .documents-page .document-header-actions .upload-document-button:hover { background:#8F0F58; }
+
+/* Controls: [search][filters] over [status pills][view switch][select]. */
+body.prism-workspace .documents-page .document-controls { display:grid; grid-template-columns:minmax(0,1fr) auto auto; align-items:center; gap:12px; }
+body.prism-workspace .documents-page .document-actions { display:contents; }
+body.prism-workspace .documents-page .document-search { grid-column:1 / span 2; grid-row:1; }
+body.prism-workspace .documents-page .document-actions > .prism-filter-disclosure { grid-column:3; grid-row:1; justify-self:end; }
+body.prism-workspace .documents-page .document-controls > :not(.document-search):not(.document-actions):not(.view-switch):not(.document-select-toggle) { grid-column:1; grid-row:2; min-width:0; }
+body.prism-workspace .documents-page .document-actions > .view-switch { grid-column:2; grid-row:2; justify-self:end; }
+body.prism-workspace .documents-page .document-select-toggle { grid-column:3; grid-row:2; display:inline-flex; align-items:center; gap:8px; min-height:44px; padding:0 18px; border:1px solid var(--prism-border); border-radius:12px; background:var(--prism-card); color:var(--prism-text); font-size:14px; font-weight:700; }
+body.prism-workspace .documents-page .document-select-toggle[aria-pressed=true] { border-color:#B5146E; color:#B5146E; }
+body.prism-workspace .documents-page .document-actions > .prism-filter-disclosure, body.prism-workspace .documents-page .document-actions > .prism-filter-disclosure:has(> button[aria-expanded=true]) { width:auto; flex:0 0 auto; }
+body.prism-workspace .documents-page .document-controls .prism-filter-disclosure > button { min-height:44px; border-radius:12px; }
+
+/* Selection tools only while Select is on. */
+body.prism-workspace .documents-page .documents-content:not(.is-selecting) .document-selection-toolbar,
+body.prism-workspace .documents-page .documents-content:not(.is-selecting) .document-record-select { display:none; }
+
+/* Count line instead of a section heading. */
+body.prism-workspace .documents-page .documents-section-heading { margin:6px 0 10px; }
+body.prism-workspace .documents-page .documents-section-heading p { margin:0; color:var(--prism-muted); font-size:13px; }
+
+/* The table retains its data hooks; each document owns its visible card shell. */
+body.prism-workspace .documents-page .documents-table-wrap { border:0; border-radius:0; background:transparent; overflow:visible; box-shadow:none; }
+body.prism-workspace .documents-page .documents-table > tbody { display:grid !important; gap:16px; }
+body.prism-workspace .documents-page .documents-table > tbody > tr { display:block; margin:0; padding:0; border:0; border-radius:0; background:transparent; box-shadow:none; }
+/* Legacy table styles force cell padding; the document card owns this space. */
+body.prism-workspace .documents-page .documents-table > tbody > tr > td { display:block; margin:0; padding:0 !important; border:0; }
+body.prism-workspace .documents-page .document-result-card { padding:24px; border:1px solid var(--prism-border); border-radius:16px; background:var(--prism-card); box-shadow:var(--prism-control-shadow); }
+body.prism-workspace .documents-page .document-result-card .prism-record-status > .prism-record-label { display:none; }
+body.prism-workspace .documents-page .document-result-card .prism-record-summary dt { color:var(--prism-muted); font-size:11px; font-weight:600; letter-spacing:.04em; text-transform:uppercase; }
+body.prism-workspace .documents-page .document-result-card .prism-record-summary dd { margin:2px 0 8px; font-size:14px; font-weight:700; }
+body.prism-workspace .documents-page .document-file-badge { display:grid; place-items:center; flex:0 0 48px; width:48px; height:48px; border-radius:12px; background:#fde8f3; color:#B5146E; font-size:12px; font-weight:800; }
+body.prism-workspace .documents-page .document-result-card .file-cell strong { font-size:16px; font-weight:800; }
+body.prism-workspace .documents-page .document-result-card .file-cell span:not(.document-file-badge):not(.document-record-select):not(.document-selection-label) { color:var(--prism-muted); font-size:12px; }
+body.prism-workspace .documents-page .document-result-card .prism-record-actions :is(.prism-document-action,.prism-action-trigger) { width:42px; min-width:42px; height:42px; min-height:42px; padding:0; border:1px solid var(--prism-border); border-radius:12px; background:var(--prism-card); color:var(--prism-text); display:inline-grid; place-items:center; }
+body.prism-workspace .documents-page .document-result-card .prism-record-actions .prism-action-trigger { font-weight:800; letter-spacing:.05em; }
+
+/* Details: gray panel with white tiles and a remarks banner. */
+body.prism-workspace .documents-page .document-result-card .prism-record-details { margin:0; padding:0; }
+body.prism-workspace .documents-page .document-result-card .prism-record-details > summary { min-height:40px; padding:12px 0 0; color:var(--prism-accent); font-size:12px; font-weight:600; }
+body.prism-workspace .documents-page .document-result-card .prism-record-details > summary:hover { text-decoration:none; }
+body.prism-workspace .documents-page .document-result-card .prism-details-grid { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:12px; padding:12px; border-radius:16px; background:var(--prism-bg); }
+body.prism-workspace .documents-page .document-result-card .prism-details-grid > div { padding:12px 14px; border:1px solid var(--prism-border); border-radius:12px; background:var(--prism-card); min-width:0; }
+body.prism-workspace .documents-page .document-result-card .prism-details-grid dt { color:var(--prism-muted); font-size:11px; font-weight:700; letter-spacing:.04em; text-transform:uppercase; }
+body.prism-workspace .documents-page .document-result-card .prism-details-grid dd { margin:4px 0 0; font-size:14px; font-weight:600; overflow-wrap:anywhere; }
+body.prism-workspace .documents-page .document-remarks { margin:12px 0 0; padding:12px 16px; border:1px solid #f1d98a; border-radius:12px; background:#fff3d6; color:#7a5200; font-size:13px; }
+html.dark-theme body.prism-workspace .documents-page .document-remarks { border-color:rgba(243,200,104,.4); background:rgba(243,200,104,.12); color:#f3c868; }
+@media(max-width:900px) {
+  body.prism-workspace .documents-page .document-controls { grid-template-columns:minmax(0,1fr) auto; }
+  body.prism-workspace .documents-page .document-search { grid-column:1; }
+  body.prism-workspace .documents-page .document-actions > .prism-filter-disclosure { grid-column:2; }
+  body.prism-workspace .documents-page .document-controls > :not(.document-search):not(.document-actions):not(.view-switch):not(.document-select-toggle) { grid-column:1 / -1; grid-row:2; }
+  body.prism-workspace .documents-page .document-actions > .view-switch { grid-column:1; grid-row:3; justify-self:start; }
+  body.prism-workspace .documents-page .document-select-toggle { grid-column:2; grid-row:3; }
+  body.prism-workspace .documents-page .document-result-card .prism-details-grid { grid-template-columns:repeat(2,minmax(0,1fr)); }
+}
+
+/* Row columns: fixed, evenly spaced tracks so file, dates, status and actions line up row to row. */
+body.prism-workspace .documents-page .document-result-card { display:grid; grid-template-columns:minmax(0,1fr) 230px 210px auto; align-items:center; column-gap:24px; row-gap:16px; }
+body.prism-workspace .documents-page .document-result-card .prism-record-primary { min-width:0; }
+body.prism-workspace .documents-page .document-result-card .prism-record-summary { display:grid; gap:10px; align-content:center; }
+body.prism-workspace .documents-page .document-result-card .prism-record-summary > div { margin:0; }
+body.prism-workspace .documents-page .document-result-card .prism-record-status { display:flex; align-items:center; justify-content:flex-start; }
+body.prism-workspace .documents-page .document-result-card .prism-record-actions { justify-content:flex-end; }
+body.prism-workspace .documents-page .document-result-card .prism-record-details, body.prism-workspace .documents-page .document-result-card .prism-record-feedback, body.prism-workspace .documents-page .document-result-card .prism-feedback-indicator { grid-column:1 / -1; }
+@media(max-width:1000px) { body.prism-workspace .documents-page .document-result-card { grid-template-columns:minmax(0,1fr) auto; } body.prism-workspace .documents-page .document-result-card .prism-record-primary { grid-column:1 / -1; } }
+
+/* Keep the existing file badges, type sizes and action buttons. */
+body.prism-workspace .documents-page .document-file-badge { flex-basis:40px; width:40px; height:40px; border-radius:10px; font-size:11px; }
+body.prism-workspace .documents-page .document-result-card .file-cell { gap:12px; }
+body.prism-workspace .documents-page .document-result-card .file-cell strong { font-size:14px; line-height:1.3; }
+body.prism-workspace .documents-page .document-result-card .file-cell span:not(.document-file-badge):not(.document-record-select):not(.document-selection-label) { font-size:12px; line-height:1.3; }
+body.prism-workspace .documents-page .document-result-card .prism-record-summary { gap:4px; }
+body.prism-workspace .documents-page .document-result-card .prism-record-summary dt { margin:0; font-size:10px; line-height:1.3; }
+body.prism-workspace .documents-page .document-result-card .prism-record-summary dd { margin:0; font-size:13px; line-height:1.3; }
+body.prism-workspace .documents-page .document-result-card .prism-record-actions { gap:6px; }
+body.prism-workspace .documents-page .document-result-card .prism-record-actions :is(.prism-document-action,.prism-action-trigger) { width:36px; min-width:36px; height:36px; min-height:36px; border-radius:10px; }
+body.prism-workspace .documents-page .document-result-card .prism-details-grid { margin-top:12px; gap:12px; padding:12px; }
+body.prism-workspace .documents-page .document-result-card .prism-details-grid > div { padding:12px; }
+body.prism-workspace .documents-page .document-result-card .prism-details-grid dd { margin-top:2px; font-size:13px; }
+body.prism-workspace .documents-page .document-remarks { margin-top:8px; padding:8px 12px; font-size:12px; }
+@media(max-width:600px) {
+  body.prism-workspace .documents-page .document-result-card { grid-template-columns:minmax(0,1fr); padding:20px; column-gap:16px; }
+  body.prism-workspace .documents-page .document-result-card .prism-record-actions { justify-content:flex-start; }
+  body.prism-workspace .documents-page .document-result-card .prism-details-grid { grid-template-columns:minmax(0,1fr); }
+}
+
+/* Center each main-row field; details and feedback keep their own full-width rows. */
+body.prism-workspace .documents-page .documents-table > tbody { gap:14px; }
+body.prism-workspace .documents-page .document-result-card { grid-template-columns:minmax(0,1.4fr) minmax(0,1.3fr) minmax(0,.85fr) auto; align-items:center; }
+body.prism-workspace .documents-page .document-result-card > :is(.prism-record-primary,.prism-record-summary,.prism-record-status,.prism-record-actions) { grid-row:1; align-self:center; margin:0; }
+body.prism-workspace .documents-page .document-result-card .prism-record-summary { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); align-items:center; align-content:center; gap:16px 20px; padding:0; }
+body.prism-workspace .documents-page .document-result-card .prism-record-summary > div { display:grid; align-content:center; gap:4px; min-width:0; margin:0; padding:0; }
+body.prism-workspace .documents-page .document-result-card .prism-record-summary :is(dt,dd) { margin:0; padding:0; line-height:1.5; }
+body.prism-workspace .documents-page .document-result-card .prism-record-primary { display:flex; grid-column:1; align-items:center; gap:12px; }
+body.prism-workspace .documents-page .document-result-card .file-cell { width:100%; min-width:0; align-items:center; }
+body.prism-workspace .documents-page .document-result-card .prism-record-summary { grid-column:2; }
+body.prism-workspace .documents-page .document-result-card .prism-record-status { grid-column:3; }
+body.prism-workspace .documents-page .document-result-card .prism-record-actions { grid-column:4; }
+body.prism-workspace .documents-page .document-result-card .prism-record-status { align-self:center; }
+body.prism-workspace .documents-page .document-result-card .prism-record-actions { align-self:center; align-items:center; }
+body.prism-workspace .documents-page .document-result-card :is(.prism-record-details,.prism-record-feedback,.prism-feedback-indicator) { grid-row:auto; }
+@media(max-width:1000px) {
+  body.prism-workspace .documents-page .document-result-card { grid-template-columns:minmax(0,1fr) minmax(132px,.6fr); }
+  body.prism-workspace .documents-page .document-result-card .prism-record-primary { grid-column:1; grid-row:1; }
+  body.prism-workspace .documents-page .document-result-card .prism-record-actions { grid-column:2; grid-row:1; }
+  body.prism-workspace .documents-page .document-result-card .prism-record-summary { grid-column:1; grid-row:2; }
+  body.prism-workspace .documents-page .document-result-card .prism-record-status { grid-column:2; grid-row:2; }
+}
+@media(max-width:600px) {
+  body.prism-workspace .documents-page .document-result-card { grid-template-columns:minmax(0,1fr); }
+  body.prism-workspace .documents-page .document-result-card .prism-record-primary { grid-column:1; grid-row:1; }
+  body.prism-workspace .documents-page .document-result-card .prism-record-summary { grid-column:1; grid-row:2; column-gap:16px; }
+  body.prism-workspace .documents-page .document-result-card .prism-record-status { grid-column:1; grid-row:3; }
+  body.prism-workspace .documents-page .document-result-card .prism-record-actions { grid-column:1; grid-row:4; }
+}
+
+/* Grouped document actions menu. */
+.prism-action-panel.document-menu-panel { width:min(330px,calc(100vw - 24px)); padding:8px 0; border-radius:16px; }
+.prism-action-panel.document-menu-panel .document-menu-group { display:block; margin:0; padding:10px 18px 4px; color:var(--prism-muted,#6b6880); font-size:11px; font-weight:700; letter-spacing:.08em; text-transform:uppercase; }
+.prism-action-panel.document-menu-panel .document-menu-group.is-divider { height:1px; margin:6px 0; padding:0; background:var(--prism-border,#ece8f1); }
+.prism-action-panel.document-menu-panel .document-menu-group:not(:first-child):not(.is-divider) { margin-top:6px; border-top:1px solid var(--prism-border,#ece8f1); padding-top:12px; }
+.prism-action-panel.document-menu-panel .prism-action-item { display:flex; align-items:center; gap:14px; width:100%; padding:9px 18px; border:0; border-radius:0; background:transparent; color:var(--prism-text,#15163a); text-align:left; }
+.prism-action-panel.document-menu-panel .prism-action-item > i { flex:0 0 18px; width:18px; text-align:center; color:var(--prism-muted,#6b6880); font-size:15px; }
+.prism-action-panel.document-menu-panel .document-menu-text { display:grid; gap:1px; min-width:0; }
+.prism-action-panel.document-menu-panel .document-menu-text strong { font-size:15px; font-weight:600; line-height:1.35; }
+.prism-action-panel.document-menu-panel .document-menu-text small { color:var(--prism-muted,#6b6880); font-size:12.5px; font-weight:400; line-height:1.35; }
+.prism-action-panel.document-menu-panel .prism-action-item:hover:not(:disabled) { background:var(--prism-bg,#f6f4f8); }
+.prism-action-panel.document-menu-panel .prism-action-item.prism-action-danger, .prism-action-panel.document-menu-panel .prism-action-item.prism-action-danger > i { color:#b3261e; }
+
+/* Filters button: pill with the list-filter icon and label; it stays put while the panel is open. */
+body.prism-workspace .documents-page .document-controls .prism-filter-disclosure > button { display:inline-flex; align-items:center; justify-content:center; gap:8px; width:auto; min-width:0; height:48px; min-height:48px; padding:0 16px; border:1px solid var(--prism-border); border-radius:16px; background:var(--prism-card); color:var(--prism-text); font-size:14px; font-weight:600; white-space:nowrap; }
+body.prism-workspace .documents-page .document-controls .prism-filter-disclosure > button .document-filter-icon { flex:0 0 18px; }
+body.prism-workspace .documents-page .document-controls .prism-filter-disclosure > button .student-filter-text { display:inline; }

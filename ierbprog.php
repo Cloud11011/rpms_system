@@ -28,9 +28,10 @@ $profile_img = 'assets/images/default-avatar.svg';
 <link rel="stylesheet" href="<?= htmlspecialchars(asset_url('assets/css/batch11.css'), ENT_QUOTES, 'UTF-8') ?>">
 <script src="<?php echo htmlspecialchars(asset_url('assets/js/prism-workspace.js'), ENT_QUOTES, 'UTF-8'); ?>" defer></script>
 <?php prism_frontend_styles(); ?>
+<link rel="stylesheet" href="<?php echo htmlspecialchars(asset_url('assets/css/ierb-monitor-cards.css'), ENT_QUOTES, 'UTF-8'); ?>">
 </head>
-<body class="prism-workspace <?= $authUser['role'] === 'admin' ? 'admin-shell' : 'portal-shell adviser-page' ?>" data-ierb-user="<?php echo htmlspecialchars(hash('sha256', $user_email), ENT_QUOTES, 'UTF-8'); ?>" data-role="<?php echo htmlspecialchars($_SESSION['account_type'] ?? 'admin', ENT_QUOTES, 'UTF-8'); ?>" data-v14-active="<?= defined('PRISM_IERB_V14_OPERATIONS') && PRISM_IERB_V14_OPERATIONS === true ? '1' : '0' ?>">
-<script>window.PRISM_STAGE_LABELS = <?php echo json_encode(stage_labels_map(), JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT); ?>;</script>
+<body class="prism-workspace <?= $authUser['role'] === 'admin' ? 'admin-shell' : 'portal-shell adviser-page' ?>" data-ierb-user="<?php echo htmlspecialchars(hash('sha256', $user_email), ENT_QUOTES, 'UTF-8'); ?>" data-role="<?php echo htmlspecialchars($_SESSION['account_type'] ?? 'admin', ENT_QUOTES, 'UTF-8'); ?>">
+<script>window.PRISM_STAGE_LABELS = <?php echo json_encode(IerbStage::LABELS, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT); ?>;</script>
 <div class="container">
     <?php if ($authUser['role'] === 'admin'): ?><aside class="sidebar prism-sidebar"><?php else: ?><header class="portal-navbar"><?php endif; ?>
 <?php $prismCurrentPage = 'ierbprog.php'; require __DIR__ . '/includes/prism-navigation.php'; ?>
@@ -40,27 +41,26 @@ $profile_img = 'assets/images/default-avatar.svg';
         <header class="topbar">
             <div class="ierb-heading"><h1>IERB Progress</h1><p><?= $authUser['role'] === 'adviser' ? 'See where each student is in the ethics review process.' : 'Track every research group through the IERB stages.' ?></p></div>
             <div class="top-controls">
-                <?php if ($authUser['role'] === 'admin'): ?><button type="button" class="prism-btn is-secondary" id="manageIerbStages" ><?= defined('PRISM_IERB_V14_OPERATIONS') && PRISM_IERB_V14_OPERATIONS === true ? 'Edit V14 Stage Guidance' : 'Manage IERB Stages' ?></button><?php endif; ?>
+                <?php if ($authUser['role'] === 'admin'): ?>
+                <button type="button" class="prism-btn is-secondary" id="manageIerbStages">Manage IERB Stages</button>
+                <button type="button" class="prism-btn is-secondary" id="openIerbGroupAdvancement" aria-haspopup="dialog" aria-controls="ierbGroupModal">Research Group Advancement</button>
+                <?php endif; ?>
                 <button type="button" class="theme-toggle" id="themeToggle" title="Toggle light or dark theme" aria-label="Toggle light or dark theme"><i class="fa-solid fa-sun light-icon" aria-hidden="true"></i><i class="fa-solid fa-moon dark-icon" aria-hidden="true"></i></button>
             </div>
         </header>
 
-        <?php require __DIR__.'/includes/ierb_monitor_view.php'; require __DIR__.'/includes/academic_year_manager.php'; ?>
-        <details class="ierb-legacy-archive" <?= defined('PRISM_IERB_V14_OPERATIONS') && PRISM_IERB_V14_OPERATIONS === true ? '' : 'open' ?>>
-        <summary>Historical Student Stage Records (read-only)</summary>
-        <p>Active V14 research projects are managed in the monitor above. Older stage records are retained for historical reference only.</p>
         <section class="progress-overview" aria-labelledby="progressOverviewTitle">
-            <div class="overview-heading"><div><span>IERB Progress</span><h2 id="progressOverviewTitle">Historical Student Stage Distribution</h2></div><strong id="overviewTotal">0 students · Select a stage to filter the list</strong></div>
+            <div class="overview-heading"><div><span>IERB Progress</span><h2 id="progressOverviewTitle">Research Stage Distribution</h2></div></div>
             <div class="stage-chart" id="stageChart" role="group" aria-label="Student counts by IERB stage"></div>
         </section>
 
         <section class="ierb-controls" aria-label="IERB progress filters">
             <label class="ierb-control-field ierb-search-field" for="ierbSearch"><span class="prism-sr-only">Search records</span><span class="ierb-search"><i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i><input id="ierbSearch" type="search" placeholder="Search records"></span></label>
             <div class="ierb-filters">
-                <label class="ierb-control-field" for="stageFilter"><span>Stage</span><select id="stageFilter"><option value="">All Stages</option><option value="Stage 1">Stage 1</option><option value="Stage 2">Stage 2</option><option value="Stage 3">Stage 3</option><option value="Stage 4">Stage 4</option><option value="Stage 5">Stage 5</option><option value="Completed">Completed</option></select></label>
+                <label class="ierb-control-field" for="stageFilter"><span>Stage</span><select id="stageFilter"><option value="">All Stages</option><option value="initial_submission">Stage 1</option><option value="resubmission_amendment">Stage 2</option><option value="approval_data_gathering">Stage 3</option><option value="ierb_completed">Stage 4</option></select></label>
                 <label class="ierb-control-field" for="ierbStatusFilter"><span>Status</span><select id="ierbStatusFilter"><option value="">All Statuses</option><option>On Track</option><option>Pending</option><option>Delayed</option></select></label>
             </div>
-            <?php if ($authUser['role'] === 'admin'): ?><button type="button" class="ierb-add-link" id="addIerbEntry" title="Add IERB Entry" aria-label="Add IERB Entry" <?= defined('PRISM_IERB_V14_OPERATIONS') && PRISM_IERB_V14_OPERATIONS === true ? 'hidden' : '' ?>><i class="fa-solid fa-plus" aria-hidden="true"></i> Add IERB Entry</button><?php endif; ?>
+
         </section>
 
         <div id="ierbMoreFilters" class="prism-record-filters" aria-label="Academic and research filters"></div>
@@ -71,66 +71,38 @@ $profile_img = 'assets/images/default-avatar.svg';
                 <tbody id="ierbTableBody"></tbody>
             </table></div>
         </section>
-        </details>
         <?php if ($authUser['role'] === 'admin'): ?>
-        <section class="ierb-group-card" id="ierbGroupAdvancement" aria-labelledby="ierbGroupTitle">
-            <h2 id="ierbGroupTitle">Research Group Advancement</h2>
-            <p>Advance all eligible members of a research group to the next official IERB stage.</p>
-            <div class="ierb-group-controls">
-                <label for="ierbGroupSelect">Research group<select id="ierbGroupSelect" disabled><option value="">Loading research groups…</option></select></label>
-                <button type="button" class="prism-btn is-secondary" id="ierbGroupRefresh" disabled>Refresh preview</button>
-            </div>
-            <div id="ierbGroupPreview" aria-live="polite" aria-busy="false"><p>Select a group to review all associated Student records.</p></div>
-            <div class="ierb-group-actions"><button type="button" class="prism-btn is-primary" id="ierbGroupReview" disabled>Review &amp; Advance Group</button></div>
-        </section>
+        <dialog class="ierb-ga-modal" id="ierbGroupModal" aria-labelledby="ierbGroupTitle" aria-describedby="ierbGroupDescription">
+            <section class="ierb-group-card ierb-ga" id="ierbGroupAdvancement">
+                <header class="ierb-ga-heading">
+                    <div><h2 id="ierbGroupTitle">Research Group Advancement</h2><p id="ierbGroupDescription">Move every student in one research group to the next IERB stage in a single step. PRISM checks the group first and tells you if anything needs fixing.</p></div>
+                    <button type="button" class="prism-btn is-secondary is-icon" data-close-group-advancement aria-label="Close Research Group Advancement"><i class="fa-solid fa-xmark" aria-hidden="true"></i></button>
+                </header>
+                <div class="ierb-ga-body">
+                    <h3 class="ierb-ga-step"><span>1</span>Choose a research group</h3>
+                    <div class="ierb-group-controls">
+                        <label for="ierbGroupSelect"><span class="prism-sr-only">Research group</span><select id="ierbGroupSelect" disabled><option value="">Loading research groups…</option></select></label>
+                        <button type="button" class="prism-btn is-secondary" id="ierbGroupRefresh" disabled><i class="fa-solid fa-rotate-right" aria-hidden="true"></i> Check again</button>
+                    </div>
+                    <div class="ierb-ga-chips" id="ierbGroupChips" aria-label="Group academic details"></div>
+                    <h3 class="ierb-ga-step"><span>2</span>Check the move</h3>
+                    <div id="ierbGroupPreview" aria-live="polite" aria-busy="false"><p>Select a group to review all associated Student records.</p></div>
+                    <h3 class="ierb-ga-step is-muted" id="ierbGroupStep3"><span>3</span>Advance the group</h3>
+                    <div class="ierb-group-actions"><button type="button" class="prism-btn is-primary" id="ierbGroupReview" disabled>Review &amp; Advance Group</button><small id="ierbGroupHint">Choose a group first.</small></div>
+                </div>
+                <footer class="ierb-ga-footer"><button type="button" class="prism-btn is-secondary" data-close-group-advancement>Close</button></footer>
+            </section>
+        </dialog>
         <?php endif; ?>
     <?php require __DIR__ . '/includes/ceu_footer.php'; ?>
 </main>
 </div>
 
-<div class="ierb-modal" id="ierbEntryModal" aria-hidden="true">
-    <div class="ierb-modal-dialog ierb-entry-dialog" role="dialog" aria-modal="true" aria-labelledby="ierbEntryTitle">
-        <div class="ierb-modal-heading"><div><span>IERB monitoring record</span><h2 id="ierbEntryTitle">Add IERB Entry</h2></div><button type="button" id="closeIerbEntry" aria-label="Close"><i class="fa-solid fa-xmark"></i></button></div>
-        <form id="ierbEntryForm" data-prism-gate="valid"><p class="prism-sub">New entries begin at Stage 1. Use the separate stage and status actions in Detailed Progress for official decisions.</p><p class="prism-required-legend"><span class="prism-required-mark" aria-hidden="true">*</span>Required field</p>
-            <div class="ierb-entry-grid">
-                <div><label for="entryStudentName">Student name</label><input id="entryStudentName" maxlength="190" placeholder="Enter full name" autocomplete="off" required></div>
-                <div><label for="entryStudentId">Student ID</label><input id="entryStudentId" type="text" maxlength="100" placeholder="Enter Student ID (numbers only)" data-prism-student-id required></div>
-                <div><label for="entryEmail">Email address</label><input id="entryEmail" type="email" maxlength="190" placeholder="<?php echo htmlspecialchars('example@' . (onboarding_invitation_domains()[0] ?? 'example.edu.ph'), ENT_QUOTES, 'UTF-8'); ?>" required></div>
-                <fieldset class="academic-fields" id="entryAcademicFields">
-                    <legend>Academic information</legend>
-                    <div class="academic-fields-grid">
-                        <label for="entryAcademicUnit">Academic Unit<select id="entryAcademicUnit" data-academic="unit"></select></label>
-                        <label for="entryCourse">Program<select id="entryCourse" data-academic="program" aria-describedby="entryAcademicSummary"></select></label>
-                        <label for="entryYearLevel">Year Level<select id="entryYearLevel" data-academic="year"></select></label>
-                        <label for="entryAcademicYear">Academic Year<select id="entryAcademicYear" data-academic="academic-year"></select></label>
-                    </div>
-                    <p id="entryAcademicSummary" data-academic="summary" aria-live="polite"></p>
-                    <p data-academic="legacy" hidden></p>
-                    <button type="button" data-academic="reset" hidden>Keep existing academic values</button>
-                </fieldset>
-                <div><label for="entryGroupId">Research group</label><select id="entryGroupId" data-research-group required><option value="">Select academic information first</option></select></div>
-                <div><label for="entryStage">Official IERB stage (read only)</label><select id="entryStage" disabled><option value="Stage 1">Stage 1</option><option value="Stage 2">Stage 2</option><option value="Stage 3">Stage 3</option><option value="Stage 4">Stage 4</option><option value="Stage 5">Stage 5</option><option value="Completed">Completed</option></select></div>
-                <div class="ierb-entry-wide"><label for="entryResearchTitle">Research title</label><input id="entryResearchTitle" maxlength="250" placeholder="Enter the complete research title" required></div>
-                <div><label for="entryRequirements">Pending requirements</label><input id="entryRequirements" maxlength="180" placeholder="List pending requirements (optional)"></div>
-                <div><label for="entrySubmissionDate">Latest submission date</label><input id="entrySubmissionDate" type="date"></div>
-                <div><label for="entryStatus">Delay status</label><select id="entryStatus" disabled><option>On Track</option><option>Pending</option><option>Delayed</option></select></div>
-            </div>
-            <div class="ierb-modal-actions"><button type="button" class="ierb-secondary" id="cancelIerbEntry">Cancel</button><button type="submit" class="ierb-primary"><i class="fa-solid fa-floppy-disk"></i> Save entry</button></div>
-        </form>
-    </div>
-</div>
-
-<div class="ierb-modal" id="ierbActionModal" aria-hidden="true">
-    <div class="ierb-modal-dialog" role="dialog" aria-modal="true" aria-labelledby="ierbActionTitle">
-        <div class="ierb-modal-heading"><div><span id="ierbActionEyebrow">Update record</span><h2 id="ierbActionTitle">Add Note</h2></div><button type="button" id="closeIerbModal" aria-label="Close"><i class="fa-solid fa-xmark"></i></button></div>
-        <form id="ierbActionForm" data-prism-gate="valid"><label for="ierbActionText" id="ierbActionLabel">Internal note</label><textarea id="ierbActionText" rows="4" maxlength="500" placeholder="Enter an internal note for this record" required></textarea><div class="ierb-modal-actions"><button type="button" class="ierb-secondary" id="cancelIerbAction">Cancel</button><button type="submit" class="ierb-primary"><i class="fa-solid fa-floppy-disk"></i> Save</button></div></form>
-    </div>
-</div>
 <script src="<?php echo htmlspecialchars(asset_url('assets/js/prism-ui.js'), ENT_QUOTES, 'UTF-8'); ?>"></script>
-<script>window.PRISM_RESEARCH_ONBOARDING = <?php echo json_encode(research_onboarding_available(db())); ?>; window.PRISM_ACADEMIC_CATALOG = <?php echo json_encode(academic_catalog(), JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT); ?>;</script>
+<script>window.PRISM_ACADEMIC_CATALOG = <?php echo json_encode(academic_catalog(), JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT); ?>;</script>
 <script src="<?php echo htmlspecialchars(asset_url('assets/js/academic-fields.js'), ENT_QUOTES, 'UTF-8'); ?>"></script>
 <script src="<?php echo htmlspecialchars(asset_url('assets/js/ierbprog.js'), ENT_QUOTES, 'UTF-8'); ?>"></script>
+
 <script src="<?= htmlspecialchars(asset_url('assets/js/ierb-monitor.js'),ENT_QUOTES,'UTF-8') ?>"></script>
-<script src="<?= htmlspecialchars(asset_url('assets/js/academic-years.js'),ENT_QUOTES,'UTF-8') ?>"></script>
 </body>
 </html>

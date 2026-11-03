@@ -245,11 +245,11 @@ function retention_purge_plan(PDO $pdo,array $r,string $type,?array $login,array
         $q=$pdo->prepare('SELECT student_id FROM research_onboarding_assignments WHERE student_id=? FOR UPDATE'); $q->execute([$id]);
         if ($q->fetchColumn()) throw new AccountLifecycleConflict('Retained research assignment audit requires institutional review before permanent deletion. Retain using Archive.');
     }
-    if ($type==='student' && in_array((string)$pdo->query("SELECT v FROM schema_meta WHERE k='schema_version'")->fetchColumn(),['14','15'],true)) {
+    if ($type==='student' && in_array((string)$pdo->query("SELECT v FROM schema_meta WHERE k='schema_version'")->fetchColumn(),['14','15','16'],true)) {
         $q=$pdo->prepare('SELECT v.id FROM document_summary_versions v JOIN documents d ON d.id=v.document_id WHERE d.student_id=? LIMIT 1 FOR UPDATE'); $q->execute([$id]);
         if ($q->fetchColumn()) throw new AccountLifecycleConflict('Retained summary history prevents permanent deletion. Retain using Archive.');
     }
-    if ($type==='student' && in_array((string)$pdo->query("SELECT v FROM schema_meta WHERE k='schema_version'")->fetchColumn(),['12','13','14','15'],true)) {
+    if ($type==='student' && in_array((string)$pdo->query("SELECT v FROM schema_meta WHERE k='schema_version'")->fetchColumn(),['12','13','14','15','16'],true)) {
         $q=$pdo->prepare('SELECT id FROM ierb_workflows WHERE student_id=? FOR UPDATE'); $q->execute([$id]);
         if ($q->fetchColumn()) throw new AccountLifecycleConflict('Retained V14 workflow history prevents permanent deletion. Retain the account using Archive.');
     }

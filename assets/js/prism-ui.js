@@ -10,7 +10,6 @@
 (function (root) {
   'use strict';
 
-  const STAGES = ['Stage 1', 'Stage 2', 'Stage 3', 'Stage 4', 'Stage 5', 'Completed'];
   // New-upload labels only. Historical records and filter values remain literal.
   const DOCUMENT_TYPES = Object.freeze(Array.isArray(root.PRISM_DOCUMENT_TYPES) ? root.PRISM_DOCUMENT_TYPES.slice() : []);
 
@@ -198,7 +197,7 @@
     function onKey(e) {
       if (e.key === 'Escape') { e.stopPropagation(); if (api.locked) { e.preventDefault(); return; } if (api.onCancel) api.onCancel(); close(); return; }
       if (e.key === 'Tab') {
-        const f = [...dlg.querySelectorAll('button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])')].filter(control => !control.disabled && control.tabIndex >= 0 && control.getClientRects().length);
+        const f = [...dlg.querySelectorAll('button, [href], input, select, textarea, summary, [tabindex]:not([tabindex="-1"])')].filter(control => !control.disabled && control.tabIndex >= 0 && control.getClientRects().length);
         if (!f.length) return;
         const first = f[0], last = f[f.length - 1];
         if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }
@@ -422,39 +421,6 @@
     }
   }
 
-  /** Explicit RPMS decision; document activity never advances official stages. */
-  async function changeStudentProgress(record, operation) {
-    const labels = root.PRISM_STAGE_LABELS || {};
-    const stageText = key => (labels[key] || key) + ' (' + key + ')';
-    const index = STAGES.indexOf(record.stage);
-    const next = STAGES[index + 1];
-    if (operation === 'advance' && (!next || index < 0)) { toast('Completed is the final stage; it cannot advance further.', 'info'); return false; }
-    const titles = {advance:'Advance to Next Stage',correct:'Correct IERB Stage',status:'Update Progress Status'};
-    let extra = '<dl class="prism-override-context"><dt>Student</dt><dd>' + esc(record.name) + '</dd><dt>Current official stage</dt><dd>' + esc(stageText(record.stage)) + '</dd><dt>Current progress status</dt><dd>' + esc(record.status) + '</dd>';
-    if (operation === 'advance') extra += '<dt>Proposed official stage</dt><dd>' + esc(stageText(next)) + '</dd>';
-    extra += '</dl>';
-    if (operation === 'correct') extra += '<label for="prismOvStage">Corrected official stage</label><select id="prismOvStage">' + STAGES.map(key => '<option value="' + esc(key) + '"' + (key === record.stage ? ' selected' : '') + '>' + esc(stageText(key)) + '</option>').join('') + '</select>';
-    extra += '<label for="prismOvStatus">' + (operation === 'status' ? 'Proposed progress status' : 'Progress status (optional change)') + '</label><select id="prismOvStatus">' + (operation === 'status' ? '' : '<option value="">Keep ' + esc(record.status) + '</option>') + ['On Track','Pending','Delayed'].map(status => '<option' + (operation === 'status' && status === record.status ? ' selected' : '') + '>' + esc(status) + '</option>').join('') + '</select>';
-    const answer = await confirmDialog({
-      dialogClass:'prism-progress-decision', title: titles[operation], icon: operation === 'advance' ? 'fa-arrow-right' : 'fa-user-shield', tone: operation === 'correct' ? 'override' : 'primary',
-      confirmText: operation === 'advance' ? 'Confirm advancement' : operation === 'correct' ? 'Confirm correction' : 'Confirm status update',
-      message: operation === 'correct' ? 'Use a correction for exceptional backward or nonsequential movement. Your identity, time and reason are recorded, and the student and adviser are notified.' : 'RPMS decides readiness. This decision is recorded with your identity, time and reason. Documents and individual requirements do not automatically advance or block the official stage.',
-      extraHtml: extra, reasonLabel: 'Reason for this decision (required)', reasonRequired: true, maxReason: 500,
-      collect: dialog => ({stage:dialog.querySelector('#prismOvStage')?.value,status:dialog.querySelector('#prismOvStatus').value}),
-      validate: values => operation === 'correct' && values.stage === record.stage ? 'Choose a different stage for a correction.' : operation === 'status' && values.status === record.status ? 'Choose a different progress status.' : null
-    });
-    if (!answer) return false;
-    const payload = {id:record.id,reason:answer.reason,confirmed:true,expectedStage:record.stage,expectedStatus:record.status,expectedVersion:String(record.progressVersion)};
-    if (operation === 'correct') payload.stage = answer.values.stage;
-    if (answer.values.status) payload.status = answer.values.status;
-    try {
-      const data = await postJson('ierb_api.php?action=' + operation, payload);
-      toast(data.message, 'success'); return true;
-    } catch (error) { toast(error.message, 'error'); return false; }
-  }
-
-  async function overrideStudent(record) { return changeStudentProgress(record, 'correct'); }
-
   /** Always render content as text. The endpoint is the only persistent source. */
   async function showStageGuidance(stageKey) {
     const m = modal('<h3 id="prismGuidanceTitle">Guidance from RPMS</h3><div class="prism-stage-guidance" role="status">Loading guidance...</div><p>This guidance is informational. RPMS determines when your official IERB stage may advance.</p><div class="prism-dialog-actions"><button type="button" class="prism-btn is-secondary" data-close-guidance>Close</button></div>');
@@ -581,6 +547,30 @@
     const compact = host.getAttribute('data-prism-student-workflow') === 'compact';
     host.classList.add('prism-wf-panel');
 
+    function deadlineMarkup(doc) {
+      const value = doc.deadlineDate || doc.dueDate;
+      if (!value) return '';
+      const deadlineText = String(value).trim();
+      const deadline = new Date(/^\d{4}-\d{2}-\d{2}$/.test(deadlineText) ? deadlineText + 'T00:00:00' : deadlineText.replace(' ', 'T'));
+      if (Number.isNaN(deadline.getTime())) return '';
+      const today = new Date();
+      const deadlineDay = new Date(deadline.getFullYear(), deadline.getMonth(), deadline.getDate());
+      const todayDay = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+      const days = Math.round((deadlineDay - todayDay) / 86400000);
+      const label = days < 0 ? 'Overdue by ' + Math.abs(days) + ' day' + (Math.abs(days) === 1 ? '' : 's')
+        : days === 0 ? 'Due today' : 'Due in ' + days + ' day' + (days === 1 ? '' : 's');
+      return '<span class="prism-wf-deadline"><i class="fa-regular fa-clock" aria-hidden="true"></i>' + esc(label) + '</span>';
+    }
+
+    function feedbackMarkup(doc) {
+      const feedback = [];
+      if (doc.rpmsReturnReason) feedback.push('<strong>RPMS return reason</strong><p>' + esc(doc.rpmsReturnReason) + '</p>');
+      if (doc.reviewRemarks) feedback.push('<strong>Adviser feedback</strong><p>' + esc(doc.reviewRemarks) + '</p>');
+      const commentsId = 'prism-wf-comments-' + esc(doc.id);
+      return '<button type="button" class="prism-btn is-secondary is-sm prism-wf-comments-toggle" aria-expanded="false" aria-controls="' + commentsId + '">View Comments</button>' +
+        '<div id="' + commentsId + '" class="prism-wf-comments" hidden>' + (feedback.length ? feedback.join('') : '<p>No comments were recorded for this document.</p>') + '</div>';
+    }
+
     async function render() {
       let docs, data;
       try { data = await request('documents_api.php?action=list&actionable=1'); docs = data.documents; }
@@ -610,19 +600,28 @@
         if (ready.length || revise.length) {
           html += '<h3 class="prism-wf-title"><i class="fa-solid fa-bolt" aria-hidden="true"></i>Action needed</h3><ul class="prism-wf-list">';
           ready.forEach(function (d) {
-            html += '<li class="prism-wf-item"><div><strong>' + esc(d.originalName) + '</strong>' +
-              '<div class="prism-badges">' + badge(d.workflowState) + '<span class="prism-sub">' + esc(d.documentType) + ' \u00b7 ' + esc(d.stageLabel) +
+            const nextStep = d.actions?.memberSubmitToRpms
+              ? 'This approved document is ready for formal RPMS submission.'
+              : 'This document is approved. Contact RPMS for the next steps.';
+            const adviserFeedback = d.reviewRemarks
+              ? '<p class="prism-wf-remarks"><strong>Adviser feedback:</strong> ' + esc(d.reviewRemarks) + '</p>' : '';
+            html += '<li class="prism-wf-item is-ready"><div class="prism-wf-card-main"><strong class="prism-wf-document-title">' + esc(d.originalName) + '</strong>' +
+              '<div class="prism-badges">' + badge(d.workflowState) + '<span class="prism-sub">' + esc(d.documentType || 'Document type not recorded') + ' \u00b7 ' + esc(d.stageLabel || d.stage || 'Stage not recorded') +
               (d.versionNo > 1 ? ' \u00b7 version ' + esc(d.versionNo) : '') + '</span></div>' +
-              '<p class="prism-wf-remarks">Approved by ' + esc(d.reviewedBy || 'your adviser') + '. Contact RPMS to complete this historical or Admin-reviewed submission.</p></div>' +
+              deadlineMarkup(d) + '<p class="prism-wf-remarks">' + esc(nextStep) + '</p>' + adviserFeedback + '</div>' +
               '<div class="prism-wf-actions">' +
               (d.versionNo > 1 ? '<button type="button" class="prism-btn is-secondary is-sm" data-versions="' + esc(d.id) + '">Version history</button>' : '') + '</div></li>';
           });
           revise.forEach(function (d) {
-            html += '<li class="prism-wf-item"><div><strong>' + esc(d.originalName) + '</strong>' +
-              '<div class="prism-badges">' + badge(d.workflowState) + '<span class="prism-sub">' + esc(d.documentType) + ' \u00b7 ' + esc(d.stageLabel) + '</span></div>' +
-              '<p class="prism-wf-remarks">' + (d.rpmsReturnReason ? 'RPMS return reason: ' + esc(d.rpmsReturnReason) : d.reviewRemarks ? 'Adviser remarks: ' + esc(d.reviewRemarks) : 'Your adviser asked for changes.') + '</p></div>' +
-              '<div class="prism-wf-actions"><button type="button" class="prism-btn is-secondary" data-upload-revision="' + esc(d.id) + '"><i class="fa-solid fa-upload" aria-hidden="true"></i> Upload Revision</button>' +
-              (d.versionNo > 1 ? '<button type="button" class="prism-btn is-secondary is-sm" data-versions="' + esc(d.id) + '">Version history</button>' : '') + '</div></li>';
+            html += '<li class="prism-wf-item is-revision"><div class="prism-wf-card-main"><strong class="prism-wf-document-title">' + esc(d.originalName) + '</strong>' +
+              '<div class="prism-badges">' + badge(d.workflowState) + '<span class="prism-sub">' + esc(d.documentType || 'Document type not recorded') + ' \u00b7 ' + esc(d.stageLabel || d.stage || 'Stage not recorded') +
+              (d.versionNo > 1 ? ' \u00b7 version ' + esc(d.versionNo) : '') + '</span></div>' +
+              deadlineMarkup(d) + '</div>' +
+              '<div class="prism-wf-action-group"><div class="prism-wf-actions">' +
+              (d.actions?.uploadRevision ? '<button type="button" class="prism-btn is-primary" data-wf-upload-revision="' + esc(d.id) + '"><i class="fa-solid fa-upload" aria-hidden="true"></i> Upload Revised File</button>' : '') +
+              feedbackMarkup(d) +
+              (d.versionNo > 1 ? '<button type="button" class="prism-btn is-secondary is-sm" data-versions="' + esc(d.id) + '">Version history</button>' : '') +
+              '</div></div></li>';
           });
           html += '</ul>';
         } else if (!compact) {
@@ -632,7 +631,20 @@
       if (data.total > docs.length) html += '<p class="prism-sub"><a href="student.php#documents">View all documents</a></p>';
       host.innerHTML = html;
 
-      host.querySelectorAll('[data-upload-revision]').forEach(b => b.addEventListener('click', () => uploadRevision(docs.find(d => d.id === b.dataset.uploadRevision))));
+      host.querySelectorAll('.prism-wf-comments-toggle').forEach(function (button) {
+        button.addEventListener('click', function () {
+          const comments = button.nextElementSibling;
+          comments.hidden = !comments.hidden;
+          button.setAttribute('aria-expanded', String(!comments.hidden));
+          button.textContent = comments.hidden ? 'View Comments' : 'Hide Comments';
+        });
+      });
+      host.querySelectorAll('[data-wf-upload-revision]').forEach(function (button) {
+        button.addEventListener('click', function () {
+          const doc = docs.find(item => item.id === button.dataset.wfUploadRevision);
+          if (doc?.actions?.uploadRevision) uploadRevision(doc);
+        });
+      });
       host.querySelectorAll('[data-versions]').forEach(function (b) {
         b.addEventListener('click', function () { showVersions(b.getAttribute('data-versions')); });
       });
@@ -645,30 +657,103 @@
   }
 
   async function mountNeedsAttention(host) {
+    if (!host) return;
+    host.prismAttentionCleanup?.();
+    const sequence = host.prismAttentionRequest = (host.prismAttentionRequest || 0) + 1;
+    const limit = Math.max(1, Math.min(100, parseInt(host.getAttribute('data-limit'), 10) || 10));
+    const query = new URLSearchParams({action:'needs_attention',limit:String(limit)});
+    if (host.dataset.attentionOrder) query.set('order',host.dataset.attentionOrder);
     host.innerHTML = '<p class="prism-sub">Checking who needs attention\u2026</p>';
     let data;
-    try { data = await request('ierb_api.php?action=needs_attention&limit=' + (parseInt(host.getAttribute('data-limit'), 10) || 10)); }
+    try { data = await request('ierb_api.php?' + query); }
     catch (e) {
+      if (sequence !== host.prismAttentionRequest) return;
       host.innerHTML = emptyState({ icon: 'fa-triangle-exclamation', title: 'Couldn\u2019t load this list', text: e.message });
       return;
     }
-    if (!data.students.length) {
+    if (sequence !== host.prismAttentionRequest) return;
+    const students = data.students.slice(0,limit);
+    const count = host.closest('.dashboard-attention')?.querySelector('[data-attention-count]');
+    if (count) { count.textContent = students.length; count.hidden = students.length === 0; }
+    if (!students.length) {
       host.innerHTML = emptyState({
         icon: 'fa-circle-check', title: 'Everyone is on track',
         text: 'No student is delayed, waiting too long for review, or inactive right now.'
       });
       return;
     }
-    const items = data.students.map(function (s) {
-      const title = s.research || s.protocolCode || s.studentId;
-      return '<li class="prism-attn-item sev-' + s.topSeverity + '"><div class="prism-attn-main"><strong>' + esc(title) + '</strong>' +
-        '<span class="prism-sub">' + esc(s.name) + (s.adviser ? ' \u00b7 Adviser: ' + esc(s.adviser) : '') + '</span>' +
-        '<ul class="prism-attn-reasons">' + s.reasons.map(function (r) { return '<li>' + esc(r.label) + '</li>'; }).join('') + '</ul></div>' +
-        '<div class="prism-badges">' + badge(s.stage, { text: s.stageLabel }) + badge(s.status) + '</div></li>';
+    const details = host.hasAttribute('data-attention-details');
+    const items = students.map(function (s,index) {
+      const statusTone = s.status === 'Delayed' ? 'late' : s.status === 'On Track' ? 'ok' : 'wait';
+      const icon = {delayed:'fa-triangle-exclamation',pending_review:'fa-file-lines',revision:'fa-rotate-left',correction:'fa-pen-to-square',not_submitted:'fa-paper-plane',overdue:'fa-clock'};
+      const protocolCode = s.protocolCode || s.groupId;
+      const metadata = [
+        esc(s.researchTitle || s.research || 'Not recorded'),
+        protocolCode ? '<em>' + esc(protocolCode) + '</em>' : 'Not assigned',
+        esc('Adviser: ' + (s.adviser || 'Not assigned'))
+      ].join(' | ');
+      return '<li class="prism-attn-item sev-' + s.topSeverity + '"><div class="prism-attn-main"><strong>' + esc(s.name) + '</strong>' +
+        '<span class="prism-sub">' + metadata + '</span>' +
+        '<ul class="prism-attn-reasons">' + s.reasons.map(function (r) { return '<li>' + (details ? '<i class="fa-solid '+(icon[r.type] || 'fa-circle-info')+'" aria-hidden="true"></i>' : '') + esc(r.label) + '</li>'; }).join('') + '</ul></div>' +
+        '<div class="prism-badges">' + (details
+          ? '<button type="button" class="sna-badge is-stage" data-attention-tip="stage" data-attention-index="'+index+'" aria-label="About stage: '+esc(s.stageLabel)+'"><i class="fa-solid fa-layer-group" aria-hidden="true"></i>'+esc(s.stageLabel)+'</button><button type="button" class="sna-badge is-'+statusTone+'" data-attention-tip="status" data-attention-index="'+index+'" aria-label="About status: '+esc(s.status)+'"><i class="fa-solid '+(statusTone==='late'?'fa-triangle-exclamation':statusTone==='ok'?'fa-circle-check':'fa-clock')+'" aria-hidden="true"></i>'+esc(s.status)+'</button>'
+          : badge(s.stage, { text: s.stageLabel }) + badge(s.status)) + '</div></li>';
     }).join('');
-    const more = data.total > data.students.length
-      ? '<p class="prism-sub">Showing ' + data.students.length + ' of ' + data.total + '.</p>' : '';
+    const more = host.dataset.showCount !== 'false' && data.total > students.length
+      ? '<p class="prism-sub">Showing ' + students.length + ' of ' + data.total + '.</p>' : '';
     host.innerHTML = '<ul class="prism-attn-list">' + items + '</ul>' + more;
+    if (details) host.prismAttentionCleanup = mountAttentionTips(host,students);
+  }
+
+  let attentionTipId = 0;
+  function mountAttentionTips(host,students) {
+    const events = new AbortController(), tip = document.createElement('div');
+    tip.className = 'sna-tip'; tip.id = 'prismAttentionTip' + (++attentionTipId); tip.setAttribute('role','tooltip'); tip.hidden = true;
+    document.body.append(tip);
+    let current = null, pinned = false, showTimer, hideTimer;
+    const listen = (node,event,handler,options={}) => node.addEventListener(event,handler,{...options,signal:events.signal});
+    function hide(force=false) {
+      if (pinned && !force) return;
+      clearTimeout(showTimer); clearTimeout(hideTimer);
+      current?.classList.remove('is-open'); current?.removeAttribute('aria-describedby');
+      tip.hidden = true; current = null; pinned = false;
+    }
+    function place() {
+      if (!current?.isConnected) { hide(true); return; }
+      const r=current.getBoundingClientRect(),w=tip.offsetWidth,h=tip.offsetHeight;
+      const left=Math.max(8,Math.min(r.right-w,innerWidth-w-8));
+      const above=r.bottom+10+h>innerHeight-8 && r.top-h-10>=8;
+      tip.style.left=left+'px'; tip.style.top=Math.max(8,Math.min(above?r.top-h-10:r.bottom+10,innerHeight-h-8))+'px';
+      tip.classList.toggle('is-above',above); tip.style.setProperty('--sna-arrow',Math.max(12,Math.min(w-24,r.left+r.width/2-left-6))+'px');
+    }
+    function info(kind,s) {
+      const project=s.protocolCode || s.groupId || s.studentId;
+      if (kind==='stage') return '<h4>'+esc(s.stageLabel)+'</h4><p>'+(s.stageModel==='Legacy'?'Recorded stage in the earlier IERB process.':'Current stage in the IERB workflow. Stage progress is separate from document approval.')+'</p><dl><dt>Official progress</dt><dd>'+(Number.isFinite(s.progress)?esc(s.progress)+'%':'Not recorded')+'</dd><dt>Project / group</dt><dd>'+esc(project)+'</dd></dl>'+(s.stage==='resubmission_amendment'?'<p class="sna-next">Progress stays at the stage where the correction was opened.</p>':'');
+      const types=s.reasons.map(r=>r.type);
+      const next=types.includes('correction')?'Review the open correction case and its affected requirements.':types.includes('revision')?'Ask the student to upload revised documents for adviser review.':types.includes('pending_review')?'Ask the adviser to review the waiting documents.':types.includes('not_submitted')?'Check approved documents that have not been formally submitted.':types.includes('overdue')?'Contact the student or adviser to resume submission activity.':'Review the requirements and coordinate the next step with the student and adviser.';
+      const description=s.status==='Delayed'?'This student is marked Delayed in RPMS.':s.status==='On Track'?'The recorded status is On Track. Separate review or submission items still need attention.':s.status==='Pending'?'The recorded status is Pending. Check the items below to identify the next step.':'The current progress status recorded in RPMS.';
+      return '<h4><span class="sna-tip-dot is-'+(s.status==='Delayed'?'late':s.status==='On Track'?'ok':'wait')+'"></span>'+esc(s.status)+'</h4><p>'+description+'</p><dl><dt>Needs attention</dt><dd><ul>'+s.reasons.map(r=>'<li>'+esc(r.label)+'</li>').join('')+'</ul></dd><dt>Adviser</dt><dd>'+esc(s.adviser || 'Not assigned')+'</dd><dt>Stage</dt><dd>'+esc(s.stageLabel)+'</dd></dl><p class="sna-next"><b>Suggested next step:</b> '+next+'</p>';
+    }
+    function show(button) {
+      clearTimeout(hideTimer); clearTimeout(showTimer);
+      if (button===current && !tip.hidden) return;
+      current?.classList.remove('is-open'); current?.removeAttribute('aria-describedby');
+      current=button; tip.innerHTML='<div class="sna-tip-content">'+info(button.dataset.attentionTip,students[Number(button.dataset.attentionIndex)])+'</div>';
+      tip.hidden=false; button.classList.add('is-open'); button.setAttribute('aria-describedby',tip.id); place();
+    }
+    const later=()=>{clearTimeout(hideTimer);hideTimer=setTimeout(()=>{if(!tip.contains(document.activeElement) && current!==document.activeElement) hide();},220);};
+    host.querySelectorAll('[data-attention-tip]').forEach(button=>{
+      listen(button,'pointerenter',e=>{if(e.pointerType!=='touch' && !pinned) showTimer=setTimeout(()=>show(button),100);});
+      listen(button,'pointerleave',()=>{clearTimeout(showTimer);later();});
+      listen(button,'focus',()=>show(button)); listen(button,'blur',later);
+      listen(button,'click',()=>{if(pinned && current===button){hide(true);}else{show(button);pinned=true;}});
+    });
+    listen(tip,'pointerenter',()=>clearTimeout(hideTimer)); listen(tip,'pointerleave',later);
+    listen(document,'click',e=>{if(!tip.contains(e.target) && !e.target.closest('[data-attention-tip]')) hide(true);});
+    listen(document,'keydown',e=>{if(e.key==='Escape')hide(true);});
+    const reposition=()=>{if(!tip.hidden){if(pinned)place();else hide(true);}};
+    listen(window,'resize',reposition); listen(window,'scroll',reposition,{capture:true});
+    return ()=>{hide(true);events.abort();tip.remove();};
   }
 
   // ------------------------------------------------------------------ tables
@@ -1136,7 +1221,7 @@
     const defaults = new Map(controls.map(control => [control, control.tagName === 'SELECT' ? control.options[0]?.value || '' : '']));
     function update() {
       const active = controls.filter(control => control.tagName === 'SELECT' && control.value !== defaults.get(control)).length;
-      const label = document.body.classList.contains('student-records-page') ? 'Filters' : 'Filters & Sort';
+      const label = document.body.classList.contains('student-records-page') || document.querySelector('.documents-page') ? 'Filters' : 'Filters & Sort';
       if (compactStudentFilters) {
         const accessibleLabel = label + (active ? ' (' + active + ')' : '');
         trigger.setAttribute('aria-label', accessibleLabel);
@@ -1324,7 +1409,7 @@
     return card;
   }
 
-  function reportCard(report, actions) {
+  function reportCard(report, actions, options = {}) {
     const card=document.createElement('article');card.className='prism-record-shell report-result-card';
     const identity=document.createElement('div');identity.className='prism-record-primary';
     const title=document.createElement('strong'),type=document.createElement('small');title.textContent=report.title||report.type||'Untitled report';type.textContent=report.type||'Report';identity.append(title,type);
@@ -1332,8 +1417,9 @@
     const summary=document.createElement('dl');summary.className='prism-record-summary';summary.append(recordField('Generated',Number.isNaN(parsed.getTime())?raw||'Not recorded':parsed.toLocaleString('en-PH')));
     const status=document.createElement('div');status.className='prism-record-status';const label=document.createElement('span');label.className='prism-record-label';label.textContent='Report status';status.append(label,badgeElement(report.requiresRegeneration?'Regeneration required':'Generated'));
     actions.classList.add('prism-record-actions');
-    const details=document.createElement('details');details.className='prism-record-details';details.append(document.createElement('summary'));const fields=document.createElement('dl');fields.className='prism-details-grid';fields.append(recordField('Generated by',report.generated_by),recordField('Report ID',report.id));details.append(fields);recordDetails(details);
-    card.append(identity,summary,status,actions,details);return card;
+    card.append(identity,summary,status,actions);
+    if(options.showDetails!==false){const details=document.createElement('details');details.className='prism-record-details';details.append(document.createElement('summary'));const fields=document.createElement('dl');fields.className='prism-details-grid';fields.append(recordField('Generated by',report.generated_by),recordField('Report ID',report.id));details.append(fields);recordDetails(details);card.append(details);}
+    return card;
   }
 
   // Compact presentation reuses the original nodes and bound Actions handlers.
@@ -1414,7 +1500,7 @@
     actionOrigin: control => control?.closest('.prism-action-menu')?.querySelector('.prism-action-trigger') || control,
     modal: modal, confirm: confirmDialog, request: request, handleSessionExpiry: handleSessionExpiry, debounce: debounce, recordFilters: recordFilters, filtersDisclosure: filtersDisclosure, postJson: postJson, esc: esc, pagination: pagination, pageSizeControl: pageSizeControl, clientPager: clientPager, menuDisclosure: menuDisclosure, paginationWindow: paginationWindow, busy: busy, runAction: runAction, dirtyForm: dirtyForm, recordPager: recordPager, clearFilters: clearFilters,
     confirmDocumentDelete: confirmDocumentDelete,
-    changeStudentProgress: changeStudentProgress, manageStages: manageStages, showStageGuidance: showStageGuidance, submitToRpms: submitToRpms, memberSubmitToRpms: memberSubmitToRpms, uploadRevision: uploadRevision, overrideStudent: overrideStudent, overrideDocument: overrideDocument, showVersions: showVersions,
+    manageStages: manageStages, showStageGuidance: showStageGuidance, submitToRpms: submitToRpms, memberSubmitToRpms: memberSubmitToRpms, uploadRevision: uploadRevision, overrideDocument: overrideDocument, showVersions: showVersions,
     enhanceTable: enhanceTable, tableFilter: tableFilter, hint: hint,
     mountStudentWorkflow: mountStudentWorkflow, mountNeedsAttention: mountNeedsAttention, init: init,
     BADGES: BADGES

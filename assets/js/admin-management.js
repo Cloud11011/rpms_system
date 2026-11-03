@@ -19,6 +19,7 @@
     // "this page instance manages the adviser roster".
     const loggedInRole = document.body.dataset.userRole || 'admin';
     const stageLabels = window.PRISM_STAGE_LABELS || {};
+    const activeStageKeys = new Set(['initial_submission','resubmission_amendment','approval_data_gathering','ierb_completed']);
     const studentRecordsView = !isAdviser && !archiveWorkspace;
 
     function labelForStage(stageKey) {
@@ -32,7 +33,7 @@
     const stageSelect = document.getElementById('stage');
     if (stageSelect) {
         stageSelect.querySelectorAll('option').forEach(opt => {
-            if (opt.value) opt.textContent = `${opt.value} - ${labelForStage(opt.value)}`;
+            if (opt.value) opt.textContent = labelForStage(opt.value);
         });
     }
 
@@ -94,7 +95,7 @@
         formGrid.replaceChildren(
             section('student-edit-personal','Personal information',"Contact details and the student's research title.",[label('recordName'),label('accountId'),label('recordEmail'),label('research')]),
             section('student-edit-academic','Academic details','Choose the program, year level, and academic year.',[academic]),
-            section('student-edit-assignment','Research assignment','Keep the research group and adviser assignment up to date.',[label('group'),label('adviser'),label('requirements')]),
+            section('student-edit-assignment','Research assignment','Choose a research project and keep the adviser assignment up to date.',[label('group'),label('adviser'),label('requirements')]),
             section('student-edit-ierb','IERB progress','Review the current ethics review stage and workflow status.',[label('stage'),label('recordStatus'),label('protocolCode'),label('isPrincipal')])
         );
         formGrid.classList.add('student-profile-sections');
@@ -132,7 +133,7 @@
             const index = steps.indexOf(firstInvalid.closest('.student-profile-step-panel'));
             if (index >= 0) selectProfileStep(index);
         }, true);
-        editIntro=document.createElement('p');editIntro.className='student-edit-intro';editIntro.textContent="Changes are saved to this student's record.";
+        editIntro=document.createElement('p');editIntro.className='student-edit-intro';editIntro.textContent="Changes are saved to this student's record.";editIntro.hidden=true;
         modal.querySelector('.management-modal-head > div').append(editIntro);
         modal.querySelector('.management-modal-head > div > span').textContent='STUDENT PROFILE';
         const avatar=document.createElement('span');avatar.className='student-profile-avatar';avatar.setAttribute('aria-hidden','true');modal.querySelector('.management-modal-head').prepend(avatar);
@@ -140,7 +141,6 @@
         const cancelAction=actions.querySelector('#cancelRecord');cancelAction.classList.add('student-profile-cancel');
         const submitAction=actions.querySelector('[type="submit"]');submitAction.classList.add('management-primary','student-profile-save');
         const saveContent=document.createElement('span');saveContent.className='student-profile-save-content';saveContent.innerHTML='<i class="fa-solid fa-floppy-disk" aria-hidden="true"></i> Save record';submitAction.replaceChildren(saveContent);
-        const dirtyNote=document.createElement('span');dirtyNote.className='student-profile-dirty';dirtyNote.textContent='Complete the profile sections';actions.prepend(dirtyNote);
         const syncStudentAvatar=()=>{
             if(!studentProfileSteps)return;
             const name=nameField.value.trim();
@@ -155,17 +155,25 @@
     let loadError = false;
     let deletionAvailability = {available:false,message:'Checking permanent-deletion availability...'};
     async function loadDeletionAvailability() {
-        if(loggedInRole!=='admin' || !archiveWorkspace) return;
+        if(loggedInRole!=='admin') return;
         try {
             const data=await PrismUI.request('account_lifecycle_api.php?action=availability');
             deletionAvailability={available:data.available===true,message:data.message || 'Permanent deletion is unavailable.'};
         } catch(_) {
             deletionAvailability={available:false,message:'Permanent deletion is unavailable because deployment verification is required. Contact the system operator.'};
         }
-        document.getElementById('permanentDeleteAvailability').textContent=deletionAvailability.message;
+        const availabilityMessage=document.getElementById('permanentDeleteAvailability');
+        if(availabilityMessage) {
+            availabilityMessage.dataset.available=String(deletionAvailability.available);
+            const copy=document.createElement('span'),lead=document.createElement('strong');
+            lead.textContent=deletionAvailability.available?'Permanent deletion verification is available. ':'Permanent deletion is locked. ';
+            const explanation=deletionAvailability.message.replace(/^Permanent deletion is unavailable because\s+/i,'');
+                copy.append(lead,document.createTextNode(explanation.charAt(0).toUpperCase()+explanation.slice(1)));
+            availabilityMessage.innerHTML=archiveIcon(deletionAvailability.available?'check':'lock');availabilityMessage.append(copy);
+        }
         render();
     }
-    loadDeletionAvailability();
+    const deletionAvailabilityReady=loadDeletionAvailability();
 
     const definitions = isAdviser ? [['department','Departments'],['status','Account statuses'],['group','Research groups']]
       : [['academicUnitKey','Academic units'],['programKey','Programs'],['academicYear','Academic years'],['yearLevel','Year levels'],['group','Research groups'],['stage','Stages'],['status','Statuses'],['protocol','Protocol status']];
@@ -174,18 +182,30 @@
     const statusSelect=document.getElementById('recordFilters_status');
     const stageFilter=document.getElementById('recordFilters_stage');
     const statusPills=document.createElement('div');document.querySelector('.management-controls').after(statusPills);
-    let stageCounts=null;
+    let stageCounts=null,statusCounts=null,archiveStatusCounts=null;
     function syncStatusPills(){
+        if(archiveWorkspace) {
+            const entries=archiveStatusEntries();
+            PrismUI.statusPills(statusPills,entries,statusSelect,null);
+            [...statusPills.querySelectorAll('button')].forEach((button,index)=>{
+                const text=document.createElement('span');text.textContent=entries[index][1];
+                const number=document.createElement('span');number.className='archive-count';
+                const count=archiveStatusCounts?.[entries[index][0]];number.textContent=Number.isInteger(count)?String(count):'—';
+                button.replaceChildren(text,number);
+            });
+            return;
+        }
+
         if(studentRecordsView && stageFilter) {
             statusPills.classList.add('student-stage-filters');
-            const stages=[...stageFilter.options].filter(option=>option.value);
+            const stages=[...stageFilter.options].filter(option=>activeStageKeys.has(option.value));
             PrismUI.statusPills(statusPills,[['','All'],...stages.map(option=>[
                 option.value,
                 option.textContent.replace(/^Stage \d+\s*-\s*/,'')
             ])],stageFilter,stageCounts);
             return;
         }
-        PrismUI.statusPills(statusPills,[['','All'],...[...statusSelect.options].filter(option=>option.value).map(option=>[option.value,option.textContent])],statusSelect,null);
+        PrismUI.statusPills(statusPills,[['','All'],...[...statusSelect.options].filter(option=>option.value).map(option=>[option.value,option.textContent])],statusSelect,isAdviser?statusCounts:null);
     }
     const sort = PrismUI.recordFilters(document.getElementById('recordFilters'), [['sortBy','Sort by'],['direction','Direction']]);
     const sortOptions = isAdviser
@@ -209,12 +229,14 @@
     const filterControls = [...filters.controls,...sort.controls];
     const pager = PrismUI.recordPager(rowsEl.closest('table').parentElement, countEl, [searchInput,...filterControls], loadRecords,
         {host:document.getElementById('recordFilters'),toolbar:document.querySelector('.management-controls')});
+    let pageActionsHost = null;
     if(studentRecordsView || isAdviser || archiveWorkspace) {
         const toolbar=document.querySelector('.management-controls');
         const actions=document.createElement('div');
         actions.className='student-page-actions';
         actions.setAttribute('role','group');
         actions.setAttribute('aria-label',isAdviser?'Adviser record actions':'Student record actions');
+        pageActionsHost = actions;
         [[document.getElementById('inviteAccount'),isAdviser?'Invite adviser':'Invite student','fa-regular fa-envelope'],[addBtn,isAdviser?'Add adviser':'Add student','fa-solid fa-user-plus']].forEach(([button,label,icon])=>{
             if(!button)return;
             button.classList.add('student-icon-action');
@@ -232,7 +254,6 @@
             archiveLink.setAttribute('aria-label',archiveWorkspace?'View current records':'View archived accounts');
             actions.append(archiveLink);
         }
-        statusPills.classList.add('student-stage-filters');
         const filterDisclosure=toolbar?.querySelector('.prism-filter-disclosure');
         const separator=document.createElement('span');
         separator.className='student-toolbar-separator';
@@ -254,7 +275,7 @@
     });
     const retentionUI=loggedInRole==='admin'?PrismRetentionAdmin.mount({
         type:isAdviser?'adviser':'student', rows:rowsEl, archived:archiveWorkspace, getScope:()=>({q:searchInput.value.trim(),...filters.query(),lifecycle:lifecyclePopulation}),
-        getRecords:()=>records, getAvailability:()=>deletionAvailability, refresh:loadRecords,
+        getRecords:()=>records, getAvailability:()=>deletionAvailability, ensureDeletionAvailability:()=>deletionAvailabilityReady, refresh:loadRecords,
         openBulk:openBulkDelete, openRecovery,
         reviewCleanup:async()=>{document.getElementById('recordFilters_retention').value='cleanup';pager.reset();await loadRecords();}
     }):null;
@@ -263,12 +284,211 @@
         if(selectionMode) {
             selectionMode.classList.add('student-selection-toggle');
             selectionMode.dataset.prismTooltip='';
-            document.getElementById('recordFilters')?.append(selectionMode);
+            const filterPanel=document.getElementById('recordFilters');
+            const clearFilters=filterPanel?.querySelector('.prism-filter-clear');
+            if(filterPanel && clearFilters) {
+                const selectionControls=document.createElement('div');
+                selectionControls.className='prism-filter-selection-controls';
+                const divider=document.createElement('span');
+                divider.className='prism-filter-selection-divider';
+                divider.setAttribute('aria-hidden','true');
+                divider.textContent='|';
+                filterPanel.insertBefore(selectionControls,clearFilters);
+                selectionControls.append(clearFilters,divider,selectionMode);
+            } else filterPanel?.append(selectionMode);
         }
     }
+    function archiveIcon(name) {
+        const paths={filter:'<path d="M4 6h16M4 12h16M4 18h16"/><circle cx="8" cy="6" r="2" fill="currentColor"/><circle cx="16" cy="12" r="2" fill="currentColor"/><circle cx="10" cy="18" r="2" fill="currentColor"/>',search:'<circle cx="11" cy="11" r="6.5"/><path d="m20 20-4-4"/>',
+            student:'<path d="m2 9 10-5 10 5-10 5zM6 11.5V16c0 1.5 3 3 6 3s6-1.5 6-3v-4.5"/>',
+            adviser:'<circle cx="12" cy="8" r="4"/><path d="M4 20a8 8 0 0 1 16 0"/>',
+            lock:'<rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/>',
+            check:'<circle cx="12" cy="12" r="9"/><path d="m8 12 3 3 5-6"/>',
+            archive:'<path d="M3 7h18v4H3zM5 11v8h14v-8M10 15h4"/>',
+            restore:'<path d="M4 12a8 8 0 1 0 2.6-5.9M4 4v5h5"/>',
+            chevron:'<path d="m6 9 6 6 6-6"/>'};
+        return '<svg class="archive-ui-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'+(paths[name]||'')+'</svg>';
+    }
+    function archiveStatusEntries() {
+        const defaults=isAdviser?[['Active','Active'],['Inactive','Inactive']]:[['On Track','On track'],['Pending','Pending'],['Delayed','Delayed']];
+        const seen=new Set(defaults.map(([value])=>value));
+        const extra=[...statusSelect.options].filter(option=>option.value&&!seen.has(option.value)).map(option=>[option.value,option.textContent]);
+        return [['','All'],...defaults,...extra];
+    }
+    async function refreshArchiveOverview(data,request) {
+        const query={action:'list',preview:1,lifecycle:'archived',q:searchInput.value.trim(),...filters.query(),status:''};
+        const permitted=new Set((data.filterOptions?.status||[]).map(option=>String(option.value)));
+        const count=async status=>{
+            if(status&&!permitted.has(status))return 0;
+            if(!status&&!statusSelect.value)return data.total;
+            if(status&&isAdviser&&Number.isInteger(data.statusCounts?.[status]))return data.statusCounts[status];
+            const response=await PrismUI.request(apiUrl+'?'+new URLSearchParams({...query,status}));
+            if(!Number.isInteger(response.total))throw new Error('Archive count unavailable.');
+            return response.total;
+        };
+        const result=await Promise.allSettled([
+            Promise.all(archiveStatusEntries().map(async([status])=>[status,await count(status)])),
+            ...['student','adviser'].map(async type=>{
+                const response=await PrismUI.request((type==='student'?'students_api.php':'advisers_api.php')+'?'+new URLSearchParams({action:'list',lifecycle:'archived',preview:1}));
+                if(!Number.isInteger(response.total))throw new Error('Archive count unavailable.');
+                return response.total;
+            })
+        ]);
+        if(request!==requestSequence)return;
+        archiveStatusCounts=result[0].status==='fulfilled'?Object.fromEntries(result[0].value):null;
+        ['student','adviser'].forEach((type,index)=>{
+            const node=document.querySelector('[data-archive-count="'+type+'"]');
+            if(node){node.textContent=result[index+1].status==='fulfilled'?String(result[index+1].value):'—';node.removeAttribute('aria-busy');}
+        });
+    }
+    function archiveDate(value,full=false) {
+        const raw=String(value||'').trim().replace(' ','T');
+        const date=new Date(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?$/.test(raw)?raw+'+08:00':raw);
+        if(Number.isNaN(date.getTime()))return null;
+        return {date,text:new Intl.DateTimeFormat('en-US',{timeZone:'Asia/Manila',month:'short',day:'numeric',year:'numeric',...(full?{hour:'numeric',minute:'2-digit'}:{})}).format(date)};
+    }
+    function archiveRelative(value) {
+        const parsed=archiveDate(value);if(!parsed)return '';
+        const day=date=>{const parts=new Intl.DateTimeFormat('en-US',{timeZone:'Asia/Manila',year:'numeric',month:'numeric',day:'numeric'}).formatToParts(date);const get=type=>Number(parts.find(part=>part.type===type).value);return Date.UTC(get('year'),get('month')-1,get('day'));};
+        const difference=Math.round((day(parsed.date)-day(new Date()))/86400000);
+        return difference===0?'Today':difference>0?'in '+difference+' day'+(difference===1?'':'s'):Math.abs(difference)+' day'+(difference===-1?'':'s')+' ago';
+    }
+    if(archiveWorkspace) {
+        const toolbar=document.querySelector('.management-controls'),tabs=document.querySelector('.archive-tabs');
+        if(tabs) {
+            [...tabs.querySelectorAll('a')].forEach((link,index)=>{
+                const type=index?'adviser':'student',label=document.createElement('span'),count=document.createElement('span');
+                label.textContent=index?'Research advisers':'Students';count.className='archive-count';count.dataset.archiveCount=type;count.setAttribute('aria-busy','true');count.textContent='—';
+                link.className='archive-type-tab';link.innerHTML=archiveIcon(type);link.append(label,count);
+            });
+            toolbar.append(tabs);
+        }
+        const searchIcon=toolbar.querySelector('.management-search > i');if(searchIcon)searchIcon.outerHTML=archiveIcon('search');
+        const statusBar=document.createElement('div');statusBar.className='archive-statusbar';toolbar.after(statusBar);statusBar.append(statusPills,countEl);
+        const disclosure=toolbar.querySelector('.prism-filter-disclosure');if(disclosure){statusBar.append(disclosure);const icon=disclosure.querySelector('button > i');if(icon)icon.outerHTML=archiveIcon('filter');}
+        const selectToggle=document.getElementById('retentionSelectionMode');if(selectToggle)statusBar.append(selectToggle);
+        toolbar.querySelectorAll('.student-toolbar-separator').forEach(node=>node.remove());
+        toolbar.querySelector('.student-page-actions')?.remove();
+    }
+
     const invitationUI=archiveWorkspace ? null : PrismInvitations.mount({type:isAdviser?'adviser':'student',role:loggedInRole,refresh:loadRecords});
     const dirty = PrismUI.dirtyForm(form);
     let requestSequence = 0;
+    // Read the current assignment API; project identifiers, not member rows or titles, are the identity.
+    async function loadAdviserAssignments(items, request) {
+        const assigned=new Map(items.map(record=>[String(record.id),new Map()]));
+        const collect=students=>{
+            if(!Array.isArray(students))throw new Error('Could not load research group assignments.');
+            students.forEach(student=>{
+                if(student.archivedAt || student.profileStatus==='Pending')return;
+                const identifier=String(student.projectIdentifier || student.group || '').trim();
+                const projects=assigned.get(String(student.adviserId));
+                if(identifier&&projects) {
+                    const title=[student.projectTitle,student.research,student.groupName].find(value=>typeof value==='string'&&value.trim())?.trim()||'Research title not recorded';
+                    if(!projects.has(identifier)||projects.get(identifier)==='Research title not recorded')projects.set(identifier,title);
+                }
+            });
+        };
+        try {
+            const scope=await PrismUI.request('students_api.php?'+new URLSearchParams({action:'list',lifecycle:'active',perPage:100,sortBy:'studentId',direction:'ASC'}));
+            if(request!==requestSequence)return;
+            collect(scope.students);
+            if(!Number.isSafeInteger(scope.total) || !Number.isSafeInteger(scope.limit) || scope.limit<1)throw new Error('Could not verify assignment totals.');
+            if(scope.total>scope.limit) {
+                if(!Array.isArray(scope.filterOptions?.adviserId))throw new Error('Could not verify the adviser assignment scope.');
+                const permitted=new Set((scope.filterOptions?.adviserId || []).map(option=>String(option.value)));
+                await Promise.all(items.filter(record=>permitted.has(String(record.id))).map(async record=>{
+                    assigned.set(String(record.id),new Map());
+                    for(let page=1;request===requestSequence;page++) {
+                        const data=await PrismUI.request('students_api.php?'+new URLSearchParams({action:'list',lifecycle:'active',adviserId:record.id,page,perPage:100,sortBy:'studentId',direction:'ASC'}));
+                        if(request!==requestSequence)return;
+                        collect(data.students);
+                        if(!Number.isSafeInteger(data.total) || !Number.isSafeInteger(data.limit) || data.limit<1)throw new Error('Could not verify assignment totals.');
+                        if(page*data.limit>=data.total)break;
+                    }
+                }));
+            }
+            items.forEach(record=>{
+                record.assignmentProjects=[...assigned.get(String(record.id))].map(([identifier,title])=>({identifier,title}))
+                    .sort((a,b)=>a.title.localeCompare(b.title)||a.identifier.localeCompare(b.identifier));
+                record.groups=record.assignmentProjects.map(project=>project.identifier);
+                record.assignmentCount=record.assignmentProjects.length;
+            });
+        } catch (_) {
+            // An unavailable count must never be presented as an adviser having no groups.
+            items.forEach(record=>{record.assignmentCount=null;});
+        }
+    }
+
+    let activeAdviserGroups=null;
+    function adviserGroupPopover(trigger,record) {
+        const panel=document.createElement('div');panel.className='adviser-groups-popover';
+        panel.id='adviserGroups-'+record.id+'-'+requestSequence;panel.setAttribute('popover','manual');
+        panel.setAttribute('role','dialog');panel.setAttribute('aria-label','Assigned research groups for '+(record.name||'this adviser'));
+        const heading=document.createElement('div');heading.className='adviser-groups-heading';
+        const title=document.createElement('h3');title.textContent='Assigned research groups';
+        const dismiss=document.createElement('button');dismiss.type='button';dismiss.setAttribute('aria-label','Close assigned research groups');
+        dismiss.innerHTML='<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="m6 6 12 12M18 6 6 18"/></svg>';
+        heading.append(title,dismiss);
+        const list=document.createElement('ul');list.className='adviser-groups-list';list.tabIndex=0;list.setAttribute('aria-label','Research titles');
+        (record.assignmentProjects||[]).forEach(project=>{const item=document.createElement('li');item.textContent=project.title;list.append(item);});
+        panel.append(heading,list);
+        trigger.setAttribute('aria-controls',panel.id);trigger.setAttribute('aria-expanded','false');trigger.setAttribute('aria-haspopup','dialog');
+        let pinned=false,closeTimer,suppressFocus=false;
+        const isOpen=()=>panel.matches(':popover-open');
+        const position=()=>{
+            if(!isOpen())return;
+            const margin=12,anchor=trigger.getBoundingClientRect(),box=panel.getBoundingClientRect();
+            const left=Math.max(margin,Math.min(anchor.left,innerWidth-box.width-margin));
+            const below=anchor.bottom+8,above=anchor.top-box.height-8;
+            const preferred=below+box.height<=innerHeight-margin?below:above;
+            const top=Math.max(margin,Math.min(preferred,innerHeight-box.height-margin));
+            panel.style.left=left+'px';panel.style.top=top+'px';
+        };
+        const observer=new ResizeObserver(position);
+        const outside=event=>{if(!panel.contains(event.target)&&!trigger.contains(event.target))close();};
+        const escape=event=>{if(event.key==='Escape'){event.preventDefault();event.stopPropagation();close(panel.contains(document.activeElement)||document.activeElement===trigger);}};
+        const cleanup=()=>{
+            clearTimeout(closeTimer);pinned=false;trigger.setAttribute('aria-expanded','false');
+            observer.disconnect();window.removeEventListener('resize',position);document.removeEventListener('scroll',position,true);
+            document.removeEventListener('pointerdown',outside,true);document.removeEventListener('click',outside,true);document.removeEventListener('keydown',escape,true);
+            if(activeAdviserGroups?.panel===panel)activeAdviserGroups=null;
+        };
+        const close=(restoreFocus=false)=>{
+            if(isOpen())panel.hidePopover();cleanup();
+            if(restoreFocus){suppressFocus=true;trigger.focus({preventScroll:true});queueMicrotask(()=>{suppressFocus=false;});}
+        };
+        const open=()=>{
+            clearTimeout(closeTimer);
+            if(!trigger.isConnected)return;
+            if(activeAdviserGroups&&activeAdviserGroups.panel!==panel)activeAdviserGroups.close();
+            if(!isOpen())panel.showPopover();
+            trigger.setAttribute('aria-expanded','true');activeAdviserGroups={panel,close};
+            observer.observe(panel);window.addEventListener('resize',position);document.addEventListener('scroll',position,true);
+            document.addEventListener('pointerdown',outside,true);document.addEventListener('click',outside,true);document.addEventListener('keydown',escape,true);position();
+        };
+        const scheduleClose=(fromFocus=false)=>{
+            clearTimeout(closeTimer);
+            closeTimer=setTimeout(()=>{
+                if(pinned&&!fromFocus)return;
+                if(!panel.matches(':hover')&&!trigger.matches(':hover')&&!panel.contains(document.activeElement)&&document.activeElement!==trigger)close();
+            },180);
+        };
+        trigger.addEventListener('pointerenter',event=>{if(event.pointerType==='mouse')open();});
+        trigger.addEventListener('pointerleave',()=>scheduleClose());
+        trigger.addEventListener('focus',()=>{if(!suppressFocus&&trigger.matches(':focus-visible'))open();});
+        trigger.addEventListener('blur',()=>scheduleClose(true));
+        trigger.addEventListener('click',()=>{if(isOpen()&&pinned)close();else{open();pinned=true;}});
+        trigger.addEventListener('keydown',event=>{if(event.key==='ArrowDown'){event.preventDefault();open();list.focus();}});
+        panel.addEventListener('pointerenter',()=>clearTimeout(closeTimer));
+        panel.addEventListener('pointerleave',()=>scheduleClose());
+        panel.addEventListener('pointerdown',()=>{pinned=true;});
+        panel.addEventListener('focusout',()=>scheduleClose(true));
+        panel.addEventListener('toggle',()=>{if(isOpen())position();else cleanup();});
+        dismiss.addEventListener('click',()=>close(true));
+        return panel;
+    }
+
     async function loadRecords() {
         filters.reconcile();
         retentionUI?.syncScope();
@@ -281,22 +501,27 @@
             const items = isAdviser ? data.advisers : data.students;
             if (!Array.isArray(items)) throw new Error('Could not load records.');
             if (request !== requestSequence) return;
+            if(isAdviser&&!archiveWorkspace)await loadAdviserAssignments(items,request);
+            if (request !== requestSequence) return;
             records = items;
+            statusCounts=isAdviser&&data.statusCounts&&typeof data.statusCounts==='object'?data.statusCounts:null;
             filters.update(data.filterOptions);
-            stageCounts=null;
-            if(studentRecordsView && stageFilter && !stageFilter.value && Number(data.total)===records.length) {
-                stageCounts={};
-                [...stageFilter.options].filter(option=>option.value).forEach(option=>{
-                    stageCounts[option.value]=records.filter(record=>(record.projectStage||record.stage)===option.value).length;
+            if(studentRecordsView && stageFilter) {
+                [...stageFilter.options].forEach(option=>{
+                    if(option.value && !activeStageKeys.has(option.value)) option.remove();
                 });
+                if(!activeStageKeys.has(stageFilter.value)) stageFilter.value='';
             }
+            if(archiveWorkspace)await refreshArchiveOverview(data,request);
+            if(request!==requestSequence)return;
+            stageCounts=studentRecordsView&&data.stageCounts&&typeof data.stageCounts==='object'?data.stageCounts:null;
             syncStatusPills();
             pager.render({ ...data, total: data.total ?? records.length });
             retentionUI?.onPage(data.total ?? records.length);
         } catch (e) {
             if (request !== requestSequence) return;
             records = [];
-            stageCounts=null; syncStatusPills();
+            stageCounts=null; statusCounts=null; archiveStatusCounts=null; syncStatusPills();
             loadError = true;
             pager.error();
             PrismUI.toast(e.message || 'Could not load records.', 'error');
@@ -332,6 +557,7 @@
     }
 
     function render() {
+        if(isAdviser&&!archiveWorkspace)activeAdviserGroups?.close();
         const term = (searchInput.value || '').trim().toLowerCase();
         const filtered = records;
         rowsEl.replaceChildren();
@@ -379,7 +605,7 @@
                     <td>${escapeHtml(retentionStatus)}<br><small>${escapeHtml(status)}</small><br><small>Retention date: ${escapeHtml(lc.retentionAt || 'Not recorded')}</small>${lc.holdReason ? '<br><small>'+escapeHtml(lc.holdReason)+'</small>' : ''}</td><td class="row-actions"></td>`;
             } else if (isAdviser) {
                 tr.innerHTML = `
-                    <td><strong>${escapeHtml(record.name || 'Profile incomplete')}</strong>${record.profileStatus==='Pending'?' <span class="prism-badge">Pending Profile</span>':''}${record.archivedAt ? ' <span class="prism-badge">Archived</span>' : ''}<br><small>${escapeHtml(record.email)}</small></td>
+                    <td><strong>${escapeHtml(record.name || 'Profile incomplete')}</strong>${record.profileStatus==='Pending'?' <span class="prism-badge">Pending Profile</span>':''}${record.archivedAt ? ' <span class="prism-badge">Archived</span>' : ''}<small>${escapeHtml(record.email)}</small></td>
                     <td>${escapeHtml(record.employeeId || '—')}</td>
                     <td>${escapeHtml(record.department || 'N/A')}</td>
                     <td class="adviser-groups"></td>
@@ -439,7 +665,7 @@
             const delBtn = document.createElement('button');
             delBtn.type='button';
             delBtn.className = 'icon-btn lifecycle-action lifecycle-archive';
-            delBtn.title = isAdviser ? 'Archive Adviser' : 'Archive Student';
+            delBtn.title = isAdviser ? 'Archive adviser' : 'Archive Student';
             if(archived) delBtn.title=accountLabel+' is already archived';
             delBtn.disabled=archived;
             delBtn.setAttribute('aria-label',delBtn.title);
@@ -501,32 +727,95 @@
                 }
                 retentionUI.attachRow(tr,record);
             }
-            if (!studentRecordsView) PrismUI.actionMenu(actions,{label:'More student actions'});
+            PrismUI.actionMenu(actions,{label:'More actions for '+(record.name||'student')});
+            actions.querySelector('.prism-action-panel')?.classList.add('student-record-actions-panel');
+            actions.querySelector('.prism-action-item[aria-label^="Archive"]')?.classList.add('student-record-archive-action');
             rowsEl.appendChild(tr);
             if(studentRecordsView) {
-                const actionItems=[...actions.children];
                 const cells=[...tr.cells].filter(cell=>!cell.classList.contains('retention-select'));
-                const card=document.createElement('article');card.className='student-result-card';
+                const card=document.createElement('article');
+                const statusClass=record.status==='On Track'?'is-on-track':record.status==='Delayed'?'is-delayed':'is-pending';
+                card.className=`student-result-card ${statusClass}`;
+                card.setAttribute('aria-label',record.name||'Student record');
                 const identity=cells[0].querySelector('.student-name-layout');
                 identity.querySelector('.row-actions')?.remove();
+                const avatar=identity.querySelector('.student-avatar');
+                if(avatar)avatar.textContent=PrismUI.recordInitials(record.name,'Student');
                 const id=document.createElement('small');id.textContent='ID '+(record.studentId||'Not recorded');
                 identity.querySelector('.student-name-copy').insertBefore(id,identity.querySelector('.student-name-copy small'));
                 const block=(title,html)=>{const el=document.createElement('div');const label=document.createElement('small');label.className='student-result-label';label.textContent=title;el.append(label);const body=document.createElement('div');body.innerHTML=html;el.append(body);return el;};
                 const academic=cells[2].querySelector('.academic-record-summary');
                 const details=document.createElement('details');details.className='student-result-details';
-                const summary=document.createElement('summary');summary.textContent='Show academic details';details.append(summary);
+                const summary=document.createElement('summary');
+                summary.setAttribute('aria-expanded','false');
+                const summaryText=document.createElement('span');summaryText.textContent='Show details';
+                summary.append(summaryText);
+                summary.insertAdjacentHTML('beforeend','<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>');
+                details.append(summary);
+                details.addEventListener('toggle',()=>{summaryText.textContent=details.open?'Hide details':'Show details';summary.setAttribute('aria-expanded',String(details.open));});
                 const academicGrid=document.createElement('div');academicGrid.className='student-academic-details-grid';
-                if(academic)academicGrid.append(academic);
-                academicGrid.append(block('Research title',escapeHtml(record.research||'Not recorded')),block('Protocol code',escapeHtml(record.protocolCode||'Not recorded')),block('Principal Investigator',record.isPrincipalInvestigator?'Yes':'No'));
+                const researchGroup=block('Research group',escapeHtml(record.group||'Not recorded'));
+                academicGrid.append(researchGroup);
+                if(academic) {
+                    academic.querySelectorAll('dt').forEach(term=>{
+                        if(term.textContent.includes('Academic Unit')) {
+                            term.parentElement.remove();
+                            return;
+                        }
+                        term.textContent=term.textContent.replace(/:\s*$/, '');
+                    });
+                    academicGrid.append(academic);
+                }
                 details.append(academicGrid);
-        const toolbar=document.createElement('div');toolbar.className='student-result-actions';
-                actionItems.forEach(item=>{item.classList.add('student-profile-action');if(item.title?.startsWith('Edit ')){item.innerHTML='<i class="fa-solid fa-pen" aria-hidden="true"></i>';item.title='Edit student profile';item.setAttribute('aria-label','Edit student profile');item.classList.add('student-profile-edit');}toolbar.append(item);});
-                card.append(identity,block('Research group',escapeHtml(record.research||record.researchAssignment?.intent?.title||'Not set')+'<small>Protocol Code: '+escapeHtml(record.protocolCode||'Not yet assigned')+(record.researchAssignment&&record.researchAssignment.state!=='activated'?' ? Assignment: '+escapeHtml(record.researchAssignment.state):'')+'</small>'),block('IERB status',cells[4].querySelector('.prism-pill-row')?.outerHTML||'Complete profile first'),block('Assigned adviser',escapeHtml(record.adviserName||'Unassigned')),toolbar,details);
+                const toolbar=document.createElement('div');toolbar.className='student-result-actions';
+                const actionMenu=actions.querySelector('.prism-action-menu');
+                if(actionMenu)toolbar.append(actionMenu);
+                const researchInfo=document.createElement('div');researchInfo.className='student-result-research-info';
+                const researchLabel=document.createElement('span');researchLabel.className='student-result-label';researchLabel.textContent='Research title';
+                const researchTitle=document.createElement('strong');researchTitle.className='student-result-research-title';
+                const researchValue=String(record.research||record.researchAssignment?.intent?.title||'').trim();
+                researchTitle.textContent=researchValue || 'Title not recorded';
+                if(!researchValue)researchTitle.classList.add('is-unavailable');
+                const protocolCode=document.createElement('p');protocolCode.className='student-result-protocol-code';
+                const protocolLabel=document.createElement('span');protocolLabel.textContent='Protocol code:';
+                const protocolText=String(record.protocolCode||'').trim();
+                const protocolValue=document.createElement('span');protocolValue.className=protocolText?'student-protocol-value':'is-unavailable';
+                protocolValue.textContent=protocolText || 'Not assigned';
+                protocolCode.append(protocolLabel,protocolValue);
+                researchInfo.append(researchLabel,researchTitle,protocolCode);
+
+                const ierbStatus=document.createElement('div');ierbStatus.className='student-result-ierb-status';
+                const statusLabel=document.createElement('span');statusLabel.className='student-result-label';statusLabel.textContent='IERB status';
+                const stageKey=record.projectStage||record.stage;
+                const stageNumber=({initial_submission:1,resubmission_amendment:2,approval_data_gathering:3,ierb_completed:4})[stageKey] || (activeStageKeys.has(stageKey)?Number(stageKey.replace('Stage ','')):0);
+                const stageText=stageNumber?`Stage ${stageNumber}`:'Research setup pending';
+                const chips=document.createElement('div');chips.className='student-result-status-chips';
+                const stageBadge=document.createElement('span');stageBadge.className='student-result-chip student-result-stage-chip';
+                stageBadge.innerHTML='<i class="fa-solid fa-layer-group" aria-hidden="true"></i>';
+                const stageBadgeText=document.createElement('span');stageBadgeText.textContent=stageText;stageBadge.append(stageBadgeText);
+                const statusText=record.projectStatus||record.status||'Pending';
+                const statusIcon=statusText==='On Track'?'fa-circle-check':statusText==='Delayed'?'fa-triangle-exclamation':'fa-clock';
+                const statusBadge=document.createElement('span');statusBadge.className='student-result-chip '+(statusText==='On Track'?'is-on-track':statusText==='Delayed'?'is-delayed':'is-pending');
+                statusBadge.innerHTML=`<i class="fa-solid ${statusIcon}" aria-hidden="true"></i>`;
+                const statusBadgeText=document.createElement('span');statusBadgeText.textContent=statusText;statusBadge.append(statusBadgeText);
+                chips.append(stageBadge,statusBadge);
+                ierbStatus.append(statusLabel,chips);
+
+                const adviserName=String(record.adviserName||'').trim();
+                const adviserAssigned=adviserName!==''&&adviserName.toLowerCase()!=='unassigned';
+                const adviser=document.createElement('div');adviser.className='student-result-adviser';
+                const adviserLabel=document.createElement('span');adviserLabel.className='student-result-label';adviserLabel.textContent='Assigned adviser';
+                const adviserCopy=document.createElement('div');adviserCopy.className='student-result-adviser-copy'+(adviserAssigned?'':' is-unassigned');
+                const adviserAvatar=document.createElement('span');adviserAvatar.className='student-result-adviser-avatar';
+                adviserAvatar.setAttribute('aria-hidden','true');
+                adviserAvatar.textContent=adviserAssigned?PrismUI.recordInitials(adviserName,''): '!';
+                const adviserText=document.createElement('span');adviserText.textContent=adviserAssigned?adviserName:'Not assigned';
+                adviserCopy.append(adviserAvatar,adviserText);adviser.append(adviserLabel,adviserCopy);
+                card.append(identity,researchInfo,ierbStatus,adviser,toolbar,details);
                 const host=document.createElement('td');host.colSpan=tr.cells.length;
-                const selection=tr.querySelector('.retention-select');if(selection){const wrapper=document.createElement('span');wrapper.className='retention-select';wrapper.hidden=selection.hidden;while(selection.firstChild)wrapper.append(selection.firstChild);identity.prepend(wrapper);}
+                const selection=tr.querySelector('.retention-select');if(selection){const wrapper=document.createElement('span');wrapper.className='retention-select';wrapper.hidden=selection.hidden;while(selection.firstChild)wrapper.append(selection.firstChild);card.insertBefore(wrapper,identity);}
                 host.append(card);tr.replaceChildren(host);
             } else if(archiveWorkspace) {
-                const cells=[...tr.cells].filter(cell=>!cell.classList.contains('retention-select'));
                 const lc=record.lifecycle || {};
                 const card=document.createElement('article');card.className='student-result-card archive-result-card';
                 const identity=document.createElement('div');identity.className='student-name-layout';
@@ -536,32 +825,39 @@
                 [record.studentId || record.employeeId || 'ID not recorded',record.email || 'Email not recorded'].forEach(value=>{const line=document.createElement('small');line.textContent=value;copy.append(line);});
                 if(record.profileStatus==='Pending')copy.insertAdjacentHTML('beforeend',PrismUI.badge('Pending Profile'));
                 identity.append(avatar,copy);
-                const block=(label,value)=>{const field=document.createElement('div');const heading=document.createElement('small');heading.className='student-result-label';heading.textContent=label;const content=document.createElement('div');content.textContent=value || 'Not recorded';field.append(heading,content);return field;};
-                const research=document.createElement('div');research.className='archive-record-fields';
-                research.append(block('Account type',accountLabel));
-                const deletionReason=!deletionAvailability.available?deletionAvailability.message:lc.purgeBlockReason||'Eligible for permanent deletion';
-                research.append(block('Permanent deletion',deletionReason));
-                const metadata=document.createElement('div');metadata.className='archive-record-fields';
-                metadata.insertAdjacentHTML('beforeend',PrismUI.badge('Archived'));
-                metadata.append(block('Archived date',record.archivedAt));
-                if(lc.retentionHold)metadata.insertAdjacentHTML('beforeend',PrismUI.badge('Retention Hold'));
-                else metadata.append(block('Retention status',lc.unresolvedWorkflow?'Unresolved workflow':lc.cleanupEligible?'Eligible for retention cleanup':lc.approachingRetention?'Approaching retention cleanup':'Archived'));
-                if(lc.holdReason)metadata.append(block('Hold reason',lc.holdReason));
+                const block=(label,value)=>{const field=document.createElement('div');field.className='archive-fact';const heading=document.createElement('span');heading.className='student-result-label';heading.textContent=label;const content=document.createElement('div');content.className='archive-value';content.textContent=value || 'Not recorded';field.append(heading,content);return field;};
+                const dated=(label,value)=>{const parsed=archiveDate(value),field=block(label,parsed?.text || 'Date not recorded');field.title=[archiveDate(value,true)?.text,archiveRelative(value)].filter(Boolean).join(' · ');return field;};
+                const facts=document.createElement('div');facts.className='archive-record-fields archive-identity-fields';
+                facts.append(dated('Archived',record.archivedAt));
+                const metadata=document.createElement('div');metadata.className='archive-record-fields archive-retention-fields';
+                const retention=dated('Keep until',lc.retentionAt);metadata.append(retention);
+                const retentionLabel=lc.retentionHold?'Retention hold':lc.unresolvedWorkflow?'Unresolved workflow':lc.cleanupEligible?'Eligible for retention cleanup':lc.approachingRetention?'Approaching retention cleanup':'Archived';
+                const retentionBadge=document.createElement('span');retentionBadge.className='archive-status-pill '+(lc.retentionHold?'is-held':lc.unresolvedWorkflow||lc.approachingRetention?'is-warning':lc.cleanupEligible?'is-eligible':'is-neutral');retentionBadge.textContent=retentionLabel;retention.append(retentionBadge);
                 const details=document.createElement('details');details.className='student-result-details';
-                const summary=document.createElement('summary');summary.textContent='Show details & remarks';
+                const summary=document.createElement('summary');
                 const fields=document.createElement('div');fields.className='student-academic-details-grid';
-                fields.append(block(isAdviser?'Assigned groups':'Research / Group',isAdviser?(record.groups||[]).join(', ')||'No current assigned groups':[record.research,record.group].filter(Boolean).join(' / ')||'No group'));
-                if(!isAdviser)fields.append(block('Previous adviser',record.adviserName||'Unassigned'));
+                const projectName=isAdviser?(record.groups||[]).join(', ')||'No current assigned groups':record.projectTitle||record.research||record.groupName||'Research title not recorded';
                 const academic=tr.querySelector('.academic-record-summary');
-                if(academic)fields.append(academic);else fields.append(block(isAdviser?'Department':'Program',record.department || record.course));
-                if(!isAdviser)fields.append(block('Pending requirements',record.requirements || 'None'));
-                fields.append(block('Retention date',lc.retentionAt));
+                const academicValues=new Map(academic?[...academic.children].map(row=>[row.querySelector('dt')?.textContent.replace(/:\s*$/,'').trim(),row.querySelector('dd')?.textContent]):[]);
+                const detailCard=(title,rows)=>{const section=document.createElement('section');section.className='archive-detail-card';const heading=document.createElement('h4');heading.textContent=title;section.append(heading);rows.filter(Boolean).forEach(([label,value])=>{const row=document.createElement('div');const term=document.createElement('span');term.className='archive-detail-label';term.textContent=label;const content=document.createElement('strong');content.textContent=value||'Not recorded';row.append(term,content);section.append(row);});return section;};
+                const unit=academicValues.get('Academic Unit (catalog grouping)');
+                const level=[academicValues.get('Year Level')||record.yearLevel,academicValues.get('Academic Year')||record.academicYear].filter(Boolean).join(', ').replace(/(\d{4})-(\d{4})/,'$1\u2013$2');
+                const archivedOn=archiveDate(record.archivedAt)?.text,keptUntil=archiveDate(lc.retentionAt)?.text,relative=archiveRelative(lc.retentionAt);
+                fields.append(
+                    detailCard('Research',isAdviser?[['Assigned groups',projectName]]:[['Study',projectName],['Previous adviser',record.adviserName||'Unassigned'],['Still pending',record.requirements||'None']]),
+                    detailCard('Academic',isAdviser?[['Department',record.department]]:[['Program',academicValues.get('Program')||record.course],unit?['Academic unit',unit]:null,['Level',level]]),
+                    detailCard('Retention',[['Archived on',archivedOn||'Date not recorded'],['Kept until',keptUntil?keptUntil+(relative?' ('+relative+')':''):'Date not recorded'],[lc.retentionHold||lc.unresolvedWorkflow||lc.cleanupEligible||lc.approachingRetention?'Needs attention':'Status',retentionLabel],lc.holdReason?['Hold reason',lc.holdReason]:null])
+                );
+                const warning=block('Permanent deletion',!deletionAvailability.available?deletionAvailability.message:lc.purgeBlockReason||'Eligible for permanent deletion');warning.classList.add('archive-deletion-notice');
+                if(deletionAvailability.available&&!lc.purgeBlockReason)warning.classList.add('is-available');fields.append(warning);
                 details.append(summary,fields);
                 const toolbar=document.createElement('div');toolbar.className='student-result-actions';
-                const restore=actions.querySelector('[title="Restore '+accountLabel+'"]');if(restore){restore.classList.remove('prism-action-item');restore.innerHTML='<i class="fa-solid fa-rotate-left" aria-hidden="true"></i>';restore.dataset.prismTooltip='';toolbar.append(restore);}
+                const restore=actions.querySelector('[title="Restore '+accountLabel+'"]');
+                if(restore){restore.classList.remove('prism-action-item');restore.classList.add('archive-restore-action');restore.innerHTML=archiveIcon('restore')+'<span>Restore access</span>';restore.title='Restore access';restore.setAttribute('aria-label','Restore access for '+(record.name||record.email));delete restore.dataset.prismTooltip;toolbar.append(restore);}
+                const menu=actions.querySelector('.prism-action-menu');if(menu)menu.querySelector('.prism-action-panel')?.classList.add('archive-record-actions-panel');
                 while(actions.firstChild)toolbar.append(actions.firstChild);
                 const selection=tr.querySelector('.retention-select');if(selection){const wrapper=document.createElement('span');wrapper.className='retention-select';wrapper.hidden=selection.hidden;while(selection.firstChild)wrapper.append(selection.firstChild);identity.prepend(wrapper);}
-                card.append(identity,research,metadata,toolbar,details);
+                card.append(identity,facts,metadata,toolbar,details);
                 const host=document.createElement('td');host.colSpan=tr.cells.length;host.append(card);tr.replaceChildren(host);
             } else if(isAdviser && !archiveWorkspace) {
                 const cells=[...tr.cells].filter(cell=>!cell.classList.contains('retention-select'));
@@ -569,12 +865,37 @@
                 const identity=document.createElement('div');identity.className='student-name-layout';
                 const avatar=document.createElement('span');avatar.className='student-avatar';avatar.setAttribute('aria-hidden','true');avatar.textContent=PrismUI.recordInitials(record.name,'Adviser');
                 const copy=document.createElement('div');copy.className='student-name-copy';while(cells[0].firstChild)copy.append(cells[0].firstChild);identity.append(avatar,copy);
-                const block=(label,cell)=>{const div=document.createElement('div');const heading=document.createElement('small');heading.className='student-result-label';heading.textContent=label;div.append(heading);while(cell.firstChild)div.append(cell.firstChild);return div;};
-                const details=document.createElement('details');details.className='student-result-details';const summary=document.createElement('summary');const detailGrid=document.createElement('div');detailGrid.className='student-academic-details-grid';detailGrid.append(block('Department',cells[2]),block('Assigned research groups',cells[3]));details.append(summary,detailGrid);
-                const toolbar=document.createElement('div');toolbar.className='student-result-actions';const menu=tr.querySelector('.prism-action-menu');if(menu)toolbar.append(menu);
-                const selection=tr.querySelector('.retention-select');if(selection){const wrapper=document.createElement('span');wrapper.className='retention-select';wrapper.hidden=selection.hidden;while(selection.firstChild)wrapper.append(selection.firstChild);identity.prepend(wrapper);}
-                const assignment=document.createElement('div');assignment.textContent=(record.groups||[]).length+' assigned group'+((record.groups||[]).length===1?'':'s');
-                card.append(identity,block('Employee ID',cells[1]),block('Assignments',assignment),block('Account status',cells[4]),toolbar,details);
+                const block=(label,cell)=>{const div=document.createElement('div');const heading=document.createElement('span');heading.className='student-result-label';heading.textContent=label;div.append(heading);while(cell.firstChild)div.append(cell.firstChild);return div;};
+                const departmentField=block('Department',cells[2]);departmentField.classList.add('adviser-department-field');
+                const toolbar=document.createElement('div');toolbar.className='student-result-actions';
+                if(actions.contains(editBtn)) {
+                    const profileEdit=document.createElement('button');profileEdit.type='button';profileEdit.className='adviser-profile-edit';
+                    profileEdit.setAttribute('aria-label',editBtn.title);
+                    profileEdit.innerHTML='<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m16 3 5 5M3 21l4-1L21 6l-4-4L3 16v5Z"/></svg><span>Edit profile</span>';
+                    profileEdit.addEventListener('click',()=>openModal(record));
+                    toolbar.append(profileEdit);
+                }
+                const menu=tr.querySelector('.prism-action-menu');
+                if(menu) {
+                    menu.querySelector('.prism-action-panel')?.classList.add('adviser-record-actions-panel');
+                    toolbar.append(menu);
+                }
+                const selection=tr.querySelector('.retention-select');let selectionControl=null;
+                if(selection){selectionControl=document.createElement('span');selectionControl.className='retention-select';selectionControl.hidden=selection.hidden;while(selection.firstChild)selectionControl.append(selection.firstChild);}
+                const groupCount=record.assignmentCount;
+                const countUnavailable=groupCount===null;
+                const assignment=document.createElement(groupCount?'button':'span');assignment.className='adviser-assignment-chip'+(groupCount?'':' is-empty');
+                if(groupCount)assignment.type='button';
+                if(groupCount)assignment.innerHTML='<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg>';
+                assignment.append(document.createTextNode(countUnavailable?'Unavailable':groupCount?groupCount+' research group'+(groupCount===1?'':'s'):'No groups yet'));
+                if(countUnavailable)assignment.title='Research group assignments could not be loaded. Refresh to try again.';
+                const assignmentCell=document.createElement('div');assignmentCell.append(assignment);
+                if(groupCount)assignmentCell.append(adviserGroupPopover(assignment,record));
+                const assignmentField=block('Assignments',assignmentCell);assignmentField.classList.add('adviser-assignment-field');
+                const employeeField=block('Employee ID',cells[1]);employeeField.classList.add('adviser-employee-field');
+                const statusField=block('Account',cells[4]);statusField.classList.add('adviser-status-field');
+                if(selectionControl)card.append(selectionControl);
+                card.append(identity,employeeField,departmentField,assignmentField,statusField,toolbar);
                 const host=document.createElement('td');host.colSpan=tr.cells.length;host.append(card);tr.replaceChildren(host);
             } else {
                 PrismUI.compactRecord(tr,retentionUI?1:0,archiveWorkspace?(retentionUI?6:5):(retentionUI?5:4),tr.cells.length-1,
@@ -582,8 +903,20 @@
                     (archiveWorkspace?[1,3,4]:isAdviser?[1,3]:[2,5]).map(index=>index+(retentionUI?1:0)));
             }
             const recordCard=tr.querySelector('article');
-            if(recordCard){recordCard.classList.add('prism-record-shell');recordCard.querySelectorAll('details').forEach(PrismUI.recordDetails);recordCard.querySelectorAll('.student-academic-details-grid').forEach(grid=>grid.classList.add('prism-details-grid'));}
+            if(recordCard){
+                recordCard.classList.add('prism-record-shell');
+                recordCard.querySelectorAll('details').forEach(details=>{
+                    if(!(studentRecordsView&&details.classList.contains('student-result-details')))PrismUI.recordDetails(details);
+                    if(archiveWorkspace){
+                        const summary=details.querySelector('summary'),label=summary.querySelector('span');
+                        summary.querySelector('i')?.remove();summary.insertAdjacentHTML('afterbegin',archiveIcon('chevron'));
+                        const update=()=>{label.textContent=details.open?'Hide details':'Show details';};details.addEventListener('toggle',update);update();
+                    }
+                });
+                recordCard.querySelectorAll('.student-academic-details-grid').forEach(grid=>grid.classList.add('prism-details-grid'));
+            }
         });
+        retentionUI?.syncSelection();
     }
 
     function openModal(record) {
@@ -594,9 +927,10 @@
         modalTitle.textContent = studentRecordsView
             ? (record ? 'Edit student profile' : 'Add student profile')
             : (record ? `Edit ${isAdviser ? 'Research Adviser' : 'Student'} Record` : `Add ${isAdviser ? 'Research Adviser' : 'Student'}`);
-        if(editIntro) editIntro.textContent=record
-            ? "Changes are saved to this student's record."
-            : 'Complete each section to add the student profile.';
+        if(editIntro) {
+            editIntro.textContent=record ? "Changes are saved to this student's record." : '';
+            editIntro.hidden=!record;
+        }
         if(studentRecordsView) form.classList.toggle('is-adding-student',!record);
         studentProfileSteps?.select(0);
 
@@ -615,7 +949,8 @@
                     adviserSelect.add(new Option((record.adviserName || 'Existing adviser') + ' (retained assignment)', String(record.adviserId)));
                 }
                 adviserSelect.value = record.adviserId || '';
-                document.getElementById('stage').value = record.stage || 'Stage 1';
+                const stageField=document.getElementById('stage');
+                stageField.value = record.stage || '';
                 document.getElementById('recordStatus').value = record.status || 'On Track';
                 const pcField = document.getElementById('protocolCode');
                 const piField = document.getElementById('isPrincipal');
@@ -627,9 +962,7 @@
             researchAssignment?.setRecord(record);
             document.getElementById('stage').disabled=true;
             document.getElementById('recordStatus').disabled=!!record || loggedInRole==='adviser';
-            let explanation=document.getElementById('studentOfficialProgressHelp');
-            if (!explanation) { explanation=document.createElement('p');explanation.id='studentOfficialProgressHelp';explanation.className='prism-sub';document.getElementById('stage').closest('label').after(explanation); }
-            explanation.textContent='Official stage and progress status decisions are made by RPMS in IERB Progress.';
+            document.getElementById('studentOfficialProgressHelp')?.remove();
         }
         if (!isAdviser && loggedInRole === 'adviser') {
             [nameField, accountIdField, emailField].forEach(field => { field.readOnly = !!record; });
@@ -659,7 +992,7 @@
             const displayName=nameField.value.trim();
             const initials=displayName?displayName.split(/\s+/).map(part=>part[0]).slice(0,2).join('').toUpperCase():'JD';
             modal.querySelector('.student-profile-avatar').textContent=initials;
-            modal.querySelector('.student-profile-dirty').textContent=record?'No changes yet':'Complete each section to add the student profile.';
+            if(editIntro) editIntro.hidden=!record;
             studentProfileSteps.select(0);
         }
         modal.classList.add('show');
@@ -677,7 +1010,7 @@
     async function deleteRecord(record) {
         try {
             const fresh=await PrismUI.request('account_lifecycle_api.php?'+new URLSearchParams({action:'account_state',accountType:isAdviser?'adviser':'student',targetId:record.id}));
-            const answer=await PrismUI.confirm({title:isAdviser?'Archive Adviser':'Archive Student',icon:'fa-box-archive',tone:'danger',confirmText:'Archive',
+            const answer=await PrismUI.confirm({title:isAdviser?'Archive Adviser':'Archive Student',icon:'fa-box-archive',tone:'danger',confirmText:'Archive',dialogClass:'student-archive-confirmation',
                 reasonRequired:!!record.projectId,reasonLabel:record.projectId?'Reviewed member archival reason':undefined,minReason:5,maxReason:500,
                 message:isAdviser?`This Adviser currently has ${fresh.assignedStudents} assigned Students. They will become Unassigned. Archive ${record.name}?`:record.projectId?`Archive ${record.name} and deactivate their login while retaining shared membership, documents and project progress? The PI or submission holder requires a reviewed transition first.`:`Archive ${record.name} and deactivate their login? This starts a 7-day grace period and a 6-month retention countdown. History stays available during archive.`});
             if(!answer)return;
@@ -689,17 +1022,47 @@
     const permanentDialog=document.getElementById('permanentDeleteDialog');
     const permanentForm=document.getElementById('permanentDeleteForm');
     let permanentRecord=null, permanentReturnFocus=null, permanentContext=null;
-    function preparePermanentDialog(button,title,identity,label,warning) {
+    function preparePermanentDialog(button,title,identity,label,warning,phrase='',blockingMessage='') {
         permanentReturnFocus=PrismUI.actionOrigin(button || document.activeElement);permanentForm.reset();
+        const bulkAction=permanentContext?.mode==='bulk'?permanentContext.preview?.bulkAction:null;
+        const bulkArchive=studentRecordsView&&bulkAction==='archive';
+        const bulkDirectDelete=studentRecordsView&&bulkAction==='direct_delete';
         document.getElementById('permanentDeleteTitle').textContent=title;
         document.getElementById('permanentDeleteIdentity').textContent=identity;
         document.getElementById('permanentDeleteConfirmationLabel').textContent=label;
+        permanentForm.elements.confirmation.placeholder=phrase || 'Type the exact account ID';
         document.getElementById('permanentDeleteWarning').textContent=warning;
+        const phraseOutput=document.getElementById('permanentDeletePhrase');
+        phraseOutput.textContent=phrase;
+        phraseOutput.hidden=!phrase;
+        const availabilityNotice=document.getElementById('permanentDeleteAvailabilityNotice');
+        availabilityNotice.hidden=!blockingMessage;
+        document.getElementById('permanentDeleteAvailabilityTitle').textContent=bulkArchive?'Archiving is unavailable':'Deletion is unavailable';
+        document.getElementById('permanentDeleteAvailabilityMessage').textContent=blockingMessage;
+        document.getElementById('permanentDeleteVerification').hidden=Boolean(blockingMessage);
+        permanentForm.querySelectorAll('#permanentDeleteVerification input, #permanentDeleteVerification textarea')
+            .forEach(input=>{input.disabled=Boolean(blockingMessage);});
         document.getElementById('permanentDeleteResult').textContent='';
+        const cancelButton=document.getElementById('cancelPermanentDelete');
         const override=permanentContext?.action==='grace_period_override';
         document.getElementById('permanentDeleteReasonGroup').hidden=!override;
         permanentForm.elements.reason.required=override;
-        permanentForm.querySelector('[type="submit"]').textContent=permanentContext?.mode==='recovery'?'Run recovery':permanentContext?.mode==='bulk'?'Apply confirmed batch':'Permanently delete';
+        const submitButton=permanentForm.querySelector('[type="submit"]');
+        cancelButton.textContent=bulkArchive||bulkDirectDelete||permanentContext?.preview?.directDelete?'Cancel':'No, cancel';
+        submitButton.disabled=Boolean(blockingMessage);
+        submitButton.classList.toggle('lifecycle-danger',!bulkArchive);
+        submitButton.classList.toggle('management-primary',bulkArchive);
+        submitButton.textContent=blockingMessage
+            ? (bulkArchive?'Archive unavailable':'Deletion unavailable')
+            : permanentContext?.mode==='recovery'
+            ? 'Run recovery'
+            : bulkArchive
+                ? 'Confirm Archive'
+                : bulkDirectDelete
+                    ? 'Confirm Delete'
+            : permanentContext?.mode==='bulk'
+                ? (permanentContext.preview?.directDelete ? 'Delete permanently' : permanentContext.preview?.purge ? 'Yes, permanently delete eligible' : 'Yes, apply batch')
+                : 'Yes, permanently delete';
         permanentDialog.showModal();
     }
     async function openPermanentDelete(record,button,action='permanent_delete') {
@@ -715,17 +1078,58 @@
     }
     function openBulkDelete(preview,button) {
         permanentRecord=null;permanentContext={mode:'bulk',preview};
-        preparePermanentDialog(button,'Confirm bulk lifecycle action',`${preview.selected} selected; ${preview.eligible} eligible; ${preview.skipped.length} skipped. ${preview.unassignedStudents} assigned Students will become Unassigned.`,
-            'Type: '+preview.phrase,preview.purge?'This permanently removes eligible accounts and applicable owned PRISM records and files. Historical aggregate reports and Adviser attribution may remain. This action cannot be undone.':'Each eligible account will be rechecked and updated independently. Review the selection and assignment impact before confirming.');
+        const selectedId=preview.selected===1?Number(Object.keys(preview.states)[0]):null;
+        const selectedRecord=selectedId?records.find(record=>record.id===selectedId):null;
+        const selectedIdentifier=selectedRecord?.studentId || selectedRecord?.email || preview.states[selectedId]?.identifier;
+        const archiveAction=studentRecordsView&&preview.bulkAction==='archive';
+        const directStudentDelete=studentRecordsView&&preview.bulkAction==='direct_delete';
+        let directTitle=archiveAction
+            ? 'Archive Selected Records?'
+            : directStudentDelete
+                ? 'Delete Selected Records?'
+                : preview.directDelete
+            ? preview.selected===1?'Delete this student permanently?':`Delete ${preview.eligible} students permanently?`
+            : 'Confirm bulk lifecycle action';
+        const selectedNames=Array.isArray(preview.selectedRecords)?preview.selectedRecords:[];
+        const stateLabels=Object.values(preview.states||{}).map(state=>state.identifier).filter(Boolean);
+        const reviewLines=(selectedNames.length?selectedNames:stateLabels).map(label=>`- ${label}`);
+        const identity=archiveAction||directStudentDelete
+            ? `${preview.eligible} eligible of ${preview.selected} selected.\nSelected student records:\n${reviewLines.join('\n')}`
+            : preview.directDelete && preview.selected===1
+            ? `${selectedRecord?.name || 'Student'} — ${selectedIdentifier}`
+            : `${preview.selected} selected; ${preview.eligible} eligible; ${preview.skipped.length} skipped. ${preview.unassignedStudents} assigned Students will become Unassigned.`;
+        const warning=archiveAction
+            ? `You are about to archive ${preview.eligible} of ${preview.selected} selected student records. Archived accounts will no longer be active, but their existing research records, documents, and activity history will be preserved.`
+            : directStudentDelete
+                ? `You are about to delete ${preview.eligible} of ${preview.selected} selected student records. This action may permanently remove eligible records. Records with protected research documents, project memberships, legal consent evidence, or required audit history will be rejected by eligibility checks.`
+                : preview.directDelete
+            ? 'This immediately and permanently removes the selected Student and applicable records and files, without an archive grace period. Retention Holds, unresolved workflows, and recovery jobs still block deletion.'
+            : preview.purge?'This permanently removes eligible accounts and applicable owned PRISM records and files. Historical aggregate reports and Adviser attribution may remain. This action cannot be undone.':'Each eligible account will be rechecked and updated independently. Review the selection and assignment impact before confirming.';
+        const deletionAction=Boolean(preview.directDelete || preview.purge);
+        const skippedDetails=preview.skipped.map(item=>`${item.identifier}: ${item.reason}`).join('\n');
+        const blockingMessage=deletionAction && preview.deletionUnavailable
+            ? `${preview.deletionUnavailable} Contact the system operator or resolve the blockers listed below, then review the selection again.`
+            : deletionAction && preview.eligible===0
+                ? `None of the ${preview.selected} selected account${preview.selected===1?' is':'s are'} currently eligible. Review the listed blockers before trying again.`
+                : archiveAction && preview.eligible===0
+                    ? `None of the ${preview.selected} selected student records can be archived. Review the eligibility results below.`
+                : '';
+        if(blockingMessage) directTitle='Resolve deletion blockers';
+        permanentDialog.classList.toggle('student-direct-delete-confirmation',Boolean(preview.directDelete));
+        permanentDialog.classList.toggle('student-bulk-confirmation',archiveAction||directStudentDelete);
+        preparePermanentDialog(button,directTitle,identity,preview.directDelete?'Confirmation phrase':'Type the exact confirmation phrase',
+            warning,preview.phrase,blockingMessage);
         const result=document.getElementById('permanentDeleteResult');
-        result.textContent=preview.skipped.map(r=>r.identifier+' ? '+r.reason).join('\n');
+        result.textContent=preview.skipped.length
+            ? `${preview.eligible} eligible · ${preview.skipped.length} skipped\n${skippedDetails}`
+            : `${preview.eligible} account${preview.eligible===1?'':'s'} eligible for this action.`;
     }
     function openRecovery(job,button) {
         permanentRecord=null;permanentContext={mode:'recovery',job};
         preparePermanentDialog(button,'Complete purge recovery',job.jobId,'Type: RECOVER '+job.jobId,
             'Recovery checks the database commit evidence. Committed jobs finalize quarantined files; rolled-back jobs restore files to their original owned records.');
     }
-    function closePermanentDelete() { permanentDialog.close();permanentForm.reset();permanentRecord=null;permanentContext=null;permanentReturnFocus?.focus(); }
+    function closePermanentDelete() { permanentDialog.close();permanentDialog.classList.remove('student-direct-delete-confirmation','student-bulk-confirmation');permanentForm.reset();permanentRecord=null;permanentContext=null;permanentReturnFocus?.focus(); }
     document.getElementById('cancelPermanentDelete')?.addEventListener('click',closePermanentDelete);
     permanentDialog?.addEventListener('cancel',event=>{event.preventDefault();closePermanentDelete();});
     permanentForm?.addEventListener('submit',async event=>{
@@ -816,7 +1220,7 @@
                 Object.assign(payload, academicFields.payload(), researchAssignment?.payload()||{});
                 payload.requirements = document.getElementById('requirements').value.trim();
                 payload.adviserId = document.getElementById('adviser').value || null;
-                payload.stage = document.getElementById('stage').value;
+                // Official progress is read-only; the server retains storage buckets independently.
                 payload.status = document.getElementById('recordStatus').value;
                 const pcField = document.getElementById('protocolCode');
                 const piField = document.getElementById('isPrincipal');
@@ -847,6 +1251,16 @@
         }
     });
 
+    if(isAdviser&&!archiveWorkspace) {
+        const refreshAssignments=PrismUI.debounce(()=>{
+            if(document.visibilityState==='visible'&&!modal.classList.contains('show')&&!document.querySelector('dialog[open],.prism-modal'))loadRecords();
+        },200);
+        window.addEventListener('focus',refreshAssignments);
+        document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible')refreshAssignments();});
+        window.addEventListener('pageshow',event=>{if(event.persisted)refreshAssignments();});
+    }
+
     if(!isAdviser && loggedInRole==='admin') researchAssignment=PrismResearchAssignment.mount({form,group:document.getElementById('group'),title:document.getElementById('research'),adviser:document.getElementById('adviser'),protocol:document.getElementById('protocolCode'),pi:document.getElementById('isPrincipal')});
+
     loadRecords();
 })();

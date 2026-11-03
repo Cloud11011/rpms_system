@@ -6,7 +6,7 @@
  * (or 400), in a folder no other account can write to; otherwise the runner stops with unsafe_configuration before
  * reading it or connecting. It never changes the file's permissions (see prism_private_config()).
  * receiptDir must be a private directory (chmod 700, owned by this account, not a link) outside the application.
- * Steps: probe | preflight | v12 | v13 | v14 | v15 | deletion-verification. Modes: dry-run | apply | rollback (other steps ignore mode).
+ * Steps: probe | preflight | v12 | v13 | v14 | v15 | v16 | settings | deletion-verification. Modes: dry-run | apply | rollback (other steps ignore mode).
  * deletion-verification also needs deletionVerificationKey (the deployment's 64-hex key) and externalDependenciesExcluded: true;
  * its evidence goes only to a private file in receiptDir, and the receipt carries a host-free summary.
  * Only the reviewed runners are executed, one step per invocation. The receipt never contains credentials; every
@@ -17,8 +17,9 @@ if (PHP_SAPI !== 'cli') { http_response_code(404); exit; }
 require_once dirname(__DIR__).'/includes/migration_runner.php';
 $fail = static function (string $class, string $message): never { fwrite(STDERR, json_encode(['ok' => false, 'errorClass' => $class, 'message' => $message]).PHP_EOL); exit(1); };
 [$self, $configPath, $step, $mode] = array_pad($argv, 4, '');
-$runners = ['v12' => 'migrate-ierb-v14.php', 'v13' => 'migrate-research-projects.php', 'v14' => 'migrate-summary-history.php', 'v15' => 'migrate-academic-years.php'];
-if (!in_array($step, ['probe', 'preflight', 'deletion-verification', ...array_keys($runners)], true)) $fail('invalid_invocation', 'Choose probe, preflight, v12, v13, v14, v15 or deletion-verification.');
+$runners = ['v12' => 'migrate-ierb-v14.php', 'v13' => 'migrate-research-projects.php', 'v14' => 'migrate-summary-history.php', 'v15' => 'migrate-academic-years.php',
+    'v16' => 'migrate-academic-year-settings.php', 'settings' => 'migrate-prism-settings.php'];
+if (!in_array($step, ['probe', 'preflight', 'deletion-verification', ...array_keys($runners)], true)) $fail('invalid_invocation', 'Choose probe, preflight, v12, v13, v14, v15, v16, settings or deletion-verification.');
 if (isset($runners[$step]) && !in_array($mode, ['dry-run', 'apply', 'rollback'], true)) $fail('invalid_invocation', 'Choose dry-run, apply or rollback.');
 // Other steps ignore the mode, but it names the receipt file.
 if (!preg_match('/\A[a-z0-9][a-z0-9-]{0,19}\z/D', $mode)) $fail('invalid_invocation', 'The mode must be a short lowercase word, for example x.');
@@ -61,9 +62,14 @@ if ($step === 'probe') {
         'PRISM_PREFLIGHT_DB_DSN' => $config['dsn'], 'PRISM_PREFLIGHT_DB_USER' => $config['user'], 'PRISM_PREFLIGHT_DB_PASSWORD' => $config['password']];
     if (is_string($ca)) { $env['PRISM_MIGRATION_DB_SSL_CA'] = $ca; $env['PRISM_PREFLIGHT_DB_SSL_CA'] = $ca; }
     if (isset($runners[$step])) {
-        $n = substr($step, 1);
-        $env['PRISM_ALLOW_SCHEMA_V'.$n.'_MIGRATION'] = '1';
-        $env['PRISM_SCHEMA_V'.$n.'_EXPECT_DB'] = $config['database'];
+        if ($step === 'settings') {
+            $env['PRISM_ALLOW_SETTINGS_MIGRATION'] = '1';
+            $env['PRISM_SETTINGS_EXPECT_DB'] = $config['database'];
+        } else {
+            $n = substr($step, 1);
+            $env['PRISM_ALLOW_SCHEMA_V'.$n.'_MIGRATION'] = '1';
+            $env['PRISM_SCHEMA_V'.$n.'_EXPECT_DB'] = $config['database'];
+        }
         $command = [PHP_BINARY, __DIR__.'/'.$runners[$step], $mode];
     } elseif ($step === 'deletion-verification') {
         if (!is_string($config['deletionVerificationKey'] ?? null) || ($config['externalDependenciesExcluded'] ?? null) !== true) {

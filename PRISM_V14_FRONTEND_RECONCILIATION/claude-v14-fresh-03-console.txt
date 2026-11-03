@@ -1,0 +1,334 @@
+﻿Running bootstrap
+Creating my.ini file
+Removing default user
+Setting root password
+Creation of the database was successful
+{
+    "database": "prism_group_synthetic_v11",
+    "server": "127.0.0.1:13997",
+    "legacy_collation": "utf8mb4_general_ci",
+    "version": "12.3.2-MariaDB",
+    "schema_version": "11",
+    "table_count": 23,
+    "exact_manifest_and_v11_structure": "PASS",
+    "source": "Full current v11 manifest plus present generated-column and singleton definitions; synthetic fixture, not a migration or deployed-schema snapshot."
+}
+Synthetic policy fixtures and valid academic groups prepared.
+{"ok":true,"result":{"projects":{"4":{"ok":true,"projectId":1,"identifier":"synthetic-v14-study-4","memberCount":2},"5":{"ok":true,"projectId":2,"identifier":"synthetic-v14-study-5","memberCount":1}},"schema":"15","catalog":{"ethics":["Certification of Ethics","initial_submission",["Certification of Ethics","Certificate of Ethics"]],"cv":["Curriculum Vitae","initial_submission",["Curriculum Vitae"]],"questionnaire":["Data Collection Questionnaire","initial_submission",["Data Collection Questionnaire"]],"workflow":["Diagrammatic Workflow","initial_submission",["Diagrammatic Workflow"]],"form11":["Form 11 Review Checklist","initial_submission",["Form 11 Review Checklist"]],"form12":["Form 12 Registration and Application Form","initial_submission",["Form 12 Registration and Application Form"]],"form13":["Form 13 Study Protocol Assessment Form","initial_submission",["Form 13 Study Protocol Assessment Form"]],"form14":["Form 14 Informed Consent Assessment Form","initial_submission",["Form 14 Informed Consent Assessment Form","Form 14 Informed Consent Assessment"]],"consent_english":["Informed Consent in English","initial_submission",["Informed Consent in English","Informed Consent - English"]],"consent_local":["Informed Consent in Local Language","initial_submission",["Informed Consent in Local Language","Informed Consent - Local Language"]],"letter":["Letter to IERB Chair","initial_submission",["Letter to IERB Chair"]],"payment":["Payment Receipt","initial_submission",["Payment Receipt","Payment"]],"protocol":["Study Protocol","initial_submission",["Study Protocol"]],"amendment":["Amendment Form","resubmission_amendment",["Amendment Form"]],"form33":["Form 33 - Certificate of Approval","approval_data_gathering",["Form 33 - Certificate of Approval"]],"final_report":["Form 33-0B - Final Report Form","ierb_completed",["Form 33-0B - Final Report Form"]]}}}
+Isolated database exactly matches schema v15
+Isolated copied PHP application serves HTTP
+Actual authenticated login admin@example.test
+Actual authenticated login adviser2@example.test
+Actual authenticated login student4@example.test
+admin can inspect the immutable, exclusively active V14 workflow contract
+admin has no V14 HTTP mutation bypass in Batch 1
+adviser can inspect the immutable, exclusively active V14 workflow contract
+adviser has no V14 HTTP mutation bypass in Batch 1
+student can inspect the immutable, exclusively active V14 workflow contract
+student has no V14 HTTP mutation bypass in Batch 1
+Actual authenticated login student6@example.test
+Obsolete advance HTTP operation is retired
+Obsolete correct HTTP operation is retired
+Obsolete status HTTP operation is retired
+Obsolete override HTTP operation is retired
+Obsolete save HTTP operation is retired
+Obsolete note HTTP operation is retired
+Obsolete delete HTTP operation is retired
+Retired operations mutate neither V14 state nor audit history
+The monitor contains canonical V14 projects only, excluding the unassigned raw-stage fixture
+Active filters expose exactly four semantic stages
+Assigned staff requirement projection exposes all 13 initial requirements
+Foreign Adviser requirements remain inaccessible
+Students cannot inspect another project’s requirements
+Stage guidance exposes fixed V14 names with no historical stage mode
+Stage 4 cannot be renamed to an obsolete Certificate of Approval stage
+The authoritative initial catalog has exactly 13 required document types
+A verified non-holder member uploads thirteen individually typed files in one actual multipart request: {"status":200,"uploaded":13,"failed":0,"message":"13 of 13 files uploaded successfully."}
+Current evidence exists for ethics
+Current evidence exists for cv
+Current evidence exists for questionnaire
+Current evidence exists for workflow
+Current evidence exists for form11
+Current evidence exists for form12
+Current evidence exists for form13
+Current evidence exists for form14
+Current evidence exists for consent_english
+Current evidence exists for consent_local
+Current evidence exists for letter
+Current evidence exists for payment
+Current evidence exists for protocol
+A normal upload cannot silently replace a current canonical requirement
+Authorized Adviser review Resubmission Requested
+Ordinary Adviser revisions do not consume official resubmission cycles
+A returned document accepts an explicit successor version
+Earlier document versions remain retained
+An authorized member can download the retained original bytes
+Authorized Adviser review Approved
+Authorized Adviser review Approved
+Authorized Adviser review Approved
+Authorized Adviser review Approved
+Authorized Adviser review Approved
+Authorized Adviser review Approved
+Authorized Adviser review Approved
+Authorized Adviser review Approved
+Authorized Adviser review Approved
+Authorized Adviser review Approved
+Authorized Adviser review Approved
+Authorized Adviser review Approved
+Authorized Adviser review Approved
+All thirteen initial requirements are accepted in one authoritative bulk transaction
+RPMS can preview canonical group advancement after all requirements are accepted
+An authorized group decision advances Initial Submission directly to Data Gathering
+Reaching Stage 3 alone does not establish a completed conditional Stage 2
+Stage 3 Student progress presents exactly the four approved V14 stages
+Student Stage 2 is conditional, with no completed marker, before any actual official case
+Final Report upload is rejected before institutional Form 33 acceptance
+Adviser cannot initiate official cycle 1
+RPMS opens official cycle 1 at conditional Stage 2
+Official counters distinguish open and resolved cases for cycle 1
+RPMS returns the affected evidence for correction
+Affected evidence receives a successor in cycle 1
+Authorized Adviser review Approved
+RPMS accepts protocol
+The case-required Amendment Form can be uploaded
+Authorized Adviser review Approved
+RPMS accepts amendment
+Resolution resumes the interrupted Stage 3 for cycle 1
+Only ledger-backed resolved official cases complete conditional Stage 2
+Adviser cannot initiate official cycle 2
+RPMS opens official cycle 2 at conditional Stage 2
+Official counters distinguish open and resolved cases for cycle 2
+RPMS returns the affected evidence for correction
+Affected evidence receives a successor in cycle 2
+Authorized Adviser review Approved
+RPMS accepts protocol
+Resolution resumes the interrupted Stage 3 for cycle 2
+Only ledger-backed resolved official cases complete conditional Stage 2
+Adviser cannot initiate official cycle 3
+RPMS opens official cycle 3 at conditional Stage 2
+Official counters distinguish open and resolved cases for cycle 3
+RPMS returns the affected evidence for correction
+Affected evidence receives a successor in cycle 3
+Authorized Adviser review Approved
+RPMS accepts protocol
+Resolution resumes the interrupted Stage 3 for cycle 3
+Only ledger-backed resolved official cases complete conditional Stage 2
+The lifetime fourth official resubmission is rejected server-side without an extra case
+Form 33 uploads in Data Gathering
+Authorized Adviser review Approved
+Form 33 acceptance requires the institutional approval reference
+RPMS accepts form33
+A verified group member can upload Final Report after Form 33 acceptance
+Disposable rollback fault is installed against the verified synthetic datadir
+Final Report, formal submission and completion roll back together when audit persistence fails
+The synthetic audit fault is removed after rollback verification
+Authorized Adviser review Approved
+Authorized Final Report formal submission completes the V14 project
+Completion is synchronized to both verified project members
+A retry creates no duplicate Final Report completion event
+Group Advancement offers canonical project identities exclusively
+The obsolete Adviser-request decision route is retired
+Stage distribution counts the two canonical projects in exactly four stages
+Student Records filters expose only the four current V14 stages
+Unassigned profiles cannot acquire a historical stage or percentage in Student Records
+Document stage filters contain exactly the four semantic V14 stages
+The Final Report document carries the current Stage 4 label
+The semantic Stage 4 document filter resolves the retained numeric storage bucket correctly
+Obsolete numeric stage filters are rejected
+Retained document confirmation details use current semantic labels
+adviser cannot read confidential RPMS report options
+student cannot read confidential RPMS report options
+Current project reports exclude unenrolled numeric-stage records
+Current project_report generates with the isolated provider fallback
+Authorized download returns the generated project_report PDF
+adviser cannot download the confidential project_report PDF
+student cannot download the confidential project_report PDF
+Retained project_report snapshot has a matching SHA256
+Current project_aggregate generates with the isolated provider fallback
+Authorized download returns the generated project_aggregate PDF
+adviser cannot download the confidential project_aggregate PDF
+student cannot download the confidential project_aggregate PDF
+New institutional report contains current V14 stages without legacy distributions
+Retained project_aggregate snapshot has a matching SHA256
+Current ai_report summary generates with the isolated provider fallback
+Authorized download returns the generated ai_report PDF
+adviser cannot download the confidential ai_report PDF
+student cannot download the confidential ai_report PDF
+Current ai_report full generates with the isolated provider fallback
+Authorized download returns the generated ai_report PDF
+adviser cannot download the confidential ai_report PDF
+student cannot download the confidential ai_report PDF
+The obsolete numeric-stage report generation route is retired
+V14-only 390 light: ZIP IERB cards show canonical projects
+V14-only 390 light: current Stage 4 filter is IERB Completed
+V14-only 390 light: hovering IERB Progress reveals applicable requirement names and statuses
+V14-only 390 light: obsolete workflow presentation is absent
+V14-only 390 light: current interface fits the viewport
+V14-only 1440 light: ZIP IERB cards show canonical projects
+V14-only 1440 light: current Stage 4 filter is IERB Completed
+V14-only 1440 light: hovering IERB Progress reveals applicable requirement names and statuses
+V14-only 1440 light: obsolete workflow presentation is absent
+V14-only 1440 light: current interface fits the viewport
+V14-only 390 dark: ZIP IERB cards show canonical projects
+V14-only 390 dark: current Stage 4 filter is IERB Completed
+V14-only 390 dark: hovering IERB Progress reveals applicable requirement names and statuses
+V14-only 390 dark: obsolete workflow presentation is absent
+V14-only 390 dark: current interface fits the viewport
+V14-only 1440 dark: ZIP IERB cards show canonical projects
+V14-only 1440 dark: current Stage 4 filter is IERB Completed
+V14-only 1440 dark: hovering IERB Progress reveals applicable requirement names and statuses
+V14-only 1440 dark: obsolete workflow presentation is absent
+V14-only 1440 dark: current interface fits the viewport
+V14-only 390 light: Student dashboard has four workflow stages
+V14-only 390 light: current completion is displayed as IERB Completed
+V14-only 390 light: obsolete workflow presentation is absent
+V14-only 390 light: current interface fits the viewport
+V14-only 1440 light: Student dashboard has four workflow stages
+V14-only 1440 light: current completion is displayed as IERB Completed
+V14-only 1440 light: obsolete workflow presentation is absent
+V14-only 1440 light: current interface fits the viewport
+V14-only 390 dark: Student dashboard has four workflow stages
+V14-only 390 dark: current completion is displayed as IERB Completed
+V14-only 390 dark: obsolete workflow presentation is absent
+V14-only 390 dark: current interface fits the viewport
+V14-only 1440 dark: Student dashboard has four workflow stages
+V14-only 1440 dark: current completion is displayed as IERB Completed
+V14-only 1440 dark: obsolete workflow presentation is absent
+V14-only 1440 dark: current interface fits the viewport
+Current V14 browser matrix has no JavaScript errors: []
+admin 390 light: ZIP Student Record cards load
+admin 390 light: Student Records show four semantic stage filters
+admin 390 light: approved Add Student dialog opens
+admin 390 light: profile dialog has no obsolete workflow choices
+admin 390 light: current admin_students.php has no obsolete workflow presentation
+admin 390 light: current admin_students.php fits the viewport
+admin 390 light: ZIP document cards load
+admin 390 light: ZIP upload dialog uses the current V14 checklist
+admin 390 light: Initial Submission upload lists thirteen requirements
+admin 390 light: current documents.php has no obsolete workflow presentation
+admin 390 light: current documents.php fits the viewport
+admin 1440 light: ZIP Student Record cards load
+admin 1440 light: Student Records show four semantic stage filters
+admin 1440 light: approved Add Student dialog opens
+admin 1440 light: profile dialog has no obsolete workflow choices
+admin 1440 light: current admin_students.php has no obsolete workflow presentation
+admin 1440 light: current admin_students.php fits the viewport
+admin 1440 light: ZIP document cards load
+admin 1440 light: ZIP upload dialog uses the current V14 checklist
+admin 1440 light: Initial Submission upload lists thirteen requirements
+admin 1440 light: current documents.php has no obsolete workflow presentation
+admin 1440 light: current documents.php fits the viewport
+admin 390 dark: ZIP Student Record cards load
+admin 390 dark: Student Records show four semantic stage filters
+admin 390 dark: approved Add Student dialog opens
+admin 390 dark: profile dialog has no obsolete workflow choices
+admin 390 dark: current admin_students.php has no obsolete workflow presentation
+admin 390 dark: current admin_students.php fits the viewport
+admin 390 dark: ZIP document cards load
+admin 390 dark: ZIP upload dialog uses the current V14 checklist
+admin 390 dark: Initial Submission upload lists thirteen requirements
+admin 390 dark: current documents.php has no obsolete workflow presentation
+admin 390 dark: current documents.php fits the viewport
+admin 1440 dark: ZIP Student Record cards load
+admin 1440 dark: Student Records show four semantic stage filters
+admin 1440 dark: approved Add Student dialog opens
+admin 1440 dark: profile dialog has no obsolete workflow choices
+admin 1440 dark: current admin_students.php has no obsolete workflow presentation
+admin 1440 dark: current admin_students.php fits the viewport
+admin 1440 dark: ZIP document cards load
+admin 1440 dark: ZIP upload dialog uses the current V14 checklist
+admin 1440 dark: Initial Submission upload lists thirteen requirements
+admin 1440 dark: current documents.php has no obsolete workflow presentation
+admin 1440 dark: current documents.php fits the viewport
+adviser 390 light: ZIP Student Record cards load
+adviser 390 light: Student Records show four semantic stage filters
+adviser 390 light: approved Add Student dialog opens
+adviser 390 light: profile dialog has no obsolete workflow choices
+adviser 390 light: current admin_students.php has no obsolete workflow presentation
+adviser 390 light: current admin_students.php fits the viewport
+adviser 390 light: ZIP document cards load
+adviser 390 light: ZIP upload dialog uses the current V14 checklist
+adviser 390 light: current documents.php has no obsolete workflow presentation
+adviser 390 light: current documents.php fits the viewport
+adviser 1440 light: ZIP Student Record cards load
+adviser 1440 light: Student Records show four semantic stage filters
+adviser 1440 light: approved Add Student dialog opens
+adviser 1440 light: profile dialog has no obsolete workflow choices
+adviser 1440 light: current admin_students.php has no obsolete workflow presentation
+adviser 1440 light: current admin_students.php fits the viewport
+adviser 1440 light: ZIP document cards load
+adviser 1440 light: ZIP upload dialog uses the current V14 checklist
+adviser 1440 light: current documents.php has no obsolete workflow presentation
+adviser 1440 light: current documents.php fits the viewport
+adviser 390 dark: ZIP Student Record cards load
+adviser 390 dark: Student Records show four semantic stage filters
+adviser 390 dark: approved Add Student dialog opens
+adviser 390 dark: profile dialog has no obsolete workflow choices
+adviser 390 dark: current admin_students.php has no obsolete workflow presentation
+adviser 390 dark: current admin_students.php fits the viewport
+adviser 390 dark: ZIP document cards load
+adviser 390 dark: ZIP upload dialog uses the current V14 checklist
+adviser 390 dark: current documents.php has no obsolete workflow presentation
+adviser 390 dark: current documents.php fits the viewport
+adviser 1440 dark: ZIP Student Record cards load
+adviser 1440 dark: Student Records show four semantic stage filters
+adviser 1440 dark: approved Add Student dialog opens
+adviser 1440 dark: profile dialog has no obsolete workflow choices
+adviser 1440 dark: current admin_students.php has no obsolete workflow presentation
+adviser 1440 dark: current admin_students.php fits the viewport
+adviser 1440 dark: ZIP document cards load
+adviser 1440 dark: ZIP upload dialog uses the current V14 checklist
+adviser 1440 dark: current documents.php has no obsolete workflow presentation
+adviser 1440 dark: current documents.php fits the viewport
+Student Records and Documents browser matrix has no JavaScript errors: []
+Student Records and Documents have no failed local resource/API responses: []
+schema15 Settings: existing Add Academic Year stays enabled
+schema15 Settings: schema16 availability/current/removal actions stay read-only
+schema15 Settings: communication settings stay read-only
+schema15 Settings: communication panel explains the pending migration
+schema15 Settings: Admin adds 2035-2036 to the shared catalog
+schema15 Add Student dialog offers the newly added academic year
+admin 390 light: ZIP Settings lists catalog academic years
+admin 390 light: Settings links to Legal Policies
+admin 390 light: admin_settings.php navigation offers Settings
+admin 390 light: admin_settings.php has no obsolete workflow presentation
+admin 390 light: admin_settings.php fits the viewport
+admin 390 light: ZIP Report History renders
+admin 390 light: reports.php navigation offers Settings
+admin 390 light: reports.php has no obsolete workflow presentation
+admin 390 light: reports.php fits the viewport
+admin 1440 light: ZIP Settings lists catalog academic years
+admin 1440 light: Settings links to Legal Policies
+admin 1440 light: admin_settings.php navigation offers Settings
+admin 1440 light: admin_settings.php has no obsolete workflow presentation
+admin 1440 light: admin_settings.php fits the viewport
+admin 1440 light: ZIP Report History renders
+admin 1440 light: reports.php navigation offers Settings
+admin 1440 light: reports.php has no obsolete workflow presentation
+admin 1440 light: reports.php fits the viewport
+admin 390 dark: ZIP Settings lists catalog academic years
+admin 390 dark: Settings links to Legal Policies
+admin 390 dark: admin_settings.php navigation offers Settings
+admin 390 dark: admin_settings.php has no obsolete workflow presentation
+admin 390 dark: admin_settings.php fits the viewport
+admin 390 dark: ZIP Report History renders
+admin 390 dark: reports.php navigation offers Settings
+admin 390 dark: reports.php has no obsolete workflow presentation
+admin 390 dark: reports.php fits the viewport
+admin 1440 dark: ZIP Settings lists catalog academic years
+admin 1440 dark: Settings links to Legal Policies
+admin 1440 dark: admin_settings.php navigation offers Settings
+admin 1440 dark: admin_settings.php has no obsolete workflow presentation
+admin 1440 dark: admin_settings.php fits the viewport
+admin 1440 dark: ZIP Report History renders
+admin 1440 dark: reports.php navigation offers Settings
+admin 1440 dark: reports.php has no obsolete workflow presentation
+admin 1440 dark: reports.php fits the viewport
+Adviser navigation has no Settings link
+Adviser cannot open Settings
+Adviser Settings API is refused: 403
+Settings and Reports browser matrix has no JavaScript errors: []
+Settings and Reports have no failed local resource/API responses: []
+Full schema v15 and version remain unchanged after all tests
+{"status":"PASS","assertions":315}
+Disposable group test MariaDB stopped.

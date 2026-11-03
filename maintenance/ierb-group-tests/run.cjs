@@ -2,6 +2,8 @@ const fs = require('node:fs'), path = require('node:path'), cp = require('node:c
 const root = path.resolve(__dirname, '../..'), review = process.env.PRISM_TEST_REVIEW_DIR || path.join(root, 'PRISM_V13_GROUP_ADVANCEMENT_REVIEW');
 const appPort = process.env.PRISM_TEST_APP_PORT || '14527';
 const php = process.env.PRISM_TEST_PHP || 'C:/xampp/php/php.exe', base = 'http://127.0.0.1:' + appPort, app = path.join(review, 'sandbox/app');
+// Keep every opt-in module's generated evidence inside this disposable run.
+if (!process.env.PRISM_TEST_EVIDENCE_DIR) process.env.PRISM_TEST_EVIDENCE_DIR = path.join(review, 'evidence');
 // One run at a time per fixture: an overlapping run corrupted shared fixture state in Batch 7 (B7-F11).
 const lockFile = path.join(review, 'sandbox/run.lock');
 let lockFd;
@@ -38,6 +40,7 @@ function prepareApp() {
   }
   // Only the authorized additive endpoint is copied before staging; never copy config.local.php.
   fs.copyFileSync(path.join(root,'academic_years_api.php'),path.join(app,'academic_years_api.php'));
+  for(const file of ['admin_settings.php','admin_settings_api.php']) if(fs.existsSync(path.join(root,file))) fs.copyFileSync(path.join(root,file),path.join(app,file));
   fs.copyFileSync(path.join(root, 'includes/ierb_group_advancement.php'), path.join(app, 'includes/ierb_group_advancement.php'));
   // Include additive foundation files before they are staged in Git.
   fs.cpSync(path.join(root, 'includes'), path.join(app, 'includes'), { recursive: true });
@@ -59,12 +62,15 @@ function prepareApp() {
     for (const [role, ctx] of Object.entries(sessions)) {
       const contract = await response(await ctx.get('/ierb_api.php?action=v14_contract'));
       const hasV14 = Number(expectedSchema)>=12 && sql('SELECT id FROM ierb_workflows LIMIT 1').length>0;
-      check(contract.status === 200 && contract.body.activeWorkflow === (hasV14?'mixed':'legacy') && contract.body.contract.normalPath.join(',') === 'initial_submission,approval_data_gathering,ierb_completed' && !contract.body.contract.httpActivationAvailable,
-        role + ' can inspect the immutable V14 contract and current stored workflow models');
+      check(contract.status === 200 && contract.body.activeWorkflow === 'v14' && contract.body.workflowModels.join(',')==='v14' && contract.body.contract.normalPath.join(',') === 'initial_submission,approval_data_gathering,ierb_completed' && !contract.body.contract.httpActivationAvailable,
+        role + ' can inspect the immutable, exclusively active V14 workflow contract');
       await expect(post(ctx, 'v14_open_correction', {}), 400, role + ' has no V14 HTTP mutation bypass in Batch 1');
     }
     const phase = process.env.PRISM_TEST_PHASE || 'all';
     const h = { root, review, php, base, app, playwright, checks, check, fixture, sql, post, response, expect, generation, sessions, login, child, locked, sleep, phase };
+    if (process.env.PRISM_TEST_FRONTEND_COMPATIBILITY === '1') await require('../frontend-reconciliation/compatibility.cjs')(h);
+    if (process.env.PRISM_TEST_FRONTEND_DASHBOARD === '1') await require('../frontend-reconciliation/dashboard.cjs')(h);
+    if (process.env.PRISM_TEST_V14_ACTIVE_ONLY === '1') await require('../frontend-reconciliation/v14-current.cjs')(h);
     if (process.env.PRISM_TEST_INIT_INVESTIGATION === '1') await require('../onboarding-tests/init-investigation.cjs')(h);
     if (phase !== 'documents') await require('./backend.cjs')(h);
     if (!['backend','documents'].includes(phase)) { await require('./browser.cjs')(h); await require('./regression.cjs')(h); }

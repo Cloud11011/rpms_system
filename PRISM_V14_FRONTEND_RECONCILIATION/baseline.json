@@ -1,0 +1,16 @@
+{
+  "baseline_sha": "f3d90c0f46132bd4dcb350dd673d6bdbeef47d16",
+  "archive": "C:\\PRISM_Workspaces\\prism-frontend-master\\rpms_system_new.zip",
+  "archive_sha256": "2c3133af45d4d320ce86e81856ccdbfdc273ef00b68834fdb30829f48f4b4a57",
+  "archive_files": 7989,
+  "excluded_archive_files": 7626,
+  "reference_files": 363,
+  "v14_files": 343,
+  "states": {
+    "identical": 212,
+    "modified": 114,
+    "zip-only": 37,
+    "v14-only": 17
+  },
+  "note": "Initial dispositions; modified mixed files require hunk-level review. Original ZIP unchanged."
+}

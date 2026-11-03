@@ -16,38 +16,22 @@ if ($current_hour >= 5 && $current_hour < 12) {
 }
 $current_date_formatted = date('l, F j, Y');
 
-require_once __DIR__.'/includes/ierb_v14_workflow.php';
-$pdo = db();
-$total_researchers = (int)$pdo->query('SELECT COUNT(*) FROM students WHERE archived_at IS NULL AND profile_completed_at IS NOT NULL')->fetchColumn();
-$v14Enabled = function_exists('ierb_v14_http_operations_enabled') && ierb_v14_http_operations_enabled();
-$pending_ierb = (int)$pdo->query("SELECT COUNT(*) FROM students WHERE archived_at IS NULL AND profile_completed_at IS NOT NULL AND status = 'Pending'")->fetchColumn();
-$legacyCompleted="SELECT COUNT(*) FROM students s WHERE s.archived_at IS NULL AND s.profile_completed_at IS NOT NULL AND s.stage='Completed'";
-if (ierb_v14_schema_available($pdo)) $legacyCompleted.=' AND NOT EXISTS (SELECT 1 FROM ierb_workflows w WHERE w.student_id=s.id)';
-if (research_projects_available($pdo)) $legacyCompleted.=' AND NOT EXISTS (SELECT 1 FROM research_project_members m WHERE m.student_id=s.id)';
-$approved_ethics=(int)$pdo->query($legacyCompleted)->fetchColumn();
-$delayed_submissions = (int)$pdo->query("SELECT COUNT(*) FROM students WHERE archived_at IS NULL AND profile_completed_at IS NOT NULL AND status = 'Delayed'")->fetchColumn();
-if ($v14Enabled && research_projects_available($pdo)) {
-    // Official project metrics count canonical groups once, excluding archived holders.
-    $pending_ierb = (int)$pdo->query("SELECT COUNT(*) FROM research_projects p JOIN ierb_workflows w ON w.id=p.workflow_id
-        JOIN students s ON s.id=p.submission_holder_id WHERE s.archived_at IS NULL AND w.stage_key<>'ierb_completed'")->fetchColumn();
-    $approved_ethics = (int)$pdo->query("SELECT COUNT(*) FROM research_projects p JOIN ierb_workflows w ON w.id=p.workflow_id
-        JOIN students s ON s.id=p.submission_holder_id WHERE s.archived_at IS NULL AND w.stage_key='ierb_completed'")->fetchColumn();
-    // Past-dated active deadlines are attention signals, not proof of missed submissions.
-    // Use official deadline targeting and retain the submission audit separately.
-    $delayed_submissions = (int)$pdo->query("SELECT COUNT(*) FROM research_projects p
-        JOIN ierb_workflows w ON w.id=p.workflow_id
-        JOIN students s ON s.id=p.submission_holder_id
-        WHERE s.archived_at IS NULL AND w.stage_key<>'ierb_completed'
-        AND EXISTS (
-            SELECT 1 FROM calendar_deadlines d
-            WHERE d.status='Active' AND d.deadline_date<CURRENT_DATE()
-            AND (d.target_scope='all'
-                OR EXISTS (SELECT 1 FROM calendar_deadline_groups dg WHERE dg.deadline_id=d.id AND dg.research_group=p.public_identifier)
-                OR EXISTS (SELECT 1 FROM calendar_deadline_recipients dr
-                    JOIN research_project_members m ON m.student_id=dr.student_id
-                    WHERE dr.deadline_id=d.id AND m.project_id=p.id))
-        )")->fetchColumn();
+require_once __DIR__.'/includes/ierb_monitor.php';
+$pdo=db();
+$dashboardMetrics=monitor_dashboard_metrics($pdo,$authUser);
+$total_researchers=$dashboardMetrics['totalResearchers'];
+$pending_ierb=$dashboardMetrics['pendingReview'];
+$approved_ethics=$dashboardMetrics['completedIerb'];
+$delayed_submissions=$dashboardMetrics['delayedSubmissions'];
+[$dashboardScope,$dashboardParams] = monitor_scope($pdo,$authUser);
+$dashboardStageQuery = $pdo->prepare('SELECT s.stage,COUNT(*) AS c '.$dashboardScope.' GROUP BY s.stage');
+$dashboardStageQuery->execute($dashboardParams);
+$dashboardStageCounts = array_fill_keys(array_keys(IerbStage::LABELS),0);
+foreach ($dashboardStageQuery->fetchAll() as $row) {
+    if (array_key_exists($row['stage'],$dashboardStageCounts)) $dashboardStageCounts[$row['stage']] += (int)$row['c'];
 }
+$dashboardStageNotes = [IerbStage::INITIAL=>'13 required documents',IerbStage::CORRECTION=>'Conditional correction',
+    IerbStage::GATHERING=>'Form 33',IerbStage::COMPLETED=>'Final Report'];
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -78,6 +62,7 @@ try {
 <link rel="stylesheet" href="<?= htmlspecialchars(asset_url('assets/css/batch11.css'), ENT_QUOTES, 'UTF-8') ?>">
 <script src="<?php echo htmlspecialchars(asset_url('assets/js/prism-workspace.js'), ENT_QUOTES, 'UTF-8'); ?>" defer></script>
 <?php prism_frontend_styles(); ?>
+<link rel="stylesheet" href="<?php echo htmlspecialchars(asset_url('assets/css/ierb-monitor-cards.css'), ENT_QUOTES, 'UTF-8'); ?>">
 <link rel="stylesheet" href="<?php echo htmlspecialchars(asset_url('assets/css/dashboard-polish.css'), ENT_QUOTES, 'UTF-8'); ?>">
 <link rel="stylesheet" href="<?php echo htmlspecialchars(asset_url('assets/css/dashboard-ai-banner.css'), ENT_QUOTES, 'UTF-8'); ?>">
 </head>
@@ -146,17 +131,17 @@ try {
 <div class="card">
 <i class="fa-solid fa-hourglass-half"></i>
 <h1 id="pendingIerbMetric"><?php echo $pending_ierb; ?></h1>
-<p><?= $v14Enabled ? 'Active Research Projects' : 'Pending Ethics Review' ?></p>
+<p title="Student researchers whose RPMS progress status is Pending; document review and IERB approval are separate.">Pending IERB Review</p>
 </div>
 <div class="card">
 <i class="fa-solid fa-circle-check"></i>
 <h1 id="approvedEthicsMetric"><?php echo $approved_ethics; ?></h1>
-<p title="Official completion follows V14 Final Report formal submission."><?= $v14Enabled ? 'IERB Completed Projects' : 'Completed legacy Student records' ?></p>
+<p title="Student researchers whose official IERB record is complete, including shared project progress. Document approval alone does not establish completion.">IERB Completed</p>
 </div>
 <div class="card card-alert">
 <i class="fa-solid fa-triangle-exclamation"></i>
 <h1 id="delayedSubmissionsMetric"><?php echo $delayed_submissions; ?></h1>
-<p title="Projects with at least one past-dated active deadline; this does not itself prove a missed submission."><?= $v14Enabled ? 'Projects Needing Deadline Review' : 'Delayed Submissions' ?></p>
+<p>Delayed Submissions</p>
 </div>
 </section>
 <!-- CONTENT GRID -->
@@ -166,10 +151,11 @@ try {
 <div class="attention-title">
 <span class="attention-icon"><i class="fa-solid fa-bell" aria-hidden="true"></i></span>
 <h3>Students needing attention</h3>
+<span class="attention-count" data-attention-count hidden aria-label="Students displayed">0</span>
 </div>
 <a class="attention-link" href="ierbprog.php">Open IERB Progress <i class="fa-solid fa-arrow-right" aria-hidden="true"></i></a>
 </div>
-<div data-prism-needs-attention data-limit="8"></div>
+<div data-prism-needs-attention data-limit="5" data-attention-order="priority_recent" data-show-count="false" data-attention-details></div>
 </div>
 <!-- STAGE PIPELINE FUNNEL WIDGET -->
 <div class="pipeline-card dashboard-stage">
@@ -179,7 +165,18 @@ try {
 <h3 class="pipeline-title">Research stage distribution</h3>
 </div>
 </div>
-<div class="monitor-distribution" id="monitorDistribution" aria-live="polite">Loading separate V14 and legacy stage counts...</div>
+<div class="dashboard-stage-content" id="monitorDistribution" aria-live="polite">
+<div class="dashboard-stage-grid">
+<?php $stageNumber=0; foreach (IerbStage::LABELS as $stageKey=>$stageLabel): $stageNumber++; ?>
+<article class="dashboard-stage-card dashboard-stage-<?= $stageNumber ?>">
+<div class="dashboard-stage-kicker"><span>Stage <?= sprintf('%02d',$stageNumber) ?></span><span class="dashboard-stage-dot" aria-hidden="true"></span></div>
+<strong data-dashboard-stage-count="<?= htmlspecialchars($stageKey,ENT_QUOTES,'UTF-8') ?>"><?= $dashboardStageCounts[$stageKey] ?></strong>
+<h4><?= htmlspecialchars($stageLabel.($stageKey===IerbStage::CORRECTION?' (Conditional)':''),ENT_QUOTES,'UTF-8') ?></h4>
+<p><?= htmlspecialchars($dashboardStageNotes[$stageKey],ENT_QUOTES,'UTF-8') ?></p>
+</article>
+<?php endforeach; ?>
+</div>
+</div>
 </div>
 <!-- INTERACTIVE CALENDAR WITH MONTH AND YEAR VIEWS -->
 <div class="content-box calendar-box">
@@ -213,7 +210,7 @@ try {
 <ul class="reminder-list" id="dashboardReminderList"></ul>
 </div>
 </div>
-<div class="content-box dashboard-monitor"><?php require __DIR__.'/includes/ierb_monitor_view.php'; ?></div>
+<div class="content-box dashboard-monitor"><?php $monitorDashboard=true; require __DIR__.'/includes/ierb_monitor_view.php'; unset($monitorDashboard); ?></div>
 <!-- DOCUMENT REPOSITORY SUMMARY -->
 <div class="content-box dashboard-repository">
 <div class="repository-header">
@@ -313,15 +310,17 @@ themeToggle?.addEventListener('click', () => {
 });
 
 const escapeMonitorHtml = value => PrismUI.esc(value);
-// One project per V14 row; retained historical records are not active KPIs.
+// Count each canonical project once in the stage distribution; earlier stage models stay separate.
 document.addEventListener('prism:monitor-loaded', event => {
-    const host = document.getElementById('monitorDistribution'); host.replaceChildren();
     const rows = event.detail.overview || [];
-    const semantic = rows.filter(r => Object.hasOwn(window.PRISM_V14_LABELS, r.stage));
-    const legacy = rows.filter(r => !Object.hasOwn(window.PRISM_V14_LABELS, r.stage));
-    (<?= $v14Enabled ? "[['Research projects', semantic]]" : "[['V14 project / enrolled records', semantic], ['Legacy Student records', legacy]]" ?>).forEach(([label, entries]) => {
-        const p = document.createElement('p'); p.textContent = label + ': ' + (entries.map(r => (window.PRISM_V14_LABELS[r.stage] || window.PRISM_STAGE_LABELS[r.stage] || r.stage) + ' (' + r.c + ')').join('; ') || 'None'); host.append(p);
+    document.querySelectorAll('[data-dashboard-stage-count]').forEach(node => {
+        node.textContent = rows.filter(row => row.stage === node.dataset.dashboardStageCount).reduce((sum,row) => sum + Number(row.c),0);
     });
+    const metrics = event.detail.dashboardMetrics;
+    if (metrics) Object.entries({totalResearchersMetric:'totalResearchers',pendingIerbMetric:'pendingReview',approvedEthicsMetric:'completedIerb',delayedSubmissionsMetric:'delayedSubmissions'}).forEach(([id,key]) => {
+        document.getElementById(id).textContent = metrics[key];
+    });
+    PrismUI.mountNeedsAttention(document.querySelector('[data-prism-needs-attention]'));
 });
 // Modal Control Handlers
 function setAIBannerActions(state, reportUrl = '') {
@@ -655,7 +654,7 @@ dashboardDayModal.addEventListener('click', event => {
 (async function loadRepositoryPreview() {
     const container=document.querySelector('.repo-list'),count=document.getElementById('repositoryCount'),filters=document.getElementById('repositoryFilters');
     try {
-        const data=await PrismUI.request('documents_api.php?action=list&preview=5');
+        const data=await PrismUI.request('documents_api.php?action=list&preview=5&sort=newest');
         const docs=data.ok?data.documents.slice(0,5):[];
         let selected='';
         const definitions=[['','All'],['Pending Adviser Review','Pending review'],['Needs Revision','Needs revision'],['Submitted to RPMS','Submitted to RPMS']];

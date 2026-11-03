@@ -1,0 +1,983 @@
+{
+  "passed": 244,
+  "failed": 0,
+  "scope": "PHP lint and standalone JavaScript parsing only; no runtime or visual claim.",
+  "checks": [
+    {
+      "file": "academic_years_api.php",
+      "status": "PASS"
+    },
+    {
+      "file": "account.php",
+      "status": "PASS"
+    },
+    {
+      "file": "account_invitation_api.php",
+      "status": "PASS"
+    },
+    {
+      "file": "account_lifecycle_api.php",
+      "status": "PASS"
+    },
+    {
+      "file": "account_setup.php",
+      "status": "PASS"
+    },
+    {
+      "file": "admin_advisers.php",
+      "status": "PASS"
+    },
+    {
+      "file": "admin_ai.php",
+      "status": "PASS"
+    },
+    {
+      "file": "admin_archived_accounts.php",
+      "status": "PASS"
+    },
+    {
+      "file": "admin_legal_policies.php",
+      "status": "PASS"
+    },
+    {
+      "file": "admin_notifications.php",
+      "status": "PASS"
+    },
+    {
+      "file": "admin_people.php",
+      "status": "PASS"
+    },
+    {
+      "file": "admin_students.php",
+      "status": "PASS"
+    },
+    {
+      "file": "advisers_api.php",
+      "status": "PASS"
+    },
+    {
+      "file": "ai_helpers.php",
+      "status": "PASS"
+    },
+    {
+      "file": "assets/js/academic-fields.js",
+      "status": "PASS"
+    },
+    {
+      "file": "assets/js/academic-years.js",
+      "status": "PASS"
+    },
+    {
+      "file": "assets/js/account-setup.js",
+      "status": "PASS"
+    },
+    {
+      "file": "assets/js/account.js",
+      "status": "PASS"
+    },
+    {
+      "file": "assets/js/admin-ai.js",
+      "status": "PASS"
+    },
+    {
+      "file": "assets/js/admin-management.js",
+      "status": "PASS"
+    },
+    {
+      "file": "assets/js/admin-notifications.js",
+      "status": "PASS"
+    },
+    {
+      "file": "assets/js/admin-retention.js",
+      "status": "PASS"
+    },
+    {
+      "file": "assets/js/adviser-calendar-reminders.js",
+      "status": "PASS"
+    },
+    {
+      "file": "assets/js/adviser-dashboard.js",
+      "status": "PASS"
+    },
+    {
+      "file": "assets/js/batch11-public.js",
+      "status": "PASS"
+    },
+    {
+      "file": "assets/js/calendar-deadlines.js",
+      "status": "PASS"
+    },
+    {
+      "file": "assets/js/calendar.js",
+      "status": "PASS"
+    },
+    {
+      "file": "assets/js/complete-profile.js",
+      "status": "PASS"
+    },
+    {
+      "file": "assets/js/dashboard-deadlines.js",
+      "status": "PASS"
+    },
+    {
+      "file": "assets/js/dashboard-sidebar.js",
+      "status": "PASS"
+    },
+    {
+      "file": "assets/js/data-export-ui.js",
+      "status": "PASS"
+    },
+    {
+      "file": "assets/js/document-upload.js",
+      "status": "PASS"
+    },
+    {
+      "file": "assets/js/documents.js",
+      "status": "PASS"
+    },
+    {
+      "file": "assets/js/help-support-modal.js",
+      "status": "PASS"
+    },
+    {
+      "file": "assets/js/help-support.js",
+      "status": "PASS"
+    },
+    {
+      "file": "assets/js/ierb-monitor.js",
+      "status": "PASS"
+    },
+    {
+      "file": "assets/js/ierb-requirements.js",
+      "status": "PASS"
+    },
+    {
+      "file": "assets/js/ierbprog.js",
+      "status": "PASS"
+    },
+    {
+      "file": "assets/js/invitations.js",
+      "status": "PASS"
+    },
+    {
+      "file": "assets/js/legal-management.js",
+      "status": "PASS"
+    },
+    {
+      "file": "assets/js/legal-theme.js",
+      "status": "PASS"
+    },
+    {
+      "file": "assets/js/lifecycle-forms.js",
+      "status": "PASS"
+    },
+    {
+      "file": "assets/js/login-legal.js",
+      "status": "PASS"
+    },
+    {
+      "file": "assets/js/notification-center-ui.js",
+      "status": "PASS"
+    },
+    {
+      "file": "assets/js/notification-history.js",
+      "status": "PASS"
+    },
+    {
+      "file": "assets/js/onboarding.js",
+      "status": "PASS"
+    },
+    {
+      "file": "assets/js/prism-calendar-presentation.js",
+      "status": "PASS"
+    },
+    {
+      "file": "assets/js/prism-forms.js",
+      "status": "PASS"
+    },
+    {
+      "file": "assets/js/prism-guidance.js",
+      "status": "PASS"
+    },
+    {
+      "file": "assets/js/prism-ui.js",
+      "status": "PASS"
+    },
+    {
+      "file": "assets/js/prism-workspace.js",
+      "status": "PASS"
+    },
+    {
+      "file": "assets/js/register-ui.js",
+      "status": "PASS"
+    },
+    {
+      "file": "assets/js/reports.js",
+      "status": "PASS"
+    },
+    {
+      "file": "assets/js/research-assignment.js",
+      "status": "PASS"
+    },
+    {
+      "file": "assets/js/role-calendar.js",
+      "status": "PASS"
+    },
+    {
+      "file": "assets/js/role-portal.js",
+      "status": "PASS"
+    },
+    {
+      "file": "assets/js/script.js",
+      "status": "PASS"
+    },
+    {
+      "file": "assets/js/session-browser.js",
+      "status": "PASS"
+    },
+    {
+      "file": "assets/js/staff-registration.js",
+      "status": "PASS"
+    },
+    {
+      "file": "audit_api.php",
+      "status": "PASS"
+    },
+    {
+      "file": "auth_rate_limit.php",
+      "status": "PASS"
+    },
+    {
+      "file": "calendar.php",
+      "status": "PASS"
+    },
+    {
+      "file": "calendar_deadlines_api.php",
+      "status": "PASS"
+    },
+    {
+      "file": "change_password_required.php",
+      "status": "PASS"
+    },
+    {
+      "file": "complete_profile.php",
+      "status": "PASS"
+    },
+    {
+      "file": "config.php",
+      "status": "PASS"
+    },
+    {
+      "file": "dashboard.php",
+      "status": "PASS"
+    },
+    {
+      "file": "data_export.php",
+      "status": "PASS"
+    },
+    {
+      "file": "data_exports_api.php",
+      "status": "PASS"
+    },
+    {
+      "file": "document_preview.php",
+      "status": "PASS"
+    },
+    {
+      "file": "documents.php",
+      "status": "PASS"
+    },
+    {
+      "file": "documents_api.php",
+      "status": "PASS"
+    },
+    {
+      "file": "forgot_password.php",
+      "status": "PASS"
+    },
+    {
+      "file": "forgot_password_process.php",
+      "status": "PASS"
+    },
+    {
+      "file": "help_support.php",
+      "status": "PASS"
+    },
+    {
+      "file": "help_support_api.php",
+      "status": "PASS"
+    },
+    {
+      "file": "ierb_api.php",
+      "status": "PASS"
+    },
+    {
+      "file": "ierbprog.php",
+      "status": "PASS"
+    },
+    {
+      "file": "includes/academic_catalog.php",
+      "status": "PASS"
+    },
+    {
+      "file": "includes/academic_year_manager.php",
+      "status": "PASS"
+    },
+    {
+      "file": "includes/academic_years.php",
+      "status": "PASS"
+    },
+    {
+      "file": "includes/account_identity.php",
+      "status": "PASS"
+    },
+    {
+      "file": "includes/account_lifecycle.php",
+      "status": "PASS"
+    },
+    {
+      "file": "includes/account_lifecycle_schema.php",
+      "status": "PASS"
+    },
+    {
+      "file": "includes/account_onboarding.php",
+      "status": "PASS"
+    },
+    {
+      "file": "includes/account_purge_files.php",
+      "status": "PASS"
+    },
+    {
+      "file": "includes/account_retention.php",
+      "status": "PASS"
+    },
+    {
+      "file": "includes/account_retention_bulk.php",
+      "status": "PASS"
+    },
+    {
+      "file": "includes/assets.php",
+      "status": "PASS"
+    },
+    {
+      "file": "includes/calendar_deadlines.php",
+      "status": "PASS"
+    },
+    {
+      "file": "includes/ceu_footer.php",
+      "status": "PASS"
+    },
+    {
+      "file": "includes/csv_export.php",
+      "status": "PASS"
+    },
+    {
+      "file": "includes/current_workflow_eligibility.php",
+      "status": "PASS"
+    },
+    {
+      "file": "includes/document_catalog.php",
+      "status": "PASS"
+    },
+    {
+      "file": "includes/document_catalog_client.php",
+      "status": "PASS"
+    },
+    {
+      "file": "includes/document_management.php",
+      "status": "PASS"
+    },
+    {
+      "file": "includes/document_management_actions.php",
+      "status": "PASS"
+    },
+    {
+      "file": "includes/document_summary.php",
+      "status": "PASS"
+    },
+    {
+      "file": "includes/document_summary_actions.php",
+      "status": "PASS"
+    },
+    {
+      "file": "includes/document_summary_ai.php",
+      "status": "PASS"
+    },
+    {
+      "file": "includes/document_summary_history.php",
+      "status": "PASS"
+    },
+    {
+      "file": "includes/document_summary_read.php",
+      "status": "PASS"
+    },
+    {
+      "file": "includes/document_upload.php",
+      "status": "PASS"
+    },
+    {
+      "file": "includes/document_workflow.php",
+      "status": "PASS"
+    },
+    {
+      "file": "includes/email_format.php",
+      "status": "PASS"
+    },
+    {
+      "file": "includes/frontend_styles.php",
+      "status": "PASS"
+    },
+    {
+      "file": "includes/help_support.php",
+      "status": "PASS"
+    },
+    {
+      "file": "includes/help_support_modal.php",
+      "status": "PASS"
+    },
+    {
+      "file": "includes/ierb_group_advancement.php",
+      "status": "PASS"
+    },
+    {
+      "file": "includes/ierb_monitor.php",
+      "status": "PASS"
+    },
+    {
+      "file": "includes/ierb_monitor_view.php",
+      "status": "PASS"
+    },
+    {
+      "file": "includes/ierb_progress.php",
+      "status": "PASS"
+    },
+    {
+      "file": "includes/ierb_stages.php",
+      "status": "PASS"
+    },
+    {
+      "file": "includes/ierb_track_actions.php",
+      "status": "PASS"
+    },
+    {
+      "file": "includes/ierb_track_report.php",
+      "status": "PASS"
+    },
+    {
+      "file": "includes/ierb_v14_corrections.php",
+      "status": "PASS"
+    },
+    {
+      "file": "includes/ierb_v14_requirements.php",
+      "status": "PASS"
+    },
+    {
+      "file": "includes/ierb_v14_workflow.php",
+      "status": "PASS"
+    },
+    {
+      "file": "includes/legal_header.php",
+      "status": "PASS"
+    },
+    {
+      "file": "includes/legal_placeholders.php",
+      "status": "PASS"
+    },
+    {
+      "file": "includes/legal_policy.php",
+      "status": "PASS"
+    },
+    {
+      "file": "includes/migration_runner.php",
+      "status": "PASS"
+    },
+    {
+      "file": "includes/notification_delivery.php",
+      "status": "PASS"
+    },
+    {
+      "file": "includes/notification_lifecycle.php",
+      "status": "PASS"
+    },
+    {
+      "file": "includes/notification_worker.php",
+      "status": "PASS"
+    },
+    {
+      "file": "includes/office_container.php",
+      "status": "PASS"
+    },
+    {
+      "file": "includes/pagination.php",
+      "status": "PASS"
+    },
+    {
+      "file": "includes/prism-navigation.php",
+      "status": "PASS"
+    },
+    {
+      "file": "includes/public_landing.php",
+      "status": "PASS"
+    },
+    {
+      "file": "includes/public_legal.php",
+      "status": "PASS"
+    },
+    {
+      "file": "includes/public_urls.php",
+      "status": "PASS"
+    },
+    {
+      "file": "includes/record_filters.php",
+      "status": "PASS"
+    },
+    {
+      "file": "includes/report_lifecycle.php",
+      "status": "PASS"
+    },
+    {
+      "file": "includes/report_pdf.php",
+      "status": "PASS"
+    },
+    {
+      "file": "includes/research_groups.php",
+      "status": "PASS"
+    },
+    {
+      "file": "includes/research_onboarding.php",
+      "status": "PASS"
+    },
+    {
+      "file": "includes/research_project_advancement.php",
+      "status": "PASS"
+    },
+    {
+      "file": "includes/research_projects.php",
+      "status": "PASS"
+    },
+    {
+      "file": "includes/research_resources.php",
+      "status": "PASS"
+    },
+    {
+      "file": "includes/runtime_preflight.php",
+      "status": "PASS"
+    },
+    {
+      "file": "includes/schema_collation.php",
+      "status": "PASS"
+    },
+    {
+      "file": "includes/schema_research_onboarding.php",
+      "status": "PASS"
+    },
+    {
+      "file": "includes/schema_v10.php",
+      "status": "PASS"
+    },
+    {
+      "file": "includes/schema_v11.php",
+      "status": "PASS"
+    },
+    {
+      "file": "includes/schema_v12.php",
+      "status": "PASS"
+    },
+    {
+      "file": "includes/schema_v13.php",
+      "status": "PASS"
+    },
+    {
+      "file": "includes/schema_v14.php",
+      "status": "PASS"
+    },
+    {
+      "file": "includes/schema_v15.php",
+      "status": "PASS"
+    },
+    {
+      "file": "includes/session_browser.php",
+      "status": "PASS"
+    },
+    {
+      "file": "includes/staff_registration.php",
+      "status": "PASS"
+    },
+    {
+      "file": "includes/staff_registration_card.php",
+      "status": "PASS"
+    },
+    {
+      "file": "includes/stage_configuration.php",
+      "status": "PASS"
+    },
+    {
+      "file": "includes/student_activity.php",
+      "status": "PASS"
+    },
+    {
+      "file": "includes/student_snapshot.php",
+      "status": "PASS"
+    },
+    {
+      "file": "includes/summary_pdf_parser.php",
+      "status": "PASS"
+    },
+    {
+      "file": "index.php",
+      "status": "PASS"
+    },
+    {
+      "file": "legal_consent.php",
+      "status": "PASS"
+    },
+    {
+      "file": "loading.php",
+      "status": "PASS"
+    },
+    {
+      "file": "login.php",
+      "status": "PASS"
+    },
+    {
+      "file": "login_admin.php",
+      "status": "PASS"
+    },
+    {
+      "file": "login_adviser.php",
+      "status": "PASS"
+    },
+    {
+      "file": "login_process.php",
+      "status": "PASS"
+    },
+    {
+      "file": "login_students.php",
+      "status": "PASS"
+    },
+    {
+      "file": "logout.php",
+      "status": "PASS"
+    },
+    {
+      "file": "maintenance/clean-database-preview.php",
+      "status": "PASS"
+    },
+    {
+      "file": "maintenance/frontend-reconciliation/checklist-contract.cjs",
+      "status": "PASS"
+    },
+    {
+      "file": "maintenance/hostinger-cron-runner.php",
+      "status": "PASS"
+    },
+    {
+      "file": "maintenance/ierb-7r-tests/cleanup-fixture.php",
+      "status": "PASS"
+    },
+    {
+      "file": "maintenance/ierb-7r-tests/cleanup-rehearsal-restored.cjs",
+      "status": "PASS"
+    },
+    {
+      "file": "maintenance/ierb-7r-tests/cleanup-rehearsal.cjs",
+      "status": "PASS"
+    },
+    {
+      "file": "maintenance/ierb-7r-tests/closure-fixture.php",
+      "status": "PASS"
+    },
+    {
+      "file": "maintenance/ierb-7r-tests/closure.cjs",
+      "status": "PASS"
+    },
+    {
+      "file": "maintenance/ierb-7r-tests/fixture.php",
+      "status": "PASS"
+    },
+    {
+      "file": "maintenance/ierb-7r-tests/integration.cjs",
+      "status": "PASS"
+    },
+    {
+      "file": "maintenance/ierb-7r-tests/private-output.php",
+      "status": "PASS"
+    },
+    {
+      "file": "maintenance/ierb-group-tests/backend.cjs",
+      "status": "PASS"
+    },
+    {
+      "file": "maintenance/ierb-group-tests/bootstrap.php",
+      "status": "PASS"
+    },
+    {
+      "file": "maintenance/ierb-group-tests/browser.cjs",
+      "status": "PASS"
+    },
+    {
+      "file": "maintenance/ierb-group-tests/environment.php",
+      "status": "PASS"
+    },
+    {
+      "file": "maintenance/ierb-group-tests/fixture.php",
+      "status": "PASS"
+    },
+    {
+      "file": "maintenance/ierb-group-tests/initialize.php",
+      "status": "PASS"
+    },
+    {
+      "file": "maintenance/ierb-group-tests/mock-curl.php",
+      "status": "PASS"
+    },
+    {
+      "file": "maintenance/ierb-group-tests/regression.cjs",
+      "status": "PASS"
+    },
+    {
+      "file": "maintenance/ierb-group-tests/run.cjs",
+      "status": "PASS"
+    },
+    {
+      "file": "maintenance/ierb-group-tests/runtime.php",
+      "status": "PASS"
+    },
+    {
+      "file": "maintenance/ierb-group-tests/seed.php",
+      "status": "PASS"
+    },
+    {
+      "file": "maintenance/ierb-group-tests/shutdown.php",
+      "status": "PASS"
+    },
+    {
+      "file": "maintenance/ierb-monitor-tests/fixture.php",
+      "status": "PASS"
+    },
+    {
+      "file": "maintenance/ierb-monitor-tests/integration.cjs",
+      "status": "PASS"
+    },
+    {
+      "file": "maintenance/ierb-project-tests/fixture.php",
+      "status": "PASS"
+    },
+    {
+      "file": "maintenance/ierb-project-tests/generate-contract.php",
+      "status": "PASS"
+    },
+    {
+      "file": "maintenance/ierb-project-tests/migration-cases.php",
+      "status": "PASS"
+    },
+    {
+      "file": "maintenance/ierb-project-tests/projects.cjs",
+      "status": "PASS"
+    },
+    {
+      "file": "maintenance/ierb-project-tests/uploads.cjs",
+      "status": "PASS"
+    },
+    {
+      "file": "maintenance/ierb-report-tests/cycles.php",
+      "status": "PASS"
+    },
+    {
+      "file": "maintenance/ierb-report-tests/fixture.php",
+      "status": "PASS"
+    },
+    {
+      "file": "maintenance/ierb-report-tests/integration.cjs",
+      "status": "PASS"
+    },
+    {
+      "file": "maintenance/ierb-ui-tests/fixture.php",
+      "status": "PASS"
+    },
+    {
+      "file": "maintenance/ierb-ui-tests/integration.cjs",
+      "status": "PASS"
+    },
+    {
+      "file": "maintenance/ierb-v14-tests/cases.php",
+      "status": "PASS"
+    },
+    {
+      "file": "maintenance/ierb-v14-tests/documents-fixture.php",
+      "status": "PASS"
+    },
+    {
+      "file": "maintenance/ierb-v14-tests/documents.cjs",
+      "status": "PASS"
+    },
+    {
+      "file": "maintenance/ierb-v14-tests/generate-contract.php",
+      "status": "PASS"
+    },
+    {
+      "file": "maintenance/ierb-v14-tests/run.cjs",
+      "status": "PASS"
+    },
+    {
+      "file": "maintenance/issue-deletion-verification.php",
+      "status": "PASS"
+    },
+    {
+      "file": "maintenance/migrate-academic-years.php",
+      "status": "PASS"
+    },
+    {
+      "file": "maintenance/migrate-ierb-v14.php",
+      "status": "PASS"
+    },
+    {
+      "file": "maintenance/migrate-research-onboarding.php",
+      "status": "PASS"
+    },
+    {
+      "file": "maintenance/migrate-research-projects.php",
+      "status": "PASS"
+    },
+    {
+      "file": "maintenance/migrate-stage-guidance.php",
+      "status": "PASS"
+    },
+    {
+      "file": "maintenance/migrate-summary-history.php",
+      "status": "PASS"
+    },
+    {
+      "file": "maintenance/notification-dispatch.php",
+      "status": "PASS"
+    },
+    {
+      "file": "maintenance/onboarding-tests/browser.cjs",
+      "status": "PASS"
+    },
+    {
+      "file": "maintenance/onboarding-tests/fixture.php",
+      "status": "PASS"
+    },
+    {
+      "file": "maintenance/onboarding-tests/integration.cjs",
+      "status": "PASS"
+    },
+    {
+      "file": "maintenance/onboarding-tests/migration-race.cjs",
+      "status": "PASS"
+    },
+    {
+      "file": "maintenance/onboarding-tests/regression.cjs",
+      "status": "PASS"
+    },
+    {
+      "file": "maintenance/onboarding-tests/source-check.cjs",
+      "status": "PASS"
+    },
+    {
+      "file": "maintenance/onboarding-tests/v14-simplification-smoke.cjs",
+      "status": "PASS"
+    },
+    {
+      "file": "maintenance/reconcile-research-project.php",
+      "status": "PASS"
+    },
+    {
+      "file": "maintenance/release/commit-gate.cjs",
+      "status": "PASS"
+    },
+    {
+      "file": "maintenance/release/commit-gate.test.cjs",
+      "status": "PASS"
+    },
+    {
+      "file": "maintenance/runtime-preflight.php",
+      "status": "PASS"
+    },
+    {
+      "file": "maintenance/test-data-cleanup-preview.php",
+      "status": "PASS"
+    },
+    {
+      "file": "maintenance/v14-operations.php",
+      "status": "PASS"
+    },
+    {
+      "file": "notifications_api.php",
+      "status": "PASS"
+    },
+    {
+      "file": "privacy.php",
+      "status": "PASS"
+    },
+    {
+      "file": "profile_api.php",
+      "status": "PASS"
+    },
+    {
+      "file": "register.php",
+      "status": "PASS"
+    },
+    {
+      "file": "register_process.php",
+      "status": "PASS"
+    },
+    {
+      "file": "reports.php",
+      "status": "PASS"
+    },
+    {
+      "file": "reports_api.php",
+      "status": "PASS"
+    },
+    {
+      "file": "research_adviser.php",
+      "status": "PASS"
+    },
+    {
+      "file": "reset_password.php",
+      "status": "PASS"
+    },
+    {
+      "file": "role_portal.php",
+      "status": "PASS"
+    },
+    {
+      "file": "security.php",
+      "status": "PASS"
+    },
+    {
+      "file": "send_followup.php",
+      "status": "PASS"
+    },
+    {
+      "file": "staff_registration_manage.php",
+      "status": "PASS"
+    },
+    {
+      "file": "stage_labels_api.php",
+      "status": "PASS"
+    },
+    {
+      "file": "student.php",
+      "status": "PASS"
+    },
+    {
+      "file": "students_api.php",
+      "status": "PASS"
+    },
+    {
+      "file": "terms.php",
+      "status": "PASS"
+    },
+    {
+      "file": "update_password.php",
+      "status": "PASS"
+    },
+    {
+      "file": "workflow.php",
+      "status": "PASS"
+    }
+  ]
+}

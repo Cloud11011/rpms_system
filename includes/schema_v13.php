@@ -90,7 +90,7 @@ function schema_v13_verify(PDO $pdo, bool $partial = false, array $extraTables =
     foreach ($names as $name) {
         $q = $pdo->prepare('SELECT COUNT(*) FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME=?'); $q->execute([$name]);
         if (!$q->fetchColumn()) {
-            if (!$partial || in_array($version,['13','14','15'],true)) throw new RuntimeException('Incomplete project schema.');
+            if (!$partial || in_array($version,['13','14','15','16'],true)) throw new RuntimeException('Incomplete project schema.');
         } elseif (!schema_extension_matches($pdo, $name, schema_v13_definition($pdo, $name), $contract[$name], $collation)) throw new RuntimeException('Project schema drift: '.$name.' (legacy base '.$collation.').');
     }
 }

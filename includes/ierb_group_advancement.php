@@ -47,6 +47,7 @@ function ierb_group_options(PDO $pdo): array
                 'label'=>$p['research_title'].' / '.(function_exists('research_onboarding_available')&&research_onboarding_available($pdo)?'Protocol Code: '.(research_project_protocol($pdo,(int)$p['id'])?:'Not yet assigned'):$p['public_identifier']),'standard'=>true,'memberCount'=>(int)$p['member_count']];
         }
     }
+    if (research_projects_available($pdo)) return $canonical;
     $rows=$pdo->query('SELECT research_group,academic_unit_key,program_key,year_level,academic_year FROM students
         WHERE research_group IS NOT NULL AND research_group <> \'\''. (research_projects_available($pdo) ? ' AND id NOT IN (SELECT student_id FROM research_project_members)' : '').' ORDER BY id')->fetchAll(PDO::FETCH_ASSOC);
     $groups=[];
@@ -95,6 +96,7 @@ function ierb_group_rows(PDO $pdo, array $identity): array
 function ierb_group_inspect(PDO $pdo, array $actor, array $identity): array
 {
     if (isset($identity['project_id'])) return research_project_group_inspect($pdo,$actor,(int)$identity['project_id']);
+    if (research_projects_available($pdo)) throw new AccountLifecycleConflict('Obsolete group identities cannot change V14 progress. Refresh and choose a canonical research project.');
     $rows=ierb_group_rows($pdo,$identity); $members=[]; $fingerprints=[]; $reasons=[];
     if (!research_group_is_standard($identity)) $reasons[]='Choose a valid standardized research group. Legacy or inconsistent academic identifiers require record review.';
     if (count($rows)<2) $reasons[]='At least two eligible Students are required for Research Group Advancement.';

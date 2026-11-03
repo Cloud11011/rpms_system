@@ -95,11 +95,11 @@ function ierb_v14_stage_upload_types(PDO $pdo, array $workflow, ?array $case): a
  */
 function ierb_v14_upload_stage(PDO $pdo, int $studentId, string $type, string $fallback): string
 {
-    if (!ierb_v14_schema_available($pdo)) return $fallback;
+    if (!ierb_v14_schema_available($pdo)) throw new AccountLifecycleConflict('V14 document requirements are unavailable.');
     $q = $pdo->prepare('SELECT * FROM ierb_workflows WHERE student_id=? FOR UPDATE');
     $q->execute([$studentId]);
     $workflow = $q->fetch(PDO::FETCH_ASSOC);
-    if (!$workflow) return $fallback;
+    if (!$workflow) throw new AccountLifecycleConflict('Research setup is pending. RPMS must confirm the V14 project before uploading.');
     $stage = $workflow['stage_key'];
     if ($stage === IerbStage::COMPLETED) throw new AccountLifecycleConflict('This project is completed; documents are read-only.');
     $case = ierb_v14_case($pdo, (int)$workflow['id']);
@@ -121,7 +121,8 @@ function ierb_v14_read_summary(PDO $pdo, int $studentId): ?array
         ON c.workflow_id=w.id AND c.resolved_at IS NULL WHERE w.student_id=?'); $q->execute([$studentId]);
     $w = $q->fetch(PDO::FETCH_ASSOC);
     return $w ? ['stage'=>$w['stage_key'], 'stageLabel'=>IerbStage::LABELS[$w['stage_key']], 'revision'=>(int)$w['revision'],
-        'progress'=>IerbStage::progress($w['stage_key'], $w['interrupted_stage']), 'labels'=>IerbStage::LABELS] : null;
+        'progress'=>IerbStage::progress($w['stage_key'], $w['interrupted_stage']), 'labels'=>IerbStage::LABELS]
+        + ierb_v14_case_usage($pdo,(int)$w['id']) : null;
 }
 
 /** Required evidence is checked under the Student lock and exact current-version lock. */
@@ -423,7 +424,7 @@ function ierb_v14_resolve_correction(PDO $pdo, array $actor, int $studentId, int
 
 function ierb_v14_guard_document_delete(PDO $pdo, array $doc): void
 {
-    if (in_array((string)$pdo->query("SELECT v FROM schema_meta WHERE k='schema_version'")->fetchColumn(),['14','15'],true)) {
+    if (in_array((string)$pdo->query("SELECT v FROM schema_meta WHERE k='schema_version'")->fetchColumn(),['14','15','16'],true)) {
         $q=$pdo->prepare('SELECT id FROM document_summary_versions WHERE document_id=? LIMIT 1 FOR UPDATE'); $q->execute([$doc['id']]);
         if ($q->fetchColumn()) throw new DocumentWorkflowError('Summary versions and their source documents are retained. Use Return for Revision.',409);
     }

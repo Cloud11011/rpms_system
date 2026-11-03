@@ -1,0 +1,154 @@
+/* PRISM — Research project requirements (picker, legacy screen, checklist).
+   Uses the existing theme variables, so light and dark themes both work. */
+
+.prq-dialog {
+  position: fixed; inset: 0; margin: auto;
+  width: min(920px, 94vw); max-height: 90vh; padding: 0; border: 0; border-radius: 22px; overflow: auto;
+  color: var(--text-primary, #15163a); background: var(--card-bg, #fff); box-shadow: 0 24px 60px rgba(12, 14, 63, .35);
+}
+.prq-dialog.is-small { width: min(560px, 94vw); }
+.prq-dialog::backdrop { background: rgba(21, 22, 58, .55); }
+.prq-dialog-body { padding: 0; }
+
+.prq { display: grid; gap: 0; color: var(--text-primary, #15163a); font-size: 14px; }
+.prq-dialog .prq > * { padding-left: 26px; padding-right: 26px; }
+.prq p { margin: 0; }
+.prq-muted { color: var(--text-secondary, #5e5b70); }
+.prq-small { font-size: 12.5px; }
+
+.prq-top { display: grid; gap: 14px; padding-top: 22px; padding-bottom: 18px; border-bottom: 1px solid var(--border-color, #eeedf3); }
+.prq-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; }
+.prq-titles { display: grid; gap: 4px; min-width: 0; }
+.prq-eyebrow { color: var(--accent-pink, #b0156b); font-size: 12px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; }
+.prq-title { margin: 0; font-size: 22px; font-weight: 800; line-height: 1.25; }
+.prq-title.is-sm { font-size: 20px; }
+.prq-head-actions { display: flex; gap: 8px; flex: none; }
+
+.prq-btn {
+  min-height: 42px; padding: 0 14px; border: 1px solid var(--border-color, #e3e1ea); border-radius: 12px;
+  color: var(--text-primary, #15163a); background: var(--card-bg, #fff); font: inherit; font-size: 13.5px; font-weight: 700; cursor: pointer;
+}
+.prq-btn.is-soft { color: var(--accent-purple, #a3125f); border-color: #f3b9d5; background: #fce7f1; }
+.prq-btn.is-primary { color: #fff; border-color: transparent; background: var(--accent-purple, #a21368); }
+.prq-btn:disabled { opacity: .5; cursor: not-allowed; }
+html.dark-theme .prq-btn.is-soft { color: #ff9dc7; border-color: rgba(255, 157, 199, .4); background: rgba(255, 136, 188, .12); }
+.prq-icon-btn {
+  width: 42px; height: 42px; display: grid; place-items: center; border: 1px solid var(--border-color, #e3e1ea); border-radius: 12px;
+  color: var(--text-primary, #15163a); background: var(--card-bg, #fff); cursor: pointer;
+}
+.prq-icon-btn.is-round { border: 0; border-radius: 999px; background: var(--bg-color, #f4f3f8); }
+.prq-link { padding: 0; border: 0; background: none; color: var(--accent-purple, #a3125f); font: inherit; font-weight: 700; text-decoration: underline; cursor: pointer; }
+.prq-link.is-light { color: #fff; }
+.prq :is(button, select, textarea, summary, input):focus-visible { outline: 3px solid var(--accent-pink, #b80b62); outline-offset: 2px; }
+
+.prq-summary {
+  display: flex; flex-wrap: wrap; align-items: center; gap: 12px 24px; padding: 14px 16px; border: 1px solid var(--border-color, #e7e5ee);
+  border-radius: 14px; background: var(--bg-color, #faf9fc);
+}
+.prq-stage-now { display: grid; gap: 4px; }
+.prq-stage-pill { display: inline-flex; align-items: center; min-height: 24px; padding: 1px 10px; border-radius: 999px; color: #4b3aa8; background: #ece9fb; font-size: 12.5px; font-weight: 700; }
+html.dark-theme .prq-stage-pill { color: #d9d2ff; background: rgba(140, 120, 255, .22); }
+.prq-bar-wrap { flex: 1 1 260px; display: grid; gap: 6px; }
+.prq-bar-text { display: flex; justify-content: space-between; gap: 8px; font-size: 13px; }
+.prq-bar { height: 8px; border-radius: 4px; background: var(--border-color, #e9e7f0); overflow: hidden; }
+.prq-bar span { display: block; height: 100%; background: #146c2e; }
+
+.prq-chips { display: flex; flex-wrap: wrap; gap: 8px; }
+.prq-chip {
+  min-height: 36px; display: inline-flex; align-items: center; gap: 6px; padding: 0 12px; border: 1px solid var(--border-color, #e3e1ea);
+  border-radius: 999px; color: var(--text-primary, #15163a); background: var(--card-bg, #fff); font: inherit; font-size: 13px; font-weight: 700; cursor: pointer;
+}
+.prq-chip.is-on { color: #fff; border-color: #15163a; background: #15163a; }
+html.dark-theme .prq-chip.is-on { color: #15163a; border-color: #fff; background: #fff; }
+.prq-count { font-weight: 500; }
+.prq-dot { width: 8px; height: 8px; flex: none; border-radius: 999px; background: currentColor; }
+.prq-chip .prq-dot.is-all { background: #15163a; }
+.prq-chip .prq-dot.is-missing { background: #6e6b80; }
+.prq-chip .prq-dot.is-adviser { background: #b07a10; }
+.prq-chip .prq-dot.is-rpms { background: #1e4f9a; }
+.prq-chip .prq-dot.is-returned { background: #c62828; }
+.prq-chip .prq-dot.is-accepted { background: #146c2e; }
+.prq-chip.is-on .prq-dot { background: currentColor; }
+
+.prq-how { font-size: 13.5px; }
+.prq-how summary { min-height: 28px; color: var(--accent-purple, #a3125f); font-weight: 700; cursor: pointer; }
+.prq-how ul { display: grid; gap: 6px; margin: 8px 0 0; padding-left: 20px; color: var(--text-secondary, #3f4560); line-height: 1.55; }
+
+.prq-notices { display: grid; gap: 8px; padding-top: 14px; }
+.prq-notices:empty { display: none; }
+.prq-note { display: flex; gap: 10px; align-items: flex-start; padding: 12px 14px !important; border-radius: 12px; background: var(--bg-color, #f4f3f8); font-size: 13.5px; line-height: 1.5; }
+.prq-note.is-purple { color: #3b1a80; background: #f1e9ff; }
+html.dark-theme .prq-note.is-purple { color: #e2d4ff; background: rgba(109, 40, 217, .2); }
+.prq-alert { padding: 10px 14px !important; border: 1px solid #f4bcbc; border-radius: 12px; color: #a01c1c; background: #fdeaea; font-size: 13.5px; font-weight: 600; }
+
+.prq-stages { display: grid; gap: 12px; padding-top: 18px; padding-bottom: 18px; }
+.prq-stage { border: 1px solid var(--border-color, #e7e5ee); border-radius: 16px; overflow: hidden; }
+.prq-stage.is-current { border-color: #e7a6c8; }
+.prq-stage-head {
+  width: 100%; min-height: 60px; display: flex; align-items: center; gap: 12px; padding: 12px 16px; border: 0;
+  color: inherit; background: var(--card-bg, #fff); font: inherit; text-align: left; cursor: pointer;
+}
+.prq-stage.is-current .prq-stage-head { background: rgba(189, 13, 101, .05); }
+.prq-num {
+  width: 30px; height: 30px; flex: none; display: grid; place-items: center; border: 2px solid #d3d0dc; border-radius: 999px;
+  color: #6e6b80; font-size: 13px; font-weight: 800;
+}
+.prq-num.is-current { color: #fff; border-color: #b0156b; background: #b0156b; }
+.prq-num.is-done { color: #fff; border-color: #146c2e; background: #146c2e; }
+.prq-stage-text { flex: 1; display: grid; gap: 2px; min-width: 0; }
+.prq-stage-title { font-size: 15px; font-weight: 700; }
+.prq-tag { padding: 2px 10px; border-radius: 999px; color: var(--text-secondary, #5e5b70); background: var(--bg-color, #f4f3f8); font-size: 12px; font-weight: 700; white-space: nowrap; }
+.prq-tag.is-current { color: #a3125f; background: #fce7f1; }
+.prq-tag.is-done { color: #146c2e; background: #e7f6ec; }
+
+.prq-rows { margin: 0; padding: 0; list-style: none; border-top: 1px solid var(--border-color, #eeedf3); }
+.prq-rows[hidden] { display: none; }
+.prq-row { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 14px; min-height: 52px; padding: 8px 16px; }
+.prq-row + .prq-row { border-top: 1px solid var(--border-color, #f0eff4); }
+.prq-row.is-selected { background: rgba(189, 13, 101, .05); }
+.prq-check { width: 18px; height: 18px; margin: 0; accent-color: #b0156b; cursor: pointer; }
+.prq-row-text { flex: 1 1 260px; min-width: 0; display: grid; gap: 2px; }
+.prq-row-name { font-size: 14px; font-weight: 600; }
+.prq-row-actions { display: flex; gap: 8px; }
+.prq-pill { display: inline-flex; align-items: center; gap: 6px; min-height: 26px; padding: 2px 10px; border-radius: 999px; font-size: 12.5px; font-weight: 700; white-space: nowrap; }
+.prq-pill.is-missing { color: #3f4560; background: #eef0f5; }
+.prq-pill.is-adviser { color: #7a4b00; background: #fef3d6; }
+.prq-pill.is-rpms { color: #1e4f9a; background: #e3eefb; }
+.prq-pill.is-returned { color: #a01c1c; background: #fdeaea; }
+.prq-pill.is-accepted { color: #146c2e; background: #e7f6ec; }
+.prq-pill.is-later { color: #6e6b80; background: #f4f3f8; }
+
+.prq-bulk { display: grid; gap: 10px; margin-bottom: 16px; padding: 14px 16px !important; border-radius: 14px; color: #fff; background: #15163a; }
+.prq-bulk label { font-size: 13px; font-weight: 600; }
+.prq-bulk textarea { padding: 10px 12px; border: 0; border-radius: 10px; color: #15163a; font: inherit; font-size: 14px; resize: vertical; }
+.prq-bulk-row { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px; }
+.prq-bulk-row.is-end { justify-content: flex-end; }
+
+.prq-res {
+  display: flex; flex-wrap: wrap; align-items: center; gap: 12px 20px; margin-bottom: 24px; padding: 16px 18px !important;
+  border: 1px solid var(--border-color, #e7e5ee); border-radius: 16px;
+}
+.prq-dialog .prq .prq-res { margin-left: 26px; margin-right: 26px; }
+.prq-res-text { flex: 1 1 360px; display: grid; gap: 4px; font-size: 13px; line-height: 1.55; }
+.prq-res-text strong { font-size: 14.5px; }
+.prq-res-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+.prq-res > div:last-child:empty { display: none; }
+
+/* picker + legacy */
+.prq-small-panel { gap: 16px; padding: 24px 0 26px; }
+.prq-field { display: grid; gap: 6px; }
+.prq-field label { font-size: 14px; font-weight: 700; }
+.prq-select {
+  min-height: 48px; padding: 0 12px; border: 1px solid var(--border-color, #d9d6e3); border-radius: 12px;
+  color: var(--text-primary, #15163a); background: var(--input-bg, #fff); font: inherit; font-size: 14.5px;
+}
+.prq-explain { display: flex; gap: 12px; align-items: flex-start; margin: 0 26px; padding: 16px !important; border-radius: 14px; background: var(--bg-color, #f4f3f8); line-height: 1.6; }
+.prq-explain p + p { margin-top: 8px; }
+.prq-explain i { margin-top: 4px; color: #475269; }
+.prq-actions-end { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 10px; }
+
+@media (max-width: 640px) {
+  .prq-dialog .prq > * { padding-left: 16px; padding-right: 16px; }
+  .prq-dialog .prq .prq-res, .prq-explain { margin-left: 16px; margin-right: 16px; }
+  .prq-head { flex-wrap: wrap; }
+}

@@ -1,0 +1,663 @@
+/* Research Advisers - cleaner, friendlier list. Load after adviser-records.css. */
+body[data-management=adviser] {
+    --adv-line: #ECE8F1;
+    --adv-soft: #FCEAF4;
+    --adv-brand: #B5146E;
+    --adv-muted: #5F5A70;
+    --adv-profile-color: #FF2494;
+    --adv-profile-bg: #FCE8F3;
+    --adv-profile-border: #FFA5D3;
+    --adv-label: #68718D;
+    --adv-empty-bg: #F0EDF6;
+    --adv-assignment-color: var(--prism-pink);
+    --adv-assignment-bg: var(--prism-pink-soft);
+}
+
+html.dark-theme body[data-management=adviser] {
+    --adv-line: rgba(255,255,255,.1);
+    --adv-soft: rgba(181,20,110,.18);
+    --adv-muted: #B9B3C9;
+    --adv-profile-color: #FF8EC5;
+    --adv-profile-bg: rgba(255,36,148,.14);
+    --adv-profile-border: #8F4D72;
+    --adv-label: #B9B3C9;
+    --adv-empty-bg: #332F43;
+    --adv-assignment-color: var(--prism-accent);
+    --adv-assignment-bg: var(--prism-pink-soft);
+}
+
+/* toolbar: larger touch targets, clear primary action */
+body[data-management=adviser] .management-search {
+    height: 48px;
+    border-radius: 14px;
+    border: 1px solid var(--adv-line);
+    background: var(--prism-card);
+}
+
+body[data-management=adviser] .management-search:focus-within {
+    border-color: var(--adv-brand);
+    box-shadow: 0 0 0 3px var(--adv-soft);
+}
+
+body[data-management=adviser] .student-page-actions .student-icon-action:not(.student-archive-link),
+body[data-management=adviser] .student-page-actions .student-archive-link.student-icon-action,
+body[data-management=adviser] .management-controls .student-filter-action {
+    flex: 0 0 48px;
+    width: 48px;
+    min-width: 48px;
+    height: 48px;
+    min-height: 48px;
+    border-radius: 14px;
+    border: 1px solid var(--adv-line);
+    background: var(--prism-card);
+    color: var(--prism-text);
+}
+
+body[data-management=adviser] .student-page-actions .student-icon-action:hover,
+body[data-management=adviser] .management-controls .student-filter-action:hover {
+    background: var(--adv-soft);
+    border-color: var(--adv-brand);
+    color: var(--adv-brand);
+}
+
+body[data-management=adviser] .student-page-actions #addRecord {
+    background: var(--adv-brand);
+    border-color: var(--adv-brand);
+    color: #fff;
+}
+
+body[data-management=adviser] .student-page-actions #addRecord:hover {
+    background: #8F0F58;
+    color: #fff;
+}
+
+/* One owner for adviser card layout; field widths share the row consistently. */
+body[data-management=adviser] .management-card {
+    border:0;
+    background:transparent;
+    box-shadow:none;
+}
+
+body[data-management=adviser] .management-card-head {
+    padding:8px 4px 14px;
+    border:0;
+}
+
+body[data-management=adviser] .management-table-wrap {
+    container:adviser-records / inline-size;
+}
+
+/* Legacy table cells add important padding around card hosts. */
+body[data-management=adviser] .management-table-wrap td:has(> .adviser-result-card) {
+    padding-block:0 !important;
+}
+
+body[data-management=adviser] .management-table-wrap > table tbody {
+    display:grid;
+    gap:var(--prism-space-3);
+}
+
+body[data-management=adviser] .adviser-result-card.prism-record-shell {
+    --adv-columns:minmax(220px,1.4fr) minmax(105px,.75fr) minmax(130px,1fr) minmax(140px,1fr) minmax(85px,.65fr) max-content;
+    display:grid;
+    grid-template-columns:var(--adv-columns);
+    grid-template-areas:"profile employee department assignments status actions";
+    align-items:center;
+    gap:var(--prism-space-2) var(--prism-space-3);
+    min-height:76px;
+    padding:var(--prism-space-3) var(--prism-space-4);
+    border:1px solid var(--adv-line);
+    border-radius:16px;
+    background:var(--prism-card);
+    box-shadow:0 2px 10px rgba(40,20,90,.05);
+    font-size:13px;
+    line-height:1.4;
+}
+
+body[data-management=adviser] .adviser-result-card:hover {
+    border-color:var(--prism-border);
+}
+
+body[data-management=adviser] .adviser-result-card > div {
+    min-width:0;
+    font-size:13px;
+    overflow-wrap:anywhere;
+}
+
+body[data-management=adviser] .adviser-result-card .student-name-layout {
+    grid-area:profile;
+    display:flex;
+    align-items:center;
+    justify-content:flex-start;
+    min-width:0;
+    gap:10px;
+}
+
+body[data-management=adviser] .adviser-result-card .student-avatar {
+    width:40px;
+    height:40px;
+    flex:0 0 40px;
+    border-radius:50%;
+    background:var(--adv-soft);
+    color:var(--adv-brand);
+}
+
+body[data-management=adviser] .adviser-result-card .student-name-copy {
+    min-width:0;
+    line-height:1.4;
+    text-align:left;
+    overflow-wrap:anywhere;
+}
+
+body[data-management=adviser] .adviser-result-card .student-name-copy strong {
+    display:block;
+    font-size:14px;
+    font-weight:700;
+    line-height:1.4;
+}
+
+body[data-management=adviser] .adviser-result-card .student-name-copy small {
+    display:block;
+    margin-top:2px;
+    color:var(--adv-muted);
+    font-size:12px;
+    line-height:1.4;
+    overflow-wrap:anywhere;
+}
+
+body[data-management=adviser] .adviser-result-card .student-result-label {
+    display:block;
+    margin:0 0 var(--prism-space-1);
+    color:var(--adv-label);
+    font-size:9px;
+    font-weight:700;
+    line-height:12px;
+    letter-spacing:.1em;
+    text-transform:uppercase;
+}
+
+body[data-management=adviser] .adviser-result-card :is(.adviser-employee-field,.adviser-department-field,.adviser-assignment-field,.adviser-status-field) {
+    text-align:left;
+}
+
+body[data-management=adviser] .adviser-result-card .adviser-employee-field { grid-area:employee; }
+body[data-management=adviser] .adviser-result-card .adviser-department-field { grid-area:department; }
+body[data-management=adviser] .adviser-result-card :is(.adviser-employee-field,.adviser-department-field) { font-weight:700; line-height:1.3; }
+body[data-management=adviser] .adviser-result-card .adviser-status-field { grid-area:status; }
+body[data-management=adviser] .adviser-result-card .student-result-actions { grid-area:actions; }
+
+body[data-management=adviser] .adviser-result-card.is-selecting {
+    grid-template-columns:26px var(--adv-columns);
+    grid-template-areas:"selection profile employee department assignments status actions";
+}
+
+/* Adviser profile controls and assignment labels match the record reference. */
+body[data-management=adviser] .adviser-result-card .student-result-actions {
+    justify-content: flex-end;
+    flex-wrap: nowrap;
+    gap: 8px;
+}
+
+body[data-management=adviser] .adviser-result-card .adviser-profile-edit {
+    display: inline-flex;
+    flex: 0 0 auto;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    min-height: 32px;
+    padding: 7px 12px;
+    border: 1px solid var(--adv-profile-border);
+    border-radius: 12px;
+    background: var(--adv-profile-bg);
+    color: var(--adv-profile-color);
+    font: 500 11px/1.4 var(--prism-font-family);
+    white-space: nowrap;
+    cursor: pointer;
+}
+
+body[data-management=adviser] .adviser-result-card .adviser-profile-edit:hover {
+    border-color: var(--adv-profile-color);
+    filter: brightness(.98);
+}
+
+body[data-management=adviser] .adviser-result-card .prism-action-trigger {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    min-width: 40px;
+    height: 32px;
+    min-height: 32px;
+    padding: 0;
+    border: 1px solid var(--adv-line);
+    border-radius: 12px;
+    background: var(--prism-card);
+    color: var(--prism-text);
+    font-size: 16px;
+    font-weight: 800;
+    letter-spacing: 0;
+}
+
+body[data-management=adviser] .adviser-result-card .prism-action-trigger:hover {
+    background: var(--adv-soft);
+    border-color: var(--adv-profile-border);
+    color: var(--adv-profile-color);
+}
+
+body.prism-workspace[data-management=adviser] .adviser-record-actions-panel {
+    width: 216px;
+    min-width: 0;
+    gap: 0;
+    padding: 6px 10px;
+    border: 1px solid var(--adv-line);
+    border-radius: 13px;
+    background: var(--prism-card);
+    box-shadow: 0 14px 30px rgba(20,23,58,.16);
+}
+
+body.prism-workspace[data-management=adviser] .adviser-record-actions-panel .prism-action-item {
+    min-height: 43px;
+    gap: 10px;
+    padding: 8px 6px;
+    border: 0;
+    border-radius: 0;
+    background: transparent;
+    color: var(--prism-text);
+    font-size: 13px;
+    font-weight: 500;
+    line-height: 1.25;
+}
+
+body.prism-workspace[data-management=adviser] .adviser-record-actions-panel .prism-action-item + .prism-action-item {
+    border-top: 1px solid var(--adv-line);
+}
+
+body.prism-workspace[data-management=adviser] .adviser-record-actions-panel .prism-action-item:hover {
+    background: var(--adv-soft);
+}
+
+body.prism-workspace[data-management=adviser] .adviser-record-actions-panel .prism-action-danger {
+    color: #FF315B;
+}
+
+body.prism-workspace[data-management=adviser] .adviser-record-actions-panel .prism-action-danger:is(:hover,:focus-visible,:active):not(:disabled):not([aria-disabled=true]) {
+    color: #FF315B;
+    background: var(--adv-soft);
+    border-color: var(--adv-line);
+}
+
+/* Compact assignment pills stay sized to their contents in both themes. */
+body[data-management=adviser] .adviser-result-card .adviser-assignment-field {
+    grid-area:assignments;
+    display:flex;
+    flex-direction:column;
+    align-items:flex-start;
+    gap:var(--prism-space-1);
+}
+
+body[data-management=adviser] .adviser-result-card .adviser-assignment-field > .student-result-label {
+    margin:0;
+    font-size:9px;
+    font-weight:700;
+    line-height:12px;
+    letter-spacing:.1em;
+}
+
+body[data-management=adviser] .adviser-result-card .adviser-assignment-chip {
+    display:inline-flex;
+    box-sizing:border-box;
+    align-items:center;
+    flex:0 0 auto;
+    gap:var(--prism-space-1);
+    max-width:100%;
+    min-height:22px;
+    padding:3px 10px;
+    border:0;
+    border-radius:999px;
+    background:var(--adv-assignment-bg);
+    color:var(--adv-assignment-color);
+    font:700 11px/14px var(--prism-font-family);
+    text-decoration:none;
+    white-space:nowrap;
+    overflow-wrap:normal;
+}
+
+body[data-management=adviser] .adviser-result-card .adviser-assignment-chip > svg {
+    display:block;
+    flex:0 0 14px;
+}
+
+body[data-management=adviser] .adviser-result-card .adviser-assignment-chip.is-empty {
+    min-height:20px;
+    padding:3px 10px;
+    background:var(--adv-empty-bg);
+    color:var(--adv-label);
+}
+
+/* Read-only research titles; native popovers escape card clipping and light-dismiss. */
+body[data-management=adviser] .adviser-assignment-chip:is(button) {
+    cursor:pointer;
+}
+
+body[data-management=adviser] .adviser-assignment-chip:is(button):hover,
+body[data-management=adviser] .adviser-assignment-chip[aria-expanded=true] {
+    background:var(--adv-profile-bg);
+}
+
+body[data-management=adviser] .adviser-groups-popover {
+    position:fixed;
+    inset:auto;
+    margin:0;
+    width:min(340px,calc(100vw - 24px));
+    max-height:min(320px,calc(100dvh - 24px));
+    padding:var(--prism-space-3);
+    border:1px solid var(--prism-border);
+    border-radius:var(--prism-radius);
+    background:var(--prism-card);
+    color:var(--prism-text);
+    box-shadow:var(--prism-shadow-dialog);
+    font:400 12px/1.5 var(--prism-font-family);
+    overflow:hidden;
+}
+
+body[data-management=adviser] .adviser-groups-popover:popover-open {
+    display:grid;
+    grid-template-rows:auto minmax(0,1fr);
+    gap:var(--prism-space-2);
+}
+
+body[data-management=adviser] .adviser-groups-heading {
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:var(--prism-space-2);
+}
+
+body[data-management=adviser] .adviser-groups-heading h3 {
+    margin:0;
+    font-size:13px;
+    font-weight:700;
+    line-height:1.4;
+}
+
+body[data-management=adviser] .adviser-groups-heading button {
+    display:grid;
+    place-items:center;
+    flex:0 0 28px;
+    width:28px;
+    height:28px;
+    padding:0;
+    border:0;
+    border-radius:8px;
+    background:transparent;
+    color:var(--prism-text);
+    cursor:pointer;
+}
+
+body[data-management=adviser] .adviser-groups-heading button:hover {
+    background:var(--prism-surface-2);
+}
+
+body[data-management=adviser] .adviser-groups-list {
+    min-height:0;
+    max-height:min(240px,calc(100dvh - 100px));
+    margin:0;
+    padding:0 var(--prism-space-1) 0 0;
+    overflow-y:auto;
+    overscroll-behavior:contain;
+    scrollbar-gutter:stable;
+    list-style:none;
+}
+
+body[data-management=adviser] .adviser-groups-list li {
+    padding:var(--prism-space-2) 0;
+    font-size:12px;
+    font-weight:500;
+    line-height:1.5;
+    overflow-wrap:anywhere;
+}
+
+body[data-management=adviser] .adviser-groups-list li + li {
+    border-top:1px solid var(--prism-border);
+}
+
+/* focus + pagination */
+body[data-management=adviser] :is(.prism-filter-pill,.adviser-assignment-chip,.adviser-profile-edit,.prism-action-trigger,.prism-action-item):focus-visible {
+    outline: 3px solid var(--adv-brand);
+    outline-offset: 2px;
+}
+
+body[data-management=adviser] .prism-pagination button,
+body[data-management=adviser] .prism-pagination a {
+    min-width: 40px;
+    min-height: 40px;
+    border-radius: 10px;
+}
+
+body[data-management=adviser] .prism-pagination .active,
+body[data-management=adviser] .prism-pagination [aria-current=page] {
+    background: var(--adv-brand);
+    border-color: var(--adv-brand);
+    color: #fff;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    body[data-management=adviser] * {
+        transition: none !important;
+    }
+}
+
+/* Keep Adviser selection cards as compact and readable as Student Records. */
+body[data-management=adviser] .retention-toolbar {
+    display:grid;
+    gap:0;
+    padding:0;
+    border:0;
+    background:transparent;
+}
+
+body[data-management=adviser] .retention-selection-banner {
+    display:grid;
+    grid-template-columns:minmax(0,1fr) auto;
+    align-items:center;
+    gap:8px 12px;
+    margin:12px 0 0;
+    padding:12px 14px;
+    border:1.5px solid #f4b6d6;
+    border-radius:14px;
+    background:#fff7fb;
+    color:var(--prism-text);
+}
+
+body[data-management=adviser] .retention-selection-heading {
+    grid-column:1;
+    display:flex;
+    align-items:center;
+    gap:10px 16px;
+    flex-wrap:wrap;
+}
+
+body[data-management=adviser] .retention-selection-heading > p[role=status] {
+    margin:0;
+    font-size:15px;
+    line-height:1.4;
+}
+
+body[data-management=adviser] .retention-selection-heading .retention-selection-label {
+    display:inline-flex;
+    align-items:center;
+    gap:8px;
+    min-height:30px;
+    margin:0;
+    font-size:13px;
+    line-height:1.35;
+}
+
+body[data-management=adviser] .retention-toolbar-actions {
+    grid-column:2;
+    grid-row:1;
+    display:flex;
+    align-items:center;
+    flex-wrap:nowrap;
+    justify-content:flex-end;
+    gap:8px;
+    margin:0;
+}
+
+body[data-management=adviser] .retention-toolbar-actions :is(button,select) {
+    display:inline-flex;
+    flex:0 0 auto;
+    align-items:center;
+    justify-content:center;
+    gap:7px;
+    min-width:0;
+    min-height:38px;
+    height:38px;
+    margin:0;
+    padding:8px 12px;
+    border-radius:9px;
+    font-size:12px;
+    line-height:1.35;
+}
+
+body[data-management=adviser] .retention-selection-notice,
+body[data-management=adviser] .retention-selection-banner > .retention-bulk-guidance {
+    grid-column:1/-1;
+    margin:0;
+    color:var(--prism-muted);
+    font-size:12px;
+    line-height:1.45;
+}
+
+body[data-management=adviser] .retention-selection-notice[hidden] {
+    display:none !important;
+}
+
+body[data-management=adviser] .retention-toolbar-actions .retention-clear-selection {
+    border:1px solid var(--adv-line);
+    background:var(--prism-card);
+    color:var(--prism-text);
+}
+
+body[data-management=adviser] .retention-toolbar-actions .retention-archive-selected {
+    border:1px solid var(--adv-brand);
+    background:var(--adv-brand);
+    color:#fff;
+}
+
+body[data-management=adviser] .retention-toolbar-actions .retention-delete-selected {
+    border:1px solid #b42332;
+    background:#b42332;
+    color:#fff;
+}
+
+body[data-management=adviser] .retention-toolbar-actions :is(button:disabled) {
+    opacity:.55;
+    cursor:not-allowed;
+}
+
+body[data-management=adviser] #recordFilters .student-selection-toggle {
+    grid-column:1/-1;
+    justify-self:start;
+    width:auto;
+    min-width:150px;
+    min-height:40px;
+    margin:0;
+    padding:0 14px;
+}
+
+body[data-management=adviser] .adviser-result-card > .retention-select {
+    display:flex;
+    grid-area:selection;
+    align-items:center;
+    justify-content:center;
+    align-self:stretch;
+}
+
+body[data-management=adviser] .adviser-result-card > .retention-select[hidden] {
+    display:none !important;
+}
+
+body[data-management=adviser] .adviser-result-card > .retention-select input[type=checkbox] {
+    width:17px;
+    height:17px;
+    min-height:17px;
+    margin:0;
+    accent-color:var(--adv-brand);
+}
+
+/* Reflow by available card width, including the space taken by navigation. */
+@container adviser-records (max-width:1000px) {
+    body[data-management=adviser] .adviser-result-card.is-selecting {
+        grid-template-columns:26px repeat(4,minmax(0,1fr));
+        grid-template-areas:"selection profile profile profile actions" ". employee department assignments status";
+    }
+}
+
+@container adviser-records (max-width:960px) {
+    body[data-management=adviser] .adviser-result-card.prism-record-shell {
+        grid-template-columns:repeat(4,minmax(0,1fr));
+        grid-template-areas:"profile profile profile actions" "employee department assignments status";
+        row-gap:var(--prism-space-3);
+    }
+
+    body[data-management=adviser] .adviser-result-card.is-selecting {
+        grid-template-columns:26px repeat(4,minmax(0,1fr));
+        grid-template-areas:"selection profile profile profile actions" ". employee department assignments status";
+    }
+}
+
+@container adviser-records (max-width:640px) {
+    body[data-management=adviser] .adviser-result-card.prism-record-shell {
+        grid-template-columns:repeat(2,minmax(0,1fr));
+        grid-template-areas:"profile profile" "employee department" "assignments status" "actions actions";
+        padding:var(--prism-space-3);
+    }
+
+    body[data-management=adviser] .adviser-result-card.is-selecting {
+        grid-template-columns:26px repeat(2,minmax(0,1fr));
+        grid-template-areas:"selection profile profile" ". employee department" ". assignments status" "actions actions actions";
+    }
+}
+
+@container adviser-records (max-width:400px) {
+    body[data-management=adviser] .adviser-result-card.prism-record-shell {
+        grid-template-columns:minmax(0,1fr);
+        grid-template-areas:"profile" "employee" "department" "assignments" "status" "actions";
+    }
+
+    body[data-management=adviser] .adviser-result-card.is-selecting {
+        grid-template-columns:26px minmax(0,1fr);
+        grid-template-areas:"selection profile" ". employee" ". department" ". assignments" ". status" "actions actions";
+    }
+}
+
+@media (max-width:640px) {
+    body[data-management=adviser] .retention-selection-banner {
+        grid-template-columns:minmax(0,1fr);
+        gap:8px;
+        padding:12px;
+    }
+
+    body[data-management=adviser] .retention-toolbar-actions {
+        grid-column:1;
+        grid-row:auto;
+        display:flex;
+        flex-wrap:wrap;
+        justify-content:flex-start;
+    }
+
+    body[data-management=adviser] .retention-toolbar-actions :is(button,select) {
+        flex:1 1 auto;
+    }
+
+    body[data-management=adviser] .retention-selection-heading {
+        grid-column:1;
+    }
+
+}
+
+html.dark-theme body[data-management=adviser] .retention-selection-banner {
+    border-color:rgba(181,20,110,.48);
+    background:var(--prism-card);
+}

@@ -1,0 +1,305 @@
+/* Archived Accounts: supplied reference layout, existing lifecycle controls. */
+body.student-records-page[data-archive-workspace=true] {
+    --archive-line:#e6e3ee;
+    --archive-muted:#6b6886;
+    --archive-soft:#fde8f3;
+    --archive-selected:#0c0e3f;
+    --archive-selected-text:#fff;
+}
+html.dark-theme body.student-records-page[data-archive-workspace=true] {
+    --archive-line:var(--prism-border);
+    --archive-muted:var(--prism-muted);
+    --archive-soft:var(--prism-pink-soft);
+    --archive-selected:var(--prism-primary);
+}
+body.student-records-page[data-archive-workspace=true] .management-page > .topbar,
+body.student-records-page[data-archive-workspace=true] #permanentDeleteAvailability,
+body.student-records-page[data-archive-workspace=true] .archive-workspace-panel {
+    width:100%;max-width:none;margin-inline:0;
+}
+body.student-records-page[data-archive-workspace=true] .management-page > .topbar { margin-bottom:14px; }
+body.student-records-page[data-archive-workspace=true] #permanentDeleteAvailability {
+    display:flex;align-items:flex-start;gap:10px;margin-block:0 14px;padding:11px 14px;
+    border:1px solid #f3dca8;border-radius:14px;background:#fff8e8;color:#795000;
+    font-size:12px;line-height:1.5;overflow-wrap:anywhere;
+}
+body.student-records-page[data-archive-workspace=true] #permanentDeleteAvailability[data-available=true] {
+    border-color:var(--prism-success-bd);background:var(--prism-success-bg);color:var(--prism-success-fg);
+}
+html.dark-theme body.student-records-page[data-archive-workspace=true] #permanentDeleteAvailability[data-available=false] {
+    border-color:var(--prism-warning-bd);background:var(--prism-warning-bg);color:var(--prism-warning-fg);
+}
+body.student-records-page[data-archive-workspace=true] .archive-ui-icon { flex:0 0 14px;width:14px;height:14px; }
+body.student-records-page[data-archive-workspace=true] #permanentDeleteAvailability > svg { margin-top:2px; }
+body.student-records-page[data-archive-workspace=true] .archive-workspace-panel {
+    padding:18px;border:1px solid var(--archive-line);border-radius:22px;background:var(--prism-card);
+}
+body.student-records-page[data-archive-workspace=true] .management-controls {
+    display:flex;align-items:center;flex-wrap:wrap;gap:10px;margin:0;
+}
+body.student-records-page[data-archive-workspace=true] .management-search {
+    flex:1 1 260px;width:auto;min-width:0;min-height:36px;height:36px;gap:9px;
+    padding:8px 12px;border:1px solid var(--archive-line);border-radius:12px;background:var(--prism-card);
+}
+body.student-records-page[data-archive-workspace=true] .management-search > svg { color:var(--archive-muted); }
+body.student-records-page[data-archive-workspace=true] .management-search input { min-width:0;font-size:12px; }
+body.student-records-page[data-archive-workspace=true] .management-search:focus-within {
+    border-color:var(--prism-pink);box-shadow:0 0 0 3px var(--archive-soft);
+}
+body.student-records-page[data-archive-workspace=true] .archive-tabs {
+    display:flex;align-items:center;flex-wrap:wrap;gap:2px;margin:0;padding:4px;border-radius:12px;background:var(--prism-purple-soft);
+}
+body.student-records-page[data-archive-workspace=true] .archive-tabs a {
+    display:inline-flex;align-items:center;justify-content:center;gap:8px;flex:1 0 auto;
+    width:auto;min-width:0;min-height:30px;height:auto;padding:7px 12px;border:0;border-radius:9px;
+    background:transparent;color:var(--archive-muted);font-size:12px;line-height:16px;text-decoration:none;white-space:nowrap;
+}
+body.student-records-page[data-archive-workspace=true] .archive-tabs a[aria-current=page] {
+    background:var(--prism-card);color:var(--prism-pink);box-shadow:0 2px 8px rgba(12,14,63,.12);
+}
+html.dark-theme body.student-records-page[data-archive-workspace=true] .archive-tabs a[aria-current=page] { color:var(--prism-accent); }
+body.student-records-page[data-archive-workspace=true] .archive-count {
+    display:inline-block;padding:0 6px;border-radius:999px;background:var(--prism-purple-soft);font-size:10px;line-height:14px;white-space:nowrap;
+}
+body.student-records-page[data-archive-workspace=true] .archive-statusbar {
+    display:flex;align-items:center;flex-wrap:wrap;gap:8px 12px;margin:12px 0 14px;
+}
+body.student-records-page[data-archive-workspace=true] .archive-statusbar .prism-filter-pills {
+    display:flex;flex-wrap:wrap;gap:7px;min-width:0;margin:0;
+}
+body.student-records-page[data-archive-workspace=true] .archive-statusbar .prism-filter-pill {
+    display:inline-flex;align-items:center;gap:8px;min-width:0;min-height:30px;height:auto;
+    margin:0;padding:6px 12px;border:1px solid var(--archive-line);border-radius:999px;
+    background:var(--prism-card);color:var(--prism-text);font:500 12px/16px var(--prism-font-family);white-space:nowrap;
+}
+body.student-records-page[data-archive-workspace=true] .archive-statusbar .prism-filter-pill[aria-pressed=true] {
+    border-color:var(--archive-selected);background:var(--archive-selected);color:var(--archive-selected-text);
+}
+body.student-records-page[data-archive-workspace=true] .archive-statusbar .prism-filter-pill[aria-pressed=true] .archive-count {
+    background:rgba(255,255,255,.15);color:inherit;
+}
+body.student-records-page[data-archive-workspace=true] #recordCount {
+    flex:0 1 auto;margin:0 0 0 auto;color:var(--archive-muted);font-size:11px;line-height:1.4;
+}
+body.student-records-page[data-archive-workspace=true] .archive-statusbar .prism-filter-disclosure { flex:0 0 auto; }
+body.student-records-page[data-archive-workspace=true] .archive-statusbar .student-filter-action {
+    width:30px;min-width:30px;height:30px;min-height:30px;padding:0;border-radius:9px;
+}
+body.student-records-page[data-archive-workspace=true] .management-card {
+    margin:0;padding:0;border:0;border-radius:0;background:transparent;box-shadow:none;
+}
+body.student-records-page[data-archive-workspace=true] .management-card-head { display:none; }
+body.student-records-page[data-archive-workspace=true] .management-table-wrap { container:archive-records / inline-size; }
+body.student-records-page[data-archive-workspace=true] .management-table-wrap > table tbody {
+    display:grid;gap:12px;width:100%;margin:0;
+}
+body.student-records-page[data-archive-workspace=true] .management-table-wrap td:has(> .archive-result-card) { padding:0 !important; }
+body.student-records-page[data-archive-workspace=true] .archive-result-card.prism-record-shell {
+    display:grid;grid-template-columns:minmax(220px,1.4fr) minmax(130px,.8fr) minmax(225px,1.1fr) max-content;
+    grid-template-areas:"profile facts retention actions" "details details details details";
+    align-items:center;gap:12px 20px;padding:16px 20px 0;border:1px solid var(--archive-line);
+    border-radius:16px;background:var(--prism-card);font-size:13px;line-height:1.4;box-shadow:0 5px 15px rgba(12,14,63,.05);
+}
+body.student-records-page[data-archive-workspace=true] .archive-result-card .student-name-layout {
+    grid-area:profile;display:flex;align-items:center;gap:11px;min-width:0;
+}
+body.student-records-page[data-archive-workspace=true] .archive-result-card .student-avatar {
+    flex:0 0 44px;width:44px;height:44px;background:var(--archive-soft);color:var(--prism-pink);font-size:13px;font-weight:800;
+}
+body.student-records-page[data-archive-workspace=true] .archive-result-card .student-name-copy { min-width:0;overflow-wrap:anywhere; }
+body.student-records-page[data-archive-workspace=true] .archive-result-card .student-name-copy strong { font-size:14px;font-weight:700; }
+body.student-records-page[data-archive-workspace=true] .archive-result-card .student-name-copy small {
+    display:block;margin-top:2px;color:var(--archive-muted);font-size:12px;line-height:1.4;overflow-wrap:anywhere;
+}
+body.student-records-page[data-archive-workspace=true] .archive-identity-fields { grid-area:facts; }
+body.student-records-page[data-archive-workspace=true] .archive-retention-fields { grid-area:retention; }
+body.student-records-page[data-archive-workspace=true] .archive-record-fields { display:grid;align-items:start;justify-items:start;gap:8px;min-width:0; }
+body.student-records-page[data-archive-workspace=true] .archive-result-card .student-result-label,
+body.student-records-page[data-archive-workspace=true] .archive-result-card .academic-record-summary dt {
+    display:block;margin:0 0 4px;color:var(--archive-muted);font-size:10px;font-weight:600;line-height:14px;letter-spacing:.04em;text-transform:uppercase;
+}
+body.student-records-page[data-archive-workspace=true] .archive-value { color:var(--prism-text);font-size:13px;font-weight:600;line-height:1.4;overflow-wrap:anywhere; }
+body.student-records-page[data-archive-workspace=true] .archive-meta { display:block;margin-top:2px;color:var(--archive-muted);font-size:11px;font-weight:400;line-height:1.4;overflow-wrap:anywhere; }
+body.student-records-page[data-archive-workspace=true] .archive-status-pill {
+    display:inline-flex;align-items:center;gap:6px;justify-self:start;max-width:100%;min-height:20px;
+    padding:3px 10px;border-radius:999px;font-size:11px;font-weight:700;line-height:14px;overflow-wrap:anywhere;
+}
+body.student-records-page[data-archive-workspace=true] .archive-status-pill.is-archived { background:var(--prism-override-bg);color:var(--prism-override-fg); }
+body.student-records-page[data-archive-workspace=true] .archive-status-pill.is-warning { background:var(--prism-warning-bg);color:var(--prism-warning-fg); }
+body.student-records-page[data-archive-workspace=true] .archive-status-pill.is-held { background:var(--prism-info-bg);color:var(--prism-info-fg); }
+body.student-records-page[data-archive-workspace=true] .archive-status-pill.is-eligible { background:var(--prism-success-bg);color:var(--prism-success-fg); }
+body.student-records-page[data-archive-workspace=true] .archive-status-pill.is-neutral { background:var(--prism-neutral-bg);color:var(--prism-neutral-fg); }
+body.student-records-page[data-archive-workspace=true] .archive-result-card .student-result-actions {
+    grid-area:actions;display:flex;align-items:center;justify-content:flex-end;flex-wrap:nowrap;gap:8px;min-width:0;
+}
+body.student-records-page[data-archive-workspace=true] .archive-result-card .archive-restore-action {
+    display:inline-flex;align-items:center;justify-content:center;gap:8px;flex:0 0 auto;width:auto;min-width:0;max-width:none;
+    height:36px;min-height:36px;margin:0;padding:8px 14px;border:1px solid #f4b6d6;border-radius:10px;
+    background:var(--archive-soft);color:var(--prism-pink);font:600 12px/18px var(--prism-font-family);cursor:pointer;
+}
+body.student-records-page[data-archive-workspace=true] .archive-result-card .archive-restore-action:hover { border-color:var(--prism-pink); }
+body.student-records-page[data-archive-workspace=true] .archive-result-card .prism-action-trigger {
+    width:40px;min-width:40px;height:36px;min-height:36px;padding:0;border:1px solid var(--archive-line);border-radius:10px;
+    background:var(--prism-card);color:var(--prism-text);font-size:16px;
+}
+body.student-records-page[data-archive-workspace=true] .archive-record-actions-panel { width:280px;max-width:calc(100vw - 24px);border-radius:14px; }
+body.student-records-page[data-archive-workspace=true] .archive-record-actions-panel .prism-action-item { font-size:12px;line-height:1.5; }
+body.student-records-page[data-archive-workspace=true] .archive-record-actions-panel [aria-disabled=true] { opacity:.6; }
+body.student-records-page[data-archive-workspace=true] .archive-result-card .student-result-details {
+    grid-area:details;min-width:0;margin:0;padding:0 0 16px;border-top:1px dashed var(--archive-line);
+}
+body.student-records-page[data-archive-workspace=true] .archive-result-card .student-result-details > summary {
+    display:flex;align-items:center;gap:6px;min-height:38px;width:100%;padding:10px 2px;
+    color:var(--prism-pink);font:500 12px/18px var(--prism-font-family);list-style:none;
+}
+body.student-records-page[data-archive-workspace=true] .archive-result-card .student-result-details > summary::marker { content:''; }
+body.student-records-page[data-archive-workspace=true] .archive-result-card .student-result-details > summary::-webkit-details-marker { display:none; }
+body.student-records-page[data-archive-workspace=true] .archive-result-card .student-result-details[open] > summary > svg { transform:rotate(180deg); }
+body.student-records-page[data-archive-workspace=true] .archive-result-card .student-academic-details-grid {
+    display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;padding:16px;margin:0;border-radius:14px;background:var(--prism-bg);
+}
+body.student-records-page[data-archive-workspace=true] .archive-result-card .academic-record-summary { display:contents; }
+
+body.student-records-page[data-archive-workspace=true] .archive-result-card .student-academic-details-grid > * { min-width:0;overflow-wrap:anywhere; }
+body.student-records-page[data-archive-workspace=true] .archive-result-card .student-academic-details-grid > .academic-record-summary > div { min-width:0; }
+body.student-records-page[data-archive-workspace=true] .archive-result-card .student-academic-details-grid dd { margin:0;font-size:13px;line-height:1.45; }
+body.student-records-page[data-archive-workspace=true] .prism-record-footer {
+    display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;margin:16px 0 0;padding:0;border:0;background:transparent;
+}
+body.student-records-page[data-archive-workspace=true] .prism-row-size { gap:8px;color:var(--archive-muted);font-size:12px; }
+body.student-records-page[data-archive-workspace=true] .prism-row-size select {
+    width:auto;min-height:30px;height:30px;padding:4px 28px 4px 9px;border:1px solid var(--archive-line);border-radius:9px;background:var(--prism-card);color:var(--prism-text);
+}
+body.student-records-page[data-archive-workspace=true] .prism-pagination { gap:6px;padding:0;margin:0; }
+body.student-records-page[data-archive-workspace=true] .prism-pagination button { min-width:32px;min-height:32px;height:32px;padding:0;border-radius:9px;font-size:12px; }
+body.student-records-page[data-archive-workspace=true] .prism-pagination [aria-current=page] { border-color:var(--prism-pink);background:var(--prism-pink);color:#fff; }
+html.dark-theme body.student-records-page[data-archive-workspace=true] :is(.archive-restore-action,.archive-result-card .student-avatar,.student-result-details > summary) { color:var(--prism-accent); }
+@container archive-records (max-width:900px) {
+    body.student-records-page[data-archive-workspace=true] .archive-result-card.prism-record-shell {
+        grid-template-columns:repeat(2,minmax(0,1fr));grid-template-areas:"profile profile" "facts retention" "actions actions" "details details";
+    }
+    body.student-records-page[data-archive-workspace=true] .archive-result-card .student-academic-details-grid { grid-template-columns:repeat(2,minmax(0,1fr)); }
+}
+@container archive-records (max-width:520px) {
+    body.student-records-page[data-archive-workspace=true] .archive-result-card.prism-record-shell {
+        grid-template-columns:minmax(0,1fr);grid-template-areas:"profile" "facts" "retention" "actions" "details";padding:14px 14px 0;
+    }
+    body.student-records-page[data-archive-workspace=true] .archive-result-card .student-result-details { padding-bottom:14px; }
+    body.student-records-page[data-archive-workspace=true] .archive-result-card .student-academic-details-grid { grid-template-columns:minmax(0,1fr); }
+}
+@media(max-width:640px) {
+    body.student-records-page[data-archive-workspace=true] .archive-workspace-panel { padding:12px; }
+    body.student-records-page[data-archive-workspace=true] .management-controls { flex-direction:column;align-items:stretch; }
+    body.student-records-page[data-archive-workspace=true] .management-search { flex:0 0 auto; }
+    body.student-records-page[data-archive-workspace=true] .archive-tabs { align-self:stretch; }
+    body.student-records-page[data-archive-workspace=true] #recordCount { margin-left:0; }
+    body.student-records-page[data-archive-workspace=true] .archive-statusbar .prism-filter-disclosure { margin-left:auto; }
+    body.student-records-page[data-archive-workspace=true] .archive-tabs a { flex:1 1 auto;padding-inline:8px;font-size:11px; }
+}
+
+body.student-records-page[data-archive-workspace=true] .archive-result-card .student-name-copy small:first-of-type {
+    display:block;width:auto;margin-top:2px;padding:0;border-radius:0;background:transparent;color:var(--archive-muted);font-weight:400;
+}
+body.student-records-page[data-archive-workspace=true] .prism-record-footer .prism-row-size select { min-height:30px;height:30px; }
+
+/* Retention remains visible alongside the date, with wrapping for narrow cards. */
+body.student-records-page[data-archive-workspace=true] .archive-retention-fields > .archive-fact {
+    display:flex;align-items:center;flex-wrap:wrap;gap:4px 8px;min-width:0;
+}
+body.student-records-page[data-archive-workspace=true] .archive-retention-fields .student-result-label { flex-basis:100%;margin:0; }
+body.student-records-page[data-archive-workspace=true] .archive-retention-fields .archive-status-pill { min-height:20px;padding:2px 9px; }
+body.student-records-page[data-archive-workspace=true] .archive-result-card .student-academic-details-grid > .archive-fact {
+    padding:12px 14px;border:1px solid var(--archive-line);border-radius:12px;background:var(--prism-card);
+}
+body.student-records-page[data-archive-workspace=true] .archive-detail-context {
+    grid-column:1/-1;display:flex;flex-wrap:wrap;gap:4px 18px;color:var(--archive-muted);font-size:11px;line-height:1.5;
+}
+body.student-records-page[data-archive-workspace=true] .archive-result-card .student-academic-details-grid > .archive-deletion-notice {
+    grid-column:1/-1;border-color:var(--prism-warning-bd);background:var(--prism-warning-bg);color:var(--prism-warning-fg);
+}
+body.student-records-page[data-archive-workspace=true] .archive-deletion-notice :is(.student-result-label,.archive-value) { color:inherit; }
+body.student-records-page[data-archive-workspace=true] .archive-deletion-notice .archive-value { font-size:12px;font-weight:400;line-height:1.5; }
+body.student-records-page[data-archive-workspace=true] .archive-result-card .student-academic-details-grid > .archive-deletion-notice.is-available {
+    border-color:var(--prism-success-bd);background:var(--prism-success-bg);color:var(--prism-success-fg);
+}
+/* Native details stays keyboard-accessible; supporting browsers animate both directions. */
+@supports (interpolate-size:allow-keywords) {
+    body.student-records-page[data-archive-workspace=true] .student-result-details { interpolate-size:allow-keywords; }
+    body.student-records-page[data-archive-workspace=true] .student-result-details::details-content {
+        block-size:0;overflow:hidden;transition:block-size .2s ease,content-visibility .2s allow-discrete;
+    }
+    body.student-records-page[data-archive-workspace=true] .student-result-details[open]::details-content { block-size:auto; }
+}
+@media(prefers-reduced-motion:reduce) {
+    body.student-records-page[data-archive-workspace=true] .student-result-details::details-content { transition:none; }
+}
+
+/* Grouped detail cards: Research / Academic / Retention. */
+body.student-records-page[data-archive-workspace=true] .archive-result-card .student-academic-details-grid > .archive-detail-card {
+    display:flex;flex-direction:column;gap:10px;padding:16px 18px;border:1px solid var(--archive-line);border-radius:14px;background:var(--prism-card);
+}
+body.student-records-page[data-archive-workspace=true] .archive-detail-card h4 { margin:0;color:var(--prism-pink);font:700 12px/16px var(--prism-font-family);letter-spacing:.06em;text-transform:uppercase; }
+body.student-records-page[data-archive-workspace=true] .archive-detail-card > div { display:flex;flex-direction:column;gap:2px;min-width:0; }
+body.student-records-page[data-archive-workspace=true] .archive-detail-label { color:var(--archive-muted);font-size:12px;font-weight:400; }
+body.student-records-page[data-archive-workspace=true] .archive-detail-card strong { color:var(--prism-text);font-size:14px;font-weight:600;line-height:1.4; }
+
+/* Details: full-width, unboxed grid so the three cards span the card evenly. */
+body.student-records-page[data-archive-workspace=true] .archive-result-card .student-result-details[open] > .student-academic-details-grid {
+    display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px;width:100%;margin:0;padding:16px 0;border-radius:0;background:transparent;align-items:stretch;
+}
+body.student-records-page[data-archive-workspace=true] .archive-result-card .student-result-details[open] > .student-academic-details-grid > .archive-detail-card { width:100%;background:var(--prism-card); }
+body.student-records-page[data-archive-workspace=true] .archive-result-card .student-result-details[open] > .student-academic-details-grid > .archive-deletion-notice { grid-column:1/-1; }
+body.student-records-page[data-archive-workspace=true] .archive-detail-card h4,
+body.student-records-page[data-archive-workspace=true] .archive-result-card .student-result-details > summary { color:#B5146E; }
+@container archive-records (max-width:900px) {
+    body.student-records-page[data-archive-workspace=true] .archive-result-card .student-result-details[open] > .student-academic-details-grid { grid-template-columns:repeat(2,minmax(0,1fr)); }
+}
+@container archive-records (max-width:520px) {
+    body.student-records-page[data-archive-workspace=true] .archive-result-card .student-result-details[open] > .student-academic-details-grid { grid-template-columns:minmax(0,1fr); }
+}
+
+/* Selection checkbox overlays the avatar so the profile never shifts when selecting. */
+body.student-records-page[data-archive-workspace=true] .archive-result-card .student-name-layout { position:relative; }
+body.student-records-page[data-archive-workspace=true] .archive-result-card .student-name-layout > .retention-select {
+    position:absolute;top:-6px;left:-6px;z-index:1;display:flex;align-items:center;justify-content:center;width:22px;height:22px;
+    border-radius:6px;background:var(--prism-card);box-shadow:0 0 0 1px var(--archive-line);
+}
+body.student-records-page[data-archive-workspace=true] .archive-result-card .student-name-layout > .retention-select[hidden] { display:none; }
+body.student-records-page[data-archive-workspace=true] .archive-result-card .student-name-layout > .retention-select input { width:16px;height:16px;min-height:16px;margin:0;accent-color:#B5146E; }
+
+/* Selection mode must not reflow archive cards (student-records.css reserves a checkbox column). */
+body.student-records-page[data-archive-workspace=true] .archive-result-card.prism-record-shell.student-result-card.is-selecting {
+    grid-template-columns:minmax(220px,1.4fr) minmax(130px,.8fr) minmax(225px,1.1fr) max-content;
+    grid-template-areas:"profile facts retention actions" "details details details details";
+    padding:16px 20px 0;
+}
+body.student-records-page[data-archive-workspace=true] .archive-result-card.prism-record-shell.is-selecting > .student-name-layout { grid-area:profile; }
+body.student-records-page[data-archive-workspace=true] .archive-result-card.prism-record-shell.is-selecting > .archive-identity-fields { grid-area:facts; }
+body.student-records-page[data-archive-workspace=true] .archive-result-card.prism-record-shell.is-selecting > .archive-retention-fields { grid-area:retention; }
+body.student-records-page[data-archive-workspace=true] .archive-result-card.prism-record-shell.is-selecting > .student-result-actions { grid-area:actions; }
+body.student-records-page[data-archive-workspace=true] .archive-result-card.prism-record-shell.is-selecting > .student-result-details { grid-area:details;margin-inline:0; }
+@container archive-records (max-width:900px) {
+    body.student-records-page[data-archive-workspace=true] .archive-result-card.prism-record-shell.student-result-card.is-selecting {
+        grid-template-columns:repeat(2,minmax(0,1fr));grid-template-areas:"profile profile" "facts retention" "actions actions" "details details";
+    }
+}
+@container archive-records (max-width:520px) {
+    body.student-records-page[data-archive-workspace=true] .archive-result-card.prism-record-shell.student-result-card.is-selecting {
+        grid-template-columns:minmax(0,1fr);grid-template-areas:"profile" "facts" "retention" "actions" "details";padding:14px 14px 0;
+    }
+}
+
+/* Select toggle matches the filter button; clear-filters sits left without the divider. */
+body.student-records-page[data-archive-workspace=true] .archive-statusbar .student-selection-toggle {
+    display:inline-flex;align-items:center;gap:6px;flex:0 0 auto;width:auto;min-width:30px;height:30px;min-height:30px;margin:0;padding:0 10px;border-radius:9px;font-size:12px;
+}
+body.student-records-page[data-archive-workspace=true] .prism-filter-panel .prism-filter-selection-divider { display:none; }
+body.student-records-page[data-archive-workspace=true] .prism-filter-panel .prism-filter-selection-controls { justify-self:start; }
+
+/* Checkbox sits in the card's left padding, clear of the avatar. */
+body.student-records-page[data-archive-workspace=true] .archive-result-card .student-name-layout > .retention-select {
+    top:50%;left:-19px;width:18px;height:18px;transform:translateY(-50%);border-radius:0;background:transparent;box-shadow:none;
+}
+@container archive-records (max-width:520px) {
+    body.student-records-page[data-archive-workspace=true] .archive-result-card .student-name-layout > .retention-select { left:-15px; }
+}
