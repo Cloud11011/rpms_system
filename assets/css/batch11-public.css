@@ -109,8 +109,8 @@ body.prism-public .public-hero > div {
     background: transparent; color: #fff; border: 2px solid rgba(255,255,255,.7);
 }
 
-/* Stage cards: six in a row with a numbered circle */
-.public-stages ol { grid-template-columns: repeat(6, minmax(0, 1fr)); }
+/* Four official stages, retaining the existing numbered-card design. */
+.public-stages ol { grid-template-columns: repeat(4, minmax(0, 1fr)); }
 .public-stages li:last-child { grid-column: auto; }
 .public-stages li { border: 1px solid var(--public-border); border-top: 1px solid var(--public-border); border-radius: 18px; padding: 22px 20px; transition: transform .2s ease, box-shadow .2s ease; }
 .public-stages li:hover { transform: translateY(-4px); box-shadow: 0 10px 24px rgba(106, 20, 88, .12); }
@@ -120,8 +120,9 @@ body.prism-public .public-hero > div {
 }
 .public-stages h3 { font-size: 16px; font-weight: 800; }
 .public-cta { background: linear-gradient(100deg, #1C1244 0%, #6A1458 55%, #B5146E 100%); border-radius: 24px; padding: 40px 44px; }
-@media (max-width: 1000px) { .public-stages ol { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+@media (max-width: 1000px) { .public-stages ol { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 @media (max-width: 700px)  { .public-stages ol { grid-template-columns: repeat(2, minmax(0, 1fr)); } .public-hero { padding-top: 120px; } }
+@media (max-width: 360px) { .public-stages ol { grid-template-columns: minmax(0, 1fr); } }
 
 .batch11-login .login-campus {
     background:

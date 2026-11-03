@@ -1,6 +1,6 @@
 /* PRISM shared form behavior (Batch 6). Loaded on every page through prism_frontend_styles().
    - Required markers follow the live `required`/`aria-required` state of enabled, editable controls.
-   - Student ID fields accept digits only for new values; an unchanged legacy value stays valid.
+   - New/changed Student IDs require ####-#####; unchanged historical IDs remain valid.
    - Opt-in gating (`data-prism-gate`) enables submit only when the form is valid (and changed, for "dirty").
    - Opt-in `data-prism-submit-once` prevents duplicate native form submissions.
    Server-side validation remains authoritative; this module only improves feedback. */
@@ -8,7 +8,8 @@
   'use strict';
   const doc = root.document;
   if (!doc || root.PrismForms) return;
-  const DIGITS = /^[0-9]+$/;
+  const STUDENT_ID = /^[0-9]{4}-[0-9]{5}$/;
+  const ID_CHARACTERS = /^[0-9-]+$/;
   const CONTROLS = 'input,select,textarea,[aria-required]';
   const gated = new Set();
   let scheduled = false;
@@ -129,11 +130,11 @@
     const value = control.value;
     const legacy = legacyValue(control);
     let problem = '';
-    if (value !== '' && value !== legacy && !DIGITS.test(value)) problem = 'Student ID must contain numbers only (0-9), with no letters, spaces or symbols.';
+    if (value !== '' && value !== legacy && !STUDENT_ID.test(value)) problem = 'Use four digits, a hyphen, and five digits (example: 2023-34216).';
     control.setCustomValidity(problem);
     control.setAttribute('aria-invalid', problem ? 'true' : 'false');
     if (problem) showMessage(control, problem, 'error');
-    else if (legacy !== null && legacy !== '' && value === legacy && !DIGITS.test(legacy)) showMessage(control, 'This existing ID is retained as recorded. A changed ID must contain numbers only.', 'info');
+    else if (legacy !== null && legacy !== '' && value === legacy && !STUDENT_ID.test(legacy)) showMessage(control, 'This existing ID is retained as recorded. A changed ID must use the format 2023-34216.', 'info');
     else showMessage(control, '', 'error');
     return !problem;
   }
@@ -147,23 +148,23 @@
   function enhanceStudentId(control) {
     if (control.dataset.prismStudentIdReady) return;
     control.dataset.prismStudentIdReady = '1';
-    control.inputMode = 'numeric';
+    control.inputMode = 'text';
     control.autocomplete = control.getAttribute('autocomplete') || 'off';
     control.spellcheck = false;
     control.addEventListener('beforeinput', event => {
       if (!['insertText', 'insertReplacementText', 'insertFromDrop', 'insertCompositionText'].includes(event.inputType)) return;
       const text = event.data ?? event.dataTransfer?.getData('text') ?? '';
-      if (text && !DIGITS.test(text)) {
+      if (text && !ID_CHARACTERS.test(text)) {
         event.preventDefault();
-        showMessage(control, 'Student ID accepts numbers only. "' + text.slice(0, 20) + '" was not added.', 'error', 'notice');
+        showMessage(control, 'Student ID accepts digits and one hyphen. "' + text.slice(0, 20) + '" was not added.', 'error', 'notice');
       }
     });
     control.addEventListener('paste', event => {
       const raw = event.clipboardData?.getData('text') ?? '';
       const trimmed = raw.trim();
       event.preventDefault();
-      if (DIGITS.test(trimmed)) { insertText(control, trimmed); return; }
-      showMessage(control, 'The pasted value contains letters, spaces or symbols. Paste a Student ID with numbers only.', 'error', 'notice');
+      if (ID_CHARACTERS.test(trimmed)) { insertText(control, trimmed); return; }
+      showMessage(control, 'Paste a Student ID using digits and a hyphen, for example 2023-34216.', 'error', 'notice');
     });
     control.addEventListener('input', () => { showMessage(control, '', 'error', 'notice'); validateStudentId(control); });
     validateStudentId(control);
@@ -331,7 +332,7 @@
       enhanceStudentId(control);
       validateStudentId(control);
     },
-    isStudentId: value => DIGITS.test(String(value)),
+    isStudentId: value => STUDENT_ID.test(String(value)),
     scan,
   };
   if (doc.readyState === 'loading') doc.addEventListener('DOMContentLoaded', start);

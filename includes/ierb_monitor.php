@@ -154,7 +154,7 @@ function monitor_list(PDO $pdo,array $actor,array $query): array
         [$scope,$params]=monitor_scope($pdo,$actor);
         $options=prism_student_filter_options($pdo,$scope,$params);
         // Semantic and historical stage labels are explicitly separate.
-        foreach ($options['stage'] as &$option) if (isset(IerbStage::LABELS[$option['value']])) $option['label']='V14 — '.IerbStage::LABELS[$option['value']];
+        foreach ($options['stage'] as &$option) if (isset(IerbStage::LABELS[$option['value']])) $option['label']=IerbStage::LABELS[$option['value']];
         unset($option);
         $overview=$pdo->prepare('SELECT s.stage,COUNT(*) AS c '.$scope.' GROUP BY s.stage'); $overview->execute($params);
         $counts=$overview->fetchAll();

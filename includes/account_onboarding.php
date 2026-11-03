@@ -50,13 +50,13 @@ function onboarding_email_available(PDO $pdo, string $email): void
     }
 }
 
-/** New Student/School IDs contain digits only. They stay text, so leading zeros are preserved.
- * An unchanged historical identifier is accepted as recorded and is never rewritten. */
+/** New or changed Student IDs require four digits, a hyphen and five digits.
+ * Stored as text; an unchanged historical identifier is accepted without conversion. */
 function onboarding_student_id(string $identifier, ?string $existing = null): string
 {
     if ($existing !== null && $existing !== '' && $identifier === $existing) return $identifier;
-    if (!preg_match('/\A[0-9]{1,100}\z/', $identifier)) {
-        throw new AccountLifecycleValidation('Student ID must contain numbers only (0-9), with no letters, spaces or symbols.');
+    if (!preg_match('/\A[0-9]{4}-[0-9]{5}\z/', $identifier)) {
+        throw new AccountLifecycleValidation('Student ID must contain exactly four digits, a hyphen, and five digits (example: 2023-34216).');
     }
     return $identifier;
 }
@@ -314,12 +314,12 @@ function onboarding_finish(PDO $pdo, array $user, array $data): array
         :['action','name','employeeId','department']);
     $name=onboarding_text($data['name']??null,'Full name',190);
     $identifier=onboarding_text($data[$role==='student'?'studentId':'employeeId']??null,'Institutional ID',100);
-    if ($role==='student') onboarding_student_id($identifier);
     $pdo->beginTransaction();
     try {
         research_project_fence($pdo);
         $r=onboarding_profile($pdo,$user,true);
         if (!$r) throw new AccountLifecycleConflict('Profile ownership requires Admin review.');
+        if ($role==='student') onboarding_student_id($identifier, (string)($r['student_id'] ?? ''));
         if ($r['archived_at']!==null || $r['profile_completed_at']!==null) throw new AccountLifecycleConflict('This profile is archived or already complete.');
         $login=lifecycle_resolve_login($pdo,$r,$role);
         if ((int)$login['id']!==(int)$user['id'] || $login['status']!=='Active' || $login['email']!==$user['email']

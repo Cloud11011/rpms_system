@@ -74,7 +74,7 @@ html.dark-theme .upc-attach { color: #ff9dc7; border-color: rgba(255, 157, 199, 
 .upc-drop i { color: var(--accent-pink); font-size: 26px; }
 .upc-drop strong { color: var(--text-primary); font-size: 14.5px; }
 .upc-drop span { font-size: 13px; line-height: 1.5; }
-.upc-drop input { position: absolute; inset: 0; width: 100%; opacity: 0; cursor: pointer; }
+.upc-drop input[type="file"] { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; border: 0; overflow: hidden; clip: rect(0, 0, 0, 0); clip-path: inset(50%); white-space: nowrap; opacity: 0; }
 .upc-drop.is-over { background: rgba(189, 13, 101, .1); }
 .upc-drop:focus-within { outline: 3px solid var(--accent-pink); outline-offset: 2px; }
 .upc-drop.is-disabled { opacity: .5; cursor: not-allowed; }
