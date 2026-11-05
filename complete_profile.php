@@ -54,7 +54,7 @@ header('Cache-Control: no-store');
                     </p>
                     <p class="prism-required-legend"><span class="prism-required-mark" aria-hidden="true">*</span>Required field</p>
                     <label for="onboardingName">Full name</label>
-                    <input id="onboardingName" name="name" autocomplete="name" maxlength="190" placeholder="Enter full name" required>
+                    <input id="onboardingName" name="name" autocomplete="name" maxlength="190" placeholder="e.g Juan L. Dela Cruz" required>
 
                     <label for="onboardingId"><?= $student?'Student':'Employee' ?> ID</label>
                     <?php if($student): ?>

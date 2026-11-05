@@ -50,7 +50,7 @@ if ($isAdmin && legal_admin_eligible($authUser)) {
 <form id="accountProfileForm" class="account-form" data-prism-gate="dirty" data-prism-gate-unchanged="Edit your name to enable saving.">
 <div class="account-name-field">
 <label for="accountName">Full name</label><p id="accountNameNote">Shown on records and in Activity Logs.</p>
-<div class="account-name-edit"><input id="accountName" maxlength="190" placeholder="Enter full name" autocomplete="name" aria-describedby="accountNameNote" required>
+<div class="account-name-edit"><input id="accountName" maxlength="190" placeholder="e.g Juan L. Dela Cruz" autocomplete="name" aria-describedby="accountNameNote" required>
 <button class="management-primary" type="submit"><i class="fa-solid fa-floppy-disk" aria-hidden="true"></i> Save name</button>
 </div></div>
 </form>

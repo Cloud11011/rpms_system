@@ -45,7 +45,7 @@ if (isset($_SESSION['error'])) {
 <div class="reg-field"><i class="fa-solid fa-id-badge" aria-hidden="true"></i><input id="employee_id" type="text" name="employee_id" maxlength="100" placeholder="Enter Employee ID" aria-describedby="empHint" required></div>
 <p class="reg-hint" id="empHint">Your Employee ID is used as your username.</p>
 <label for="fullname">Full name</label>
-<div class="reg-field"><i class="fa-solid fa-user" aria-hidden="true"></i><input id="fullname" type="text" name="fullname" maxlength="190" placeholder="Enter full name" autocomplete="name" required></div>
+<div class="reg-field"><i class="fa-solid fa-user" aria-hidden="true"></i><input id="fullname" type="text" name="fullname" maxlength="190" placeholder="e.g Juan L. Dela Cruz" autocomplete="name" required></div>
 </section>
 <section class="wiz-panel" data-step="2" hidden>
 <label for="email" class="first">Institutional email</label>
